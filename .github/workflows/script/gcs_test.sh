@@ -119,6 +119,8 @@ else
     --storage-type "${storageType}" \
     "${MIRROR_STORAGE_OPTIONS[@]}" \
 
+  kubectl port-forward -n "${SOLO_NAMESPACE}" svc/mirror-grpc 5600:5600 > /dev/null 2>&1 &
+
   npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME}
 
   kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
@@ -128,6 +130,14 @@ else
 fi
 
 cd ..; create_test_account ${SOLO_DEPLOYMENT}; cd -
+
+ps -ef |grep port-forward
+
+if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_x86_64.tar.gz" | sudo tar -xz -C /usr/local/bin
+fi
+
+grpcurl -plaintext -d '{"file_id": {"fileNum": 102}, "limit": 0}' localhost:5600 com.hedera.mirror.api.proto.NetworkService/getNodes
 
 node examples/create-topic.js
 
@@ -142,9 +152,15 @@ if [ "${storageType}" == "aws_only" ] || [ "${storageType}" == "gcs_only" ]; the
   # example : {"level":"error","msg":"Updated modification time ......}
   kubectl logs network-node1-0 -c backup-uploader -n solo-e2e > backup-uploader.log
   if grep -q \""error\"" backup-uploader.log; then
+    echo "-----------------------------------------"
     echo "Backup uploader logs contain error message"
+    echo "-----------------------------------------"
     exit 1
   fi
 fi
 
 npm run solo-test -- network destroy --deployment "${SOLO_DEPLOYMENT}" --force -q
+
+echo "-----------------------------------------"
+echo "Solo test finished successfully"
+echo "-----------------------------------------"

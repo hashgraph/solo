@@ -20,7 +20,7 @@ vars:
   postgres_container_fdqn: "{{.postgres_container_name}}.database.svc.cluster.local"
 env:
   SOLO_NETWORK_SIZE: "1"
-  SOLO_DEPLOYMENT: "solo-e2e"
+  SOLO_DEPLOYMENT: "solo-deployment"
   SOLO_NAMESPACE: "solo-e2e"
   SOLO_CLUSTER_NAME: "solo-e2e"
   MIRROR_NODE_DEPLOY_EXTRA_FLAGS: |
