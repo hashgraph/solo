@@ -5,6 +5,8 @@ deployments:
     clusters:
       - cluster-1
     namespace: solo-e2e
+    realm: 1
+    shard: 2
 clusterRefs:
   cluster-1: context-1
   cluster-2: context-2

@@ -33,9 +33,10 @@ import {type CommandFlag} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {showVersionBanner} from '../core/helpers.js';
+import {requiresJavaSveFix, showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {type AccountId} from '@hashgraph/sdk';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -293,14 +294,15 @@ export class MirrorNodeCommand extends BaseCommand {
               ? this.localConfig.clusterRefs[context_.config.clusterRef]
               : this.k8Factory.default().contexts().readCurrent();
 
+            const deploymentName: DeploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
             await self.accountManager.loadNodeClient(
               context_.config.namespace,
               self.remoteConfigManager.getClusterRefs(),
-              self.configManager.getFlag<DeploymentName>(flags.deployment),
+              deploymentName,
               self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
             if (context_.config.pinger) {
-              const startAccumulatorId = constants.HEDERA_NODE_ACCOUNT_ID_START;
+              const startAccumulatorId: AccountId = this.accountManager.getStartAccountId(deploymentName);
               const networkPods: Pod[] = await this.k8Factory
                 .getK8(context_.config.clusterContext)
                 .pods()
@@ -312,7 +314,8 @@ export class MirrorNodeCommand extends BaseCommand {
                 context_.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.host=${pod.podIp}`;
                 context_.config.valuesArg += ' --set monitor.config.hedera.mirror.monitor.nodes.0.nodeId=0';
 
-                const operatorId = context_.config.operatorId || constants.OPERATOR_ID;
+                const operatorId: string =
+                  context_.config.operatorId || this.accountManager.getOperatorAccountId(deploymentName).toString();
                 context_.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.accountId=${operatorId}`;
 
                 if (context_.config.operatorKey) {
@@ -414,6 +417,17 @@ export class MirrorNodeCommand extends BaseCommand {
                       portForward,
                     );
                     context_.config.valuesArg += ` --set "importer.addressBook=${context_.addressBook}"`;
+
+                    // Temporary fix for M4 chips running JAVA 21.
+                    // This should be changed when mirror node allows for extending JAVA_OPTS env
+                    if (await requiresJavaSveFix(this.logger)) {
+                      context_.config.valuesArg += ` --set "graphql.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
+                      context_.config.valuesArg += ` --set "importer.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
+                      context_.config.valuesArg += ` --set "grpc.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
+                      context_.config.valuesArg += ` --set "monitor.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
+                      context_.config.valuesArg += ` --set "restjava.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
+                      context_.config.valuesArg += ` --set "web3.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 --enable-preview -XX:UseSVE=0"`;
+                    }
                   },
                 },
                 {

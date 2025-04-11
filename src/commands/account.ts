@@ -7,7 +7,6 @@ import {SoloError} from '../core/errors/solo-error.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
-import {FREEZE_ADMIN_ACCOUNT} from '../core/constants.js';
 import * as helpers from '../core/helpers.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {type AccountId, AccountInfo, HbarUnit, Long, NodeUpdateTransaction, PrivateKey} from '@hashgraph/sdk';
@@ -15,11 +14,12 @@ import {ListrLock} from '../core/lock/listr-lock.js';
 import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
-import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
+import {type ClusterReference, type DeploymentName, type Realm, type Shard} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
 import {Templates} from '../core/templates.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Base64} from 'js-base64';
+import {entityId} from '../core/helpers.js';
 
 interface UpdateAccountConfig {
   accountId: string;
@@ -196,7 +196,8 @@ export class AccountCommand extends BaseCommand {
     }
 
     if (hbarAmount > 0) {
-      if (!(await this.transferAmountFromOperator(context_.accountInfo.accountId, hbarAmount))) {
+      const deployment: DeploymentName = context_.config.deployment;
+      if (!(await this.transferAmountFromOperator(context_.accountInfo.accountId, hbarAmount, deployment))) {
         throw new SoloError(`failed to transfer amount for accountId ${context_.accountInfo.accountId}`);
       }
       this.logger.debug(`sent transfer amount for account ${context_.accountInfo.accountId}`);
@@ -204,8 +205,13 @@ export class AccountCommand extends BaseCommand {
     return true;
   }
 
-  private async transferAmountFromOperator(toAccountId: AccountId | string, amount: number): Promise<boolean> {
-    return await this.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, toAccountId, amount);
+  private async transferAmountFromOperator(
+    toAccountId: AccountId | string,
+    amount: number,
+    deploymentName: DeploymentName,
+  ): Promise<boolean> {
+    const operatorAccountId = this.accountManager.getOperatorAccountId(deploymentName);
+    return await this.accountManager.transferAmount(operatorAccountId, toAccountId, amount);
   }
 
   public async init(argv: ArgvStruct): Promise<boolean> {
@@ -293,19 +299,22 @@ export class AccountCommand extends BaseCommand {
                     };
 
                     // do a write transaction to trigger the handler and generate the system accounts to complete genesis
-                    await self.accountManager.transferAmount(constants.TREASURY_ACCOUNT_ID, FREEZE_ADMIN_ACCOUNT, 1);
+                    const deployment: DeploymentName = context_.config.deployment;
+                    const treasuryAccountId: AccountId = this.accountManager.getTreasuryAccountId(deployment);
+                    const freezeAccountId: AccountId = this.accountManager.getFreezeAccountId(deployment);
+                    await self.accountManager.transferAmount(treasuryAccountId, freezeAccountId, 1);
                   },
                 },
                 {
                   title: 'Update special account key sets',
                   task: context_ => {
                     const subTasks: SoloListrTask<Context>[] = [];
-                    const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
-                    const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
+                    const realm: Realm = this.localConfig.getRealm(context_.config.deployment);
+                    const shard: Shard = this.localConfig.getShard(context_.config.deployment);
 
                     for (const currentSet of context_.accountsBatchedSet) {
-                      const accountStart = `${realm}.${shard}.${currentSet[0]}`;
-                      const accountEnd = `${realm}.${shard}.${currentSet.at(-1)}`;
+                      const accountStart = entityId(shard, realm, currentSet[0]);
+                      const accountEnd = entityId(shard, realm, currentSet.at(-1));
                       const rangeString =
                         accountStart === accountEnd
                           ? `${chalk.yellow(accountStart)}`
@@ -319,6 +328,7 @@ export class AccountCommand extends BaseCommand {
                             currentSet,
                             context_.updateSecrets,
                             context_.resultTracker,
+                            context_.config.deployment,
                           );
                         },
                       });

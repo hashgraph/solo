@@ -37,7 +37,7 @@ import {NamespaceName} from '../integration/kube/resources/namespace/namespace-n
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
-import {type ClusterReference, type ClusterReferences} from '../core/config/remote/types.js';
+import {type ClusterReference, type ClusterReferences, type DeploymentName} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
@@ -390,17 +390,26 @@ export class NetworkCommand extends BaseCommand {
     clusterRefs: ClusterReferences;
     consensusNodes: ConsensusNode[];
     domainNamesMapping?: Record<NodeAlias, string>;
+    cacheDir: string;
   }): Promise<Record<ClusterReference, string>> {
     const valuesArguments: Record<ClusterReference, string> = this.prepareValuesArg(config);
 
     // prepare values files for each cluster
     const valuesArgumentMap: Record<ClusterReference, string> = {};
-    const profileName = this.configManager.getFlag(flags.profileName);
+    const profileName: string = this.configManager.getFlag(flags.profileName);
+    const deploymentName: DeploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+    const applicationPropertiesPath: string = PathEx.joinWithRealPath(
+      config.cacheDir,
+      'templates',
+      'application.properties',
+    );
 
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
       profileName,
       config.consensusNodes,
       config.domainNamesMapping,
+      deploymentName,
+      applicationPropertiesPath,
     );
 
     const valuesFiles: Record<ClusterReference, string> = BaseCommand.prepareValuesFilesMapMulticluster(

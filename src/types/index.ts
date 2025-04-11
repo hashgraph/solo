@@ -92,6 +92,8 @@ export interface ServiceEndpoint {
 
 export interface NodeAccountId {
   accountId: {
+    realm: string;
+    shard: string;
     accountNum: string;
   };
 }

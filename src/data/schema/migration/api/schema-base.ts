@@ -94,7 +94,7 @@ export abstract class SchemaBase<T> implements Schema<T> {
     const eligibleMigrations: SchemaMigration[] = this.migrations.filter(value => value.range.contains(dataVersion));
 
     if (eligibleMigrations.length > 0) {
-      eligibleMigrations.sort((l, r) => l.version.compare(r.version) * -1);
+      eligibleMigrations.sort((l, r) => l.version.compare(r.version));
     }
 
     return eligibleMigrations;
