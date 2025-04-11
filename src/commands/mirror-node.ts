@@ -25,7 +25,7 @@ import * as Base64 from 'js-base64';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 import {
   INGRESS_CONTROLLER_PREFIX,
-  MIRROR_INGGRESS_TLS_SECRET_NAME,
+  MIRROR_INGRESS_TLS_SECRET_NAME,
   MIRROR_INGRESS_CONTROLLER,
 } from '../core/constants.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
@@ -37,11 +37,12 @@ import {type CommandFlag} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
+import {createTLSSecret, prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 
 interface MirrorNodeDeployConfigClass {
+  cacheDir: string;
   chartDirectory: string;
   clusterContext: string;
   clusterRef: ClusterReference;
@@ -475,6 +476,14 @@ export class MirrorNodeCommand extends BaseCommand {
                     );
 
                     if (context_.config.enableIngress) {
+                      await createTLSSecret(
+                        this.logger,
+                        this.k8Factory,
+                        context_.config.namespace,
+                        context_.config.domainName,
+                        context_.config.cacheDir,
+                        MIRROR_INGRESS_TLS_SECRET_NAME,
+                      );
                       // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
                       const updated: object = {
                         metadata: {
@@ -487,7 +496,7 @@ export class MirrorNodeCommand extends BaseCommand {
                           tls: [
                             {
                               hosts: [context_.config.domainName || 'localhost'],
-                              secretName: MIRROR_INGGRESS_TLS_SECRET_NAME,
+                              secretName: MIRROR_INGRESS_TLS_SECRET_NAME,
                             },
                           ],
                         },

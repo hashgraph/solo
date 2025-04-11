@@ -233,7 +233,9 @@ export const IGNORED_NODE_ACCOUNT_ID = '0.0.0';
 export const UPLOADER_SECRET_NAME = 'uploader-mirror-secrets';
 export const MINIO_SECRET_NAME = 'minio-secrets';
 export const BACKUP_SECRET_NAME = 'backup-uploader-secrets';
-export const MIRROR_INGGRESS_TLS_SECRET_NAME = 'ca-secret-hiero-explorer';
+export const MIRROR_INGRESS_TLS_SECRET_NAME = 'ca-secret-mirror-node';
+export const EXPLORER_INGRESS_TLS_SECRET_NAME = 'ca-secret-hiero-explorer';
+
 export const enum StorageType {
   MINIO_ONLY = 'minio_only',
   AWS_ONLY = 'aws_only',

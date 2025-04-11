@@ -15,19 +15,21 @@ import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
-import {generateTLS, prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
+import {prepareValuesFiles, showVersionBanner, createTLSSecret} from '../core/helpers.js';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
-import {EXPLORER_INGRESS_CONTROLLER, HEDERA_EXPLORER_CHART_URL, INGRESS_CONTROLLER_PREFIX} from '../core/constants.js';
+import {
+  EXPLORER_INGRESS_CONTROLLER,
+  EXPLORER_INGRESS_TLS_SECRET_NAME,
+  HEDERA_EXPLORER_CHART_URL,
+  INGRESS_CONTROLLER_PREFIX,
+} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
 import * as helpers from '../core/helpers.js';
-import {PathEx} from '../business/utils/path-ex.js';
-import fs from 'node:fs';
-import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 
 interface ExplorerDeployConfigClass {
   cacheDir: string;
@@ -149,42 +151,21 @@ export class ExplorerCommand extends BaseCommand {
       });
 
       if (config.tlsClusterIssuerType === 'self-signed') {
-        // use function generateTLS to generate TLS certficate and key
-        const caSecretName: string = 'ca-secret-hiero-explorer';
-        const generateDirectory: string = PathEx.join(config.cacheDir);
-        const {certificatePath, keyPath} = generateTLS(this.logger, generateDirectory, config.domainName);
+        // Create TLS secret for Explorer
+        await createTLSSecret(
+          this.logger,
+          this.k8Factory,
+          config.namespace,
+          config.domainName,
+          config.cacheDir,
+          EXPLORER_INGRESS_TLS_SECRET_NAME,
+        );
 
-        // sleep two seconds
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        const certData: string = fs.readFileSync(certificatePath).toString();
-        const keyData: string = fs.readFileSync(keyPath).toString();
-
-        const data: Record<string, string> = {
-          'tls.crt': Buffer.from(certData).toString('base64'),
-          'tls.key': Buffer.from(keyData).toString('base64'),
-        };
-        // create k8 secret with the generated certificate and key
-        try {
-          const namespace: NamespaceName = this.configManager.getFlag<NamespaceName>(flags.namespace);
-          const isSecretCreated: boolean = await this.k8Factory
-            .default()
-            .secrets()
-            .createOrReplace(namespace, caSecretName, SecretType.OPAQUE, data);
-          if (!isSecretCreated) {
-            throw new SoloError('failed to create secret for explorer TLS certificates');
-          }
-          if (config.enableIngress) {
-            valuesArgument += ` --set ingress.tls[0].hosts[0]=${config.domainName}`;
-          }
-        } catch (error: Error | any) {
-          const errorMessage: string =
-            'failed to create secret for explorer TLS certificates, please check if the secret already exists';
-          throw new SoloError(errorMessage, error);
+        if (config.enableIngress) {
+          valuesArgument += ` --set ingress.tls[0].hosts[0]=${config.domainName}`;
         }
       }
     }
-
     return valuesArgument;
   }
 

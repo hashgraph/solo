@@ -19,6 +19,7 @@ import {type Optional} from '../types/index.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type K8} from '../integration/kube/k8.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
+import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
 import {type ConfigManager} from './config-manager.js';
@@ -566,6 +567,55 @@ export async function getAppleSiliconChipset(logger: SoloLogger) {
   } else {
     logger.info('Not running on macOS ARM (Apple Silicon).');
     return ['unknown'];
+  }
+}
+
+/**
+ * Creates a TLS secret in Kubernetes for the Explorer
+ * @param logger Logger instance
+ * @param k8Factory Kubernetes factory instance
+ * @param namespace Namespace to create the secret in
+ * @param domainName Domain name for the TLS certificate
+ * @param cacheDirectory Directory to store temporary files
+ * @param secretName Name of the secret to create
+ * @returns Promise<boolean> - True if secret was created successfully
+ */
+export async function createTLSSecret(
+  logger: SoloLogger,
+  k8Factory: K8Factory,
+  namespace: NamespaceName,
+  domainName: string,
+  cacheDirectory: string,
+  secretName: string,
+): Promise<void> {
+  const caSecretName: string = secretName;
+  const generateDirectory: string = PathEx.join(cacheDirectory);
+
+  // Generate TLS certificate and key
+  const {certificatePath, keyPath} = generateTLS(logger, generateDirectory, domainName);
+
+  try {
+    const certData: string = fs.readFileSync(certificatePath).toString();
+    const keyData: string = fs.readFileSync(keyPath).toString();
+
+    const data: Record<string, string> = {
+      'tls.crt': Buffer.from(certData).toString('base64'),
+      'tls.key': Buffer.from(keyData).toString('base64'),
+    };
+
+    // Create k8s secret with the generated certificate and key
+    const isSecretCreated: boolean = await k8Factory
+      .default()
+      .secrets()
+      .createOrReplace(namespace, caSecretName, SecretType.OPAQUE, data);
+
+    if (!isSecretCreated) {
+      throw new SoloError('failed to create secret for explorer TLS certificates');
+    }
+  } catch (error: Error | any) {
+    const errorMessage: string =
+      'failed to create secret for explorer TLS certificates, please check if the secret already exists';
+    throw new SoloError(errorMessage, error);
   }
 }
 
