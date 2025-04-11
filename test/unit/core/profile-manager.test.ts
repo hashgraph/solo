@@ -146,7 +146,7 @@ describe('ProfileManager', () => {
         }
 
         profileManager.loadProfiles(true);
-        const applicationPropertiesFile: string = PathEx.join(stagingDirectory, 'templates', 'application.properties');
+        const applicationPropertiesFile: string = PathEx.join(cacheDirectory, 'templates', 'application.properties');
         const valuesFileMapping = await profileManager.prepareValuesForSoloChart(
           input.profileName,
           consensusNodes,
