@@ -592,7 +592,7 @@ export async function createTLSSecret(
   const generateDirectory: string = PathEx.join(cacheDirectory);
 
   // Generate TLS certificate and key
-  const {certificatePath, keyPath} = generateTLS(generateDirectory, domainName);
+  const {certificatePath, keyPath} = await generateTLS(generateDirectory, domainName);
 
   try {
     const certData: string = fs.readFileSync(certificatePath).toString();
@@ -619,11 +619,14 @@ export async function createTLSSecret(
   }
 }
 
-export function generateTLS(directory: string, name: string = 'localhost'): {certificatePath: string; keyPath: string} {
+export async function generateTLS(
+  directory: string,
+  name: string = 'localhost',
+): Promise<{certificatePath: string; keyPath: string}> {
   // Define attributes for the certificate
   const attributes: {name: string; value: string}[] = [{name: 'commonName', value: name}];
-  const certificatePath = PathEx.join(directory, `${name}.crt`);
-  const keyPath = PathEx.join(directory, `${name}.key`);
+  const certificatePath: string = PathEx.join(directory, `${name}.crt`);
+  const keyPath: string = PathEx.join(directory, `${name}.key`);
 
   // Generate the certificate and key
   selfsigned.generate(attributes, {days: 365}, (error, pems) => {
@@ -633,6 +636,8 @@ export function generateTLS(directory: string, name: string = 'localhost'): {cer
     fs.writeFileSync(certificatePath, pems.cert);
     fs.writeFileSync(keyPath, pems.private);
   });
+  // wait a few seconds for the files to be created
+  await new Promise(resolve => setTimeout(resolve, 2000));
   return {
     certificatePath,
     keyPath,
