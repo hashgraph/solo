@@ -592,7 +592,7 @@ export async function createTLSSecret(
   const generateDirectory: string = PathEx.join(cacheDirectory);
 
   // Generate TLS certificate and key
-  const {certificatePath, keyPath} = generateTLS(logger, generateDirectory, domainName);
+  const {certificatePath, keyPath} = generateTLS(generateDirectory, domainName);
 
   try {
     const certData: string = fs.readFileSync(certificatePath).toString();
@@ -619,7 +619,7 @@ export async function createTLSSecret(
   }
 }
 
-export function generateTLS(logger: SoloLogger, directory: string, name: string = 'localhost') {
+export function generateTLS(directory: string, name: string = 'localhost'): {certificatePath: string; keyPath: string} {
   // Define attributes for the certificate
   const attributes: {name: string; value: string}[] = [{name: 'commonName', value: name}];
   const certificatePath = PathEx.join(directory, `${name}.crt`);
@@ -630,18 +630,8 @@ export function generateTLS(logger: SoloLogger, directory: string, name: string 
     if (error) {
       throw new SoloError(`Error generating TLS keys: ${error.message}`);
     }
-
-    // Output the private key, certificate, and public key (optional)
-    logger.info('Private Key:\n', pems.private);
-    logger.info('Certificate:\n', pems.cert);
-
-    // Optionally, save to files
-    console.log(`certificatePath: ${certificatePath}`);
-    console.log(`keyPath: ${keyPath}`);
     fs.writeFileSync(certificatePath, pems.cert);
     fs.writeFileSync(keyPath, pems.private);
-    console.log(`pems.private: ${pems.private}`);
-    console.log(`pems.cert: ${pems.cert}`);
   });
   return {
     certificatePath,

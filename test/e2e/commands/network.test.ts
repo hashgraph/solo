@@ -47,8 +47,8 @@ describe('NetworkCommand', function networkCommand() {
     cmd: {networkCmd, clusterCmd, initCmd, nodeCmd, deploymentCmd},
   } = bootstrapTestVariables(testName, argv, {});
 
-  generateTLS(logger, tmpDir, 'grpc');
-  generateTLS(logger, tmpDir, 'grpcWeb');
+  generateTLS(tmpDir, 'grpc');
+  generateTLS(tmpDir, 'grpcWeb');
 
   argv.setArg(flags.grpcTlsCertificatePath, 'node1=' + PathEx.join(tmpDir, 'grpc.crt'));
   argv.setArg(flags.grpcTlsKeyPath, 'node1=' + PathEx.join(tmpDir, 'grpc.key'));
