@@ -551,6 +551,11 @@ export async function getAppleSiliconChipset(logger: SoloLogger) {
   }
 }
 
+export async function requiresJavaSveFix(logger: SoloLogger) {
+  const chipSet = await getAppleSiliconChipset(logger);
+  return chipSet.join('').includes('M4');
+}
+
 export function entityId(shard: Shard, realm: Realm, number: Long | number | string): string {
   return `${shard}.${realm}.${number}`;
 }

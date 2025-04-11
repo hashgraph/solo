@@ -33,7 +33,7 @@ import {type CommandFlag} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {showVersionBanner} from '../core/helpers.js';
+import {requiresJavaSveFix, showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {type AccountId} from '@hashgraph/sdk';
@@ -409,6 +409,17 @@ export class MirrorNodeCommand extends BaseCommand {
                       portForward,
                     );
                     context_.config.valuesArg += ` --set "importer.addressBook=${context_.addressBook}"`;
+
+                    // Temporary fix for M4 chips running JAVA 21.
+                    // This should be changed when mirror node allows for extending JAVA_OPTS env
+                    if (await requiresJavaSveFix(this.logger)) {
+                      context_.config.valuesArg += ` --set "graphql.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
+                      context_.config.valuesArg += ` --set "importer.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
+                      context_.config.valuesArg += ` --set "grpc.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
+                      context_.config.valuesArg += ` --set "monitor.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
+                      context_.config.valuesArg += ` --set "restjava.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
+                      context_.config.valuesArg += ` --set "web3.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 --enable-preview -XX:UseSVE=0"`;
+                    }
                   },
                 },
                 {
