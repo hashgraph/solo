@@ -61,6 +61,7 @@ interface MirrorNodeDeployConfigClass {
   storageEndpoint: string;
   storageBucket: string;
   storageBucketPrefix: string;
+  storageBucketRegion: string;
   externalDatabaseHost: Optional<string>;
   externalDatabaseOwnerUsername: Optional<string>;
   externalDatabaseOwnerPassword: Optional<string>;
@@ -128,6 +129,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.storageEndpoint,
       flags.storageBucket,
       flags.storageBucketPrefix,
+      flags.storageBucketRegion,
       flags.externalDatabaseHost,
       flags.externalDatabaseOwnerUsername,
       flags.externalDatabaseOwnerPassword,
@@ -175,10 +177,16 @@ export class MirrorNodeCommand extends BaseCommand {
       } else {
         throw new IllegalArgumentError(`Invalid cloud storage type: ${config.storageType}`);
       }
-      valuesArgument += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE=${storageType}`;
-      valuesArgument += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI=${config.storageEndpoint}`;
-      valuesArgument += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY=${config.storageReadAccessKey}`;
-      valuesArgument += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY=${config.storageReadSecrets}`;
+      valuesArgument += helpers.populateHelmArguments({
+        'importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_CLOUDPROVIDER': storageType,
+        'importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_ENDPOINTOVERRIDE': config.storageEndpoint,
+        'importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_ACCESSKEY': config.storageReadAccessKey,
+        'importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_SECRETKEY': config.storageReadSecrets,
+      });
+    }
+
+    if (config.storageBucketRegion) {
+      valuesArgument += ` --set importer.env.HEDERA_MIRROR_IMPORTER_DOWNLOADER_REGION=${config.storageBucketRegion}`;
     }
 
     if (config.domainName) {
