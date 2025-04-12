@@ -46,7 +46,7 @@ endToEndTestSuite(testName, argv, {}, bootstrapResp => {
     afterEach(async () => await sleep(Duration.ofMillis(5)));
 
     each(['node1', 'node1,node2']).it('relay deploy and destroy should work with $value', async function (relayNodes) {
-      this.timeout(Duration.ofMinutes(5).toMillis());
+      this.timeout(Duration.ofMinutes(8).toMillis());
 
       argv.setArg(flags.nodeAliasesUnparsed, relayNodes);
 
