@@ -9,9 +9,9 @@ import {K8ClientService} from '../../integration/kube/k8-client/resources/servic
 
 export class SoloService extends K8ClientService {
   constructor(
-    public readonly metadata: ObjectMeta,
-    public readonly spec: ServiceSpec,
-    public readonly status?: ServiceStatus,
+    public override readonly metadata: ObjectMeta,
+    public override readonly spec: ServiceSpec,
+    public override readonly status?: ServiceStatus,
     public readonly clusterReference?: ClusterReference,
     public readonly context?: string,
     public readonly deployment?: string,
