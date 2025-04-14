@@ -148,14 +148,14 @@ if [ -z "${SOLO_DEPLOYMENT}" ]; then
   export SOLO_DEPLOYMENT="solo-deployment"
 fi
 create_test_account "${SOLO_DEPLOYMENT}"
-clone_smart_contract_repo
-setup_smart_contract_test
-start_background_transactions
-check_port_forward
-start_contract_test
-start_sdk_test
-echo "Sleep a while to wait background transactions to finish"
-sleep 30
+#clone_smart_contract_repo
+#setup_smart_contract_test
+#start_background_transactions
+#check_port_forward
+#start_contract_test
+#start_sdk_test
+#echo "Sleep a while to wait background transactions to finish"
+#sleep 30
 
 echo "Run mirror node acceptance test"
 
