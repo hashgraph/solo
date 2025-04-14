@@ -481,7 +481,7 @@ export class BlockNodeCommand extends BaseCommand {
 
             success = true;
             break;
-          } catch (error) {
+          } catch {
             // Guard
           }
 

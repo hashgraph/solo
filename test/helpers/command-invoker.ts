@@ -10,7 +10,6 @@ import {type SoloLogger} from '../../src/core/logging/solo-logger.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
 import {type K8Factory} from '../../src/integration/kube/k8-factory.js';
-import {expect} from 'chai';
 
 export class CommandInvoker {
   private readonly middlewares: Middlewares;

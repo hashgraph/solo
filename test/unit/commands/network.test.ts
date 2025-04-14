@@ -10,7 +10,7 @@ import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {type ChartManager} from '../../../src/core/chart-manager.js';
-import {NetworkCommand} from '../../../src/commands/network.js';
+import {NetworkCommand, type NetworkDeployConfigClass} from '../../../src/commands/network.js';
 import {type LockManager} from '../../../src/core/lock/lock-manager.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
 import {type ProfileManager} from '../../../src/core/profile-manager.js';
@@ -163,6 +163,7 @@ describe('NetworkCommand unit tests', () => {
         options.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
         options.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
 
+        // @ts-expect-error - to access private method
         await networkCommand.deploy(argv.build());
 
         expect(options.chartManager.install.args[0][0].name).to.equal('solo-e2e');
@@ -184,6 +185,7 @@ describe('NetworkCommand unit tests', () => {
         options.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
         options.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
 
+        // @ts-expect-error - to access private method
         await networkCommand.deploy(argv.build());
         expect(options.chartManager.install.args[0][0].name).to.equal('solo-e2e');
         expect(options.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
@@ -211,8 +213,9 @@ describe('NetworkCommand unit tests', () => {
         options.remoteConfigManager.getContexts = sinon.stub().returns(['context-1']);
         options.remoteConfigManager.getClusterRefs = sinon.stub().returns({['cluster']: 'context-1'});
 
-        const networkCommand = new NetworkCommand(options);
-        const config = await networkCommand.prepareConfig(task, argv.build());
+        const networkCommand: NetworkCommand = new NetworkCommand(options);
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
 
         expect(config.valuesArgMap).to.not.empty;
         expect(config.valuesArgMap['cluster']).to.not.empty;

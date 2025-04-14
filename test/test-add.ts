@@ -77,6 +77,7 @@ export function testNodeAdd(
           argv: argv,
           command: NetworkCommand.COMMAND_NAME,
           subcommand: 'destroy',
+          // @ts-expect-error - to access private method
           callback: async argv => networkCmd.destroy(argv),
         });
         await k8Factory.default().namespaces().delete(namespace);
