@@ -61,7 +61,7 @@ export const SOLO_DEPLOYMENT_CHART = 'solo-deployment';
 export const SOLO_CERT_MANAGER_CHART = 'solo-cert-manager';
 
 export const JSON_RPC_RELAY_CHART_URL =
-  process.env.JSON_RPC_RELAY_CHART_URL ?? 'https://hashgraph.github.io/hedera-json-rpc-relay/charts';
+  process.env.JSON_RPC_RELAY_CHART_URL ?? 'https://hiero-ledger.github.io/hiero-json-rpc-relay/charts';
 export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay';
 
 export const MIRROR_NODE_CHART_URL =
