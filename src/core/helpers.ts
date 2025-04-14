@@ -472,7 +472,7 @@ export function populateHelmArguments(valuesMapping: Record<string, string | boo
  */
 export function extractContextFromConsensusNodes(
   nodeAlias: NodeAlias,
-  consensusNodes?: ConsensusNode[],
+  consensusNodes: ConsensusNode[],
 ): Optional<string> {
   if (!consensusNodes) {
     return undefined;

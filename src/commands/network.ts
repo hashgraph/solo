@@ -44,7 +44,7 @@ import {
   type SoloListrTask,
   type SoloListrTaskWrapper,
 } from '../types/index.js';
-import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
+import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
@@ -682,8 +682,10 @@ export class NetworkCommand extends BaseCommand {
     ];
 
     await this.configManager.executePrompt(task, allFlags);
-
-    const namespace: NamespaceName = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    let namespace: NamespaceName = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+    if (!namespace) {
+      namespace = NamespaceName.of(this.configManager.getFlag<string>(flags.deployment));
+    }
     this.configManager.setFlag(flags.namespace, namespace);
 
     // create a config object for subsequent steps
@@ -954,7 +956,7 @@ export class NetworkCommand extends BaseCommand {
                 config.namespace,
                 constants.SOLO_DEPLOYMENT_CHART,
                 constants.SOLO_DEPLOYMENT_CHART,
-                context_.config.chartDirectory ?? constants.SOLO_TESTING_CHART_URL,
+                context_.config.chartDirectory ? context_.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
                 config.soloChartVersion,
                 config.valuesArgMap[clusterReference],
                 config.clusterRefs[clusterReference],
@@ -1039,7 +1041,7 @@ export class NetworkCommand extends BaseCommand {
                     config.namespace,
                     constants.SOLO_DEPLOYMENT_CHART,
                     constants.SOLO_DEPLOYMENT_CHART,
-                    context_.config.chartDirectory ?? constants.SOLO_TESTING_CHART_URL,
+                    context_.config.chartDirectory ? context_.config.chartDirectory : constants.SOLO_TESTING_CHART_URL,
                     config.soloChartVersion,
                     config.valuesArgMap[clusterReference],
                     config.clusterRefs[clusterReference],
