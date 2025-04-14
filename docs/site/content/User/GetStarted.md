@@ -1,7 +1,6 @@
 ## Table of Contents
 
 For Users:
-
 * [Step-by-step guide](StepByStepGuide.md)
 * [Solo CLI manual](SoloCLI.md)
 
