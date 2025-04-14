@@ -33,6 +33,8 @@ import {NamespaceName} from '../../../src/integration/kube/resources/namespace/n
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DefaultHelmClient} from '../../../src/integration/helm/impl/default-helm-client.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);
@@ -50,6 +52,20 @@ argv.setArg(flags.clusterSetupNamespace, constants.SOLO_SETUP_NAMESPACE.name);
 argv.setArg(flags.chartDirectory, undefined);
 
 describe('NetworkCommand unit tests', () => {
+  before(async () => {
+    const sourceDirectory = PathEx.joinWithRealPath('test', 'data');
+    const destinationDirectory = path.join(sourceDirectory, 'tmp', 'templates');
+
+    if (!fs.existsSync(destinationDirectory)) {
+      fs.mkdirSync(destinationDirectory, {recursive: true});
+    }
+
+    fs.copyFileSync(
+      PathEx.joinWithRealPath(sourceDirectory, 'application.properties'),
+      path.join(destinationDirectory, 'application.properties'),
+    );
+  });
+
   describe('Chart Install Function is called correctly', () => {
     let options: any;
 
