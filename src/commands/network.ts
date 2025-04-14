@@ -11,7 +11,7 @@ import {UserBreak} from '../core/errors/user-break.js';
 import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
-import {SOLO_CACHE_DIR, SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
+import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import {
   addDebugOptions,
@@ -66,9 +66,9 @@ import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {type Service} from '../integration/kube/resources/service/service.js';
 import {type LoadBalancerIngress} from '../integration/kube/resources/load-balancer-ingress.js';
 import {type K8} from '../integration/kube/k8.js';
-import {ComponentStates} from '../core/config/remote/enumerations/component-states.js';
 import {type BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
 import {BlockNodesJsonWrapper} from '../core/block-nodes-json-wrapper.js';
+import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -121,7 +121,7 @@ export interface NetworkDeployConfigClass {
   clusterRefs: ClusterReferences;
   domainNames?: string;
   domainNamesMapping?: Record<NodeAlias, string>;
-  blockNodeComponents: BlockNodeComponent[];
+  activeBlockNodeComponents: BlockNodeComponent[];
   debugNodeAlias: NodeAlias;
   app: string;
 }
@@ -572,10 +572,10 @@ export class NetworkCommand extends BaseCommand {
       }
     }
 
-    if (config.blockNodeComponents.length > 0) {
+    if (config.activeBlockNodeComponents.length > 0) {
       for (const clusterReference of clusterReferences) {
         const blockNodesJsonData: string = new BlockNodesJsonWrapper(
-          config.blockNodeComponents,
+          config.activeBlockNodeComponents,
           this.remoteConfigManager.clusters,
         ).toJSON();
 
@@ -730,8 +730,8 @@ export class NetworkCommand extends BaseCommand {
     config.nodeAliases = parseNodeAliases(config.nodeAliasesUnparsed, config.consensusNodes, this.configManager);
     argv[flags.nodeAliasesUnparsed.name] = config.nodeAliases.join(',');
 
-    config.blockNodeComponents = Object.values(this.remoteConfigManager.components.blockNodes).filter(
-      blockNodeComponent => blockNodeComponent.state === ComponentStates.ACTIVE,
+    config.activeBlockNodeComponents = this.remoteConfigManager.components.getActiveComponents(
+      ComponentTypes.BlockNode,
     );
 
     config.valuesArgMap = await this.prepareValuesArgMap(config);

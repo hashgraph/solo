@@ -146,6 +146,18 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     return filteredComponent;
   }
 
+  public getActiveComponents<T extends BaseComponent>(type: ComponentTypes): T[] {
+    let filteredComponents: T[];
+
+    const getActiveComponentsCallback: (components: Record<ComponentName, T>) => void = components => {
+      filteredComponents = Object.values(components).filter(component => component.state === ComponentStates.ACTIVE);
+    };
+
+    this.applyCallbackToComponentGroup(type, getActiveComponentsCallback);
+
+    return filteredComponents;
+  }
+
   /**
    * Method used to map the type to the specific component group
    * and pass it to a callback to apply modifications

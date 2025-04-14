@@ -10,12 +10,14 @@ import {type SoloLogger} from '../../src/core/logging/solo-logger.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
 import {type K8Factory} from '../../src/integration/kube/k8-factory.js';
+import {expect} from 'chai';
 
 export class CommandInvoker {
   private readonly middlewares: Middlewares;
   private readonly remoteConfigManager: RemoteConfigManager;
   private readonly configManager: ConfigManager;
   private readonly k8Factory: K8Factory;
+  private readonly logger: SoloLogger;
 
   public constructor(options: {
     configManager: ConfigManager;
@@ -27,6 +29,7 @@ export class CommandInvoker {
     this.configManager = options.configManager;
     this.k8Factory = options.k8Factory;
     this.remoteConfigManager = options.remoteConfigManager;
+    this.logger = options.logger;
   }
 
   public async invoke({
@@ -60,11 +63,16 @@ export class CommandInvoker {
       await executable(argv.build());
     }
 
-    await callback(argv.build());
+    try {
+      await callback(argv.build());
+    } catch (error) {
+      this.logger.showUserError(error);
+      expect.fail();
+    }
   }
 
-  private updateConfigManager() {
-    const self = this;
+  private updateConfigManager(): (argv: ArgvStruct) => Promise<AnyObject> {
+    const self: this = this;
 
     return async (argv: ArgvStruct): Promise<AnyObject> => {
       self.configManager.update(argv);

@@ -70,18 +70,13 @@ endToEndTestSuite(testName, argv, {startNodes: false, deployNetwork: false}, boo
     it("Should succeed deploying block node with 'add' command", async function () {
       this.timeout(Duration.ofMinutes(5).toMillis());
 
-      try {
-        await commandInvoker.invoke({
-          argv: argv,
-          command: BlockNodeCommand.COMMAND_NAME,
-          subcommand: 'node add',
-          // @ts-expect-error to access private property
-          callback: async argv => blockNodeCommand.add(argv),
-        });
-      } catch (error) {
-        logger.showUserError(error);
-        expect.fail();
-      }
+      await commandInvoker.invoke({
+        argv: argv,
+        command: BlockNodeCommand.COMMAND_NAME,
+        subcommand: 'node add',
+        // @ts-expect-error to access private property
+        callback: async argv => blockNodeCommand.add(argv),
+      });
 
       testBlockNodeComponent(0, remoteConfigManager, ComponentStates.ACTIVE);
     });
@@ -91,18 +86,13 @@ endToEndTestSuite(testName, argv, {startNodes: false, deployNetwork: false}, boo
 
       configManager.reset();
 
-      try {
-        await commandInvoker.invoke({
-          argv: argv,
-          command: BlockNodeCommand.COMMAND_NAME,
-          subcommand: 'node add',
-          // @ts-expect-error to access private property
-          callback: async argv => blockNodeCommand.add(argv),
-        });
-      } catch (error) {
-        logger.showUserError(error);
-        expect.fail();
-      }
+      await commandInvoker.invoke({
+        argv: argv,
+        command: BlockNodeCommand.COMMAND_NAME,
+        subcommand: 'node add',
+        // @ts-expect-error to access private property
+        callback: async argv => blockNodeCommand.add(argv),
+      });
 
       testBlockNodeComponent(0, remoteConfigManager, ComponentStates.ACTIVE);
       testBlockNodeComponent(1, remoteConfigManager, ComponentStates.ACTIVE);
@@ -115,18 +105,14 @@ endToEndTestSuite(testName, argv, {startNodes: false, deployNetwork: false}, boo
 
       const destroyArgv: Argv = argv.clone();
       destroyArgv.setArg(flags.blockNodeId, 0); // to select the first block node
-      try {
-        await commandInvoker.invoke({
-          argv: destroyArgv,
-          command: BlockNodeCommand.COMMAND_NAME,
-          subcommand: 'node destroy',
-          // @ts-expect-error to access private property
-          callback: async argv => blockNodeCommand.destroy(argv),
-        });
-      } catch (error) {
-        logger.showUserError(error);
-        expect.fail();
-      }
+
+      await commandInvoker.invoke({
+        argv: destroyArgv,
+        command: BlockNodeCommand.COMMAND_NAME,
+        subcommand: 'node destroy',
+        // @ts-expect-error to access private property
+        callback: async argv => blockNodeCommand.destroy(argv),
+      });
 
       testBlockNodeComponent(0, remoteConfigManager, ComponentStates.DELETED);
       testBlockNodeComponent(1, remoteConfigManager, ComponentStates.ACTIVE);
@@ -139,18 +125,14 @@ endToEndTestSuite(testName, argv, {startNodes: false, deployNetwork: false}, boo
 
       const destroyArgv: Argv = argv.clone();
       destroyArgv.setArg(flags.blockNodeId, 1); // to select the second block node
-      try {
-        await commandInvoker.invoke({
-          argv: destroyArgv,
-          command: BlockNodeCommand.COMMAND_NAME,
-          subcommand: 'node destroy',
-          // @ts-expect-error to access private property
-          callback: async argv => blockNodeCommand.destroy(argv),
-        });
-      } catch (error) {
-        logger.showUserError(error);
-        expect.fail();
-      }
+
+      await commandInvoker.invoke({
+        argv: destroyArgv,
+        command: BlockNodeCommand.COMMAND_NAME,
+        subcommand: 'node destroy',
+        // @ts-expect-error to access private property
+        callback: async argv => blockNodeCommand.destroy(argv),
+      });
 
       testBlockNodeComponent(0, remoteConfigManager, ComponentStates.DELETED);
       testBlockNodeComponent(1, remoteConfigManager, ComponentStates.DELETED);
