@@ -411,8 +411,8 @@ endToEndTestSuite(testName, argv, {}, bootstrapResp => {
         try {
           // Setup network configuration
           const networkConfig = {};
-          networkConfig['127.0.0.1:30212'] = AccountId.fromString('1.2.3');
-          networkConfig['127.0.0.1:30213'] = AccountId.fromString('1.2.4');
+          networkConfig['127.0.0.1:30212'] = AccountId.fromString('0.0.3');
+          networkConfig['127.0.0.1:30213'] = AccountId.fromString('0.0.4');
 
           // Instantiate SDK client
           const sdkClient = Client.fromConfig({network: networkConfig, scheduleNetworkUpdate: false});
