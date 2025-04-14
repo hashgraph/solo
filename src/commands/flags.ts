@@ -2247,7 +2247,17 @@ export class Flags {
       defaultValue: 'us-central1',
       describe: 'backup storage region',
       type: 'string',
-      dataMask: constants.STANDARD_DATAMASK,
+    },
+    prompt: undefined,
+  };
+
+  public static readonly backupProvider: CommandFlag = {
+    constName: 'backupProvider',
+    name: 'backup-provider',
+    definition: {
+      defaultValue: 'GCS',
+      describe: 'backup storage service provider, GCS or AWS',
+      type: 'string',
     },
     prompt: undefined,
   };
@@ -2306,6 +2316,17 @@ export class Flags {
     definition: {
       defaultValue: '',
       describe: 'path prefix of storage bucket mirror node importer',
+      type: 'string',
+    },
+    prompt: undefined,
+  };
+
+  public static readonly storageBucketRegion: CommandFlag = {
+    constName: 'storageBucketRegion',
+    name: 'storage-bucket-region',
+    definition: {
+      defaultValue: '',
+      describe: 'region of storage bucket mirror node importer',
       type: 'string',
     },
     prompt: undefined,
@@ -2532,11 +2553,13 @@ export class Flags {
     Flags.storageEndpoint,
     Flags.storageBucket,
     Flags.storageBucketPrefix,
+    Flags.storageBucketRegion,
     Flags.backupBucket,
     Flags.backupWriteAccessKey,
     Flags.backupWriteSecrets,
     Flags.backupEndpoint,
     Flags.backupRegion,
+    Flags.backupProvider,
     Flags.tlsClusterIssuerType,
     Flags.tlsPrivateKey,
     Flags.tlsPublicKey,
