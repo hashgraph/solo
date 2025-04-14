@@ -67,7 +67,7 @@ export class CommandInvoker {
       await callback(argv.build());
     } catch (error) {
       this.logger.showUserError(error);
-      expect.fail();
+      throw error;
     }
   }
 

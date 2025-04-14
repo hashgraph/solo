@@ -4,7 +4,7 @@ import {after, afterEach, describe} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {endToEndTestSuite, getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
+import {endToEndTestSuite, getTestCluster, HEDERA_PLATFORM_VERSION_TAG, startNodesTest} from '../../test-utility.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -53,7 +53,8 @@ function testBlockNodeComponent(
 
 endToEndTestSuite(testName, argv, {startNodes: false, deployNetwork: false}, bootstrapResp => {
   const {
-    opts: {k8Factory, logger, commandInvoker, remoteConfigManager, configManager},
+    opts: {k8Factory, commandInvoker, remoteConfigManager, configManager},
+    cmd: {nodeCmd},
   } = bootstrapResp;
 
   describe('BlockNodeCommand', async () => {
@@ -97,6 +98,8 @@ endToEndTestSuite(testName, argv, {startNodes: false, deployNetwork: false}, boo
       testBlockNodeComponent(0, remoteConfigManager, ComponentStates.ACTIVE);
       testBlockNodeComponent(1, remoteConfigManager, ComponentStates.ACTIVE);
     });
+
+    startNodesTest(argv, commandInvoker, nodeCmd);
 
     it("Should succeed with removing block node with 'destroy' command", async function () {
       this.timeout(Duration.ofMinutes(2).toMillis());

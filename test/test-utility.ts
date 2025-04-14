@@ -84,6 +84,41 @@ export function getTemporaryDirectory() {
   return fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-'));
 }
 
+export function startNodesTest(argv: Argv, commandInvoker: CommandInvoker, nodeCmd: NodeCommand): void {
+  it('should succeed with node setup command', async () => {
+    // cache this, because `solo node setup.finalize()` will reset it to false
+    await commandInvoker.invoke({
+      argv: argv,
+      command: NodeCommand.COMMAND_NAME,
+      subcommand: 'setup',
+      callback: async argv => nodeCmd.handlers.setup(argv),
+    });
+  }).timeout(Duration.ofMinutes(4).toMillis());
+
+  it('should succeed with node start command', async () => {
+    await commandInvoker.invoke({
+      argv: argv,
+      command: NodeCommand.COMMAND_NAME,
+      subcommand: 'start',
+      callback: async argv => nodeCmd.handlers.start(argv),
+    });
+  }).timeout(Duration.ofMinutes(30).toMillis());
+
+  it('node log command should work', async () => {
+    await commandInvoker.invoke({
+      argv: argv,
+      command: NodeCommand.COMMAND_NAME,
+      subcommand: 'logs',
+      callback: async argv => nodeCmd.handlers.logs(argv),
+    });
+
+    const soloLogPath: string = PathEx.joinWithRealPath(SOLO_LOGS_DIR, 'solo.log');
+    const soloLog: string = fs.readFileSync(soloLogPath, 'utf8');
+
+    expect(soloLog).to.not.have.string(NODE_LOG_FAILURE_MSG);
+  }).timeout(Duration.ofMinutes(5).toMillis());
+}
+
 interface TestOptions {
   logger: SoloLogger;
   helm: HelmClient;
@@ -331,44 +366,14 @@ export function endToEndTestSuite(
             argv: argv,
             command: NetworkCommand.COMMAND_NAME,
             subcommand: 'deploy',
+            // @ts-expect-error - to access private property
             callback: async argv => networkCmd.deploy(argv),
           });
         }).timeout(Duration.ofMinutes(5).toMillis());
       }
 
       if (startNodes) {
-        it('should succeed with node setup command', async () => {
-          // cache this, because `solo node setup.finalize()` will reset it to false
-          await commandInvoker.invoke({
-            argv: argv,
-            command: NodeCommand.COMMAND_NAME,
-            subcommand: 'setup',
-            callback: async argv => nodeCmd.handlers.setup(argv),
-          });
-        }).timeout(Duration.ofMinutes(4).toMillis());
-
-        it('should succeed with node start command', async () => {
-          await commandInvoker.invoke({
-            argv: argv,
-            command: NodeCommand.COMMAND_NAME,
-            subcommand: 'start',
-            callback: async argv => nodeCmd.handlers.start(argv),
-          });
-        }).timeout(Duration.ofMinutes(30).toMillis());
-
-        it('node log command should work', async () => {
-          await commandInvoker.invoke({
-            argv: argv,
-            command: NodeCommand.COMMAND_NAME,
-            subcommand: 'logs',
-            callback: async argv => nodeCmd.handlers.logs(argv),
-          });
-
-          const soloLogPath = PathEx.joinWithRealPath(SOLO_LOGS_DIR, 'solo.log');
-          const soloLog = fs.readFileSync(soloLogPath, 'utf8');
-
-          expect(soloLog).to.not.have.string(NODE_LOG_FAILURE_MSG);
-        }).timeout(Duration.ofMinutes(5).toMillis());
+        startNodesTest(argv, commandInvoker, nodeCmd);
       }
     });
 
