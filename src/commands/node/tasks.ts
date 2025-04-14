@@ -46,6 +46,7 @@ import {
   entityId,
   prepareEndpoints,
   renameAndCopyFile,
+  requiresJavaSveFix,
   showVersionBanner,
   sleep,
   splitFlagInput,
@@ -403,7 +404,8 @@ export class NodeCommandTasks {
 
       const subTask = async (context_: AnyListrContext, task: SoloListrTaskWrapper<AnyListrContext>) => {
         if (enableDebugger) {
-          await sleep(Duration.ofHours(1));
+          // await sleep(Duration.ofHours(1));
+          await sleep(Duration.ofSeconds(10));
         }
         context_.config.podRefs[nodeAlias] = await this._checkNetworkNodeActiveness(
           namespace,
@@ -2365,6 +2367,10 @@ export class NodeCommandTasks {
 
         const k8 = this.k8Factory.getK8(context);
 
+        const archiveCommand = (await requiresJavaSveFix(this.logger))
+          ? 'dnf install zip -y && cd "${states[0]}" && zip -r "${states[0]}.zip" . && cd ../ && mv "${states[0]}/${states[0]}.zip" "${states[0]}.zip"'
+          : 'jar cf "${states[0]}.zip" -C "${states[0]}" .';
+
         // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
         const zipFileName = await k8
           .containers()
@@ -2372,7 +2378,7 @@ export class NodeCommandTasks {
           .execContainer([
             'bash',
             '-c',
-            `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && jar cf "\${states[0]}.zip" -C "\${states[0]}" . && echo -n \${states[0]}.zip`,
+            `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && ${archiveCommand} && echo -n \${states[0]}.zip`,
           ]);
 
         await k8
@@ -2414,13 +2420,17 @@ export class NodeCommandTasks {
           context,
         );
 
+        const extractCommand = (await requiresJavaSveFix(this.logger))
+          ? `unzip ${path.basename(config.lastStateZipPath)}`
+          : `jar xf ${path.basename(config.lastStateZipPath)}`;
+
         await k8
           .containers()
           .readByRef(containerReference)
           .execContainer([
             'bash',
             '-c',
-            `cd ${savedStatePath} && jar xf ${path.basename(config.lastStateZipPath)} && rm -f ${path.basename(config.lastStateZipPath)}`,
+            `cd ${savedStatePath} && ${extractCommand} && rm -f ${path.basename(config.lastStateZipPath)}`,
           ]);
       },
     };
