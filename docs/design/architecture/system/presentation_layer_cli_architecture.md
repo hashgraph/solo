@@ -133,23 +133,23 @@ flags may be specified at any level of the command hierarchy.
 
 | Group       | Resource                | Operation(s)                                                                                                                    |
 |-------------|-------------------------|---------------------------------------------------------------------------------------------------------------------------------|
-| block       | node                    | < list &#124; info &#124; logs &#124; add &#124; upgrade &#124; destroy >                                                       |
-| cluster-ref | config                  | < list &#124; info &#124; connect &#124; disconnect >                                                                           |
-| consensus   | network                 | < info &#124; deploy &#124; freeze &#124; upgrade &#124; destroy >                                                              |
-| consensus   | node                    | < list &#124; info &#124; logs &#124; add &#124; update &#124; destroy &#124; start &#124; stop &#124; restart &#124; refresh > |
-| consensus   | state                   | < list &#124; download &#124; upload >                                                                                          |
-| consensus   | diagnostic              | < logs &#124; configs &#124; all >                                                                                              |
-| deployment  | config                  | < list &#124; info &#124; create &#124; delete &#124; import >                                                                  |
-| deployment  | cluster                 | < list &#124; info &#124; attach &#124; detach >                                                                                |
-| deployment  | state                   | < info &#124; destroy >                                                                                                         |
-| explorer    | node                    | < list &#124; info &#124; logs &#124; add &#124; upgrade &#124; destroy >                                                       |
+| block       | node                    | < list | info | logs | add | upgrade | destroy >                                                       |
+| cluster-ref | config                  | < list | info | connect | disconnect >                                                                           |
+| consensus   | network                 | < info | deploy | freeze | upgrade | destroy >                                                              |
+| consensus   | node                    | < list | info | logs | add | update | destroy | start | stop | restart | refresh > |
+| consensus   | state                   | < list | download | upload >                                                                                          |
+| consensus   | diagnostic              | < logs | configs | all >                                                                                              |
+| deployment  | config                  | < list | info | create | delete | import >                                                                  |
+| deployment  | cluster                 | < list | info | attach | detach >                                                                                |
+| deployment  | state                   | < info | destroy >                                                                                                         |
+| explorer    | node                    | < list | info | logs | add | upgrade | destroy >                                                       |
 | keys        | consensus               | < generate >                                                                                                                    |
-| ledger      | system                  | < init &#124; accounts-rekey &#124; staking-setup >                                                                             |
-| ledger      | account                 | < list &#124; info &#124; create &#124; update &#124; delete &#124; import >                                                    |
-| ledger      | crypto                  | < transfer &#124; balance >                                                                                                     |
-| mirror      | node                    | < list &#124; info &#124; logs &#124; add &#124; upgrade &#124; destroy >                                                       |
-| relay       | node                    | < list &#124; info &#124; logs &#124; add &#124; upgrade &#124; destroy >                                                       |
-| quick-start | < single &#124; multi > | < info &#124; deploy &#124; destroy >                                                                                           |
+| ledger      | system                  | < init | accounts-rekey | staking-setup >                                                                             |
+| ledger      | account                 | < list | info | create | update | delete | import >                                                    |
+| ledger      | crypto                  | < transfer | balance >                                                                                                     |
+| mirror      | node                    | < list | info | logs | add | upgrade | destroy >                                                       |
+| relay       | node                    | < list | info | logs | add | upgrade | destroy >                                                       |
+| quick-start | < single | multi > | < info | deploy | destroy >                                                                                           |
 
 #### Example Commands
 
