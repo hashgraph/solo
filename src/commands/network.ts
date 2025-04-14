@@ -116,6 +116,7 @@ export interface NetworkDeployConfigClass {
   backupWriteAccessKey: string;
   backupEndpoint: string;
   backupRegion: string;
+  backupProvider: string;
   consensusNodes: ConsensusNode[];
   contexts: string[];
   clusterRefs: ClusterReferences;
@@ -230,6 +231,7 @@ export class NetworkCommand extends BaseCommand {
       flags.backupWriteSecrets,
       flags.backupEndpoint,
       flags.backupRegion,
+      flags.backupProvider,
       flags.domainNames,
     ],
   };
@@ -346,7 +348,7 @@ export class NetworkCommand extends BaseCommand {
   }
 
   private async prepareBackupUploaderSecrets(config: NetworkDeployConfigClass): Promise<void> {
-    const {backupWriteAccessKey, backupWriteSecrets, backupEndpoint, backupRegion} = config;
+    const {backupWriteAccessKey, backupWriteSecrets, backupEndpoint, backupRegion, backupProvider} = config;
     const backupData: Record<string, string> = {};
     const namespace: NamespaceName = config.namespace;
     backupData['AWS_ACCESS_KEY_ID'] = Base64.encode(backupWriteAccessKey);
@@ -354,7 +356,7 @@ export class NetworkCommand extends BaseCommand {
     backupData['RCLONE_CONFIG_BACKUPS_ENDPOINT'] = Base64.encode(backupEndpoint);
     backupData['RCLONE_CONFIG_BACKUPS_REGION'] = Base64.encode(backupRegion);
     backupData['RCLONE_CONFIG_BACKUPS_TYPE'] = Base64.encode('s3');
-    backupData['RCLONE_CONFIG_BACKUPS_PROVIDER'] = Base64.encode('GCS');
+    backupData['RCLONE_CONFIG_BACKUPS_PROVIDER'] = Base64.encode(backupProvider);
 
     // create secret in each cluster
     for (const context of config.contexts) {
