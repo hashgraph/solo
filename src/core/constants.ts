@@ -65,13 +65,13 @@ export const JSON_RPC_RELAY_CHART_URL =
 export const JSON_RPC_RELAY_CHART = 'hedera-json-rpc-relay';
 
 export const MIRROR_NODE_CHART_URL =
-  process.env.MIRROR_NODE_CHART_URL ?? 'https://hiero-ledger.github.io/hiero-mirror-node/charts';
+  process.env.MIRROR_NODE_CHART_URL ?? 'https://hashgraph.github.io/hedera-mirror-node/charts';
 export const MIRROR_NODE_CHART = 'hedera-mirror';
 export const MIRROR_NODE_RELEASE_NAME = 'mirror';
 
 export const HEDERA_EXPLORER_CHART_URL =
-  process.env.HEDERA_EXPLORER_CHART_URL ?? 'oci://ghcr.io/hiero-ledger/hiero-mirror-node-explorer/hiero-explorer-chart';
-export const HEDERA_EXPLORER_RELEASE_NAME = 'hiero-explorer';
+  process.env.HEDERA_EXPLORER_CHART_URL ?? 'oci://ghcr.io/hashgraph/hedera-mirror-node-explorer/hedera-explorer-chart';
+export const HEDERA_EXPLORER_RELEASE_NAME = 'hedera-explorer';
 export const SOLO_RELAY_LABEL = 'app=hedera-json-rpc-relay';
 export const SOLO_HEDERA_EXPLORER_LABEL = 'app.kubernetes.io/component=hedera-explorer';
 
