@@ -84,6 +84,18 @@ export function getTemporaryDirectory() {
   return fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-'));
 }
 
+export function deployNetworkTest(argv: Argv, commandInvoker: CommandInvoker, networkCmd: NetworkCommand): void {
+  it('should succeed with network deploy', async () => {
+    await commandInvoker.invoke({
+      argv: argv,
+      command: NetworkCommand.COMMAND_NAME,
+      subcommand: 'deploy',
+      // @ts-expect-error - to access private property
+      callback: async argv => networkCmd.deploy(argv),
+    });
+  }).timeout(Duration.ofMinutes(5).toMillis());
+}
+
 export function startNodesTest(argv: Argv, commandInvoker: CommandInvoker, nodeCmd: NodeCommand): void {
   it('should succeed with node setup command', async () => {
     // cache this, because `solo node setup.finalize()` will reset it to false
@@ -361,15 +373,7 @@ export function endToEndTestSuite(
       }).timeout(Duration.ofMinutes(2).toMillis());
 
       if (deployNetwork) {
-        it('should succeed with network deploy', async () => {
-          await commandInvoker.invoke({
-            argv: argv,
-            command: NetworkCommand.COMMAND_NAME,
-            subcommand: 'deploy',
-            // @ts-expect-error - to access private property
-            callback: async argv => networkCmd.deploy(argv),
-          });
-        }).timeout(Duration.ofMinutes(5).toMillis());
+        deployNetworkTest(argv, commandInvoker, networkCmd);
       }
 
       if (startNodes) {

@@ -4,7 +4,13 @@ import {after, afterEach, describe} from 'mocha';
 import {expect} from 'chai';
 
 import {Flags as flags} from '../../../src/commands/flags.js';
-import {endToEndTestSuite, getTestCluster, HEDERA_PLATFORM_VERSION_TAG, startNodesTest} from '../../test-utility.js';
+import {
+  deployNetworkTest,
+  endToEndTestSuite,
+  getTestCluster,
+  HEDERA_PLATFORM_VERSION_TAG,
+  startNodesTest,
+} from '../../test-utility.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -54,7 +60,7 @@ function testBlockNodeComponent(
 endToEndTestSuite(testName, argv, {startNodes: false, deployNetwork: false}, bootstrapResp => {
   const {
     opts: {k8Factory, commandInvoker, remoteConfigManager, configManager},
-    cmd: {nodeCmd},
+    cmd: {nodeCmd, networkCmd},
   } = bootstrapResp;
 
   describe('BlockNodeCommand', async () => {
@@ -98,6 +104,8 @@ endToEndTestSuite(testName, argv, {startNodes: false, deployNetwork: false}, boo
       testBlockNodeComponent(0, remoteConfigManager, ComponentStates.ACTIVE);
       testBlockNodeComponent(1, remoteConfigManager, ComponentStates.ACTIVE);
     });
+
+    deployNetworkTest(argv, commandInvoker, networkCmd);
 
     startNodesTest(argv, commandInvoker, nodeCmd);
 
