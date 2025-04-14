@@ -421,12 +421,18 @@ export class MirrorNodeCommand extends BaseCommand {
                     // Temporary fix for M4 chips running JAVA 21.
                     // This should be changed when mirror node allows for extending JAVA_OPTS env
                     if (await requiresJavaSveFix(this.logger)) {
-                      context_.config.valuesArg += ` --set "graphql.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
-                      context_.config.valuesArg += ` --set "importer.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
-                      context_.config.valuesArg += ` --set "grpc.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
-                      context_.config.valuesArg += ` --set "monitor.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
-                      context_.config.valuesArg += ` --set "restjava.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"`;
-                      context_.config.valuesArg += ` --set "web3.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 --enable-preview -XX:UseSVE=0"`;
+                      context_.config.valuesArg +=
+                        ' --set "graphql.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "importer.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "grpc.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "monitor.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "restjava.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "web3.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 --enable-preview -XX:UseSVE=0"';
                     }
                   },
                 },
