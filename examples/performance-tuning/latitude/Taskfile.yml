@@ -19,7 +19,6 @@ env:
   LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"
 
   #ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
-  TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
   ENABLE_EXPLORER_INGRESS: "--enable-ingress"
   ENABLE_MIRROR_INGRESS: "--enable-ingress"
   #EXPLORER_NAME_SPACE: "explorer-name-space"
@@ -29,7 +28,7 @@ env:
   CLUSTER_REF: %SOLO_NAMESPACE%-ref
   SOLO_CLUSTER_RELEASE_NAME: cluster_name
   CONTEXT: hashgraph.teleport.sh-k8s.pft.dal.lat.ope.eng.hashgraph.io
-  SOLO_CLUSTER_SETUP_NAMESPACE: setup_namespace
+  SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
   SOLO_CLUSTER_NAME: solo-cluster-name
   MIRROR_RELEASE_NAME: release_name
 

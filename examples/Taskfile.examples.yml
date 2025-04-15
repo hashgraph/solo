@@ -40,7 +40,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - task: "cluster:create"
+      #Alex - task: "cluster:create"
       - task: "solo:init"
       - task: "solo:cluster:setup"
       - task: "solo:cluster-ref:connect"
