@@ -896,52 +896,23 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  // TODO MOVE TO TASKS
-
-  /** Removes the consensus node, envoy and haproxy components from remote config.  */
-  public removeNodeAndProxies(): SoloListrTask<any> {
-    return {
-      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      title: 'Remove node and proxies from remote config',
-      task: async (): Promise<void> => {
-        await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.remove('Consensus node name', ComponentType.ConsensusNode);
-          remoteConfig.components.remove('Envoy proxy name', ComponentType.EnvoyProxy);
-          remoteConfig.components.remove('HaProxy name', ComponentType.HaProxy);
-        });
-      },
-    };
-  }
-
   /**
    * Changes the state from all consensus nodes components in remote config.
    *
-   * @param state - to which to change the consensus node component
+   * @param nodeState - to which to change the consensus node component
    */
-  public changeAllNodeStates(state: ConsensusNodeStates): SoloListrTask<any> {
+  public changeAllNodeStates(nodeState: ConsensusNodeStates): SoloListrTask<any> {
     interface Context {
       config: {namespace: NamespaceName; consensusNodes: ConsensusNode[]};
     }
 
     return {
-      title: `Change node state to ${state} in remote config`,
+      title: `Change node state to ${nodeState} in remote config`,
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_: Context): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          const {
-            config: {namespace},
-          } = context_;
-
           for (const consensusNode of context_.config.consensusNodes) {
-            remoteConfig.components.edit(
-              new ConsensusNodeComponent(
-                consensusNode.name,
-                consensusNode.cluster,
-                namespace.name,
-                state,
-                consensusNode.nodeId,
-              ),
-            );
+            remoteConfig.components.changeNodeState(consensusNode.name, nodeState);
           }
         });
       },
@@ -1037,7 +1008,7 @@ export class NodeCommandHandlers extends CommandHandler {
   ): ConsensusNodeStates {
     let nodeComponent: ConsensusNodeComponent;
     try {
-      nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentType.ConsensusNode, nodeAlias);
+      nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentTypes.ConsensusNode, nodeAlias);
     } catch {
       throw new SoloError(`${nodeAlias} not found in remote config`);
     }
@@ -1057,6 +1028,6 @@ export class NodeCommandHandlers extends CommandHandler {
     //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
     // }
 
-    return nodeComponent.state;
+    return nodeComponent.nodeState;
   }
 }

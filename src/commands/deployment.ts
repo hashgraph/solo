@@ -8,18 +8,19 @@ import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ClusterCommandTasks} from './cluster/tasks.js';
 import {type ClusterReference, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
-import {type SoloListrTask} from '../types/index.js';
+import {type CommandDefinition, type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error-messages.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
-import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
-import {ConsensusNodeStates, DeploymentStates} from '../core/config/remote/enumerations.js';
+import {type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
 import {Templates} from '../core/templates.js';
-import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {Cluster} from '../core/config/remote/cluster.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
+import {ConsensusNodeStates} from '../core/config/remote/enumerations/consensus-node-states.js';
+import {DeploymentStates} from '../core/config/remote/enumerations/deployment-states.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
 
 interface DeploymentAddClusterConfig {
   quiet: boolean;
@@ -697,13 +698,12 @@ export class DeploymentCommand extends BaseCommand {
 
           //* add the new nodes to components
           for (const nodeAlias of nodeAliases) {
-            remoteConfig.components.add(
-              new ConsensusNodeComponent(
+            remoteConfig.components.addNewComponent(
+              ComponentFactory.createNewConsensusNodeComponent(
                 nodeAlias,
                 clusterRef,
-                namespace.name,
+                namespace,
                 ConsensusNodeStates.NON_DEPLOYED,
-                Templates.nodeIdFromNodeAlias(nodeAlias),
               ),
             );
           }

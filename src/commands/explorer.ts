@@ -7,14 +7,14 @@ import {SoloError} from '../core/errors/solo-error.js';
 import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
 import {UserBreak} from '../core/errors/user-break.js';
 import * as constants from '../core/constants.js';
+import {HEDERA_EXPLORER_CHART_URL, INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
-import {ListrRemoteConfig} from '../core/config/remote/listr-config-tasks.js';
-import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
+import {type AnyListrContext, type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {ComponentType} from '../core/config/remote/enumerations.js';
-import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
+import {type MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
+import * as helpers from '../core/helpers.js';
 import {prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
@@ -22,13 +22,14 @@ import {NamespaceName} from '../integration/kube/resources/namespace/namespace-n
 import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
-import {HEDERA_EXPLORER_CHART_URL, INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
-import * as helpers from '../core/helpers.js';
+import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {type ClusterReference, type Context} from '../core/config/remote/types.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
 
 interface ExplorerDeployConfigClass {
   chartDirectory: string;
-  clusterRef: string;
+  clusterRef: ClusterReference;
   clusterContext: string;
   enableIngress: boolean;
   enableHederaExplorerTls: boolean;
@@ -56,6 +57,7 @@ interface ExplorerDeployContext {
 interface ExplorerDestroyContext {
   config: {
     clusterContext: string;
+    clusterReference: ClusterReference;
     namespace: NamespaceName;
     isChartInstalled: boolean;
   };
@@ -234,7 +236,7 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLock.newAcquireLockTask(lease, task);
           },
         },
-        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
+        this.loadRemoteConfigTask(argv),
         {
           title: 'Install cert manager',
           task: async context_ => {
@@ -436,14 +438,16 @@ export class ExplorerCommand extends BaseCommand {
             self.configManager.update(argv);
             const namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
 
-            const clusterReference = this.configManager.getFlag<string>(flags.clusterRef) as string;
-            const clusterContext = clusterReference
-              ? this.localConfig.clusterRefs[clusterReference]
-              : this.k8Factory.default().contexts().readCurrent();
+            const clusterReference: ClusterReference = this.configManager.hasFlag(flags.clusterRef)
+              ? this.configManager.getFlag(flags.clusterRef)
+              : this.remoteConfigManager.currentCluster;
+
+            const clusterContext: Context = this.localConfig.clusterRefs[clusterReference];
 
             context_.config = {
               namespace,
               clusterContext,
+              clusterReference,
               isChartInstalled: await this.chartManager.isChartInstalled(
                 namespace,
                 constants.HEDERA_EXPLORER_RELEASE_NAME,
@@ -458,7 +462,7 @@ export class ExplorerCommand extends BaseCommand {
             return ListrLock.newAcquireLockTask(lease, task);
           },
         },
-        ListrRemoteConfig.loadRemoteConfig(this.remoteConfigManager, argv),
+        this.loadRemoteConfigTask(argv),
         {
           title: 'Destroy explorer',
           task: async context_ => {
@@ -489,7 +493,7 @@ export class ExplorerCommand extends BaseCommand {
             });
           },
         },
-        this.removeMirrorNodeExplorerComponents(),
+        this.disableMirrorNodeExplorerComponents(),
       ],
       {
         concurrent: false,
@@ -569,14 +573,33 @@ export class ExplorerCommand extends BaseCommand {
     };
   }
 
+  private loadRemoteConfigTask(argv: ArgvStruct): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Load remote config',
+      task: async (): Promise<void> => {
+        await this.remoteConfigManager.loadAndValidate(argv);
+      },
+    };
+  }
+
   /** Removes the explorer components from remote config. */
-  private removeMirrorNodeExplorerComponents(): SoloListrTask<ExplorerDestroyContext> {
+  private disableMirrorNodeExplorerComponents(): SoloListrTask<ExplorerDestroyContext> {
     return {
       title: 'Remove explorer from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: async (): Promise<void> => {
+      task: async (context_): Promise<void> => {
+        const clusterReference: ClusterReference = context_.config.clusterReference;
+
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.remove('mirrorNodeExplorer', ComponentType.MirrorNodeExplorer);
+          const explorerComponents: MirrorNodeExplorerComponent[] =
+            remoteConfig.components.getComponentsByClusterReference<MirrorNodeExplorerComponent>(
+              ComponentTypes.MirrorNodeExplorer,
+              clusterReference,
+            );
+
+          for (const explorerComponent of explorerComponents) {
+            remoteConfig.components.disableComponent(explorerComponent.name, ComponentTypes.MirrorNodeExplorer);
+          }
         });
       },
     };
@@ -589,11 +612,11 @@ export class ExplorerCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          const {
-            config: {namespace},
-          } = context_;
-          const cluster = this.remoteConfigManager.currentCluster;
-          remoteConfig.components.add(new MirrorNodeExplorerComponent('mirrorNodeExplorer', cluster, namespace.name));
+          const {namespace, clusterRef} = context_.config;
+
+          remoteConfig.components.addNewComponent(
+            ComponentFactory.createNewExplorerComponent(this.remoteConfigManager, clusterRef, namespace),
+          );
         });
       },
     };

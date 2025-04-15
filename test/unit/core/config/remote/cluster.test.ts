@@ -2,69 +2,94 @@
 
 import {it} from 'mocha';
 import {expect} from 'chai';
-import {SoloError} from '../../../../../src/core/errors/solo-error.js';
 import {Cluster} from '../../../../../src/core/config/remote/cluster.js';
 import {type ClusterReference} from '../../../../../src/core/config/remote/types.js';
+import {type ClusterStruct} from '../../../../../src/core/config/remote/interfaces/cluster-struct.js';
 
 describe('Cluster', () => {
-  it('should fail if name is not provided', () => {
-    expect(() => new Cluster(null, 'valid', 'valid')).to.throw(SoloError, 'name is required');
-    expect(() => new Cluster('', 'valid', 'valid')).to.throw(SoloError, 'name is required');
-  });
-
-  it('should fail if name is not a string', () => {
-    const name = 1; // @ts-ignore
-    expect(() => new Cluster(name, 'valid', 'valid')).to.throw(SoloError, 'Invalid type for name: number');
-  });
-
-  it('should fail if namespace is not provided', () => {
-    expect(() => new Cluster('valid', null, 'valid')).to.throw(SoloError, 'namespace is required');
-    expect(() => new Cluster('valid', '', 'valid')).to.throw(SoloError, 'namespace is required');
-  });
-
-  it('should fail if namespace is not a string', () => {
-    const namespace = 1; // @ts-ignore
-    expect(() => new Cluster('valid', namespace, 'valid')).to.throw(SoloError, 'Invalid type for namespace: number');
-  });
-
   it('should convert to an object', () => {
-    const c = new Cluster('name', 'namespace', 'deployment', 'cluster.world', 'network.svc');
-    const o = c.toObject();
-    expect(o.name).to.equal('name');
-    expect(o.namespace).to.equal('namespace');
-    expect(o.deployment).to.equal('deployment');
-    expect(o.dnsBaseDomain).to.equal('cluster.world');
-    expect(o.dnsConsensusNodePattern).to.equal('network.svc');
+    const clusterData: ClusterStruct = {
+      name: 'name',
+      namespace: 'namespace',
+      deployment: 'deployment',
+      dnsBaseDomain: 'cluster.world',
+      dnsConsensusNodePattern: 'network.svc',
+    };
+
+    const cluster: Cluster = new Cluster(
+      clusterData.name,
+      clusterData.namespace,
+      clusterData.deployment,
+      clusterData.dnsBaseDomain,
+      clusterData.dnsConsensusNodePattern,
+    );
+
+    const clusterObject: ClusterStruct = cluster.toObject();
+    expect(clusterObject.name).to.equal(clusterData.name);
+    expect(clusterObject.namespace).to.equal(clusterData.namespace);
+    expect(clusterObject.deployment).to.equal(clusterData.deployment);
+    expect(clusterObject.dnsBaseDomain).to.equal(clusterData.dnsBaseDomain);
+    expect(clusterObject.dnsConsensusNodePattern).to.equal(clusterData.dnsConsensusNodePattern);
   });
 
   it('should convert clusters map to an object', () => {
-    const map1: Record<ClusterReference, Cluster> = {
-      cluster1: new Cluster('name1', 'namespace1', 'deployment1', 'cluster1.world', 'network1.svc'),
-      cluster2: new Cluster('name2', 'namespace2', 'deployment2', 'cluster2.world', 'network2.svc'),
+    const clusterData1: ClusterStruct = {
+      name: 'name1',
+      namespace: 'namespace1',
+      deployment: 'deployment1',
+      dnsBaseDomain: 'cluster1.world',
+      dnsConsensusNodePattern: 'network1.svc',
     };
 
-    const o = Cluster.toClustersMapObject(map1);
-    expect(o.cluster1.name).to.equal('name1');
-    expect(o.cluster1.namespace).to.equal('namespace1');
-    expect(o.cluster1.deployment).to.equal('deployment1');
-    expect(o.cluster1.dnsBaseDomain).to.equal('cluster1.world');
-    expect(o.cluster1.dnsConsensusNodePattern).to.equal('network1.svc');
-    expect(o.cluster2.name).to.equal('name2');
-    expect(o.cluster2.namespace).to.equal('namespace2');
-    expect(o.cluster2.deployment).to.equal('deployment2');
-    expect(o.cluster2.dnsBaseDomain).to.equal('cluster2.world');
-    expect(o.cluster2.dnsConsensusNodePattern).to.equal('network2.svc');
+    const clusterData2: ClusterStruct = {
+      name: 'name2',
+      namespace: 'namespace2',
+      deployment: 'deployment2',
+      dnsBaseDomain: 'cluster2.world',
+      dnsConsensusNodePattern: 'network2.svc',
+    };
 
-    const map2 = Cluster.fromClustersMapObject(o);
-    expect(map2.cluster1.name).to.equal(map1.cluster1.name);
-    expect(map2.cluster1.namespace).to.equal(map1.cluster1.namespace);
-    expect(map2.cluster1.deployment).to.equal(map1.cluster1.deployment);
-    expect(map2.cluster1.dnsBaseDomain).to.equal(map1.cluster1.dnsBaseDomain);
-    expect(map2.cluster1.dnsConsensusNodePattern).to.equal(map1.cluster1.dnsConsensusNodePattern);
-    expect(map2.cluster2.name).to.equal(map1.cluster2.name);
-    expect(map2.cluster2.namespace).to.equal(map1.cluster2.namespace);
-    expect(map2.cluster2.deployment).to.equal(map1.cluster2.deployment);
-    expect(map2.cluster2.dnsBaseDomain).to.equal(map1.cluster2.dnsBaseDomain);
-    expect(map2.cluster2.dnsConsensusNodePattern).to.equal(map1.cluster2.dnsConsensusNodePattern);
+    const clusterMap1: Record<ClusterReference, Cluster> = {
+      cluster1: new Cluster(
+        clusterData1.name,
+        clusterData1.namespace,
+        clusterData1.deployment,
+        clusterData1.dnsBaseDomain,
+        clusterData1.dnsConsensusNodePattern,
+      ),
+      cluster2: new Cluster(
+        clusterData2.name,
+        clusterData2.namespace,
+        clusterData2.deployment,
+        clusterData2.dnsBaseDomain,
+        clusterData2.dnsConsensusNodePattern,
+      ),
+    };
+
+    const clustersMapObject: any = Cluster.toClustersMapObject(clusterMap1);
+    expect(clustersMapObject.cluster1.name).to.equal(clusterData1.name);
+    expect(clustersMapObject.cluster1.namespace).to.equal(clusterData1.namespace);
+    expect(clustersMapObject.cluster1.deployment).to.equal(clusterData1.deployment);
+    expect(clustersMapObject.cluster1.dnsBaseDomain).to.equal(clusterData1.dnsBaseDomain);
+    expect(clustersMapObject.cluster1.dnsConsensusNodePattern).to.equal(clusterData1.dnsConsensusNodePattern);
+
+    expect(clustersMapObject.cluster2.name).to.equal(clusterData2.name);
+    expect(clustersMapObject.cluster2.namespace).to.equal(clusterData2.namespace);
+    expect(clustersMapObject.cluster2.deployment).to.equal(clusterData2.deployment);
+    expect(clustersMapObject.cluster2.dnsBaseDomain).to.equal(clusterData2.dnsBaseDomain);
+    expect(clustersMapObject.cluster2.dnsConsensusNodePattern).to.equal(clusterData2.dnsConsensusNodePattern);
+
+    const clustersMap2: Record<ClusterReference, Cluster> = Cluster.fromClustersMapObject(clustersMapObject);
+    expect(clustersMap2.cluster1.name).to.equal(clusterMap1.cluster1.name);
+    expect(clustersMap2.cluster1.namespace).to.equal(clusterMap1.cluster1.namespace);
+    expect(clustersMap2.cluster1.deployment).to.equal(clusterMap1.cluster1.deployment);
+    expect(clustersMap2.cluster1.dnsBaseDomain).to.equal(clusterMap1.cluster1.dnsBaseDomain);
+    expect(clustersMap2.cluster1.dnsConsensusNodePattern).to.equal(clusterMap1.cluster1.dnsConsensusNodePattern);
+
+    expect(clustersMap2.cluster2.name).to.equal(clusterMap1.cluster2.name);
+    expect(clustersMap2.cluster2.namespace).to.equal(clusterMap1.cluster2.namespace);
+    expect(clustersMap2.cluster2.deployment).to.equal(clusterMap1.cluster2.deployment);
+    expect(clustersMap2.cluster2.dnsBaseDomain).to.equal(clusterMap1.cluster2.dnsBaseDomain);
+    expect(clustersMap2.cluster2.dnsConsensusNodePattern).to.equal(clusterMap1.cluster2.dnsConsensusNodePattern);
   });
 });
