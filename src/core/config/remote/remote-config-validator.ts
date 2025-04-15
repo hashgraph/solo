@@ -40,10 +40,6 @@ export class RemoteConfigValidator {
     return [constants.SOLO_HEDERA_EXPLORER_LABEL];
   }
 
-  private static getBlockNodeLabels(component: BaseComponent): string[] {
-    return [`app.kubernetes.io/instance=${component.name}`];
-  }
-
   private static getConsensusNodeLabels(component: BaseComponent): string[] {
     return [`app=network-${component.name}`];
   }
@@ -82,10 +78,6 @@ export class RemoteConfigValidator {
     mirrorNodeExplorers: {
       displayName: 'Mirror node explorer',
       getLabelsCallback: RemoteConfigValidator.getMirrorNodeExplorerLabels,
-    },
-    blockNodes: {
-      displayName: 'Block node',
-      getLabelsCallback: RemoteConfigValidator.getBlockNodeLabels,
     },
     consensusNodes: {
       displayName: 'Consensus node',

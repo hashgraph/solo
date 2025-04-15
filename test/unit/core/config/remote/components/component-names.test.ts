@@ -18,13 +18,6 @@ describe('ComponentNameTemplates', () => {
     }
   });
 
-  it('should create a valid component name for BlockNodeComponent', () => {
-    for (let index: number = 0; index < maxTestIndex; index++) {
-      const componentName: ComponentName = ComponentNameTemplates.renderBlockNodeName(index);
-      expect(componentName).to.equal(`block-node-${index}`);
-    }
-  });
-
   it('should create a valid component name for EnvoyProxyComponent', () => {
     for (let index: number = 0; index < maxTestIndex; index++) {
       const nodeAlias: NodeAlias = nodeAliases[index];

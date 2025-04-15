@@ -10,7 +10,6 @@ import {HaProxyComponent} from './ha-proxy-component.js';
 import {EnvoyProxyComponent} from './envoy-proxy-component.js';
 import {Templates} from '../../../templates.js';
 import {ConsensusNodeComponent} from './consensus-node-component.js';
-import {BlockNodeComponent} from './block-node-component.js';
 import {ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
 import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
 import {type ClusterReference, type ComponentName} from '../types.js';
@@ -96,18 +95,6 @@ export class ComponentFactory {
       nodeState,
       nodeId,
     );
-  }
-
-  public static createNewBlockNodeComponent(
-    remoteConfigManager: RemoteConfigManagerApi,
-    clusterReference: ClusterReference,
-    namespace: NamespaceName,
-  ): BlockNodeComponent {
-    const index: number = remoteConfigManager.components.getNewComponentIndex(ComponentTypes.BlockNode);
-
-    const name: ComponentName = ComponentNameTemplates.renderBlockNodeName(index);
-
-    return new BlockNodeComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
   }
 
   public static createConsensusNodeComponentsFromNodeAliases(

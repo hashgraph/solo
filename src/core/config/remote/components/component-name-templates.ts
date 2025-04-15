@@ -5,16 +5,11 @@ import {type ComponentName} from '../types.js';
 import {type NodeAlias} from '../../../../types/aliases.js';
 
 export class ComponentNameTemplates {
-  private static BLOCK_NODE_BASE_NAME: string = 'block-node';
   private static RELAY_BASE_NAME: string = 'relay';
   private static EXPLORER_BASE_NAME: string = 'mirror-node-explorer';
   private static MIRROR_NODE_BASE_NAME: string = 'mirror-node';
   private static HA_PROXY_BASE_NAME: (nodeAlias: NodeAlias) => string = nodeAlias => `haproxy-${nodeAlias}`;
   private static ENVOY_PROXY_BASE_NAME: (nodeAlias: NodeAlias) => string = nodeAlias => `envoy-proxy-${nodeAlias}`;
-
-  public static renderBlockNodeName(index: number): ComponentName {
-    return ComponentNameTemplates.renderComponentName(ComponentNameTemplates.BLOCK_NODE_BASE_NAME, index);
-  }
 
   public static renderRelayName(index: number): ComponentName {
     return ComponentNameTemplates.renderComponentName(ComponentNameTemplates.RELAY_BASE_NAME, index);

@@ -27,13 +27,11 @@ import {LocalConfigDataWrapper} from '../../../../src/core/config/local/local-co
 import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations/consensus-node-states.js';
 import {type ClusterReference, type ComponentName} from '../../../../src/core/config/remote/types.js';
 import {ComponentFactory} from '../../../../src/core/config/remote/components/component-factory.js';
-import {type BlockNodeComponent} from '../../../../src/core/config/remote/components/block-node-component.js';
 import {type BaseComponent} from '../../../../src/core/config/remote/components/base-component.js';
 import {ComponentTypes} from '../../../../src/core/config/remote/enumerations/component-types.js';
 
 interface ComponentsRecord {
   explorer: MirrorNodeExplorerComponent;
-  blockNode: BlockNodeComponent;
   mirrorNode: MirrorNodeComponent;
   relay: RelayComponent;
   consensusNode: ConsensusNodeComponent;
@@ -43,7 +41,6 @@ interface ComponentsRecord {
 
 interface LabelRecord {
   explorer: string[];
-  blockNode: string[];
   mirrorNode: string[];
   relay: string[];
   consensusNode: string[];
@@ -67,7 +64,6 @@ function prepareComponentsData(namespace: NamespaceName): ComponentsData {
 
   const components: ComponentsRecord = {
     explorer: ComponentFactory.createNewExplorerComponent(remoteConfigManagerMock, clusterReference, namespace),
-    blockNode: ComponentFactory.createNewBlockNodeComponent(remoteConfigManagerMock, clusterReference, namespace),
     mirrorNode: ComponentFactory.createNewMirrorNodeComponent(remoteConfigManagerMock, clusterReference, namespace),
     relay: ComponentFactory.createNewRelayComponent(remoteConfigManagerMock, clusterReference, namespace, [nodeAlias]),
     consensusNode: ComponentFactory.createNewConsensusNodeComponent(nodeAlias, clusterReference, namespace, nodeState),
@@ -96,8 +92,6 @@ function prepareComponentsData(namespace: NamespaceName): ComponentsData {
     envoyProxy: RemoteConfigValidator.getEnvoyProxyLabels(components.envoyProxy),
     // @ts-expect-error - to access private property
     explorer: RemoteConfigValidator.getMirrorNodeExplorerLabels(),
-    // @ts-expect-error - to access private property
-    blockNode: RemoteConfigValidator.getBlockNodeLabels(components.blockNode),
     // @ts-expect-error - to access private property
     consensusNode: RemoteConfigValidator.getConsensusNodeLabels(components.consensusNode),
   };
@@ -169,7 +163,6 @@ describe('RemoteConfigValidator', () => {
     {componentKey: 'envoyProxy', displayName: 'Envoy proxy'},
     {componentKey: 'consensusNode', displayName: 'Consensus node'},
     {componentKey: 'explorer', displayName: 'Mirror node explorer'},
-    {componentKey: 'blockNode', displayName: 'Block node'},
   ];
 
   for (const {componentKey, displayName} of testCasesForIndividualComponents) {
@@ -206,10 +199,10 @@ describe('RemoteConfigValidator', () => {
 
   describe('Additional test cases', () => {
     it('Should not validate disabled components', async () => {
-      const component: BlockNodeComponent = components.blockNode;
+      const component: MirrorNodeComponent = components.mirrorNode;
 
       componentsDataWrapper.addNewComponent(component);
-      componentsDataWrapper.disableComponent(component.name, ComponentTypes.BlockNode);
+      componentsDataWrapper.disableComponent(component.name, ComponentTypes.MirrorNode);
 
       await RemoteConfigValidator.validateComponents(namespace, componentsDataWrapper, k8Factory, localConfig, false);
     });

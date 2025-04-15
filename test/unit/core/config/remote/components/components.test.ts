@@ -14,7 +14,6 @@ import {type NodeAlias} from '../../../../../../src/types/aliases.js';
 import {Templates} from '../../../../../../src/core/templates.js';
 import {ConsensusNodeStates} from '../../../../../../src/core/config/remote/enumerations/consensus-node-states.js';
 import {ComponentStates} from '../../../../../../src/core/config/remote/enumerations/component-states.js';
-import {BlockNodeComponent} from '../../../../../../src/core/config/remote/components/block-node-component.js';
 import {type ClusterReference, type ComponentName} from '../../../../../../src/core/config/remote/types.js';
 import {NamespaceName} from '../../../../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {type BaseComponentStruct} from '../../../../../../src/core/config/remote/components/interfaces/base-component-struct.js';
@@ -55,8 +54,6 @@ describe('EnvoyProxyComponent', () => testBaseComponentData(EnvoyProxyComponent)
 describe('MirrorNodeComponent', () => testBaseComponentData(MirrorNodeComponent));
 
 describe('MirrorNodeExplorerComponent', () => testBaseComponentData(MirrorNodeExplorerComponent));
-
-describe('BlockNodeComponent', () => testBaseComponentData(BlockNodeComponent));
 
 describe('RelayComponent', () => {
   it('should successfully create ', () => {

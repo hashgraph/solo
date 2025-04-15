@@ -20,7 +20,6 @@ import {
   type ComponentName,
   type NamespaceNameAsString,
 } from '../../../../../src/core/config/remote/types.js';
-import {BlockNodeComponent} from '../../../../../src/core/config/remote/components/block-node-component.js';
 import {type ComponentsDataStruct} from '../../../../../src/core/config/remote/interfaces/components-data-struct.js';
 
 export function createComponentsDataWrapper(): {
@@ -39,7 +38,6 @@ export function createComponentsDataWrapper(): {
     envoyProxies: Record<string, EnvoyProxyComponent>;
     consensusNodes: Record<string, ConsensusNodeComponent>;
     mirrorNodeExplorers: Record<string, MirrorNodeExplorerComponent>;
-    blockNodes: Record<string, BlockNodeComponent>;
   };
   wrapper: {componentsDataWrapper: ComponentsDataWrapper};
   componentName: string;
@@ -77,10 +75,6 @@ export function createComponentsDataWrapper(): {
     [componentName]: new MirrorNodeExplorerComponent(name, cluster, namespace, state),
   };
 
-  const blockNodes: Record<string, BlockNodeComponent> = {
-    [componentName]: new BlockNodeComponent(name, cluster, namespace, state),
-  };
-
   // @ts-expect-error - TS267: to access private constructor
   const componentsDataWrapper: ComponentsDataWrapper = new ComponentsDataWrapper(
     relays,
@@ -89,12 +83,11 @@ export function createComponentsDataWrapper(): {
     envoyProxies,
     consensusNodes,
     mirrorNodeExplorers,
-    blockNodes,
   );
 
   return {
     values: {name, cluster, namespace, nodeState, consensusNodeAliases, state},
-    components: {consensusNodes, haProxies, envoyProxies, mirrorNodes, mirrorNodeExplorers, relays, blockNodes},
+    components: {consensusNodes, haProxies, envoyProxies, mirrorNodes, mirrorNodeExplorers, relays},
     wrapper: {componentsDataWrapper},
     componentName,
   };
@@ -226,15 +219,15 @@ describe('ComponentsDataWrapper', () => {
     const {
       wrapper: {componentsDataWrapper},
       componentName,
-      components: {blockNodes},
+      components: {mirrorNodes},
     } = createComponentsDataWrapper();
 
-    const blockNodeComponent: BlockNodeComponent = componentsDataWrapper.getComponent<BlockNodeComponent>(
-      ComponentTypes.BlockNode,
+    const mirrorNodeComponent: MirrorNodeComponent = componentsDataWrapper.getComponent<MirrorNodeComponent>(
+      ComponentTypes.MirrorNode,
       componentName,
     );
 
-    expect(blockNodes[componentName].toObject()).to.deep.equal(blockNodeComponent.toObject());
+    expect(mirrorNodes[componentName].toObject()).to.deep.equal(mirrorNodeComponent.toObject());
   });
 
   it("should fail if trying to get component that doesn't exist with .getComponent()", () => {
@@ -243,9 +236,9 @@ describe('ComponentsDataWrapper', () => {
     } = createComponentsDataWrapper();
 
     const notFoundComponentName: ComponentName = 'not_found';
-    const type: ComponentTypes = ComponentTypes.BlockNode;
+    const type: ComponentTypes = ComponentTypes.MirrorNode;
 
-    expect(() => componentsDataWrapper.getComponent<BlockNodeComponent>(type, notFoundComponentName)).to.throw(
+    expect(() => componentsDataWrapper.getComponent<MirrorNodeComponent>(type, notFoundComponentName)).to.throw(
       `Component ${notFoundComponentName} of type ${type} not found while attempting to read`,
     );
   });
@@ -253,18 +246,18 @@ describe('ComponentsDataWrapper', () => {
   it('should be able to get components with .applyCallbackToComponentGroup()', () => {
     const {
       wrapper: {componentsDataWrapper},
-      components: {blockNodes},
+      components: {mirrorNodes},
       values: {cluster},
     } = createComponentsDataWrapper();
 
-    const blockNodeComponents: BlockNodeComponent[] =
-      componentsDataWrapper.getComponentsByClusterReference<BlockNodeComponent>(ComponentTypes.BlockNode, cluster);
+    const mirrorNodeComponents: MirrorNodeComponent[] =
+      componentsDataWrapper.getComponentsByClusterReference<MirrorNodeComponent>(ComponentTypes.MirrorNode, cluster);
 
-    for (const blockNodeComponent of blockNodeComponents) {
-      expect(blockNodeComponent.toObject()).to.deep.equal(blockNodes[blockNodeComponent.name].toObject());
-      expect(blockNodeComponent.cluster).to.equal(cluster);
+    for (const mirrorNodeComponent of mirrorNodeComponents) {
+      expect(mirrorNodeComponent.toObject()).to.deep.equal(mirrorNodes[mirrorNodeComponent.name].toObject());
+      expect(mirrorNodeComponent.cluster).to.equal(cluster);
     }
 
-    expect(Object.keys(blockNodes).length).to.equal(blockNodeComponents.length);
+    expect(Object.keys(mirrorNodes).length).to.equal(mirrorNodeComponents.length);
   });
 });
