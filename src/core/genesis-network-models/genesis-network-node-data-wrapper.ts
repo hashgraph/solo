@@ -20,7 +20,7 @@ export class GenesisNetworkNodeDataWrapper
   public readonly deleted: boolean = false;
 
   public constructor(
-    public readonly nodeId: number,
+    public override readonly nodeId: number,
     public readonly adminKey: PublicKey,
     public readonly description: string,
   ) {
