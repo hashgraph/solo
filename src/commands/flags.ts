@@ -701,7 +701,7 @@ export class Flags {
         'id is the same as the one inside the remote config and is an integer starting from 0',
       type: 'number',
     },
-    prompt: async function(task: SoloListrTaskWrapper<AnyListrContext>, input: number): Promise<number> {
+    prompt: async function (task: SoloListrTaskWrapper<AnyListrContext>, input: number): Promise<number> {
       return await Flags.prompt(
         'number',
         task,

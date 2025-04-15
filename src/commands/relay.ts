@@ -120,18 +120,19 @@ export class RelayCommand extends BaseCommand {
     optional: [flags.chartDirectory, flags.deployment, flags.nodeAliasesUnparsed, flags.clusterRef, flags.quiet],
   };
 
-  private async prepareValuesArgForRelay(
-    valuesFile: string,
-    nodeAliases: NodeAliases,
-    chainID: string,
-    relayRelease: string,
-    replicaCount: number,
-    operatorID: string,
-    operatorKey: string,
-    namespace: NamespaceName,
-    domainName: Optional<string>,
-    context?: Optional<string>,
-  ): Promise<string> {
+  private async prepareValuesArgForRelay({
+    valuesFile,
+    nodeAliases,
+    chainId,
+    relayReleaseTag,
+    replicaCount,
+    operatorId,
+    operatorKey,
+    namespace,
+    domainName,
+    context,
+    newRelayComponents,
+  }: RelayDeployConfigClass): Promise<string> {
     let valuesArgument: string = '';
 
     const profileName: string = this.configManager.getFlag(flags.profileName);
@@ -146,19 +147,19 @@ export class RelayCommand extends BaseCommand {
     valuesArgument += ' --set config.MIRROR_NODE_RETRY_DELAY=2001';
     valuesArgument += ' --set config.MIRROR_NODE_GET_CONTRACT_RESULTS_DEFAULT_RETRIES=21';
 
-    if (chainID) {
-      valuesArgument += ` --set config.CHAIN_ID=${chainID}`;
+    if (chainId) {
+      valuesArgument += ` --set config.CHAIN_ID=${chainId}`;
     }
 
-    if (relayRelease) {
-      valuesArgument += ` --set image.tag=${relayRelease.replace(/^v/, '')}`;
+    if (relayReleaseTag) {
+      valuesArgument += ` --set image.tag=${relayReleaseTag.replace(/^v/, '')}`;
     }
 
     if (replicaCount) {
       valuesArgument += ` --set replicaCount=${replicaCount}`;
     }
 
-    const operatorIdUsing: string = operatorID || constants.OPERATOR_ID;
+    const operatorIdUsing: string = operatorId || constants.OPERATOR_ID;
     valuesArgument += ` --set config.OPERATOR_ID_MAIN=${operatorIdUsing}`;
 
     if (operatorKey) {
@@ -199,6 +200,8 @@ export class RelayCommand extends BaseCommand {
         'ingress.hosts[0].paths[0].pathType': 'ImplementationSpecific',
       });
     }
+
+    valuesArgument += helpers.populateHelmArguments({nameOverride: newRelayComponents.name});
 
     if (valuesFile) {
       valuesArgument += helpers.prepareValuesFiles(valuesFile);
@@ -330,25 +333,15 @@ export class RelayCommand extends BaseCommand {
           title: 'Prepare chart values',
           task: async (context_): Promise<void> => {
             const config: RelayDeployConfigClass = context_.config;
+
             await this.accountManager.loadNodeClient(
-              context_.config.namespace,
+              config.namespace,
               this.remoteConfigManager.getClusterRefs(),
               this.configManager.getFlag<DeploymentName>(flags.deployment),
               this.configManager.getFlag<boolean>(flags.forcePortForward),
             );
 
-            config.valuesArg = await this.prepareValuesArgForRelay(
-              config.valuesFile,
-              config.nodeAliases,
-              config.chainId,
-              config.relayReleaseTag,
-              config.replicaCount,
-              config.operatorId,
-              config.operatorKey,
-              config.namespace,
-              config.domainName,
-              config.context,
-            );
+            config.valuesArg = await this.prepareValuesArgForRelay(config);
           },
         },
         {
@@ -379,7 +372,7 @@ export class RelayCommand extends BaseCommand {
               .pods()
               .waitForRunningPhase(
                 config.namespace,
-                ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
+                ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.newRelayComponents.name}`],
                 constants.RELAY_PODS_RUNNING_MAX_ATTEMPTS,
                 constants.RELAY_PODS_RUNNING_DELAY,
               );
@@ -398,7 +391,7 @@ export class RelayCommand extends BaseCommand {
                 .pods()
                 .waitForReadyStatus(
                   config.namespace,
-                  ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.releaseName}`],
+                  ['app=hedera-json-rpc-relay', `app.kubernetes.io/instance=${config.newRelayComponents.name}`],
                   constants.RELAY_PODS_READY_MAX_ATTEMPTS,
                   constants.RELAY_PODS_READY_DELAY,
                 );
