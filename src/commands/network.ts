@@ -26,29 +26,15 @@ import {type KeyManager} from '../core/key-manager.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
-import {
-  type AnyYargs,
-  type ArgvStruct,
-  type IP,
-  type NodeAlias,
-  type NodeAliases,
-} from '../types/aliases.js';
+import {type AnyYargs, type ArgvStruct, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {v4 as uuidv4} from 'uuid';
-import {
-  type SoloListr,
-  type SoloListrTask,
-  type SoloListrTaskWrapper,
-} from '../types/index.js';
+import {type SoloListr, type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
-import {
-  type ClusterReference,
-  type ClusterReferences,
-  type Context,
-} from '../core/config/remote/types.js';
+import {type ClusterReference, type ClusterReferences, type Context} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
@@ -57,7 +43,6 @@ import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {ConsensusNodeStates} from '../core/config/remote/enumerations/consensus-node-states.js';
 import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
-import {type BlockNodeComponent} from '../core/config/remote/components/block-node-component.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -111,7 +96,6 @@ export interface NetworkDeployConfigClass {
   clusterRefs: ClusterReferences;
   domainNames?: string;
   domainNamesMapping?: Record<NodeAlias, string>;
-  activeBlockNodeComponents: BlockNodeComponent[];
   debugNodeAlias: NodeAlias;
   app: string;
 }

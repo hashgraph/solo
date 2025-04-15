@@ -4,7 +4,6 @@ import {SoloError} from '../../errors/solo-error.js';
 import {BaseComponent} from './components/base-component.js';
 import {RelayComponent} from './components/relay-component.js';
 import {HaProxyComponent} from './components/ha-proxy-component.js';
-import {BlockNodeComponent} from './components/block-node-component.js';
 import {MirrorNodeComponent} from './components/mirror-node-component.js';
 import {EnvoyProxyComponent} from './components/envoy-proxy-component.js';
 import {ConsensusNodeComponent} from './components/consensus-node-component.js';
@@ -35,7 +34,6 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     public readonly envoyProxies: Record<ComponentName, EnvoyProxyComponent> = {},
     public readonly consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {},
     public readonly mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {},
-    public readonly blockNodes: Record<ComponentName, BlockNodeComponent> = {},
   ) {
     this.validate();
   }
@@ -198,11 +196,6 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
         break;
       }
 
-      case ComponentTypes.BlockNode: {
-        callback(this.blockNodes);
-        break;
-      }
-
       default: {
         throw new SoloError(`Unknown component type ${componentType}, component name: ${componentName}`);
       }
@@ -223,7 +216,6 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     const envoyProxies: Record<ComponentName, EnvoyProxyComponent> = {};
     const consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {};
     const mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {};
-    const blockNodes: Record<ComponentName, BlockNodeComponent> = {};
 
     for (const [componentType, subComponents] of Object.entries(components)) {
       switch (componentType) {
@@ -271,28 +263,13 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
           break;
         }
 
-        case ComponentTypes.BlockNode: {
-          for (const [componentName, component] of Object.entries(subComponents)) {
-            blockNodes[componentName] = BlockNodeComponent.fromObject(component);
-          }
-          break;
-        }
-
         default: {
           throw new SoloError(`Unknown component type ${componentType}`);
         }
       }
     }
 
-    return new ComponentsDataWrapper(
-      relays,
-      haProxies,
-      mirrorNodes,
-      envoyProxies,
-      consensusNodes,
-      mirrorNodeExplorers,
-      blockNodes,
-    );
+    return new ComponentsDataWrapper(relays, haProxies, mirrorNodes, envoyProxies, consensusNodes, mirrorNodeExplorers);
   }
 
   /** Used to create an empty instance used to keep the constructor private */
@@ -358,7 +335,6 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     this.validateComponentTypes(this.envoyProxies, EnvoyProxyComponent);
     this.validateComponentTypes(this.consensusNodes, ConsensusNodeComponent);
     this.validateComponentTypes(this.mirrorNodeExplorers, MirrorNodeExplorerComponent);
-    this.validateComponentTypes(this.blockNodes, BlockNodeComponent);
   }
 
   private transformComponentGroupToObject(
@@ -381,7 +357,6 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
       [ComponentTypes.EnvoyProxy]: this.transformComponentGroupToObject(this.envoyProxies),
       [ComponentTypes.ConsensusNode]: this.transformComponentGroupToObject(this.consensusNodes),
       [ComponentTypes.MirrorNodeExplorer]: this.transformComponentGroupToObject(this.mirrorNodeExplorers),
-      [ComponentTypes.BlockNode]: this.transformComponentGroupToObject(this.blockNodes),
     };
   }
 
