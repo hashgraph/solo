@@ -692,6 +692,28 @@ export class Flags {
     },
   };
 
+  public static readonly relayId: CommandFlag = {
+    constName: 'relayId',
+    name: 'id',
+    definition: {
+      describe:
+        'ID of the relay which you want to destroy' +
+        'id is the same as the one inside the remote config and is an integer starting from 0',
+      type: 'number',
+    },
+    prompt: async function(task: SoloListrTaskWrapper<AnyListrContext>, input: number): Promise<number> {
+      return await Flags.prompt(
+        'number',
+        task,
+        input,
+        undefined,
+        'Specify ID of the relay you want to destroy? ',
+        null,
+        Flags.relayId.name,
+      );
+    },
+  };
+
   public static readonly replicaCount: CommandFlag = {
     constName: 'replicaCount',
     name: 'replica-count',
@@ -2523,6 +2545,7 @@ export class Flags {
     Flags.dnsConsensusNodePattern,
     Flags.domainName,
     Flags.domainNames,
+    Flags.relayId,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

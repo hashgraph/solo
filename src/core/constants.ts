@@ -73,6 +73,7 @@ export const HEDERA_EXPLORER_CHART_URL =
   process.env.HEDERA_EXPLORER_CHART_URL ?? 'oci://ghcr.io/hashgraph/hedera-mirror-node-explorer/hedera-explorer-chart';
 export const HEDERA_EXPLORER_RELEASE_NAME = 'hedera-explorer';
 export const SOLO_RELAY_LABEL = 'app=hedera-json-rpc-relay';
+export const RELAY_RELEASE_NAME = 'relay';
 export const SOLO_HEDERA_EXPLORER_LABEL = 'app.kubernetes.io/component=hedera-explorer';
 
 export const INGRESS_CONTROLLER_CHART_URL =
