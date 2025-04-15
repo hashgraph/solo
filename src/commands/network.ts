@@ -791,7 +791,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Initialize',
           task: async (context_, task) => {
-            context_.config = await self.prepareConfig(task, argv, true);
+            context_.config = await self.prepareConfig(task, argv);
             return ListrLock.newAcquireLockTask(lease, task);
           },
         },
@@ -1061,7 +1061,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check auxiliary pods are ready',
           task: (_, task) => {
-            const subTasks: SoloListrTask<Context>[] = [];
+            const subTasks: SoloListrTask<NetworkDeployContext>[] = [];
 
             // minio
             subTasks.push({
