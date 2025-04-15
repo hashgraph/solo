@@ -27,6 +27,8 @@ export interface ComponentsDataWrapperApi
     clusterReference: ClusterReference,
   ): T[];
 
+  getComponentById<T extends BaseComponent>(type: ComponentTypes, id: number): T;
+
   /**
    * Checks all existing components of specified type and gives you a new unique index
    */

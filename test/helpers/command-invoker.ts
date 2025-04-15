@@ -16,6 +16,7 @@ export class CommandInvoker {
   private readonly remoteConfigManager: RemoteConfigManager;
   private readonly configManager: ConfigManager;
   private readonly k8Factory: K8Factory;
+  private readonly logger: SoloLogger;
 
   public constructor(options: {
     configManager: ConfigManager;
@@ -27,6 +28,7 @@ export class CommandInvoker {
     this.configManager = options.configManager;
     this.k8Factory = options.k8Factory;
     this.remoteConfigManager = options.remoteConfigManager;
+    this.logger = options.logger;
   }
 
   public async invoke({
@@ -60,11 +62,16 @@ export class CommandInvoker {
       await executable(argv.build());
     }
 
-    await callback(argv.build());
+    try {
+      await callback(argv.build());
+    } catch (error) {
+      this.logger.showUserError(error);
+      throw error;
+    }
   }
 
-  private updateConfigManager() {
-    const self = this;
+  private updateConfigManager(): (argv: ArgvStruct) => Promise<AnyObject> {
+    const self: this = this;
 
     return async (argv: ArgvStruct): Promise<AnyObject> => {
       self.configManager.update(argv);

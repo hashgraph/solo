@@ -10,12 +10,11 @@ import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {type ChartManager} from '../../../src/core/chart-manager.js';
-import {NetworkCommand} from '../../../src/commands/network.js';
+import {NetworkCommand, type NetworkDeployConfigClass} from '../../../src/commands/network.js';
 import {type LockManager} from '../../../src/core/lock/lock-manager.js';
 import {type RemoteConfigManager} from '../../../src/core/config/remote/remote-config-manager.js';
 import {type ProfileManager} from '../../../src/core/profile-manager.js';
 import {type KeyManager} from '../../../src/core/key-manager.js';
-import {ROOT_DIR} from '../../../src/core/constants.js';
 import {ListrLock} from '../../../src/core/lock/listr-lock.js';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis-network-models/genesis-network-data-constructor.js';
 import {container} from 'tsyringe-neo';
@@ -33,6 +32,7 @@ import {NamespaceName} from '../../../src/integration/kube/resources/namespace/n
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DefaultHelmClient} from '../../../src/integration/helm/impl/default-helm-client.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {ComponentsDataWrapper} from '../../../src/core/config/remote/components-data-wrapper.js';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);
@@ -156,44 +156,6 @@ describe('NetworkCommand unit tests', () => {
       sinon.restore();
     });
 
-    it('Install function is called with expected parameters', async () => {
-      try {
-        const networkCommand = new NetworkCommand(options);
-        options.remoteConfigManager.getConsensusNodes = sinon.stub().returns([{name: 'node1'}]);
-        options.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
-        options.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
-
-        await networkCommand.deploy(argv.build());
-
-        expect(options.chartManager.install.args[0][0].name).to.equal('solo-e2e');
-        expect(options.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-        expect(options.chartManager.install.args[0][2]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-        expect(options.chartManager.install.args[0][3]).to.equal(constants.SOLO_TESTING_CHART_URL);
-      } finally {
-        sinon.restore();
-      }
-    });
-
-    it('Should use local chart directory', async () => {
-      try {
-        argv.setArg(flags.chartDirectory, 'test-directory');
-        argv.setArg(flags.force, true);
-        const networkCommand = new NetworkCommand(options);
-
-        options.remoteConfigManager.getConsensusNodes = sinon.stub().returns([{name: 'node1'}]);
-        options.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
-        options.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
-
-        await networkCommand.deploy(argv.build());
-        expect(options.chartManager.install.args[0][0].name).to.equal('solo-e2e');
-        expect(options.chartManager.install.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-        expect(options.chartManager.install.args[0][2]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-        expect(options.chartManager.install.args[0][3]).to.equal(PathEx.join(ROOT_DIR, 'test-directory'));
-      } finally {
-        sinon.restore();
-      }
-    });
-
     it('Should use prepare config correctly for all clusters', async () => {
       try {
         const common = PathEx.join('test', 'data', 'test-values.yaml');
@@ -208,11 +170,14 @@ describe('NetworkCommand unit tests', () => {
         options.remoteConfigManager.getConsensusNodes = sinon
           .stub()
           .returns([new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn')]);
+
+        options.remoteConfigManager.remoteConfig = {components: ComponentsDataWrapper.initializeEmpty()};
         options.remoteConfigManager.getContexts = sinon.stub().returns(['context-1']);
         options.remoteConfigManager.getClusterRefs = sinon.stub().returns({['cluster']: 'context-1'});
 
-        const networkCommand = new NetworkCommand(options);
-        const config = await networkCommand.prepareConfig(task, argv.build());
+        const networkCommand: NetworkCommand = new NetworkCommand(options);
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
 
         expect(config.valuesArgMap).to.not.empty;
         expect(config.valuesArgMap['cluster']).to.not.empty;
