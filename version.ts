@@ -15,7 +15,7 @@ export const SOLO_CHART_VERSION = '0.50.0';
 export const HEDERA_PLATFORM_VERSION = 'v0.59.5';
 export const MIRROR_NODE_VERSION = 'v0.126.0';
 export const HEDERA_EXPLORER_VERSION = '24.12.1';
-export const HEDERA_JSON_RPC_RELAY_VERSION = 'v0.66.0';
+export const HEDERA_JSON_RPC_RELAY_VERSION = 'v0.67.0';
 export const INGRESS_CONTROLLER_VERSION = '0.14.5';
 export const BLOCK_NODE_VERSION = '0.7.0';
 
