@@ -621,7 +621,8 @@ export async function createTLSSecret(
 
 export async function generateTLS(
   directory: string,
-  name: string = 'localhost',
+  name: string,
+  expireDays: number = 365,
 ): Promise<{certificatePath: string; keyPath: string}> {
   // Define attributes for the certificate
   const attributes: {name: string; value: string}[] = [{name: 'commonName', value: name}];
@@ -629,17 +630,18 @@ export async function generateTLS(
   const keyPath: string = PathEx.join(directory, `${name}.key`);
 
   // Generate the certificate and key
-  selfsigned.generate(attributes, {days: 365}, (error, pems) => {
-    if (error) {
-      throw new SoloError(`Error generating TLS keys: ${error.message}`);
-    }
-    fs.writeFileSync(certificatePath, pems.cert);
-    fs.writeFileSync(keyPath, pems.private);
+  return new Promise((resolve, reject) => {
+    selfsigned.generate(attributes, {days: expireDays}, (error, pems) => {
+      if (error) {
+        reject(new SoloError(`Error generating TLS keys: ${error.message}`));
+        return;
+      }
+      fs.writeFileSync(certificatePath, pems.cert);
+      fs.writeFileSync(keyPath, pems.private);
+      resolve({
+        certificatePath,
+        keyPath,
+      });
+    });
   });
-  // wait a few seconds for the files to be created
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  return {
-    certificatePath,
-    keyPath,
-  };
 }
