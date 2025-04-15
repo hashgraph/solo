@@ -104,7 +104,7 @@ interface TestOptions {
   commandInvoker: CommandInvoker;
 }
 
-interface BootstrapResponse {
+export interface BootstrapResponse {
   deployment: string;
   namespace: NamespaceName;
   opts: TestOptions;
