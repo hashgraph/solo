@@ -7,7 +7,7 @@ import * as constants from '../../core/constants.js';
 import {type LockManager} from '../../core/lock/lock-manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
 import {SoloError} from '../../core/errors/solo-error.js';
-import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
+import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {type Lock} from '../../core/lock/lock.js';
 import {type NodeCommandTasks} from './tasks.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
