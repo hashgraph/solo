@@ -8,8 +8,8 @@ vars:
 env:
   SOLO_NETWORK_SIZE: 10
   SOLO_NAMESPACE: %SOLO_NAMESPACE%
-  SOLO_CHART_VERSION: 0.42.10
-  #CONSENSUS_NODE_VERSION: 0.0.0
+  SOLO_CHART_VERSION: 0.49.1
+  CONSENSUS_NODE_VERSION: v0.59.0
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"
   SETTINGS_FLAG: "--settings-txt {{.USER_WORKING_DIR}}/settings.txt"
   SOLO_HOME: "{{.solo_home_override_dir}}"
@@ -25,3 +25,11 @@ env:
   EXPLORER_NAME_SPACE: "explorer-name-space"
   EXPLORER_DEPLOYMENT: "explorer-deployment"
   EXPLORER_CLUSTER_CONTEXT: "kind-solo-cluster"
+  SOLO_DEPLOYMENT: %SOLO_NAMESPACE%-test
+  CLUSTER_REF: %SOLO_NAMESPACE%-ref
+  SOLO_CLUSTER_RELEASE_NAME: cluster_name
+  CONTEXT: hashgraph.teleport.sh-k8s.pft.dal.lat.ope.eng.hashgraph.io
+  SOLO_CLUSTER_SETUP_NAMESPACE: setup_namespace
+  SOLO_CLUSTER_NAME: solo-cluster-name
+  MIRROR_RELEASE_NAME: release_name
+
