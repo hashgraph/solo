@@ -2549,7 +2549,7 @@ export class Flags {
 
   public static readonly integerFlags = new Map([Flags.replicaCount].map(f => [f.name, f]));
 
-  public static readonly DEFAULT_FLAGS: CommandFlags = {
+  public static readonly DEFAULT_FLAGS = {
     required: [],
     optional: [Flags.namespace, Flags.cacheDir, Flags.releaseTag, Flags.devMode, Flags.quiet],
   };

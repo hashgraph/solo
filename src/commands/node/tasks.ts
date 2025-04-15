@@ -248,7 +248,7 @@ export class NodeCommandTasks {
     podReferences: Record<NodeAlias, PodReference>,
     task: SoloListrTaskWrapper<AnyListrContext>,
     localBuildPath: string,
-    consensusNodes: ConsensusNode[],
+    consensusNodes: Optional<ConsensusNode[]>,
     releaseTag: string,
   ): SoloListr<AnyListrContext> {
     const subTasks: SoloListrTask<AnyListrContext>[] = [];
@@ -342,7 +342,7 @@ export class NodeCommandTasks {
     releaseTag: string,
     task: SoloListrTaskWrapper<AnyListrContext>,
     platformInstaller: PlatformInstaller,
-    consensusNodes: ConsensusNode[],
+    consensusNodes?: Optional<ConsensusNode[]>,
   ): SoloListr<AnyListrContext> {
     const subTasks: SoloListrTask<AnyListrContext>[] = [];
     for (const nodeAlias of nodeAliases) {
