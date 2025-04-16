@@ -29,6 +29,11 @@ AddToFileList()
     return
   fi
 
+  if [[ -L "${1}" ]];then
+    echo "Adding symbolic link: ${1}" | tee -a ${LOG_FILE}
+    find . -maxdepth 1 -type l -name ${1} -print  | tee -a ${LOG_FILE} >>${FILE_LIST}
+  fi
+
   if [[ -f "${1}" ]];then
     find . -maxdepth 1 -type f -name ${1} -print  | tee -a ${LOG_FILE} >>${FILE_LIST}
   else
