@@ -3,7 +3,7 @@
 import {describe} from 'mocha';
 
 import {Flags} from '../../../src/commands/flags.js';
-import {getTestCacheDirectory, getTestCluster} from '../../test-utility.js';
+import {getTestCacheDirectory, getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
 import {main} from '../../../src/index.js';
 import {resetForTest} from '../../test-container.js';
 import {
@@ -73,6 +73,9 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
   const testCacheDirectory: string = getTestCacheDirectory(testName);
   let testLogger: SoloWinstonLogger;
   const createdAccountIds: string[] = [];
+  const enableLocalBuildPathTesting: boolean = process.env.SOLO_LOCAL_BUILD_PATH_TESTING?.toLowerCase() === 'true';
+  const localBuildPath: string = process.env.SOLO_LOCAL_BUILD_PATH || '../hiero-consensus-node/hedera-node/data';
+  const localBuildReleaseTag: string = process.env.SOLO_LOCAL_BUILD_RELEASE_TAG || HEDERA_PLATFORM_VERSION_TAG;
 
   // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
   before(async (): Promise<void> => {
@@ -157,7 +160,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
   });
 
   it(`${testName}: network deploy`, async (): Promise<void> => {
-    await main(soloNetworkDeployArgv(deployment));
+    await main(soloNetworkDeployArgv(deployment, enableLocalBuildPathTesting, localBuildReleaseTag));
     const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
     for (const [index, context_] of contexts.entries()) {
       const k8: K8 = k8Factory.getK8(context_);
@@ -171,7 +174,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
 
   // TODO node setup still list --node-aliases
   it(`${testName}: node setup`, async (): Promise<void> => {
-    await main(soloNodeSetupArgv(deployment));
+    await main(soloNodeSetupArgv(deployment, enableLocalBuildPathTesting, localBuildPath, localBuildReleaseTag));
     const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
     for (const context_ of contexts) {
       const k8: K8 = k8Factory.getK8(context_);
@@ -181,10 +184,12 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
         PodReference.of(namespace, pods[0].podReference.name),
         ROOT_CONTAINER,
       );
-      expect(
-        await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`),
-        'expect extract-platform.sh to be present on the pods',
-      ).to.be.true;
+      if (!enableLocalBuildPathTesting) {
+        expect(
+          await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`),
+          'expect extract-platform.sh to be present on the pods',
+        ).to.be.true;
+      }
       expect(await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_HAPI_PATH}/data/apps/HederaNode.jar`)).to
         .be.true;
       expect(
@@ -336,7 +341,11 @@ function soloNodeKeysArgv(deployment: DeploymentName): string[] {
   return argv;
 }
 
-function soloNetworkDeployArgv(deployment: DeploymentName): string[] {
+function soloNetworkDeployArgv(
+  deployment: DeploymentName,
+  enableLocalBuildPathTesting: boolean,
+  localBuildReleaseTag: string,
+): string[] {
   const argv: string[] = newArgv();
   argv.push(
     'network',
@@ -345,13 +354,29 @@ function soloNetworkDeployArgv(deployment: DeploymentName): string[] {
     deployment,
     optionFromFlag(Flags.loadBalancerEnabled),
   ); // have to enable load balancer to resolve cross cluster in multi-cluster
+  if (enableLocalBuildPathTesting) {
+    argv.push(optionFromFlag(Flags.releaseTag), localBuildReleaseTag);
+  }
   argvPushGlobalFlags(argv, true, true);
   return argv;
 }
 
-function soloNodeSetupArgv(deployment: DeploymentName): string[] {
+function soloNodeSetupArgv(
+  deployment: DeploymentName,
+  enableLocalBuildPathTesting: boolean,
+  localBuildPath: string,
+  localBuildReleaseTag: string,
+): string[] {
   const argv: string[] = newArgv();
   argv.push('node', 'setup', optionFromFlag(Flags.deployment), deployment);
+  if (enableLocalBuildPathTesting) {
+    argv.push(
+      optionFromFlag(Flags.localBuildPath),
+      localBuildPath,
+      optionFromFlag(Flags.releaseTag),
+      localBuildReleaseTag,
+    );
+  }
   argvPushGlobalFlags(argv, true);
   return argv;
 }
@@ -447,16 +472,16 @@ async function verifyMirrorNodeDeployWasSuccessful(
           response.setEncoding('utf8');
           response.on('data', (chunk): void => {
             // convert chunk to json object
-            const object: {nodes: unknown[]} = JSON.parse(chunk);
+            const object: {nodes: {service_endpoints: unknown[]}[]} = JSON.parse(chunk);
             expect(
               object.nodes?.length,
               "expect there to be two nodes in the mirror node's copy of the address book",
             ).to.equal(2);
-            // TODO need to enable this, but looks like mirror node currently is getting no service endpoints, hopefully they will be in v0.60+
-            // expect(
-            //   obj.nodes[0].service_endpoints?.length,
-            //   'expect there to be at least one service endpoint',
-            // ).to.be.greaterThan(0);
+            // TODO need to enable this, but looks like mirror node currently is getting no service endpoints, hopefully they will be in v0.60+, update this to only check if version is greater than or equal to v0.62.0?
+            expect(
+              object.nodes[0].service_endpoints?.length,
+              'expect there to be at least one service endpoint',
+            ).to.be.greaterThan(0);
             received = true;
           });
         },
@@ -498,6 +523,7 @@ async function verifyMirrorNodeDeployWasSuccessful(
     }
   } finally {
     if (portForwarder) {
+      // eslint-disable-next-line unicorn/no-null
       await k8.pods().readByReference(null).stopPortForward(portForwarder);
     }
   }
@@ -573,6 +599,7 @@ async function verifyExplorerDeployWasSuccessful(
     }
   } finally {
     if (portForwarder) {
+      // eslint-disable-next-line unicorn/no-null
       await k8.pods().readByReference(null).stopPortForward(portForwarder);
     }
   }
