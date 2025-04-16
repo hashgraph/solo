@@ -5,21 +5,32 @@ import {describe, it} from 'mocha';
 
 import {type RelayComponent} from '../../../../../../src/core/config/remote/components/relay-component.js';
 import {BaseComponent} from '../../../../../../src/core/config/remote/components/base-component.js';
-import {type ConsensusNodeComponent} from '../../../../../../src/core/config/remote/components/consensus-node-component.js';
+import {
+  type ConsensusNodeComponent,
+} from '../../../../../../src/core/config/remote/components/consensus-node-component.js';
 import {HaProxyComponent} from '../../../../../../src/core/config/remote/components/ha-proxy-component.js';
 import {EnvoyProxyComponent} from '../../../../../../src/core/config/remote/components/envoy-proxy-component.js';
 import {MirrorNodeComponent} from '../../../../../../src/core/config/remote/components/mirror-node-component.js';
-import {MirrorNodeExplorerComponent} from '../../../../../../src/core/config/remote/components/mirror-node-explorer-component.js';
+import {
+  MirrorNodeExplorerComponent,
+} from '../../../../../../src/core/config/remote/components/mirror-node-explorer-component.js';
 import {type NodeAlias} from '../../../../../../src/types/aliases.js';
 import {Templates} from '../../../../../../src/core/templates.js';
 import {ConsensusNodeStates} from '../../../../../../src/core/config/remote/enumerations/consensus-node-states.js';
 import {type ClusterReference, type ComponentName} from '../../../../../../src/core/config/remote/types.js';
 import {NamespaceName} from '../../../../../../src/integration/kube/resources/namespace/namespace-name.js';
-import {type BaseComponentStruct} from '../../../../../../src/core/config/remote/components/interfaces/base-component-struct.js';
-import {type RelayComponentStruct} from '../../../../../../src/core/config/remote/components/interfaces/relay-component-struct.js';
-import {type ConsensusNodeComponentStruct} from '../../../../../../src/core/config/remote/components/interfaces/consensus-node-component-struct.js';
+import {
+  type BaseComponentStruct,
+} from '../../../../../../src/core/config/remote/components/interfaces/base-component-struct.js';
+import {
+  type RelayComponentStruct,
+} from '../../../../../../src/core/config/remote/components/interfaces/relay-component-struct.js';
+import {
+  type ConsensusNodeComponentStruct,
+} from '../../../../../../src/core/config/remote/components/interfaces/consensus-node-component-struct.js';
 import {ComponentFactory} from '../../../../../../src/core/config/remote/components/component-factory.js';
 import {ComponentNameTemplates} from '../../../../../../src/core/config/remote/components/component-name-templates.js';
+import {DeploymentPhase} from '../../../../../../src/data/schema/model/remote/deployment-phase.js';
 
 const remoteConfigManagerMock: any = {components: {getNewComponentIndex: (): number => 1}};
 
@@ -77,14 +88,15 @@ describe('RelayComponent', () => {
       name,
       cluster: clusterReference,
       namespace: namespace.name,
-      consensusNodeAliases: ['node1'],
+      phase: DeploymentPhase.DEPLOYED,
+      consensusNodeIds: [0],
     };
 
     const component: RelayComponent = ComponentFactory.createNewRelayComponent(
       remoteConfigManagerMock,
       values.cluster,
       namespace,
-      values.consensusNodeAliases,
+      values.consensusNodeIds,
     );
 
     expect(component.toObject()).to.deep.equal(values);
