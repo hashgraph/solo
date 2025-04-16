@@ -1,48 +1,52 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {ComponentType} from '../enumerations.js';
 import {SoloError} from '../../../errors/solo-error.js';
 import {BaseComponent} from './base-component.js';
-import {type IRelayComponent, type NamespaceNameAsString} from '../types.js';
+import {ComponentTypes} from '../enumerations/component-types.js';
+import {type ComponentStates} from '../enumerations/component-states.js';
+import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';
+import {type RelayComponentStruct} from './interfaces/relay-component-struct.js';
 
-export class RelayComponent extends BaseComponent implements IRelayComponent, ToObject<IRelayComponent> {
+export class RelayComponent extends BaseComponent implements RelayComponentStruct, ToObject<RelayComponentStruct> {
   /**
    * @param name - to distinguish components.
-   * @param cluster - in which the component is deployed.
+   * @param clusterReference - in which the component is deployed.
    * @param namespace - associated with the component.
+   * @param state - the state of the component
    * @param consensusNodeAliases - list node aliases
    */
   public constructor(
-    name: string,
-    cluster: string,
+    name: ComponentName,
+    clusterReference: ClusterReference,
     namespace: NamespaceNameAsString,
+    state: ComponentStates,
     public readonly consensusNodeAliases: NodeAliases = [],
   ) {
-    super(ComponentType.Relay, name, cluster, namespace);
+    super(ComponentTypes.Relay, name, clusterReference, namespace, state);
     this.validate();
   }
 
   /* -------- Utilities -------- */
 
   /** Handles creating instance of the class from plain object. */
-  public static fromObject(component: IRelayComponent): RelayComponent {
-    const {name, cluster, namespace, consensusNodeAliases} = component;
-    return new RelayComponent(name, cluster, namespace, consensusNodeAliases);
+  public static fromObject(component: RelayComponentStruct): RelayComponent {
+    const {name, cluster, namespace, state, consensusNodeAliases} = component;
+    return new RelayComponent(name, cluster, namespace, state, consensusNodeAliases);
   }
 
   public override validate(): void {
     super.validate();
 
-    for (const alias of this.consensusNodeAliases) {
-      if (!alias || typeof alias !== 'string') {
-        throw new SoloError(`Invalid consensus node alias: ${alias}, aliases ${this.consensusNodeAliases}`);
+    for (const nodeAlias of this.consensusNodeAliases) {
+      if (!nodeAlias || typeof nodeAlias !== 'string') {
+        throw new SoloError(`Invalid consensus node alias: ${nodeAlias}, aliases ${this.consensusNodeAliases}`);
       }
     }
   }
 
-  public override toObject(): IRelayComponent {
+  public override toObject(): RelayComponentStruct {
     return {
       consensusNodeAliases: this.consensusNodeAliases,
       ...super.toObject(),

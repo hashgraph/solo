@@ -1,0 +1,24 @@
+resources:
+  requests:
+    cpu: "3"
+    memory: "8Gi"
+
+blockNode:
+  config:
+    JAVA_TOOL_OPTIONS: "-Djava.util.logging.config.file=/app/logs/config/logging.properties"
+    JAVA_OPTS: "-Xms8G -Xmx8G" # if modifying this line also change in BlockNodesCommand
+    MEDIATOR_RING_BUFFER_SIZE: "2048"
+  persistence:
+    archive:
+      size: 6Gi
+    live:
+      size: 1Gi
+
+kubepromstack:
+  enabled: false
+
+loki:
+  enabled: false
+
+promtail:
+  enabled: false

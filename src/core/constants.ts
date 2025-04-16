@@ -80,6 +80,11 @@ export const INGRESS_CONTROLLER_CHART_URL =
 export const INGRESS_CONTROLLER_RELEASE_NAME = 'haproxy-ingress';
 export const INGRESS_CONTROLLER_NAME = 'haproxy-ingress.github.io/controller';
 
+export const BLOCK_NODE_CHART_URL = process.env.BLOCK_NODE_CHART_URL ?? 'oci://ghcr.io/hiero-ledger/hiero-block-node';
+export const BLOCK_NODE_CHART = 'block-node-helm-chart';
+export const BLOCK_NODE_RELEASE_NAME = 'block-node';
+export const BLOCK_NODE_CONTAINER_NAME: ContainerName = ContainerName.of('block-node-helm-chart');
+
 export const CERT_MANAGER_NAME_SPACE = 'cert-manager';
 export const SOLO_HEDERA_MIRROR_IMPORTER = [
   'app.kubernetes.io/component=importer',
@@ -130,6 +135,7 @@ export const POD_CONDITION_STATUS_TRUE = 'True';
 
 export const EXPLORER_VALUES_FILE = PathEx.joinWithRealPath(RESOURCES_DIR, 'hedera-explorer-values.yaml');
 export const MIRROR_NODE_VALUES_FILE = PathEx.joinWithRealPath(RESOURCES_DIR, 'mirror-node-values.yaml');
+export const BLOCK_NODE_VALUES_FILE = PathEx.joinWithRealPath(RESOURCES_DIR, 'block-node-values.yaml');
 export const NODE_LOG_FAILURE_MSG = 'failed to download logs from pod';
 
 /**
@@ -217,6 +223,12 @@ export const RELAY_PODS_RUNNING_MAX_ATTEMPTS = +process.env.RELAY_PODS_RUNNING_M
 export const RELAY_PODS_RUNNING_DELAY = +process.env.RELAY_PODS_RUNNING_DELAY || 1000;
 export const RELAY_PODS_READY_MAX_ATTEMPTS = +process.env.RELAY_PODS_READY_MAX_ATTEMPTS || 100;
 export const RELAY_PODS_READY_DELAY = +process.env.RELAY_PODS_READY_DELAY || 1000;
+export const BLOCK_NODE_PODS_RUNNING_MAX_ATTEMPTS: number = +process.env.BLOCK_NODE_PODS_RUNNING_MAX_ATTEMPTS || 900;
+export const BLOCK_NODE_PODS_RUNNING_DELAY: number = +process.env.BLOCK_NODE_PODS_RUNNING_DELAY || 1000;
+export const BLOCK_NODE_ACTIVE_MAX_ATTEMPTS: number = +process.env.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS || 100;
+export const BLOCK_NODE_ACTIVE_DELAY: number = +process.env.NETWORK_NODE_ACTIVE_DELAY || 1000;
+export const BLOCK_NODE_ACTIVE_TIMEOUT: number = +process.env.NETWORK_NODE_ACTIVE_TIMEOUT || 1000;
+
 export const GRPC_PORT = +process.env.GRPC_PORT || 50_211;
 export const LOCAL_BUILD_COPY_RETRY = +process.env.LOCAL_BUILD_COPY_RETRY || 3;
 

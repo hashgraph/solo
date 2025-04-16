@@ -10,6 +10,7 @@ import chalk from 'chalk';
 import {type EmailAddress} from '../core/config/remote/types.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {getSoloVersion} from '../../version.js';
+import {type CommandDefinition} from '../types/index.js';
 
 /**
  * Defines the core functionalities of 'init' command
@@ -142,8 +143,8 @@ export class InitCommand extends BaseCommand {
    * Return Yargs command definition for 'init' command
    * @returns A object representing the Yargs command definition
    */
-  getCommandDefinition() {
-    const self = this;
+  public getCommandDefinition(): CommandDefinition {
+    const self: this = this;
     return {
       command: InitCommand.COMMAND_NAME,
       desc: 'Initialize local environment',

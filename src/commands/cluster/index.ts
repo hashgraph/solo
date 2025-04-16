@@ -7,6 +7,7 @@ import {type ClusterCommandHandlers} from './handlers.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type AnyYargs} from '../../types/aliases.js';
+import {type CommandDefinition} from '../../types/index.js';
 
 /**
  * Defines the core functionalities of 'node' command
@@ -22,7 +23,7 @@ export class ClusterCommand extends BaseCommand {
 
   public static readonly COMMAND_NAME = 'cluster-ref';
 
-  getCommandDefinition() {
+  public getCommandDefinition(): CommandDefinition {
     return {
       command: ClusterCommand.COMMAND_NAME,
       desc: 'Manage solo testing cluster',
