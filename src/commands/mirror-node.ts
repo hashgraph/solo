@@ -497,10 +497,22 @@ export class MirrorNodeCommand extends BaseCommand {
                   title: 'Apply UseSVE fix',
                   task: async (context_, task) => {
                     const namespace = context_.config.namespace;
+                    const importerLabels = ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer'];
                     const pods: Pod[] = await this.k8Factory
                       .getK8(context_.config.clusterContext)
                       .pods()
-                      .list(namespace, ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer']);
+                      .list(namespace, importerLabels);
+
+                    await self.k8Factory
+                      .getK8(context_.config.clusterContext)
+                      .pods()
+                      .waitForReadyStatus(
+                        context_.config.namespace,
+                        importerLabels,
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      );
+
                     if (pods.length === 0) {
                       throw new SoloError('importer pod not found');
                     }
