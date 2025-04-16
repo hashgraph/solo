@@ -2,6 +2,7 @@
 
 import {describe} from 'mocha';
 
+import * as semver from 'semver';
 import {Flags} from '../../../src/commands/flags.js';
 import {getTestCacheDirectory, getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
 import {main} from '../../../src/index.js';
@@ -235,8 +236,14 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
 
   it(`${testName}: mirror node deploy`, async (): Promise<void> => {
     await main(soloMirrorNodeDeployArgv(deployment, testClusterArray[1]));
-    await verifyMirrorNodeDeployWasSuccessful(contexts, namespace, testLogger, createdAccountIds);
-    // TODO validate the new accounts are showing up with the mirror node rest url
+    await verifyMirrorNodeDeployWasSuccessful(
+      contexts,
+      namespace,
+      testLogger,
+      createdAccountIds,
+      enableLocalBuildPathTesting,
+      localBuildReleaseTag,
+    );
   }).timeout(Duration.ofMinutes(10).toMillis());
 
   it(`${testName}: explorer deploy`, async (): Promise<void> => {
@@ -446,6 +453,8 @@ async function verifyMirrorNodeDeployWasSuccessful(
   namespace: NamespaceName,
   testLogger: SoloWinstonLogger,
   createdAccountIds: string[],
+  enableLocalBuildPathTesting: boolean,
+  localBuildReleaseTag: string,
 ): Promise<void> {
   const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
   const k8: K8 = k8Factory.getK8(contexts[1]);
@@ -478,10 +487,15 @@ async function verifyMirrorNodeDeployWasSuccessful(
               "expect there to be two nodes in the mirror node's copy of the address book",
             ).to.equal(2);
             // TODO need to enable this, but looks like mirror node currently is getting no service endpoints, hopefully they will be in v0.60+, update this to only check if version is greater than or equal to v0.62.0?
-            expect(
-              object.nodes[0].service_endpoints?.length,
-              'expect there to be at least one service endpoint',
-            ).to.be.greaterThan(0);
+            if (
+              (enableLocalBuildPathTesting && semver.gte(localBuildReleaseTag.slice(1), '0.62.0')) ||
+              semver.gte(HEDERA_PLATFORM_VERSION_TAG, '0.62.0')
+            ) {
+              expect(
+                object.nodes[0].service_endpoints?.length,
+                'expect there to be at least one service endpoint',
+              ).to.be.greaterThan(0);
+            }
             received = true;
           });
         },
