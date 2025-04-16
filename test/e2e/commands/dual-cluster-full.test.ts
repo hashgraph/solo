@@ -466,11 +466,13 @@ async function verifyMirrorNodeDeployWasSuccessful(
       'app.kubernetes.io/component=rest',
     ]);
   expect(mirrorNodeRestPods).to.have.lengthOf(1);
+
   let portForwarder: ExtendedNetServer;
   try {
     portForwarder = await k8.pods().readByReference(mirrorNodeRestPods[0].podReference).portForward(5551, 5551);
     await sleep(Duration.ofSeconds(2));
     const queryUrl: string = 'http://localhost:5551/api/v1/network/nodes';
+
     let received: boolean = false;
     // wait until the transaction reached consensus and retrievable from the mirror node API
     while (!received) {
@@ -479,6 +481,7 @@ async function verifyMirrorNodeDeployWasSuccessful(
         {method: 'GET', timeout: 100, headers: {Connection: 'close'}},
         (response: http.IncomingMessage): void => {
           response.setEncoding('utf8');
+
           response.on('data', (chunk): void => {
             // convert chunk to json object
             const object: {nodes: {service_endpoints: unknown[]}[]} = JSON.parse(chunk);
@@ -486,7 +489,7 @@ async function verifyMirrorNodeDeployWasSuccessful(
               object.nodes?.length,
               "expect there to be two nodes in the mirror node's copy of the address book",
             ).to.equal(2);
-            // TODO need to enable this, but looks like mirror node currently is getting no service endpoints, hopefully they will be in v0.60+, update this to only check if version is greater than or equal to v0.62.0?
+
             if (
               (enableLocalBuildPathTesting && semver.gte(localBuildReleaseTag.slice(1), '0.62.0')) ||
               semver.gte(HEDERA_PLATFORM_VERSION_TAG, '0.62.0')
@@ -496,18 +499,23 @@ async function verifyMirrorNodeDeployWasSuccessful(
                 'expect there to be at least one service endpoint',
               ).to.be.greaterThan(0);
             }
+
             received = true;
           });
         },
       );
+
       request.on('error', (error: Error): void => {
         testLogger.debug(`problem with request: ${error.message}`, error);
       });
+
       request.end(); // make the request
       await sleep(Duration.ofSeconds(2));
     }
+
     for (const accountId of createdAccountIds) {
       const accountQueryUrl: string = `http://localhost:5551/api/v1/accounts/${accountId}`;
+
       received = false;
       // wait until the transaction reached consensus and retrievable from the mirror node API
       while (!received) {
@@ -516,23 +524,29 @@ async function verifyMirrorNodeDeployWasSuccessful(
           {method: 'GET', timeout: 100, headers: {Connection: 'close'}},
           (response: http.IncomingMessage): void => {
             response.setEncoding('utf8');
+
             response.on('data', (chunk): void => {
               // convert chunk to json object
               const object: {account: string} = JSON.parse(chunk);
+
               expect(
                 object.account,
                 'expect the created account to exist in the mirror nodes copy of the accounts',
               ).to.equal(accountId);
+
               received = true;
             });
           },
         );
+
         request.on('error', (error: Error): void => {
           testLogger.debug(`problem with request: ${error.message}`, error);
         });
+
         request.end(); // make the request
         await sleep(Duration.ofSeconds(2));
       }
+
       await sleep(Duration.ofSeconds(1));
     }
   } finally {
@@ -580,6 +594,7 @@ async function verifyExplorerDeployWasSuccessful(
     const queryUrl: string = 'http://127.0.0.1:8080/api/v1/accounts?limit=15&order=desc';
     const packageDownloader: PackageDownloader = container.resolve<PackageDownloader>(InjectTokens.PackageDownloader);
     expect(await packageDownloader.urlExists(queryUrl), 'the hedera explorer Accounts URL should exist').to.be.true;
+
     let received: boolean = false;
     // wait until the transaction reached consensus and retrievable from the mirror node API
     while (!received) {
@@ -588,6 +603,7 @@ async function verifyExplorerDeployWasSuccessful(
         {method: 'GET', timeout: 100, headers: {Connection: 'close'}},
         (response: http.IncomingMessage): void => {
           response.setEncoding('utf8');
+
           response.on('data', (chunk): void => {
             // convert chunk to json object
             const object: {accounts: {account: string}[]} = JSON.parse(chunk);
@@ -595,19 +611,23 @@ async function verifyExplorerDeployWasSuccessful(
               object.accounts?.length,
               "expect there to be more than one account in the hedera explorer's call to mirror node",
             ).to.be.greaterThan(1);
+
             for (const accountId of createdAccountIds) {
               expect(
                 object.accounts.some((account: {account: string}): boolean => account.account === accountId),
                 `expect ${accountId} to be in the response`,
               ).to.be.true;
             }
+
             received = true;
           });
         },
       );
+
       request.on('error', (error: Error): void => {
         testLogger.debug(`problem with request: ${error.message}`, error);
       });
+
       request.end(); // make the request
       await sleep(Duration.ofSeconds(2));
     }
