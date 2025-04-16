@@ -392,7 +392,7 @@ export class NodeCommandTasks {
 
       const subTask = async (context_: AnyListrContext, task: SoloListrTaskWrapper<AnyListrContext>) => {
         if (enableDebugger) {
-          await sleep(Duration.ofHours(1));
+          await sleep(Duration.ofSeconds(10));
         }
         context_.config.podRefs[nodeAlias] = await this._checkNetworkNodeActiveness(
           namespace,
