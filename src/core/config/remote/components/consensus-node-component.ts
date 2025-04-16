@@ -4,6 +4,7 @@ import {BaseComponent} from './base-component.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {type DeploymentPhase} from '../../../../data/schema/model/remote/deployment-phase.js';
 import {type ClusterReference, type ComponentId, type NamespaceNameAsString} from '../types.js';
+import {type BaseComponentStruct} from './interfaces/base-component-struct.js';
 
 /**
  * Represents a consensus node component within the system.
@@ -25,7 +26,7 @@ export class ConsensusNodeComponent extends BaseComponent {
   /* -------- Utilities -------- */
 
   /** Handles creating instance of the class from plain object. */
-  public static fromObject(component: BaseComponent): ConsensusNodeComponent {
+  public static fromObject(component: BaseComponentStruct): ConsensusNodeComponent {
     return new ConsensusNodeComponent(component.id, component.cluster, component.namespace, component.phase);
   }
 }

@@ -9,12 +9,10 @@ import {EnvoyProxyComponent} from './components/envoy-proxy-component.js';
 import {ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {MirrorNodeExplorerComponent} from './components/mirror-node-explorer-component.js';
 import {ComponentTypes} from './enumerations/component-types.js';
-import {ComponentNameTemplates} from './components/component-name-templates.js';
 import {isValidEnum} from '../../util/validation-helpers.js';
-import {type ClusterReference, ComponentId, type ComponentName} from './types.js';
+import {type ClusterReference, type ComponentId} from './types.js';
 import {type BaseComponentStruct} from './components/interfaces/base-component-struct.js';
 import {type RelayComponentStruct} from './components/interfaces/relay-component-struct.js';
-import {type ConsensusNodeComponentStruct} from './components/interfaces/consensus-node-component-struct.js';
 import {type ComponentsDataWrapperApi} from './api/components-data-wrapper-api.js';
 import {type ComponentsDataStruct} from './interfaces/components-data-struct.js';
 import {type DeploymentPhase} from '../../../data/schema/model/remote/deployment-phase.js';
@@ -27,12 +25,12 @@ import {type DeploymentPhase} from '../../../data/schema/model/remote/deployment
  */
 export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   private constructor(
-    public readonly relays: Record<ComponentName, RelayComponent> = {},
-    public readonly haProxies: Record<ComponentName, HaProxyComponent> = {},
-    public readonly mirrorNodes: Record<ComponentName, MirrorNodeComponent> = {},
-    public readonly envoyProxies: Record<ComponentName, EnvoyProxyComponent> = {},
-    public readonly consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {},
-    public readonly mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {},
+    public readonly relays: Record<ComponentId, RelayComponent> = {},
+    public readonly haProxies: Record<ComponentId, HaProxyComponent> = {},
+    public readonly mirrorNodes: Record<ComponentId, MirrorNodeComponent> = {},
+    public readonly envoyProxies: Record<ComponentId, EnvoyProxyComponent> = {},
+    public readonly consensusNodes: Record<ComponentId, ConsensusNodeComponent> = {},
+    public readonly mirrorNodeExplorers: Record<ComponentId, MirrorNodeExplorerComponent> = {},
   ) {
     this.validate();
   }
@@ -41,68 +39,68 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
 
   /** Used to add new component to their respective group. */
   public addNewComponent(component: BaseComponent): void {
-    const componentName: string = component.name;
+    const componentId: ComponentId = component.id;
 
-    if (!componentName || typeof componentName !== 'string') {
-      throw new SoloError(`Component name is required ${componentName}`);
+    if (!componentId || typeof componentId !== 'string') {
+      throw new SoloError(`Component name is required ${componentId}`);
     }
 
     if (!(component instanceof BaseComponent)) {
       throw new SoloError('Component must be instance of BaseComponent', undefined, BaseComponent);
     }
 
-    const addComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
+    const addComponentCallback: (components: Record<ComponentId, BaseComponent>) => void = components => {
       if (this.checkComponentExists(components, component)) {
         throw new SoloError('Component exists', undefined, component.toObject());
       }
-      components[componentName] = component;
+      components[componentId] = component;
     };
 
-    this.applyCallbackToComponentGroup(component.type, addComponentCallback, componentName);
+    this.applyCallbackToComponentGroup(component.type, addComponentCallback, componentId);
   }
 
-  public changeNodePhase(componentName: ComponentName, phase: DeploymentPhase): void {
-    if (!this.consensusNodes[componentName]) {
-      throw new SoloError(`Consensus node ${componentName} doesn't exist`);
+  public changeNodePhase(componentId: ComponentId, phase: DeploymentPhase): void {
+    if (!this.consensusNodes[componentId]) {
+      throw new SoloError(`Consensus node ${componentId} doesn't exist`);
     }
 
-    this.consensusNodes[componentName].phase = phase;
+    this.consensusNodes[componentId].phase = phase;
   }
 
   /** Used to remove specific component from their respective group. */
-  public removeComponent(componentName: ComponentName, type: ComponentTypes): void {
-    if (!componentName || typeof componentName !== 'string') {
-      throw new SoloError(`Component name is required ${componentName}`);
+  public removeComponent(componentId: ComponentId, type: ComponentTypes): void {
+    if (!componentId || typeof componentId !== 'string') {
+      throw new SoloError(`Component id is required ${componentId}`);
     }
 
     if (!isValidEnum(type, ComponentTypes)) {
       throw new SoloError(`Invalid component type ${type}`);
     }
 
-    const removeComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
-      if (!components[componentName]) {
-        throw new SoloError(`Component ${componentName} of type ${type} not found while attempting to remove`);
+    const removeComponentCallback: (components: Record<ComponentId, BaseComponent>) => void = components => {
+      if (!components[componentId]) {
+        throw new SoloError(`Component ${componentId} of type ${type} not found while attempting to remove`);
       }
 
-      delete components[componentName];
+      delete components[componentId];
     };
 
-    this.applyCallbackToComponentGroup(type, removeComponentCallback, componentName);
+    this.applyCallbackToComponentGroup(type, removeComponentCallback, componentId);
   }
 
   /* -------- Utilities -------- */
 
-  public getComponent<T extends BaseComponent>(type: ComponentTypes, componentName: ComponentName): T {
+  public getComponent<T extends BaseComponent>(type: ComponentTypes, componentId: ComponentId): T {
     let component: T;
 
-    const getComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
-      if (!components[componentName]) {
-        throw new SoloError(`Component ${componentName} of type ${type} not found while attempting to read`);
+    const getComponentCallback: (components: Record<ComponentId, BaseComponent>) => void = components => {
+      if (!components[componentId]) {
+        throw new SoloError(`Component ${componentId} of type ${type} not found while attempting to read`);
       }
-      component = components[componentName] as T;
+      component = components[componentId] as T;
     };
 
-    this.applyCallbackToComponentGroup(type, getComponentCallback, componentName);
+    this.applyCallbackToComponentGroup(type, getComponentCallback, componentId);
 
     return component;
   }
@@ -113,7 +111,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   ): T[] {
     let filteredComponents: T[] = [];
 
-    const getComponentsByClusterReferenceCallback: (components: Record<ComponentName, T>) => void = components => {
+    const getComponentsByClusterReferenceCallback: (components: Record<ComponentId, T>) => void = components => {
       filteredComponents = Object.values(components).filter(component => component.cluster === clusterReference);
     };
 
@@ -125,10 +123,8 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   public getComponentById<T extends BaseComponent>(type: ComponentTypes, id: number): T {
     let filteredComponent: T;
 
-    const getComponentByIdCallback: (components: Record<ComponentName, T>) => void = components => {
-      filteredComponent = Object.values(components).find(
-        component => ComponentNameTemplates.parseComponentName(component.name) === id,
-      );
+    const getComponentByIdCallback: (components: Record<ComponentId, T>) => void = components => {
+      filteredComponent = Object.values(components).find(component => component.id === id);
     };
 
     this.applyCallbackToComponentGroup(type, getComponentByIdCallback);
@@ -146,8 +142,8 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
    */
   private applyCallbackToComponentGroup(
     componentType: ComponentTypes,
-    callback: (components: Record<ComponentName, BaseComponent>) => void,
-    componentName?: ComponentName,
+    callback: (components: Record<ComponentId, BaseComponent>) => void,
+    componentId?: ComponentId,
   ): void {
     switch (componentType) {
       case ComponentTypes.Relay: {
@@ -181,7 +177,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
       }
 
       default: {
-        throw new SoloError(`Unknown component type ${componentType}, component name: ${componentName}`);
+        throw new SoloError(`Unknown component type ${componentType}, component id: ${componentId}`);
       }
     }
 
@@ -194,55 +190,53 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
    * @param components - component groups distinguished by their type.
    */
   public static fromObject(components: ComponentsDataStruct): ComponentsDataWrapper {
-    const relays: Record<ComponentName, RelayComponent> = {};
-    const haProxies: Record<ComponentName, HaProxyComponent> = {};
-    const mirrorNodes: Record<ComponentName, MirrorNodeComponent> = {};
-    const envoyProxies: Record<ComponentName, EnvoyProxyComponent> = {};
-    const consensusNodes: Record<ComponentName, ConsensusNodeComponent> = {};
-    const mirrorNodeExplorers: Record<ComponentName, MirrorNodeExplorerComponent> = {};
+    const relays: Record<ComponentId, RelayComponent> = {};
+    const haProxies: Record<ComponentId, HaProxyComponent> = {};
+    const mirrorNodes: Record<ComponentId, MirrorNodeComponent> = {};
+    const envoyProxies: Record<ComponentId, EnvoyProxyComponent> = {};
+    const consensusNodes: Record<ComponentId, ConsensusNodeComponent> = {};
+    const mirrorNodeExplorers: Record<ComponentId, MirrorNodeExplorerComponent> = {};
 
     for (const [componentType, subComponents] of Object.entries(components)) {
       switch (componentType) {
         case ComponentTypes.Relay: {
-          for (const [componentName, component] of Object.entries(subComponents)) {
-            relays[componentName] = RelayComponent.fromObject(component as RelayComponentStruct);
+          for (const [componentId, component] of Object.entries(subComponents)) {
+            relays[componentId] = RelayComponent.fromObject(component as RelayComponentStruct);
           }
           break;
         }
 
         case ComponentTypes.HaProxy: {
-          for (const [componentName, component] of Object.entries(subComponents)) {
-            haProxies[componentName] = HaProxyComponent.fromObject(component);
+          for (const [componentId, component] of Object.entries(subComponents)) {
+            haProxies[componentId] = HaProxyComponent.fromObject(component);
           }
           break;
         }
 
         case ComponentTypes.MirrorNode: {
-          for (const [componentName, component] of Object.entries(subComponents)) {
-            mirrorNodes[componentName] = MirrorNodeComponent.fromObject(component);
+          for (const [componentId, component] of Object.entries(subComponents)) {
+            mirrorNodes[componentId] = MirrorNodeComponent.fromObject(component);
           }
           break;
         }
 
         case ComponentTypes.EnvoyProxy: {
-          for (const [componentName, component] of Object.entries(subComponents)) {
-            envoyProxies[componentName] = EnvoyProxyComponent.fromObject(component);
+          for (const [componentId, component] of Object.entries(subComponents)) {
+            envoyProxies[componentId] = EnvoyProxyComponent.fromObject(component);
           }
           break;
         }
 
         case ComponentTypes.ConsensusNode: {
-          for (const [componentName, component] of Object.entries(subComponents)) {
-            consensusNodes[componentName] = ConsensusNodeComponent.fromObject(
-              component as ConsensusNodeComponentStruct,
-            );
+          for (const [componentId, component] of Object.entries(subComponents)) {
+            consensusNodes[componentId] = ConsensusNodeComponent.fromObject(component);
           }
           break;
         }
 
         case ComponentTypes.MirrorNodeExplorer: {
-          for (const [componentName, component] of Object.entries(subComponents)) {
-            mirrorNodeExplorers[componentName] = MirrorNodeExplorerComponent.fromObject(component);
+          for (const [componentId, component] of Object.entries(subComponents)) {
+            mirrorNodeExplorers[componentId] = MirrorNodeExplorerComponent.fromObject(component);
           }
           break;
         }
@@ -262,13 +256,13 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   }
 
   public static initializeWithNodes(
-    consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent>,
+    consensusNodeComponents: Record<ComponentId, ConsensusNodeComponent>,
   ): ComponentsDataWrapper {
     return new ComponentsDataWrapper(undefined, undefined, undefined, undefined, consensusNodeComponents);
   }
 
   /** checks if component exists in the respective group */
-  private checkComponentExists(components: Record<ComponentName, BaseComponent>, newComponent: BaseComponent): boolean {
+  private checkComponentExists(components: Record<ComponentId, BaseComponent>, newComponent: BaseComponent): boolean {
     return Object.values(components).some((component): boolean => BaseComponent.compare(component, newComponent));
   }
 
@@ -276,32 +270,31 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
    * Checks all existing components of specified type and gives you a new unique index
    */
   public getNewComponentId(componentType: ComponentTypes): number {
-    let newComponentIndex: number = 0;
+    let newComponentId: number = 0;
 
     const calculateNewComponentIndexCallback: (components: Record<ComponentId, BaseComponent>) => void = components => {
-      for (const componentName of Object.keys(components)) {
-        const componentIndex: number = ComponentNameTemplates.parseComponentName(componentName);
-        if (newComponentIndex <= componentIndex) {
-          newComponentIndex = componentIndex + 1;
+      for (const componentId of Object.keys(components)) {
+        if (newComponentId <= +componentId) {
+          newComponentId = +componentId + 1;
         }
       }
     };
 
     this.applyCallbackToComponentGroup(componentType, calculateNewComponentIndexCallback);
 
-    return newComponentIndex;
+    return newComponentId;
   }
 
   /** Validates that the component group mapping has only components from the expected instance */
-  private validateComponentTypes(components: Record<ComponentName, BaseComponent>, expectedInstance: any): void {
-    for (const [componentName, component] of Object.entries(components)) {
-      if (!componentName || typeof componentName !== 'string') {
-        throw new SoloError(`Invalid component name ${{[componentName]: component?.constructor?.name}}`);
+  private validateComponentTypes(components: Record<ComponentId, BaseComponent>, expectedInstance: any): void {
+    for (const [componentId, component] of Object.entries(components)) {
+      if (!componentId || typeof componentId !== 'number') {
+        throw new SoloError(`Invalid component name ${{[componentId]: component?.constructor?.name}}`);
       }
 
       if (!(component instanceof expectedInstance)) {
         throw new SoloError(
-          `Invalid component type, component name: ${componentName}, ` +
+          `Invalid component type, component id: ${componentId}, ` +
             `expected ${expectedInstance?.name}, actual: ${component?.constructor?.name}`,
           undefined,
           {component},
@@ -320,12 +313,12 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   }
 
   private transformComponentGroupToObject(
-    components: Record<ComponentName, BaseComponent>,
-  ): Record<ComponentName, BaseComponentStruct> {
-    const transformedComponents: Record<ComponentName, BaseComponentStruct> = {};
+    components: Record<ComponentId, BaseComponent>,
+  ): Record<ComponentId, BaseComponentStruct> {
+    const transformedComponents: Record<ComponentId, BaseComponentStruct> = {};
 
-    for (const [componentName, component] of Object.entries(components)) {
-      transformedComponents[componentName] = component.toObject() as BaseComponentStruct;
+    for (const [ComponentId, component] of Object.entries(components)) {
+      transformedComponents[ComponentId] = component.toObject() as BaseComponentStruct;
     }
 
     return transformedComponents;

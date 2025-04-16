@@ -1,19 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {ComponentTypes} from '../enumerations/component-types.js';
-import {ComponentNameTemplates} from './component-name-templates.js';
 import {RelayComponent} from './relay-component.js';
 import {MirrorNodeExplorerComponent} from './mirror-node-explorer-component.js';
 import {MirrorNodeComponent} from './mirror-node-component.js';
 import {HaProxyComponent} from './ha-proxy-component.js';
 import {EnvoyProxyComponent} from './envoy-proxy-component.js';
-import {Templates} from '../../../templates.js';
 import {ConsensusNodeComponent} from './consensus-node-component.js';
 import {DeploymentPhase} from '../../../../data/schema/model/remote/deployment-phase.js';
 import {type RemoteConfigManagerApi} from '../api/remote-config-manager-api.js';
 import {type ClusterReference, type ComponentId} from '../types.js';
 import {type NamespaceName} from '../../../../integration/kube/resources/namespace/namespace-name.js';
-import {type NodeAlias, type NodeAliases, type NodeId} from '../../../../types/aliases.js';
+import {type NodeId} from '../../../../types/aliases.js';
 
 export class ComponentFactory {
   public static createNewRelayComponent(
@@ -73,7 +71,7 @@ export class ComponentFactory {
     namespace: NamespaceName,
     phase: DeploymentPhase.REQUESTED | DeploymentPhase.STARTED,
   ): ConsensusNodeComponent {
-    return new ConsensusNodeComponent(nodeId, clusterReference, namespace.name, phase, nodeId);
+    return new ConsensusNodeComponent(nodeId, clusterReference, namespace.name, phase);
   }
 
   public static createConsensusNodeComponentsFromNodeAliases(
