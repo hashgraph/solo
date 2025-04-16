@@ -3,10 +3,10 @@
 import {type ToObject, type Validate} from '../../../../types/index.js';
 import {type ClusterReference, type ComponentName} from '../types.js';
 import {type CloneTrait} from '../../../../types/traits/clone-trait.js';
-import {type BaseComponent} from '../components/base-component.js';
-import {type ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
-import {type ComponentTypes} from '../enumerations/component-types.js';
 import {type ComponentsDataStruct} from '../interfaces/components-data-struct.js';
+import {type BaseComponent} from '../components/base-component.js';
+import {type ComponentTypes} from '../enumerations/component-types.js';
+import {type DeploymentPhase} from '../../../../data/schema/model/remote/deployment-phase.js';
 
 export interface ComponentsDataWrapperApi
   extends Validate,
@@ -15,7 +15,7 @@ export interface ComponentsDataWrapperApi
   /** Used to add new component to their respective group. */
   addNewComponent(component: BaseComponent): void;
 
-  changeNodeState(componentName: ComponentName, nodeState: ConsensusNodeStates): void;
+  changeNodePhase(componentName: ComponentName, phase: DeploymentPhase): void;
 
   /** Used to remove specific component from their respective group. */
   removeComponent(componentName: ComponentName, type: ComponentTypes): void;

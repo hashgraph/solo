@@ -41,8 +41,8 @@ import {Duration} from '../core/time/duration.js';
 import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
-import {ConsensusNodeStates} from '../core/config/remote/enumerations/consensus-node-states.js';
 import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
+import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -1284,7 +1284,7 @@ export class NetworkCommand extends BaseCommand {
             const nodeAlias: NodeAlias = consensusNode.name;
             const clusterReference: ClusterReference = consensusNode.cluster;
 
-            remoteConfig.components.changeNodeState(nodeAlias, ConsensusNodeStates.REQUESTED);
+            remoteConfig.components.changeNodePhase(nodeAlias, DeploymentPhase.REQUESTED);
 
             remoteConfig.components.addNewComponent(
               ComponentFactory.createNewEnvoyProxyComponent(

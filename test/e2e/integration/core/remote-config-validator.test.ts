@@ -24,10 +24,10 @@ import {LocalConfig} from '../../../../src/core/config/local/local-config.js';
 import {getTestCacheDirectory} from '../../../test-utility.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {LocalConfigDataWrapper} from '../../../../src/core/config/local/local-config-data-wrapper.js';
-import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumerations/consensus-node-states.js';
 import {type ClusterReference, type ComponentName} from '../../../../src/core/config/remote/types.js';
 import {ComponentFactory} from '../../../../src/core/config/remote/components/component-factory.js';
 import {type BaseComponent} from '../../../../src/core/config/remote/components/base-component.js';
+import {DeploymentPhase} from '../../../../src/data/schema/model/remote/deployment-phase.js';
 
 interface ComponentsRecord {
   explorer: MirrorNodeExplorerComponent;
@@ -58,13 +58,13 @@ function prepareComponentsData(namespace: NamespaceName): ComponentsData {
   const remoteConfigManagerMock: any = {components: {getNewComponentIndex: (): number => 1}};
 
   const clusterReference: ClusterReference = 'cluster';
-  const nodeState: ConsensusNodeStates = ConsensusNodeStates.STARTED;
+  const nodeState: DeploymentPhase = DeploymentPhase.STARTED;
   const nodeAlias: NodeAlias = 'node1';
 
   const components: ComponentsRecord = {
     explorer: ComponentFactory.createNewExplorerComponent(remoteConfigManagerMock, clusterReference, namespace),
     mirrorNode: ComponentFactory.createNewMirrorNodeComponent(remoteConfigManagerMock, clusterReference, namespace),
-    relay: ComponentFactory.createNewRelayComponent(remoteConfigManagerMock, clusterReference, namespace, [nodeAlias]),
+    relay: ComponentFactory.createNewRelayComponent(remoteConfigManagerMock, clusterReference, namespace, [0]),
     consensusNode: ComponentFactory.createNewConsensusNodeComponent(nodeAlias, clusterReference, namespace, nodeState),
     haProxy: ComponentFactory.createNewHaProxyComponent(
       remoteConfigManagerMock,
@@ -210,7 +210,7 @@ describe('RemoteConfigValidator', () => {
 
       for (const nodeAlias of nodeAliases) {
         // Make sure the status is STARTED
-        componentsDataWrapper.changeNodeState(nodeAlias, ConsensusNodeStates.STARTED);
+        componentsDataWrapper.changeNodePhase(nodeAlias, DeploymentPhase.STARTED);
       }
 
       await RemoteConfigValidator.validateComponents(
@@ -222,7 +222,7 @@ describe('RemoteConfigValidator', () => {
       );
     });
 
-    const nodeStates: ConsensusNodeStates[] = [ConsensusNodeStates.REQUESTED, ConsensusNodeStates.NON_DEPLOYED];
+    const nodeStates: DeploymentPhase[] = [DeploymentPhase.REQUESTED, DeploymentPhase.STOPPED];
 
     for (const nodeState of nodeStates) {
       it(`Should not validate consensus nodes if status is ${nodeState} `, async () => {
@@ -235,7 +235,7 @@ describe('RemoteConfigValidator', () => {
           ComponentsDataWrapper.initializeWithNodes(consensusNodeComponents);
 
         for (const nodeAlias of nodeAliases) {
-          componentsDataWrapper.changeNodeState(nodeAlias, nodeState);
+          componentsDataWrapper.changeNodePhase(nodeAlias, nodeState);
         }
 
         await RemoteConfigValidator.validateComponents(namespace, componentsDataWrapper, k8Factory, localConfig, false);

@@ -55,7 +55,7 @@ export class BaseComponent implements BaseComponentStruct, Validate, ToObject<Ba
     return this._phase;
   }
 
-  private set phase(phase: DeploymentPhase) {
+  public set phase(phase: DeploymentPhase) {
     this._phase = phase;
     this.validate();
   }

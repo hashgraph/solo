@@ -109,9 +109,9 @@ import {type NodeKeysConfigClass} from './config-interfaces/node-keys-config-cla
 import {type NodeStartConfigClass} from './config-interfaces/node-start-config-class.js';
 import {type CheckedNodesConfigClass, type CheckedNodesContext} from './config-interfaces/node-common-config-class.js';
 import {type NetworkNodeServices} from '../../core/network-node-services.js';
-import {ConsensusNodeStates} from '../../core/config/remote/enumerations/consensus-node-states.js';
 import {Cluster} from '../../core/config/remote/cluster.js';
 import {ComponentFactory} from '../../core/config/remote/components/component-factory.js';
+import {DeploymentPhase} from '../../data/schema/model/remote/deployment-phase.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -2515,7 +2515,7 @@ export class NodeCommandTasks {
               nodeAlias,
               clusterReference,
               namespace,
-              ConsensusNodeStates.STARTED,
+              DeploymentPhase.STARTED,
             ),
           );
           remoteConfig.components.addNewComponent(

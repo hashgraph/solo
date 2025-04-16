@@ -2,7 +2,6 @@
 
 import * as constants from '../../constants.js';
 import {SoloError} from '../../errors/solo-error.js';
-import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
 import {type ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {type ComponentsDataWrapper} from './components-data-wrapper.js';
 import {type BaseComponent} from './components/base-component.js';
@@ -11,6 +10,7 @@ import {type LocalConfig} from '../local/local-config.js';
 import {type Pod} from '../../../integration/kube/resources/pod/pod.js';
 import {type Context} from './types.js';
 import {type K8Factory} from '../../../integration/kube/k8-factory.js';
+import {DeploymentPhase} from '../../../data/schema/model/remote/deployment-phase.js';
 
 /**
  * Static class is used to validate that components in the remote config
@@ -44,10 +44,7 @@ export class RemoteConfigValidator {
   }
 
   private static consensusNodeSkipConditionCallback(nodeComponent: ConsensusNodeComponent): boolean {
-    return (
-      nodeComponent.nodeState === ConsensusNodeStates.REQUESTED ||
-      nodeComponent.nodeState === ConsensusNodeStates.NON_DEPLOYED
-    );
+    return nodeComponent.phase === DeploymentPhase.REQUESTED;
   }
 
   private static componentValidationsMapping: Record<

@@ -8,16 +8,16 @@ import {MirrorNodeComponent} from './components/mirror-node-component.js';
 import {EnvoyProxyComponent} from './components/envoy-proxy-component.js';
 import {ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {MirrorNodeExplorerComponent} from './components/mirror-node-explorer-component.js';
-import {type ClusterReference, type ComponentName} from './types.js';
 import {ComponentTypes} from './enumerations/component-types.js';
-import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
+import {ComponentNameTemplates} from './components/component-name-templates.js';
 import {isValidEnum} from '../../util/validation-helpers.js';
+import {type ClusterReference, type ComponentName} from './types.js';
 import {type BaseComponentStruct} from './components/interfaces/base-component-struct.js';
 import {type RelayComponentStruct} from './components/interfaces/relay-component-struct.js';
 import {type ConsensusNodeComponentStruct} from './components/interfaces/consensus-node-component-struct.js';
 import {type ComponentsDataWrapperApi} from './api/components-data-wrapper-api.js';
 import {type ComponentsDataStruct} from './interfaces/components-data-struct.js';
-import {ComponentNameTemplates} from './components/component-name-templates.js';
+import {type DeploymentPhase} from '../../../data/schema/model/remote/deployment-phase.js';
 
 /**
  * Represent the components in the remote config and handles:
@@ -61,16 +61,12 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     this.applyCallbackToComponentGroup(component.type, addComponentCallback, componentName);
   }
 
-  public changeNodeState(componentName: ComponentName, nodeState: ConsensusNodeStates): void {
+  public changeNodePhase(componentName: ComponentName, phase: DeploymentPhase): void {
     if (!this.consensusNodes[componentName]) {
       throw new SoloError(`Consensus node ${componentName} doesn't exist`);
     }
 
-    if (!isValidEnum(nodeState, ConsensusNodeStates)) {
-      throw new SoloError(`Invalid node state ${nodeState}`);
-    }
-
-    this.consensusNodes[componentName].changeNodeState(nodeState);
+    this.consensusNodes[componentName].phase = phase;
   }
 
   /** Used to remove specific component from their respective group. */

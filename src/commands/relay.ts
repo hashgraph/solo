@@ -12,7 +12,7 @@ import {type AccountManager} from '../core/account-manager.js';
 import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
+import {type AnyYargs, type ArgvStruct, type NodeAlias, type NodeAliases, type NodeId} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {type RelayComponent} from '../core/config/remote/components/relay-component.js';
 import * as Base64 from 'js-base64';
@@ -22,6 +22,7 @@ import {type CommandDefinition, type Optional, type SoloListrTask} from '../type
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
+import {Templates} from '../core/templates.js';
 
 interface RelayDestroyConfigClass {
   chartDirectory: string;
@@ -548,8 +549,10 @@ export class RelayCommand extends BaseCommand {
         await this.remoteConfigManager.modify(async remoteConfig => {
           const {namespace, nodeAliases, clusterRef} = context_.config;
 
+          const nodeIds: NodeId[] = nodeAliases.map((nodeAlias: NodeAlias) => Templates.nodeIdFromNodeAlias(nodeAlias));
+
           remoteConfig.components.addNewComponent(
-            ComponentFactory.createNewRelayComponent(this.remoteConfigManager, clusterRef, namespace, nodeAliases),
+            ComponentFactory.createNewRelayComponent(this.remoteConfigManager, clusterRef, namespace, nodeIds),
           );
         });
       },

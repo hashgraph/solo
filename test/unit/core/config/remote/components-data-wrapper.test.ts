@@ -12,22 +12,22 @@ import {MirrorNodeExplorerComponent} from '../../../../../src/core/config/remote
 import {RelayComponent} from '../../../../../src/core/config/remote/components/relay-component.js';
 import {SoloError} from '../../../../../src/core/errors/solo-error.js';
 import {ComponentTypes} from '../../../../../src/core/config/remote/enumerations/component-types.js';
-import {ConsensusNodeStates} from '../../../../../src/core/config/remote/enumerations/consensus-node-states.js';
-import {type NodeAliases} from '../../../../../src/types/aliases.js';
+import {type NodeId} from '../../../../../src/types/aliases.js';
 import {
   type ClusterReference,
   type ComponentName,
   type NamespaceNameAsString,
 } from '../../../../../src/core/config/remote/types.js';
 import {type ComponentsDataStruct} from '../../../../../src/core/config/remote/interfaces/components-data-struct.js';
+import {DeploymentPhase} from '../../../../../src/data/schema/model/remote/deployment-phase.js';
 
 export function createComponentsDataWrapper(): {
   values: {
     name: string;
     cluster: ClusterReference;
     namespace: NamespaceNameAsString;
-    nodeState: ConsensusNodeStates;
-    consensusNodeAliases: NodeAliases;
+    phase: DeploymentPhase.DEPLOYED;
+    consensusNodeIds: NodeId[];
   };
   components: {
     relays: Record<string, RelayComponent>;
@@ -45,31 +45,31 @@ export function createComponentsDataWrapper(): {
 
   const cluster: ClusterReference = 'cluster';
   const namespace: NamespaceNameAsString = 'namespace';
-  const nodeState: ConsensusNodeStates = ConsensusNodeStates.STARTED;
-  const consensusNodeAliases: NodeAliases = ['node1', 'node2'];
+  const phase: DeploymentPhase = DeploymentPhase.DEPLOYED;
+  const consensusNodeIds: NodeId[] = [0, 1];
 
   const relays: Record<string, RelayComponent> = {
-    [componentName]: new RelayComponent(name, cluster, namespace, consensusNodeAliases),
+    [componentName]: new RelayComponent(name, cluster, namespace, phase, consensusNodeIds),
   };
 
   const haProxies: Record<string, HaProxyComponent> = {
-    [componentName]: new HaProxyComponent(name, cluster, namespace),
+    [componentName]: new HaProxyComponent(name, cluster, namespace, phase),
   };
 
   const mirrorNodes: Record<string, MirrorNodeComponent> = {
-    [componentName]: new MirrorNodeComponent(name, cluster, namespace),
+    [componentName]: new MirrorNodeComponent(name, cluster, namespace, phase),
   };
 
   const envoyProxies: Record<string, EnvoyProxyComponent> = {
-    [componentName]: new EnvoyProxyComponent(name, cluster, namespace),
+    [componentName]: new EnvoyProxyComponent(name, cluster, namespace, phase),
   };
 
   const consensusNodes: Record<string, ConsensusNodeComponent> = {
-    [componentName]: new ConsensusNodeComponent(name, cluster, namespace, nodeState, 0),
+    [componentName]: new ConsensusNodeComponent(name, cluster, namespace, phase, 0),
   };
 
   const mirrorNodeExplorers: Record<string, MirrorNodeExplorerComponent> = {
-    [componentName]: new MirrorNodeExplorerComponent(name, cluster, namespace),
+    [componentName]: new MirrorNodeExplorerComponent(name, cluster, namespace, phase),
   };
 
   // @ts-expect-error - TS267: to access private constructor
@@ -83,7 +83,7 @@ export function createComponentsDataWrapper(): {
   );
 
   return {
-    values: {name, cluster, namespace, nodeState, consensusNodeAliases},
+    values: {name, cluster, namespace, phase, consensusNodeIds},
     components: {consensusNodes, haProxies, envoyProxies, mirrorNodes, mirrorNodeExplorers, relays},
     wrapper: {componentsDataWrapper},
     componentName,
@@ -139,12 +139,13 @@ describe('ComponentsDataWrapper', () => {
     } = createComponentsDataWrapper();
 
     const newComponentName: string = 'envoy';
-    const {name, cluster, namespace} = {
+    const {name, cluster, namespace, phase} = {
       name: newComponentName,
       cluster: 'cluster',
       namespace: 'new-namespace',
+      phase: DeploymentPhase.DEPLOYED,
     };
-    const newComponent: EnvoyProxyComponent = new EnvoyProxyComponent(name, cluster, namespace);
+    const newComponent: EnvoyProxyComponent = new EnvoyProxyComponent(name, cluster, namespace, phase);
 
     componentsDataWrapper.addNewComponent(newComponent);
 
@@ -156,6 +157,7 @@ describe('ComponentsDataWrapper', () => {
       name,
       cluster,
       namespace,
+      phase,
     });
 
     expect(Object.values(componentDataWrapperObject[ComponentTypes.EnvoyProxy])).to.have.lengthOf(2);
@@ -167,11 +169,11 @@ describe('ComponentsDataWrapper', () => {
       componentName,
     } = createComponentsDataWrapper();
 
-    const newNodeState: ConsensusNodeStates = ConsensusNodeStates.STOPPED;
+    const newNodeState: DeploymentPhase = DeploymentPhase.STOPPED;
 
-    componentsDataWrapper.changeNodeState(componentName, newNodeState);
+    componentsDataWrapper.changeNodePhase(componentName, newNodeState);
 
-    expect(componentsDataWrapper.consensusNodes[componentName].nodeState).to.equal(newNodeState);
+    expect(componentsDataWrapper.consensusNodes[componentName].phase).to.equal(newNodeState);
   });
 
   it("should not be able to edit component with the .editComponent() if it doesn't exist ", () => {
@@ -180,9 +182,10 @@ describe('ComponentsDataWrapper', () => {
     } = createComponentsDataWrapper();
     const notFoundComponentName: string = 'not_found';
 
-    expect(() =>
-      componentsDataWrapper.changeNodeState(notFoundComponentName, ConsensusNodeStates.NON_DEPLOYED),
-    ).to.throw(SoloError, `Consensus node ${notFoundComponentName} doesn't exist`);
+    expect(() => componentsDataWrapper.changeNodePhase(notFoundComponentName, DeploymentPhase.FROZEN)).to.throw(
+      SoloError,
+      `Consensus node ${notFoundComponentName} doesn't exist`,
+    );
   });
 
   it('should be able to remove component with the .removeComponent()', () => {
