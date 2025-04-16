@@ -15,13 +15,14 @@ import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {ComponentType} from '../core/config/remote/enumerations.js';
 import {MirrorNodeExplorerComponent} from '../core/config/remote/components/mirror-node-explorer-component.js';
-import {prepareValuesFiles, showVersionBanner, createTlsSecret} from '../core/helpers.js';
+import {prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
+import {KeyManager} from '../core/key-manager.js';
 import {
   EXPLORER_INGRESS_CONTROLLER,
   EXPLORER_INGRESS_TLS_SECRET_NAME,
@@ -152,8 +153,7 @@ export class ExplorerCommand extends BaseCommand {
 
       if (config.tlsClusterIssuerType === 'self-signed') {
         // Create TLS secret for Explorer
-        await createTlsSecret(
-          this.logger,
+        await KeyManager.createTlsSecret(
           this.k8Factory,
           config.namespace,
           config.domainName,

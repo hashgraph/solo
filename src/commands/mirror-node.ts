@@ -37,7 +37,8 @@ import {type CommandFlag} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {createTlsSecret, prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
+import {KeyManager} from '../core/key-manager.js';
+import {prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 
@@ -476,8 +477,7 @@ export class MirrorNodeCommand extends BaseCommand {
                     );
 
                     if (context_.config.enableIngress) {
-                      await createTlsSecret(
-                        this.logger,
+                      await KeyManager.createTlsSecret(
                         this.k8Factory,
                         context_.config.namespace,
                         context_.config.domainName,

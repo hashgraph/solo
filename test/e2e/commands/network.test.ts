@@ -5,9 +5,10 @@ import {expect} from 'chai';
 import {bootstrapTestVariables, getTemporaryDirectory, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {generateTls, sleep} from '../../../src/core/helpers.js';
+import {sleep} from '../../../src/core/helpers.js';
 import fs from 'node:fs';
 import {Flags as flags} from '../../../src/commands/flags.js';
+import {KeyManager} from '../../../src/core/key-manager.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {PodName} from '../../../src/integration/kube/resources/pod/pod-name.js';
@@ -47,8 +48,12 @@ describe('NetworkCommand', function networkCommand() {
     cmd: {networkCmd, clusterCmd, initCmd, nodeCmd, deploymentCmd},
   } = bootstrapTestVariables(testName, argv, {});
 
-  generateTls(temporaryDirectory, 'grpc');
-  generateTls(temporaryDirectory, 'grpcWeb');
+  // Setup TLS certificates in a before hook
+  before(async function () {
+    this.timeout(Duration.ofMinutes(1).toMillis());
+    await KeyManager.generateTls(temporaryDirectory, 'grpc');
+    await KeyManager.generateTls(temporaryDirectory, 'grpcWeb');
+  });
 
   argv.setArg(flags.grpcTlsCertificatePath, 'node1=' + PathEx.join(temporaryDirectory, 'grpc.crt'));
   argv.setArg(flags.grpcTlsKeyPath, 'node1=' + PathEx.join(temporaryDirectory, 'grpc.key'));
