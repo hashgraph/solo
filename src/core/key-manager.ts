@@ -539,7 +539,7 @@ export class KeyManager {
    * @param secretName Name of the secret to create
    * @returns Promise<void>
    */
-  static async createTlsSecret(
+  public static async createTlsSecret(
     k8Factory: K8Factory,
     namespace: NamespaceName,
     domainName: string,
@@ -584,9 +584,9 @@ export class KeyManager {
    * @param expireDays Number of days until the certificate expires
    * @returns Promise with paths to the certificate and key files
    */
-  static async generateTls(
+  public static async generateTls(
     directory: string,
-    name: string,
+    name: string = 'localhost',
     expireDays: number = 365,
   ): Promise<{certificatePath: string; keyPath: string}> {
     // Define attributes for the certificate
