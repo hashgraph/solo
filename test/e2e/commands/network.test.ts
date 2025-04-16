@@ -5,7 +5,7 @@ import {expect} from 'chai';
 import {bootstrapTestVariables, getTemporaryDirectory, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
-import {generateTLS, sleep} from '../../../src/core/helpers.js';
+import {generateTls, sleep} from '../../../src/core/helpers.js';
 import fs from 'node:fs';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';
@@ -47,8 +47,8 @@ describe('NetworkCommand', function networkCommand() {
     cmd: {networkCmd, clusterCmd, initCmd, nodeCmd, deploymentCmd},
   } = bootstrapTestVariables(testName, argv, {});
 
-  generateTLS(tmpDir, 'grpc');
-  generateTLS(tmpDir, 'grpcWeb');
+  generateTls(tmpDir, 'grpc');
+  generateTls(tmpDir, 'grpcWeb');
 
   argv.setArg(flags.grpcTlsCertificatePath, 'node1=' + PathEx.join(tmpDir, 'grpc.crt'));
   argv.setArg(flags.grpcTlsKeyPath, 'node1=' + PathEx.join(tmpDir, 'grpc.key'));

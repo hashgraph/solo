@@ -580,7 +580,7 @@ export async function getAppleSiliconChipset(logger: SoloLogger) {
  * @param secretName Name of the secret to create
  * @returns Promise<boolean> - True if secret was created successfully
  */
-export async function createTLSSecret(
+export async function createTlsSecret(
   logger: SoloLogger,
   k8Factory: K8Factory,
   namespace: NamespaceName,
@@ -592,7 +592,7 @@ export async function createTLSSecret(
   const generateDirectory: string = PathEx.join(cacheDirectory);
 
   // Generate TLS certificate and key
-  const {certificatePath, keyPath} = await generateTLS(generateDirectory, domainName);
+  const {certificatePath, keyPath} = await generateTls(generateDirectory, domainName);
 
   try {
     const certData: string = fs.readFileSync(certificatePath).toString();
@@ -619,7 +619,7 @@ export async function createTLSSecret(
   }
 }
 
-export async function generateTLS(
+export async function generateTls(
   directory: string,
   name: string,
   expireDays: number = 365,
