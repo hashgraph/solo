@@ -241,6 +241,45 @@ export class MirrorNodeCommand extends BaseCommand {
     return valuesArgument;
   }
 
+  private async deployMirrorNode(context_: MirrorNodeDeployContext): Promise<void> {
+    await this.chartManager.install(
+      context_.config.namespace,
+      constants.MIRROR_NODE_RELEASE_NAME,
+      constants.MIRROR_NODE_CHART,
+      constants.MIRROR_NODE_RELEASE_NAME,
+      context_.config.mirrorNodeVersion,
+      context_.config.valuesArg,
+      context_.config.clusterContext,
+    );
+
+    showVersionBanner(this.logger, constants.MIRROR_NODE_RELEASE_NAME, context_.config.mirrorNodeVersion);
+
+    if (context_.config.enableIngress) {
+      // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
+      await this.k8Factory
+        .getK8(context_.config.clusterContext)
+        .ingresses()
+        .update(context_.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+          spec: {
+            ingressClassName: `${constants.MIRROR_INGRESS_CLASS_NAME}`,
+          },
+        });
+
+      // to support GRPC over HTTP/2
+      await this.k8Factory
+        .getK8(context_.config.clusterContext)
+        .configMaps()
+        .update(context_.config.namespace, constants.MIRROR_INGRESS_CONTROLLER, {
+          'backend-protocol': 'h2',
+        });
+
+      await this.k8Factory
+        .getK8(context_.config.clusterContext)
+        .ingressClasses()
+        .create(constants.MIRROR_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
+    }
+  }
+
   private async deploy(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
@@ -417,23 +456,6 @@ export class MirrorNodeCommand extends BaseCommand {
                       portForward,
                     );
                     context_.config.valuesArg += ` --set "importer.addressBook=${context_.addressBook}"`;
-
-                    // Temporary fix for M4 chips running JAVA 21.
-                    // This should be changed when mirror node allows for extending JAVA_OPTS env
-                    if (await requiresJavaSveFix(this.logger)) {
-                      context_.config.valuesArg +=
-                        ' --set "graphql.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
-                      context_.config.valuesArg +=
-                        ' --set "importer.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
-                      context_.config.valuesArg +=
-                        ' --set "grpc.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
-                      context_.config.valuesArg +=
-                        ' --set "monitor.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
-                      context_.config.valuesArg +=
-                        ' --set "restjava.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
-                      context_.config.valuesArg +=
-                        ' --set "web3.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 --enable-preview -XX:UseSVE=0"';
-                    }
                   },
                 },
                 {
@@ -468,45 +490,59 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Deploy mirror-node',
                   task: async context_ => {
-                    await self.chartManager.install(
-                      context_.config.namespace,
-                      constants.MIRROR_NODE_RELEASE_NAME,
-                      constants.MIRROR_NODE_CHART,
-                      constants.MIRROR_NODE_RELEASE_NAME,
-                      context_.config.mirrorNodeVersion,
-                      context_.config.valuesArg,
-                      context_.config.clusterContext,
-                    );
+                    await self.deployMirrorNode(context_);
+                  },
+                },
+                {
+                  title: 'Apply UseSVE fix',
+                  task: async (context_, task) => {
+                    const namespace = context_.config.namespace;
+                    const pods: Pod[] = await this.k8Factory
+                      .getK8(context_.config.clusterContext)
+                      .pods()
+                      .list(namespace, ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer']);
+                    if (pods.length === 0) {
+                      throw new SoloError('importer pod not found');
+                    }
+                    const importerPodName: PodName = pods[0].podReference.name;
+                    const importerContainerName = ContainerName.of('importer');
+                    const importerPodReference = PodReference.of(namespace, importerPodName);
+                    const containerReference = ContainerReference.of(importerPodReference, importerContainerName);
+                    const container = await self.k8Factory
+                      .getK8(context_.config.clusterContext)
+                      .containers()
+                      .readByRef(containerReference);
 
-                    showVersionBanner(
-                      self.logger,
-                      constants.MIRROR_NODE_RELEASE_NAME,
-                      context_.config.mirrorNodeVersion,
-                    );
+                    // Temporary fix for M4 chips running JAVA 21.
+                    // This should be changed when mirror node allows for extending JAVA_OPTS env
+                    if (await requiresJavaSveFix(container)) {
+                      context_.config.valuesArg +=
+                        ' --set "graphql.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "importer.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "grpc.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "monitor.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "restjava.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "web3.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 --enable-preview -XX:UseSVE=0"';
 
-                    if (context_.config.enableIngress) {
-                      // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
-                      await this.k8Factory
-                        .getK8(context_.config.clusterContext)
-                        .ingresses()
-                        .update(context_.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
-                          spec: {
-                            ingressClassName: `${constants.MIRROR_INGRESS_CLASS_NAME}`,
-                          },
-                        });
-
-                      // to support GRPC over HTTP/2
-                      await this.k8Factory
-                        .getK8(context_.config.clusterContext)
-                        .configMaps()
-                        .update(context_.config.namespace, constants.MIRROR_INGRESS_CONTROLLER, {
-                          'backend-protocol': 'h2',
-                        });
-
-                      await this.k8Factory
-                        .getK8(context_.config.clusterContext)
-                        .ingressClasses()
-                        .create(constants.MIRROR_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
+                      await self.deployMirrorNode(context_);
+                      for (const pod of pods) {
+                        // const podReference: PodReference = pod.podReference;
+                        const pods = await this.k8Factory
+                          .getK8(context_.config.clusterContext)
+                          .pods()
+                          .list(context_.config.namespace, ['app.kubernetes.io/instance=mirror']);
+                        for (const pod of pods) {
+                          await pod.killPod();
+                        }
+                      }
+                    }
+                    else {
+                      task.title += chalk.yellow(' (Skipped)');
                     }
                   },
                 },

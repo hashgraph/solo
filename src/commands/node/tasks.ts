@@ -2365,20 +2365,18 @@ export class NodeCommandTasks {
         );
 
         const k8 = this.k8Factory.getK8(context);
+        const container = await k8.containers().readByRef(containerReference);
 
-        const archiveCommand = (await requiresJavaSveFix(this.logger))
+        const archiveCommand = (await requiresJavaSveFix(container))
           ? 'dnf install zip -y && cd "${states[0]}" && zip -r "${states[0]}.zip" . && cd ../ && mv "${states[0]}/${states[0]}.zip" "${states[0]}.zip"'
           : 'jar cf "${states[0]}.zip" -C "${states[0]}" .';
 
         // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
-        const zipFileName = await k8
-          .containers()
-          .readByRef(containerReference)
-          .execContainer([
-            'bash',
-            '-c',
-            `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && ${archiveCommand} && echo -n \${states[0]}.zip`,
-          ]);
+        const zipFileName = await container.execContainer([
+          'bash',
+          '-c',
+          `cd ${upgradeDirectory} && mapfile -t states < <(ls -1t .) && ${archiveCommand} && echo -n \${states[0]}.zip`,
+        ]);
 
         await k8
           .containers()
@@ -2404,10 +2402,9 @@ export class NodeCommandTasks {
         const context = helpers.extractContextFromConsensusNodes(config.nodeAlias, config.consensusNodes);
         const k8 = this.k8Factory.getK8(context);
 
-        await k8
-          .containers()
-          .readByRef(containerReference)
-          .execContainer(['bash', '-c', `mkdir -p ${savedStatePath}`]);
+        const container = k8.containers().readByRef(containerReference);
+
+        await container.execContainer(['bash', '-c', `mkdir -p ${savedStatePath}`]);
         await k8.containers().readByRef(containerReference).copyTo(config.lastStateZipPath, savedStatePath);
 
         await this.platformInstaller.setPathPermission(
@@ -2419,7 +2416,7 @@ export class NodeCommandTasks {
           context,
         );
 
-        const extractCommand = (await requiresJavaSveFix(this.logger))
+        const extractCommand = (await requiresJavaSveFix(container))
           ? `unzip ${path.basename(config.lastStateZipPath)}`
           : `jar xf ${path.basename(config.lastStateZipPath)}`;
 

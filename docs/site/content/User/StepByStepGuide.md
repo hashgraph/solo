@@ -674,7 +674,7 @@ Version			: v0.66.0
 ✔ Add relay component in remote config
 ```
 
-#### Access Hedera Services 
+#### Access Hedera Services
 
 Next: [Access Hedera Services](https://solo.hiero.org/User/AccessHederaServices/)
 

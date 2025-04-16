@@ -23,8 +23,8 @@ import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
 import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';
-import {ShellRunner} from './shell-runner.js';
 import {type Realm, type Shard} from './config/remote/types.js';
+import type {Container} from '../integration/kube/resources/container/container.js';
 
 export function getInternalAddress(
   releaseVersion: semver.SemVer | string,
@@ -538,22 +538,17 @@ export function ipv4ToByteArray(ip: string): number[] {
 }
 
 /** Get the Apple Silicon chip type */
-export async function getAppleSiliconChipset(logger: SoloLogger) {
-  const isMacOS = process.platform === 'darwin';
-  const isArm64 = process.arch === 'arm64';
-  if (isMacOS && isArm64) {
-    logger.info('Running on macOS with ARM architecture (likely Apple Silicon).');
-    const shellRunner = new ShellRunner();
-    return await shellRunner.run('sysctl -n machdep.cpu.brand_string');
-  } else {
-    logger.info('Not running on macOS ARM (Apple Silicon).');
-    return ['unknown'];
+export async function getProcessorType(container: Container): Promise<string> {
+  try {
+    return container.execContainer('uname -p');
+  } catch {
+    return 'unknown';
   }
 }
 
-export async function requiresJavaSveFix(logger: SoloLogger) {
-  const chipSet = await getAppleSiliconChipset(logger);
-  return chipSet.join('').includes('M4');
+export async function requiresJavaSveFix(container: Container) {
+  const chipSet = await getProcessorType(container);
+  return chipSet.includes('aarch') || chipSet.includes('arm');
 }
 
 export function entityId(shard: Shard, realm: Realm, number: Long | number | string): string {
