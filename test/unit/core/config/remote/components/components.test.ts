@@ -13,7 +13,6 @@ import {MirrorNodeExplorerComponent} from '../../../../../../src/core/config/rem
 import {type NodeAlias} from '../../../../../../src/types/aliases.js';
 import {Templates} from '../../../../../../src/core/templates.js';
 import {ConsensusNodeStates} from '../../../../../../src/core/config/remote/enumerations/consensus-node-states.js';
-import {ComponentStates} from '../../../../../../src/core/config/remote/enumerations/component-states.js';
 import {type ClusterReference, type ComponentName} from '../../../../../../src/core/config/remote/types.js';
 import {NamespaceName} from '../../../../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {type BaseComponentStruct} from '../../../../../../src/core/config/remote/components/interfaces/base-component-struct.js';
@@ -30,7 +29,7 @@ const namespace: NamespaceName = NamespaceName.of('valid');
 
 function testBaseComponentData(classComponent: any): void {
   it('should be an instance of BaseComponent', () => {
-    const component: any = new classComponent(componentName, clusterReference, namespace.name, ComponentStates.ACTIVE);
+    const component: any = new classComponent(componentName, clusterReference, namespace.name);
     expect(component).to.be.instanceOf(BaseComponent);
   });
 
@@ -39,10 +38,9 @@ function testBaseComponentData(classComponent: any): void {
       name: componentName,
       cluster: clusterReference,
       namespace: namespace.name,
-      state: ComponentStates.ACTIVE,
     };
 
-    const component: any = new classComponent(data.name, data.cluster, data.namespace, data.state);
+    const component: any = new classComponent(data.name, data.cluster, data.namespace);
     expect(component.toObject()).to.deep.equal(data);
   });
 }
@@ -79,7 +77,6 @@ describe('RelayComponent', () => {
       name,
       cluster: clusterReference,
       namespace: namespace.name,
-      state: ComponentStates.ACTIVE,
       consensusNodeAliases: ['node1'],
     };
 
@@ -119,7 +116,6 @@ describe('ConsensusNodeComponent', () => {
       name: nodeAlias,
       cluster: clusterReference,
       namespace: namespace.name,
-      state: ComponentStates.ACTIVE,
       nodeState,
       nodeId: Templates.nodeIdFromNodeAlias(nodeAlias),
     };

@@ -11,7 +11,6 @@ import {MirrorNodeExplorerComponent} from './components/mirror-node-explorer-com
 import {type ClusterReference, type ComponentName} from './types.js';
 import {ComponentTypes} from './enumerations/component-types.js';
 import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
-import {ComponentStates} from './enumerations/component-states.js';
 import {isValidEnum} from '../../util/validation-helpers.js';
 import {type BaseComponentStruct} from './components/interfaces/base-component-struct.js';
 import {type RelayComponentStruct} from './components/interfaces/relay-component-struct.js';
@@ -74,26 +73,6 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     this.consensusNodes[componentName].changeNodeState(nodeState);
   }
 
-  /** Used to remove specific component from their respective group. */
-  public disableComponent(componentName: ComponentName, type: ComponentTypes): void {
-    if (!componentName || typeof componentName !== 'string') {
-      throw new SoloError(`Component name is required ${componentName}`);
-    }
-
-    if (!isValidEnum(type, ComponentTypes)) {
-      throw new SoloError(`Invalid component type ${type}`);
-    }
-
-    const disableComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
-      if (!components[componentName]) {
-        throw new SoloError(`Component ${componentName} of type ${type} not found while attempting to remove`);
-      }
-      components[componentName].state = ComponentStates.DELETED;
-    };
-
-    this.applyCallbackToComponentGroup(type, disableComponentCallback, componentName);
-  }
-
   /* -------- Utilities -------- */
 
   public getComponent<T extends BaseComponent>(type: ComponentTypes, componentName: ComponentName): T {
@@ -142,18 +121,6 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     }
 
     return filteredComponent;
-  }
-
-  public getActiveComponents<T extends BaseComponent>(type: ComponentTypes): T[] {
-    let filteredComponents: T[];
-
-    const getActiveComponentsCallback: (components: Record<ComponentName, T>) => void = components => {
-      filteredComponents = Object.values(components).filter(component => component.state === ComponentStates.ACTIVE);
-    };
-
-    this.applyCallbackToComponentGroup(type, getActiveComponentsCallback);
-
-    return filteredComponents;
   }
 
   /**

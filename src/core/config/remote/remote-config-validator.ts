@@ -3,7 +3,6 @@
 import * as constants from '../../constants.js';
 import {SoloError} from '../../errors/solo-error.js';
 import {ConsensusNodeStates} from './enumerations/consensus-node-states.js';
-import {ComponentStates} from './enumerations/component-states.js';
 import {type ConsensusNodeComponent} from './components/consensus-node-component.js';
 import {type ComponentsDataWrapper} from './components-data-wrapper.js';
 import {type BaseComponent} from './components/base-component.js';
@@ -120,9 +119,6 @@ export class RemoteConfigValidator {
     skipCondition?: (component: BaseComponent) => boolean,
   ): Promise<void>[] {
     return Object.values(components).map(async (component): Promise<void> => {
-      if (component.state === ComponentStates.DELETED) {
-        return;
-      }
       if (skipCondition?.(component)) {
         return;
       }
