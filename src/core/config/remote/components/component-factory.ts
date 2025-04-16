@@ -74,7 +74,7 @@ export class ComponentFactory {
     return new ConsensusNodeComponent(nodeId, clusterReference, namespace.name, phase);
   }
 
-  public static createConsensusNodeComponentsFromNodeAliases(
+  public static createConsensusNodeComponentsFromNodeIds(
     nodeIds: NodeId[],
     clusterReference: ClusterReference,
     namespace: NamespaceName,

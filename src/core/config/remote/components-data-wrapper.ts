@@ -42,7 +42,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     const componentId: ComponentId = component.id;
 
     if (!componentId || typeof componentId !== 'string') {
-      throw new SoloError(`Component name is required ${componentId}`);
+      throw new SoloError(`Component id is required ${componentId}`);
     }
 
     if (!(component instanceof BaseComponent)) {
@@ -289,7 +289,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   private validateComponentTypes(components: Record<ComponentId, BaseComponent>, expectedInstance: any): void {
     for (const [componentId, component] of Object.entries(components)) {
       if (!componentId || typeof componentId !== 'number') {
-        throw new SoloError(`Invalid component name ${{[componentId]: component?.constructor?.name}}`);
+        throw new SoloError(`Invalid component id ${{[componentId]: component?.constructor?.name}}`);
       }
 
       if (!(component instanceof expectedInstance)) {

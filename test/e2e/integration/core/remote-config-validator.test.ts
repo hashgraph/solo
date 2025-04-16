@@ -203,7 +203,7 @@ describe('RemoteConfigValidator', () => {
       const nodeAliases: NodeAliases = ['node1', 'node2', 'node3'];
 
       const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> =
-        ComponentFactory.createConsensusNodeComponentsFromNodeAliases(nodeAliases, 'cluster-ref', namespace);
+        ComponentFactory.createConsensusNodeComponentsFromNodeIds(nodeAliases, 'cluster-ref', namespace);
 
       const componentsDataWrapper: ComponentsDataWrapper =
         ComponentsDataWrapper.initializeWithNodes(consensusNodeComponents);
@@ -229,7 +229,7 @@ describe('RemoteConfigValidator', () => {
         const nodeAliases: NodeAliases = ['node1', 'node2', 'node3'];
 
         const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> =
-          ComponentFactory.createConsensusNodeComponentsFromNodeAliases(nodeAliases, 'cluster-ref', namespace);
+          ComponentFactory.createConsensusNodeComponentsFromNodeIds(nodeAliases, 'cluster-ref', namespace);
 
         const componentsDataWrapper: ComponentsDataWrapper =
           ComponentsDataWrapper.initializeWithNodes(consensusNodeComponents);

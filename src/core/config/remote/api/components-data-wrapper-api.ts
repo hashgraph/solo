@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type ToObject, type Validate} from '../../../../types/index.js';
-import {type ClusterReference, type ComponentName} from '../types.js';
+import {type ClusterReference, type ComponentId} from '../types.js';
 import {type CloneTrait} from '../../../../types/traits/clone-trait.js';
 import {type ComponentsDataStruct} from '../interfaces/components-data-struct.js';
 import {type BaseComponent} from '../components/base-component.js';
@@ -15,12 +15,12 @@ export interface ComponentsDataWrapperApi
   /** Used to add new component to their respective group. */
   addNewComponent(component: BaseComponent): void;
 
-  changeNodePhase(componentName: ComponentName, phase: DeploymentPhase): void;
+  changeNodePhase(componentId: ComponentId, phase: DeploymentPhase): void;
 
   /** Used to remove specific component from their respective group. */
-  removeComponent(componentName: ComponentName, type: ComponentTypes): void;
+  removeComponent(componentId: ComponentId, type: ComponentTypes): void;
 
-  getComponent<T extends BaseComponent>(type: ComponentTypes, componentName: ComponentName): T;
+  getComponent<T extends BaseComponent>(type: ComponentTypes, componentId: ComponentId): T;
 
   getComponentsByClusterReference<T extends BaseComponent>(
     type: ComponentTypes,

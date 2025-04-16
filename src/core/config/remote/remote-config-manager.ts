@@ -12,9 +12,10 @@ import {type K8Factory} from '../../../integration/kube/k8-factory.js';
 import {
   type ClusterReference,
   type ClusterReferences,
-  type ComponentName,
+  type ComponentId,
   type Context,
   type DeploymentName,
+  type EmailAddress,
   type NamespaceNameAsString,
   type Version,
 } from './types.js';
@@ -26,7 +27,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency-injection/container-helper.js';
 import {ErrorMessages} from '../../error-messages.js';
 import {CommonFlagsDataWrapper} from './common-flags-data-wrapper.js';
-import {type AnyObject, type ArgvStruct, type NodeAlias, type NodeAliases} from '../../../types/aliases.js';
+import {type AnyObject, type ArgvStruct, type NodeAlias, type NodeAliases, NodeId} from '../../../types/aliases.js';
 import {type NamespaceName} from '../../../integration/kube/resources/namespace/namespace-name.js';
 import {InjectTokens} from '../../dependency-injection/inject-tokens.js';
 import {Cluster} from './cluster.js';
@@ -116,13 +117,15 @@ export class RemoteConfigManager implements RemoteConfigManagerApi {
       ),
     };
 
-    const lastUpdatedAt = new Date();
-    const email = this.localConfig.userEmailAddress;
-    const soloVersion = getSoloVersion();
-    const currentCommand = argv._.join(' ');
+    const lastUpdatedAt: Date = new Date();
+    const email: EmailAddress = this.localConfig.userEmailAddress;
+    const soloVersion: Version = getSoloVersion();
+    const currentCommand: string = argv._.join(' ');
 
-    const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> =
-      ComponentFactory.createConsensusNodeComponentsFromNodeAliases(nodeAliases, clusterReference, namespace);
+    const nodeIds: NodeId[] = nodeAliases.map((nodeAlias: NodeAlias) => Templates.nodeIdFromNodeAlias(nodeAlias));
+
+    const consensusNodeComponents: Record<ComponentId, ConsensusNodeComponent> =
+      ComponentFactory.createConsensusNodeComponentsFromNodeIds(nodeIds, clusterReference, namespace);
 
     this.remoteConfig = new RemoteConfigDataWrapper({
       clusters,
@@ -446,19 +449,20 @@ export class RemoteConfigManager implements RemoteConfigManagerApi {
     for (const node of Object.values(this.components.consensusNodes)) {
       const cluster: Cluster = this.clusters[node.cluster];
       const context: Context = this.localConfig.clusterRefs[node.cluster];
+      const nodeAlias: NodeAlias = Templates.renderNodeAliasFromNumber(node.id + 1);
 
       consensusNodes.push(
         new ConsensusNode(
-          node.name as NodeAlias,
-          node.nodeId,
+          nodeAlias,
+          node.id,
           node.namespace,
           node.cluster,
           context,
           cluster.dnsBaseDomain,
           cluster.dnsConsensusNodePattern,
           Templates.renderConsensusNodeFullyQualifiedDomainName(
-            node.name as NodeAlias,
-            node.nodeId,
+            nodeAlias,
+            node.id,
             node.namespace,
             node.cluster,
             cluster.dnsBaseDomain,
