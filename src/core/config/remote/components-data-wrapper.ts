@@ -73,6 +73,27 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
     this.consensusNodes[componentName].changeNodeState(nodeState);
   }
 
+  /** Used to remove specific component from their respective group. */
+  public removeComponent(componentName: ComponentName, type: ComponentTypes): void {
+    if (!componentName || typeof componentName !== 'string') {
+      throw new SoloError(`Component name is required ${componentName}`);
+    }
+
+    if (!isValidEnum(type, ComponentTypes)) {
+      throw new SoloError(`Invalid component type ${type}`);
+    }
+
+    const removeComponentCallback: (components: Record<ComponentName, BaseComponent>) => void = components => {
+      if (!components[componentName]) {
+        throw new SoloError(`Component ${componentName} of type ${type} not found while attempting to remove`);
+      }
+
+      delete components[componentName];
+    };
+
+    this.applyCallbackToComponentGroup(type, removeComponentCallback, componentName);
+  }
+
   /* -------- Utilities -------- */
 
   public getComponent<T extends BaseComponent>(type: ComponentTypes, componentName: ComponentName): T {

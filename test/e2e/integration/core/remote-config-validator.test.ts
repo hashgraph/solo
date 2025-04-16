@@ -28,7 +28,6 @@ import {ConsensusNodeStates} from '../../../../src/core/config/remote/enumeratio
 import {type ClusterReference, type ComponentName} from '../../../../src/core/config/remote/types.js';
 import {ComponentFactory} from '../../../../src/core/config/remote/components/component-factory.js';
 import {type BaseComponent} from '../../../../src/core/config/remote/components/base-component.js';
-import {ComponentTypes} from '../../../../src/core/config/remote/enumerations/component-types.js';
 
 interface ComponentsRecord {
   explorer: MirrorNodeExplorerComponent;
@@ -198,15 +197,6 @@ describe('RemoteConfigValidator', () => {
   }
 
   describe('Additional test cases', () => {
-    it('Should not validate disabled components', async () => {
-      const component: MirrorNodeComponent = components.mirrorNode;
-
-      componentsDataWrapper.addNewComponent(component);
-      componentsDataWrapper.disableComponent(component.name, ComponentTypes.MirrorNode);
-
-      await RemoteConfigValidator.validateComponents(namespace, componentsDataWrapper, k8Factory, localConfig, false);
-    });
-
     it('Should not validate consensus nodes if skipConsensusNodes is enabled', async () => {
       const skipConsensusNodes: boolean = true;
 

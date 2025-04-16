@@ -899,7 +899,7 @@ export class MirrorNodeCommand extends BaseCommand {
             );
 
           for (const mirrorNodeComponent of mirrorNodeComponents) {
-            remoteConfig.components.disableComponent(mirrorNodeComponent.name, ComponentTypes.MirrorNode);
+            remoteConfig.components.removeComponent(mirrorNodeComponent.name, ComponentTypes.MirrorNode);
           }
         });
       },

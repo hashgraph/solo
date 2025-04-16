@@ -598,7 +598,7 @@ export class ExplorerCommand extends BaseCommand {
             );
 
           for (const explorerComponent of explorerComponents) {
-            remoteConfig.components.disableComponent(explorerComponent.name, ComponentTypes.MirrorNodeExplorer);
+            remoteConfig.components.removeComponent(explorerComponent.name, ComponentTypes.MirrorNodeExplorer);
           }
         });
       },

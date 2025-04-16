@@ -17,6 +17,9 @@ export interface ComponentsDataWrapperApi
 
   changeNodeState(componentName: ComponentName, nodeState: ConsensusNodeStates): void;
 
+  /** Used to remove specific component from their respective group. */
+  removeComponent(componentName: ComponentName, type: ComponentTypes): void;
+
   getComponent<T extends BaseComponent>(type: ComponentTypes, componentName: ComponentName): T;
 
   getComponentsByClusterReference<T extends BaseComponent>(

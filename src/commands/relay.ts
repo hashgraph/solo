@@ -572,7 +572,7 @@ export class RelayCommand extends BaseCommand {
             );
 
           for (const relayComponent of relayComponents) {
-            remoteConfig.components.disableComponent(relayComponent.name, ComponentTypes.Relay);
+            remoteConfig.components.removeComponent(relayComponent.name, ComponentTypes.Relay);
           }
         });
       },
