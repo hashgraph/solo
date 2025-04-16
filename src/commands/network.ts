@@ -26,7 +26,7 @@ import {type KeyManager} from '../core/key-manager.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
-import {type AnyYargs, type ArgvStruct, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {type AnyYargs, type ArgvStruct, type IP, type NodeAlias, type NodeAliases, NodeId} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {v4 as uuidv4} from 'uuid';
 import {type SoloListr, type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
@@ -1281,26 +1281,16 @@ export class NetworkCommand extends BaseCommand {
 
         await this.remoteConfigManager.modify(async remoteConfig => {
           for (const consensusNode of context_.config.consensusNodes) {
-            const nodeAlias: NodeAlias = consensusNode.name;
+            const nodeId: NodeId = Templates.nodeIdFromNodeAlias(consensusNode.name);
             const clusterReference: ClusterReference = consensusNode.cluster;
 
-            remoteConfig.components.changeNodePhase(nodeAlias, DeploymentPhase.REQUESTED);
+            remoteConfig.components.changeNodePhase(nodeId, DeploymentPhase.REQUESTED);
 
             remoteConfig.components.addNewComponent(
-              ComponentFactory.createNewEnvoyProxyComponent(
-                this.remoteConfigManager,
-                clusterReference,
-                namespace,
-                nodeAlias,
-              ),
+              ComponentFactory.createNewEnvoyProxyComponent(this.remoteConfigManager, clusterReference, namespace),
             );
             remoteConfig.components.addNewComponent(
-              ComponentFactory.createNewHaProxyComponent(
-                this.remoteConfigManager,
-                clusterReference,
-                namespace,
-                nodeAlias,
-              ),
+              ComponentFactory.createNewHaProxyComponent(this.remoteConfigManager, clusterReference, namespace),
             );
           }
         });

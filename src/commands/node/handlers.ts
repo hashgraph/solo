@@ -11,7 +11,7 @@ import {type Lock} from '../../core/lock/lock.js';
 import {type NodeCommandTasks} from './tasks.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {NodeHelper} from './helper.js';
-import {type ArgvStruct, type NodeAlias, type NodeAliases} from '../../types/aliases.js';
+import {type ArgvStruct, type NodeAlias, type NodeAliases, NodeId} from '../../types/aliases.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
 import {type Listr} from 'listr2';
 import chalk from 'chalk';
@@ -29,6 +29,7 @@ import {type NodeUpdateContext} from './config-interfaces/node-update-context.js
 import {type NodeUpgradeContext} from './config-interfaces/node-upgrade-context.js';
 import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
 import {DeploymentPhase} from '../../data/schema/model/remote/deployment-phase.js';
+import {Templates} from '../../core/templates.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
@@ -913,7 +914,8 @@ export class NodeCommandHandlers extends CommandHandler {
       task: async (context_: Context): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
           for (const consensusNode of context_.config.consensusNodes) {
-            remoteConfig.components.changeNodePhase(consensusNode.name, phase);
+            const nodeId: NodeId = Templates.nodeIdFromNodeAlias(consensusNode.name);
+            remoteConfig.components.changeNodePhase(nodeId, phase);
           }
         });
       },
@@ -1009,7 +1011,10 @@ export class NodeCommandHandlers extends CommandHandler {
   ): DeploymentPhase {
     let nodeComponent: ConsensusNodeComponent;
     try {
-      nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentTypes.ConsensusNode, nodeAlias);
+      nodeComponent = components.getComponent<ConsensusNodeComponent>(
+        ComponentTypes.ConsensusNode,
+        Templates.nodeIdFromNodeAlias(nodeAlias),
+      );
     } catch {
       throw new SoloError(`${nodeAlias} not found in remote config`);
     }

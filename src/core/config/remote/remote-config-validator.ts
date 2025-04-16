@@ -11,6 +11,7 @@ import {type Pod} from '../../../integration/kube/resources/pod/pod.js';
 import {type Context} from './types.js';
 import {type K8Factory} from '../../../integration/kube/k8-factory.js';
 import {DeploymentPhase} from '../../../data/schema/model/remote/deployment-phase.js';
+import {Templates} from '../../templates.js';
 
 /**
  * Static class is used to validate that components in the remote config
@@ -22,7 +23,7 @@ export class RemoteConfigValidator {
   }
 
   private static getHaProxyLabels(component: BaseComponent): string[] {
-    const name: string = component.name.split('-').slice(0, -1).join('-');
+    const name: string = 'haproxy-' + component.id; // TODO: also remove or use the prefix
     return [`app=${name}`];
   }
 
@@ -31,16 +32,16 @@ export class RemoteConfigValidator {
   }
 
   private static getEnvoyProxyLabels(component: BaseComponent): string[] {
-    const name: string = component.name.split('-').slice(0, -1).join('-');
+    const name: string = 'envoy-' + component.id; // TODO: also remove or use the prefix
     return [`app=${name}`];
   }
 
   private static getMirrorNodeExplorerLabels(): string[] {
-    return [constants.SOLO_HEDERA_EXPLORER_LABEL];
+    return [constants.SOLO_HEDERA_EXPLORER_LABEL]; // TODO: also remove or use the prefix
   }
 
   private static getConsensusNodeLabels(component: BaseComponent): string[] {
-    return [`app=network-${component.name}`];
+    return [`app=network-${Templates.renderNodeAliasFromNumber(component.id + 1)}`];
   }
 
   private static consensusNodeSkipConditionCallback(nodeComponent: ConsensusNodeComponent): boolean {
@@ -156,7 +157,7 @@ export class RemoteConfigValidator {
 
   public static buildValidationErrorMessage(displayName: string, component: BaseComponent): string {
     return (
-      `${displayName} in remote config with name ${component.name} was not found in ` +
+      `${displayName} in remote config with id ${component.id} was not found in ` +
       `namespace: ${component.namespace}, ` +
       `cluster: ${component.cluster}`
     );

@@ -700,7 +700,7 @@ export class DeploymentCommand extends BaseCommand {
           for (const nodeAlias of nodeAliases) {
             remoteConfig.components.addNewComponent(
               ComponentFactory.createNewConsensusNodeComponent(
-                nodeAlias,
+                Templates.nodeIdFromNodeAlias(nodeAlias),
                 clusterRef,
                 namespace,
                 DeploymentPhase.REQUESTED,

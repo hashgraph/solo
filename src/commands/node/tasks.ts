@@ -2503,6 +2503,7 @@ export class NodeCommandTasks {
       title: 'Add new node to remote config',
       task: async (context_, task) => {
         const nodeAlias: NodeAlias = context_.config.nodeAlias;
+        const nodeId: NodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
         const namespace: NamespaceName = context_.config.namespace;
         const clusterReference: ClusterReference = context_.config.clusterRef;
         const context: Context = this.localConfig.clusterRefs[clusterReference];
@@ -2512,27 +2513,17 @@ export class NodeCommandTasks {
         await this.remoteConfigManager.modify(async remoteConfig => {
           remoteConfig.components.addNewComponent(
             ComponentFactory.createNewConsensusNodeComponent(
-              nodeAlias,
+              nodeId,
               clusterReference,
               namespace,
               DeploymentPhase.STARTED,
             ),
           );
           remoteConfig.components.addNewComponent(
-            ComponentFactory.createNewEnvoyProxyComponent(
-              this.remoteConfigManager,
-              clusterReference,
-              namespace,
-              nodeAlias,
-            ),
+            ComponentFactory.createNewEnvoyProxyComponent(this.remoteConfigManager, clusterReference, namespace),
           );
           remoteConfig.components.addNewComponent(
-            ComponentFactory.createNewHaProxyComponent(
-              this.remoteConfigManager,
-              clusterReference,
-              namespace,
-              nodeAlias,
-            ),
+            ComponentFactory.createNewHaProxyComponent(this.remoteConfigManager, clusterReference, namespace),
           );
         });
 
@@ -2545,7 +2536,7 @@ export class NodeCommandTasks {
           context_.config.consensusNodes.push(
             new ConsensusNode(
               nodeAlias,
-              Templates.nodeIdFromNodeAlias(nodeAlias),
+              nodeId,
               namespace.name,
               clusterReference,
               context,
@@ -2553,7 +2544,7 @@ export class NodeCommandTasks {
               cluster.dnsConsensusNodePattern,
               Templates.renderConsensusNodeFullyQualifiedDomainName(
                 nodeAlias,
-                Templates.nodeIdFromNodeAlias(nodeAlias),
+                nodeId,
                 namespace.name,
                 clusterReference,
                 cluster.dnsBaseDomain,
