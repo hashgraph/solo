@@ -41,19 +41,19 @@ describe('NetworkCommand', function networkCommand() {
   argv.setArg(flags.applicationEnv, applicationEnvironmentFilePath);
   argv.setArg(flags.loadBalancerEnabled, true);
 
-  const tmpDir = os.tmpdir();
+  const temporaryDirectory: string = os.tmpdir();
   const {
     opts: {k8Factory, accountManager, configManager, chartManager, commandInvoker, logger},
     cmd: {networkCmd, clusterCmd, initCmd, nodeCmd, deploymentCmd},
   } = bootstrapTestVariables(testName, argv, {});
 
-  generateTls(tmpDir, 'grpc');
-  generateTls(tmpDir, 'grpcWeb');
+  generateTls(temporaryDirectory, 'grpc');
+  generateTls(temporaryDirectory, 'grpcWeb');
 
-  argv.setArg(flags.grpcTlsCertificatePath, 'node1=' + PathEx.join(tmpDir, 'grpc.crt'));
-  argv.setArg(flags.grpcTlsKeyPath, 'node1=' + PathEx.join(tmpDir, 'grpc.key'));
-  argv.setArg(flags.grpcWebTlsCertificatePath, 'node1=' + PathEx.join(tmpDir, 'grpcWeb.crt'));
-  argv.setArg(flags.grpcWebTlsKeyPath, 'node1=' + PathEx.join(tmpDir, 'grpcWeb.key'));
+  argv.setArg(flags.grpcTlsCertificatePath, 'node1=' + PathEx.join(temporaryDirectory, 'grpc.crt'));
+  argv.setArg(flags.grpcTlsKeyPath, 'node1=' + PathEx.join(temporaryDirectory, 'grpc.key'));
+  argv.setArg(flags.grpcWebTlsCertificatePath, 'node1=' + PathEx.join(temporaryDirectory, 'grpcWeb.crt'));
+  argv.setArg(flags.grpcWebTlsKeyPath, 'node1=' + PathEx.join(temporaryDirectory, 'grpcWeb.key'));
 
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());
