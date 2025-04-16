@@ -540,8 +540,7 @@ export class MirrorNodeCommand extends BaseCommand {
                           await pod.killPod();
                         }
                       }
-                    }
-                    else {
+                    } else {
                       task.title += chalk.yellow(' (Skipped)');
                     }
                   },
