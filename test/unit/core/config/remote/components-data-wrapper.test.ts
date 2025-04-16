@@ -185,6 +185,31 @@ describe('ComponentsDataWrapper', () => {
     ).to.throw(SoloError, `Consensus node ${notFoundComponentName} doesn't exist`);
   });
 
+  it('should be able to remove component with the .removeComponent()', () => {
+    const {
+      wrapper: {componentsDataWrapper},
+      components: {relays},
+      componentName,
+    } = createComponentsDataWrapper();
+
+    componentsDataWrapper.removeComponent(componentName, ComponentTypes.Relay);
+
+    expect(relays).to.not.have.own.property(componentName);
+  });
+
+  it("should not be able to remove component with the .removeComponent() if it doesn't exist ", () => {
+    const {
+      wrapper: {componentsDataWrapper},
+    } = createComponentsDataWrapper();
+
+    const notFoundComponentName: string = 'not_found';
+
+    expect(() => componentsDataWrapper.removeComponent(notFoundComponentName, ComponentTypes.Relay)).to.throw(
+      SoloError,
+      `Component ${notFoundComponentName} of type ${ComponentTypes.Relay} not found while attempting to remove`,
+    );
+  });
+
   it('should be able to get components with .getComponent()', () => {
     const {
       wrapper: {componentsDataWrapper},
