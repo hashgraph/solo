@@ -2,7 +2,6 @@
 
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {ComponentNameTemplates} from './component-name-templates.js';
-import {ComponentStates} from '../enumerations/component-states.js';
 import {RelayComponent} from './relay-component.js';
 import {MirrorNodeExplorerComponent} from './mirror-node-explorer-component.js';
 import {MirrorNodeComponent} from './mirror-node-component.js';
@@ -27,7 +26,7 @@ export class ComponentFactory {
 
     const name: ComponentName = ComponentNameTemplates.renderRelayName(index);
 
-    return new RelayComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE, nodeAliases);
+    return new RelayComponent(name, clusterReference, namespace.name, nodeAliases);
   }
 
   public static createNewExplorerComponent(
@@ -39,7 +38,7 @@ export class ComponentFactory {
 
     const name: ComponentName = ComponentNameTemplates.renderMirrorNodeExplorerName(index);
 
-    return new MirrorNodeExplorerComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
+    return new MirrorNodeExplorerComponent(name, clusterReference, namespace.name);
   }
 
   public static createNewMirrorNodeComponent(
@@ -51,7 +50,7 @@ export class ComponentFactory {
 
     const name: ComponentName = ComponentNameTemplates.renderMirrorNodeName(index);
 
-    return new MirrorNodeComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
+    return new MirrorNodeComponent(name, clusterReference, namespace.name);
   }
 
   public static createNewHaProxyComponent(
@@ -64,7 +63,7 @@ export class ComponentFactory {
 
     const name: ComponentName = ComponentNameTemplates.renderHaProxyName(index, nodeAlias);
 
-    return new HaProxyComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
+    return new HaProxyComponent(name, clusterReference, namespace.name);
   }
 
   public static createNewEnvoyProxyComponent(
@@ -77,7 +76,7 @@ export class ComponentFactory {
 
     const name: ComponentName = ComponentNameTemplates.renderEnvoyProxyName(index, nodeAlias);
 
-    return new EnvoyProxyComponent(name, clusterReference, namespace.name, ComponentStates.ACTIVE);
+    return new EnvoyProxyComponent(name, clusterReference, namespace.name);
   }
 
   public static createNewConsensusNodeComponent(
@@ -87,14 +86,7 @@ export class ComponentFactory {
     nodeState: ConsensusNodeStates.REQUESTED | ConsensusNodeStates.NON_DEPLOYED | ConsensusNodeStates.STARTED,
   ): ConsensusNodeComponent {
     const nodeId: NodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
-    return new ConsensusNodeComponent(
-      nodeAlias,
-      clusterReference,
-      namespace.name,
-      ComponentStates.ACTIVE,
-      nodeState,
-      nodeId,
-    );
+    return new ConsensusNodeComponent(nodeAlias, clusterReference, namespace.name, nodeState, nodeId);
   }
 
   public static createConsensusNodeComponentsFromNodeAliases(

@@ -4,7 +4,6 @@ import {SoloError} from '../../../errors/solo-error.js';
 import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type ToObject, type Validate} from '../../../../types/index.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
-import {ComponentStates} from '../enumerations/component-states.js';
 import {isValidEnum} from '../../../util/validation-helpers.js';
 import {type BaseComponentStruct} from './interfaces/base-component-struct.js';
 
@@ -18,14 +17,12 @@ export class BaseComponent implements BaseComponentStruct, Validate, ToObject<Ba
    * @param name - the name to distinguish components.
    * @param cluster - the cluster in which the component is deployed.
    * @param namespace - the namespace associated with the component.
-   * @param state - the state of the component
    */
   protected constructor(
     public readonly type: ComponentTypes,
     public readonly name: ComponentName,
     public readonly cluster: ClusterReference,
     public readonly namespace: NamespaceNameAsString,
-    public state: ComponentStates,
   ) {}
 
   /* -------- Utilities -------- */
@@ -59,10 +56,6 @@ export class BaseComponent implements BaseComponentStruct, Validate, ToObject<Ba
     if (!isValidEnum(this.type, ComponentTypes)) {
       throw new SoloError(`Invalid component type: ${this.type}`);
     }
-
-    if (!isValidEnum(this.state, ComponentStates)) {
-      throw new SoloError(`Invalid component state: ${this.state}`);
-    }
   }
 
   public toObject(): BaseComponentStruct {
@@ -70,7 +63,6 @@ export class BaseComponent implements BaseComponentStruct, Validate, ToObject<Ba
       name: this.name,
       cluster: this.cluster,
       namespace: this.namespace,
-      state: this.state,
     };
   }
 }

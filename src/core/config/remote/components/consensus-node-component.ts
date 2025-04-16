@@ -7,7 +7,6 @@ import {ConsensusNodeStates} from '../enumerations/consensus-node-states.js';
 import {isValidEnum} from '../../../util/validation-helpers.js';
 import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type ToObject} from '../../../../types/index.js';
-import {type ComponentStates} from '../enumerations/component-states.js';
 import {type ConsensusNodeComponentStruct} from './interfaces/consensus-node-component-struct.js';
 
 /**
@@ -27,18 +26,16 @@ export class ConsensusNodeComponent
    * @param nodeId - node id of the consensus node
    * @param cluster - associated to component
    * @param namespace - associated to component
-   * @param state - the component state
    * @param nodeState - of the consensus node
    */
   public constructor(
     name: ComponentName,
     cluster: ClusterReference,
     namespace: NamespaceNameAsString,
-    state: ComponentStates,
     nodeState: ConsensusNodeStates,
     public readonly nodeId: number,
   ) {
-    super(ComponentTypes.ConsensusNode, name, cluster, namespace, state);
+    super(ComponentTypes.ConsensusNode, name, cluster, namespace);
     this._nodeState = nodeState;
     this.validate();
   }
@@ -56,8 +53,8 @@ export class ConsensusNodeComponent
 
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: ConsensusNodeComponentStruct): ConsensusNodeComponent {
-    const {name, cluster, state, namespace, nodeState, nodeId} = component;
-    return new ConsensusNodeComponent(name, cluster, namespace, state, nodeState, nodeId);
+    const {name, cluster, namespace, nodeState, nodeId} = component;
+    return new ConsensusNodeComponent(name, cluster, namespace, nodeState, nodeId);
   }
 
   public override validate(): void {

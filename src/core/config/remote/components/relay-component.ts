@@ -3,7 +3,6 @@
 import {SoloError} from '../../../errors/solo-error.js';
 import {BaseComponent} from './base-component.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
-import {type ComponentStates} from '../enumerations/component-states.js';
 import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
 import {type NodeAliases} from '../../../../types/aliases.js';
 import {type ToObject} from '../../../../types/index.js';
@@ -14,17 +13,15 @@ export class RelayComponent extends BaseComponent implements RelayComponentStruc
    * @param name - to distinguish components.
    * @param clusterReference - in which the component is deployed.
    * @param namespace - associated with the component.
-   * @param state - the state of the component
    * @param consensusNodeAliases - list node aliases
    */
   public constructor(
     name: ComponentName,
     clusterReference: ClusterReference,
     namespace: NamespaceNameAsString,
-    state: ComponentStates,
     public readonly consensusNodeAliases: NodeAliases = [],
   ) {
-    super(ComponentTypes.Relay, name, clusterReference, namespace, state);
+    super(ComponentTypes.Relay, name, clusterReference, namespace);
     this.validate();
   }
 
@@ -32,8 +29,7 @@ export class RelayComponent extends BaseComponent implements RelayComponentStruc
 
   /** Handles creating instance of the class from plain object. */
   public static fromObject(component: RelayComponentStruct): RelayComponent {
-    const {name, cluster, namespace, state, consensusNodeAliases} = component;
-    return new RelayComponent(name, cluster, namespace, state, consensusNodeAliases);
+    return new RelayComponent(component.name, component.cluster, component.namespace, component.consensusNodeAliases);
   }
 
   public override validate(): void {
