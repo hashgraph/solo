@@ -4,7 +4,7 @@ import {SoloError} from '../../../errors/solo-error.js';
 import {DeploymentPhase} from '../../../../data/schema/model/remote/deployment-phase.js';
 import {ComponentTypes} from '../enumerations/component-types.js';
 import {isValidEnum} from '../../../util/validation-helpers.js';
-import {type ClusterReference, type ComponentName, type NamespaceNameAsString} from '../types.js';
+import {type ClusterReference, type ComponentId, type NamespaceNameAsString} from '../types.js';
 import {type ToObject, type Validate} from '../../../../types/index.js';
 import {type BaseComponentStruct} from './interfaces/base-component-struct.js';
 
@@ -17,14 +17,14 @@ export class BaseComponent implements BaseComponentStruct, Validate, ToObject<Ba
 
   /**
    * @param type - type for identifying.
-   * @param name - the name to distinguish components.
+   * @param id - the id to distinguish components.
    * @param cluster - the cluster in which the component is deployed.
    * @param namespace - the namespace associated with the component.
    * @param phase - the phase of the component
    */
   protected constructor(
     public readonly type: ComponentTypes,
-    public readonly name: ComponentName,
+    public readonly id: ComponentId,
     public readonly cluster: ClusterReference,
     public readonly namespace: NamespaceNameAsString,
     phase: DeploymentPhase,
@@ -43,7 +43,7 @@ export class BaseComponent implements BaseComponentStruct, Validate, ToObject<Ba
    */
   public static compare(x: BaseComponent, y: BaseComponent): boolean {
     return (
-      x.name === y.name &&
+      x.id === y.id &&
       x.type === y.type &&
       x.cluster === y.cluster &&
       x.namespace === y.namespace &&
@@ -61,8 +61,8 @@ export class BaseComponent implements BaseComponentStruct, Validate, ToObject<Ba
   }
 
   public validate(): void {
-    if (!this.name || typeof this.name !== 'string') {
-      throw new SoloError(`Invalid name: ${this.name}`);
+    if (typeof this.id !== 'number' || this.id < 0) {
+      throw new SoloError(`Invalid id: ${this.id}`);
     }
 
     if (!this.cluster || typeof this.cluster !== 'string') {
@@ -86,7 +86,7 @@ export class BaseComponent implements BaseComponentStruct, Validate, ToObject<Ba
 
   public toObject(): BaseComponentStruct {
     return {
-      name: this.name,
+      id: this.id,
       cluster: this.cluster,
       namespace: this.namespace,
       phase: this.phase,

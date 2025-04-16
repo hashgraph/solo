@@ -32,5 +32,5 @@ export interface ComponentsDataWrapperApi
   /**
    * Checks all existing components of specified type and gives you a new unique index
    */
-  getNewComponentIndex(componentType: ComponentTypes): number;
+  getNewComponentId(componentType: ComponentTypes): number;
 }

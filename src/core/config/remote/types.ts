@@ -6,7 +6,7 @@ export type Version = string;
 export type NamespaceNameAsString = string;
 export type DeploymentName = string;
 export type Context = string;
-export type ComponentName = string;
+export type ComponentId = number;
 
 export type ClusterReference = string;
 export type ClusterReferences = Record<ClusterReference, Context>;

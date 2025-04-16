@@ -11,7 +11,7 @@ import {MirrorNodeExplorerComponent} from './components/mirror-node-explorer-com
 import {ComponentTypes} from './enumerations/component-types.js';
 import {ComponentNameTemplates} from './components/component-name-templates.js';
 import {isValidEnum} from '../../util/validation-helpers.js';
-import {type ClusterReference, type ComponentName} from './types.js';
+import {type ClusterReference, ComponentId, type ComponentName} from './types.js';
 import {type BaseComponentStruct} from './components/interfaces/base-component-struct.js';
 import {type RelayComponentStruct} from './components/interfaces/relay-component-struct.js';
 import {type ConsensusNodeComponentStruct} from './components/interfaces/consensus-node-component-struct.js';
@@ -275,12 +275,10 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   /**
    * Checks all existing components of specified type and gives you a new unique index
    */
-  public getNewComponentIndex(componentType: ComponentTypes): number {
+  public getNewComponentId(componentType: ComponentTypes): number {
     let newComponentIndex: number = 0;
 
-    const calculateNewComponentIndexCallback: (
-      components: Record<ComponentName, BaseComponent>,
-    ) => void = components => {
+    const calculateNewComponentIndexCallback: (components: Record<ComponentId, BaseComponent>) => void = components => {
       for (const componentName of Object.keys(components)) {
         const componentIndex: number = ComponentNameTemplates.parseComponentName(componentName);
         if (newComponentIndex <= componentIndex) {
