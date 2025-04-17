@@ -32,11 +32,10 @@ describe('ClusterCommand', () => {
   before(() => {
     sinon.stub(SoloWinstonLogger.prototype, 'showUser');
     sinon.stub(SoloWinstonLogger.prototype, 'showJSON');
-    fs.unlinkSync(PathEx.joinWithRealPath(getTestCacheDirectory(), DEFAULT_LOCAL_CONFIG_FILE));
   });
 
   const TEST_CONTEXT = getTestCluster();
-  const TEST_CLUSTER = getTestCluster();
+  const TEST_CLUSTER_REFERENCE = `${getTestCluster()}-ref`;
   const testName = 'cluster-cmd-e2e';
   const namespace = NamespaceName.of(testName);
   const argv = Argv.getDefaultArgv(namespace);
@@ -48,7 +47,7 @@ describe('ClusterCommand', () => {
   argv.setArg(flags.nodeAliasesUnparsed, 'node1');
   argv.setArg(flags.generateGossipKeys, true);
   argv.setArg(flags.generateTlsKeys, true);
-  argv.setArg(flags.clusterRef, TEST_CLUSTER);
+  argv.setArg(flags.clusterRef, TEST_CLUSTER_REFERENCE);
   argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
   argv.setArg(flags.force, true);
   const {
@@ -147,7 +146,7 @@ describe('ClusterCommand', () => {
 
   // 'solo cluster-ref connect' tests
   function getClusterConnectDefaultArgv(): {argv: Argv; clusterRef: string; contextName: string} {
-    const clusterReference = TEST_CLUSTER;
+    const clusterReference = TEST_CLUSTER_REFERENCE;
     const contextName = TEST_CONTEXT;
 
     const argv = Argv.initializeEmpty();
