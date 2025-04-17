@@ -473,8 +473,6 @@ export class RemoteConfigManager {
     const consensusNodes: ConsensusNode[] = [];
 
     for (const node of Object.values(this.components.consensusNodes)) {
-      this.logger.debug(`Adding consensus node ${node.name} , node.cluster = ${node.cluster}`);
-
       const cluster = this.clusters[node.cluster];
       const context = this.localConfig.clusterRefs[node.cluster];
 
