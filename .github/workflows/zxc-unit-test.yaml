@@ -53,7 +53,7 @@ jobs:
       matrix:
         os:
           - windows-2022
-          - solo-linux-medium
+          - hiero-solo-linux-medium
     name: "${{ matrix.os }}"
     runs-on: ${{ matrix.os }}
     steps:

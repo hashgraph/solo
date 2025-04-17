@@ -36,7 +36,7 @@ permissions:
 jobs:
   gcs-storage-test:
     timeout-minutes: 20
-    runs-on: solo-linux-large
+    runs-on: hiero-solo-linux-large
     strategy:
       fail-fast: false
       matrix:

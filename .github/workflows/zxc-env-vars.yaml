@@ -139,7 +139,7 @@ permissions:
 jobs:
   env-vars:
     name: ${{ inputs.custom-job-label || 'Set Environment Variables' }}
-    runs-on: solo-linux-medium
+    runs-on: hiero-solo-linux-medium
     outputs:
       e2e_integration_test_subdir: e2e-integration
       e2e_dual_cluster_full_test_subdir: e2e-dual-cluster-full
