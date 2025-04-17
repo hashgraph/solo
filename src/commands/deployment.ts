@@ -14,12 +14,13 @@ import {NamespaceName} from '../integration/kube/resources/namespace/namespace-n
 import {type ClusterChecks} from '../core/cluster-checks.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
-import {type ArgvStruct, type AnyYargs, type NodeAliases} from '../types/aliases.js';
-import {ConsensusNodeStates, DeploymentStates} from '../core/config/remote/enumerations.js';
+import {type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
 import {Templates} from '../core/templates.js';
-import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
 import {Cluster} from '../core/config/remote/cluster.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
+import {DeploymentStates} from '../core/config/remote/enumerations/deployment-states.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
+import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
 
 interface DeploymentAddClusterConfig {
   quiet: boolean;
@@ -697,13 +698,12 @@ export class DeploymentCommand extends BaseCommand {
 
           //* add the new nodes to components
           for (const nodeAlias of nodeAliases) {
-            remoteConfig.components.add(
-              new ConsensusNodeComponent(
-                nodeAlias,
-                clusterRef,
-                namespace.name,
-                ConsensusNodeStates.NON_DEPLOYED,
+            remoteConfig.components.addNewComponent(
+              ComponentFactory.createNewConsensusNodeComponent(
                 Templates.nodeIdFromNodeAlias(nodeAlias),
+                clusterRef,
+                namespace,
+                DeploymentPhase.REQUESTED,
               ),
             );
           }

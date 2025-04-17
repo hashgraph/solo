@@ -16,23 +16,23 @@ export class RelayNodeState {
   public cluster: string;
 
   @Expose()
-  public consensusNodeIds: number[];
-
-  @Expose()
   @Transform(Transformations.DeploymentPhase)
   public phase: DeploymentPhase;
+
+  @Expose()
+  public consensusNodeIds: number[];
 
   public constructor(
     name?: string,
     namespace?: string,
     cluster?: string,
-    consensusNodeIds?: number[],
     phase?: DeploymentPhase,
+    consensusNodeIds?: number[],
   ) {
     this.name = name;
     this.namespace = namespace;
     this.cluster = cluster;
-    this.consensusNodeIds = consensusNodeIds;
     this.phase = phase;
+    this.consensusNodeIds = consensusNodeIds;
   }
 }

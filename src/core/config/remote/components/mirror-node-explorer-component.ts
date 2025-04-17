@@ -1,20 +1,26 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {ComponentType} from '../enumerations.js';
 import {BaseComponent} from './base-component.js';
-import {type Component, type NamespaceNameAsString} from '../types.js';
+import {ComponentTypes} from '../enumerations/component-types.js';
+import {type DeploymentPhase} from '../../../../data/schema/model/remote/deployment-phase.js';
+import {type ClusterReference, type ComponentId, type NamespaceNameAsString} from '../types.js';
+import {type BaseComponentStruct} from './interfaces/base-component-struct.js';
 
 export class MirrorNodeExplorerComponent extends BaseComponent {
-  public constructor(name: string, cluster: string, namespace: NamespaceNameAsString) {
-    super(ComponentType.MirrorNodeExplorer, name, cluster, namespace);
+  public constructor(
+    id: ComponentId,
+    cluster: ClusterReference,
+    namespace: NamespaceNameAsString,
+    phase: DeploymentPhase,
+  ) {
+    super(ComponentTypes.MirrorNodeExplorer, id, cluster, namespace, phase);
     this.validate();
   }
 
   /* -------- Utilities -------- */
 
   /** Handles creating instance of the class from plain object. */
-  public static fromObject(component: Component): MirrorNodeExplorerComponent {
-    const {name, cluster, namespace} = component;
-    return new MirrorNodeExplorerComponent(name, cluster, namespace);
+  public static fromObject(component: BaseComponentStruct): MirrorNodeExplorerComponent {
+    return new MirrorNodeExplorerComponent(component.id, component.cluster, component.namespace, component.phase);
   }
 }

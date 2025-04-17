@@ -7,9 +7,6 @@ import {Transformations} from '../../utils/transformations.js';
 @Exclude()
 export class ConsensusNodeState {
   @Expose()
-  public id: number;
-
-  @Expose()
   public name: string;
 
   @Expose()
@@ -22,11 +19,14 @@ export class ConsensusNodeState {
   @Transform(Transformations.DeploymentPhase)
   public phase: DeploymentPhase;
 
-  public constructor(id?: number, name?: string, namespace?: string, cluster?: string, phase?: DeploymentPhase) {
-    this.id = id;
+  @Expose()
+  public id: number;
+
+  public constructor(name?: string, namespace?: string, cluster?: string, phase?: DeploymentPhase, id?: number) {
     this.name = name;
     this.namespace = namespace;
     this.cluster = cluster;
     this.phase = phase;
+    this.id = id;
   }
 }

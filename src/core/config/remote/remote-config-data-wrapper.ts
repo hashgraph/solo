@@ -6,17 +6,18 @@ import {RemoteConfigMetadata} from './metadata.js';
 import {ComponentsDataWrapper} from './components-data-wrapper.js';
 import * as constants from '../../constants.js';
 import {CommonFlagsDataWrapper} from './common-flags-data-wrapper.js';
-import {type ClusterReference, type RemoteConfigDataStructure, type Version} from './types.js';
+import {type ClusterReference, type Version} from './types.js';
 import {type ToObject, type Validate} from '../../../types/index.js';
 import {type ConfigManager} from '../../config-manager.js';
 import {type RemoteConfigData} from './remote-config-data.js';
 import {Cluster} from './cluster.js';
 import {type ConfigMap} from '../../../integration/kube/resources/config-map/config-map.js';
+import {type RemoteConfigDataStruct} from './interfaces/remote-config-data-struct.js';
 
-export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStructure> {
+export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigDataStruct> {
   private readonly _version: Version = '1.0.0';
   private _metadata: RemoteConfigMetadata;
-  private _clusters: Record<ClusterReference, Cluster>;
+  private readonly _clusters: Record<ClusterReference, Cluster>;
   private _components: ComponentsDataWrapper;
   private _commandHistory: string[];
   private _lastExecutedCommand: string;
@@ -103,7 +104,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
   //! -------- Utilities -------- //
 
   public static fromConfigmap(configManager: ConfigManager, configMap: ConfigMap): RemoteConfigDataWrapper {
-    const data = yaml.parse(configMap.data['remote-config-data']);
+    const data: any = yaml.parse(configMap.data['remote-config-data']);
 
     return new RemoteConfigDataWrapper({
       metadata: RemoteConfigMetadata.fromObject(data.metadata),
@@ -153,7 +154,7 @@ export class RemoteConfigDataWrapper implements Validate, ToObject<RemoteConfigD
     }
   }
 
-  public toObject(): RemoteConfigDataStructure {
+  public toObject(): RemoteConfigDataStruct {
     return {
       metadata: this.metadata.toObject(),
       version: this.version,

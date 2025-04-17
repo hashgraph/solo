@@ -77,11 +77,7 @@ import {ContainerReference} from '../../integration/kube/resources/container/con
 import {NetworkNodes} from '../../core/network-nodes.js';
 import {container, inject, injectable} from 'tsyringe-neo';
 import {type Optional, type SoloListr, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
-import {
-  type ClusterReference,
-  type DeploymentName,
-  type NamespaceNameAsString,
-} from '../../core/config/remote/types.js';
+import {type ClusterReference, type Context, type DeploymentName} from '../../core/config/remote/types.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {ConsensusNode} from '../../core/model/consensus-node.js';
 import {type K8} from '../../integration/kube/k8.js';
@@ -90,10 +86,6 @@ import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
 import {type LocalConfig} from '../../core/config/local/local-config.js';
 import {BaseCommand} from '../base.js';
-import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
-import {ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
-import {EnvoyProxyComponent} from '../../core/config/remote/components/envoy-proxy-component.js';
-import {HaProxyComponent} from '../../core/config/remote/components/ha-proxy-component.js';
 import {HEDERA_PLATFORM_VERSION} from '../../../version.js';
 import {ShellRunner} from '../../core/shell-runner.js';
 import {PathEx} from '../../business/utils/path-ex.js';
@@ -117,6 +109,9 @@ import {type NodeKeysConfigClass} from './config-interfaces/node-keys-config-cla
 import {type NodeStartConfigClass} from './config-interfaces/node-start-config-class.js';
 import {type CheckedNodesConfigClass, type CheckedNodesContext} from './config-interfaces/node-common-config-class.js';
 import {type NetworkNodeServices} from '../../core/network-node-services.js';
+import {Cluster} from '../../core/config/remote/cluster.js';
+import {ComponentFactory} from '../../core/config/remote/components/component-factory.js';
+import {DeploymentPhase} from '../../data/schema/model/remote/deployment-phase.js';
 
 @injectable()
 export class NodeCommandTasks {
@@ -2507,48 +2502,50 @@ export class NodeCommandTasks {
     return {
       title: 'Add new node to remote config',
       task: async (context_, task) => {
-        const nodeAlias = context_.config.nodeAlias;
-        const namespace: NamespaceNameAsString = context_.config.namespace.name;
-        const clusterReference = context_.config.clusterRef;
-        const context = this.localConfig.clusterRefs[clusterReference];
+        const nodeAlias: NodeAlias = context_.config.nodeAlias;
+        const nodeId: NodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
+        const namespace: NamespaceName = context_.config.namespace;
+        const clusterReference: ClusterReference = context_.config.clusterRef;
+        const context: Context = this.localConfig.clusterRefs[clusterReference];
 
         task.title += `: ${nodeAlias}`;
 
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.add(
-            new ConsensusNodeComponent(
-              nodeAlias,
+          remoteConfig.components.addNewComponent(
+            ComponentFactory.createNewConsensusNodeComponent(
+              nodeId,
               clusterReference,
               namespace,
-              ConsensusNodeStates.STARTED,
-              Templates.nodeIdFromNodeAlias(nodeAlias),
+              DeploymentPhase.STARTED,
             ),
           );
-
-          remoteConfig.components.add(new EnvoyProxyComponent(`envoy-proxy-${nodeAlias}`, clusterReference, namespace));
-
-          remoteConfig.components.add(new HaProxyComponent(`haproxy-${nodeAlias}`, clusterReference, namespace));
+          remoteConfig.components.addNewComponent(
+            ComponentFactory.createNewEnvoyProxyComponent(this.remoteConfigManager, clusterReference, namespace),
+          );
+          remoteConfig.components.addNewComponent(
+            ComponentFactory.createNewHaProxyComponent(this.remoteConfigManager, clusterReference, namespace),
+          );
         });
 
         context_.config.consensusNodes = this.remoteConfigManager.getConsensusNodes();
 
         // if the consensusNodes does not contain the nodeAlias then add it
         if (!context_.config.consensusNodes.some((node: ConsensusNode) => node.name === nodeAlias)) {
-          const cluster = this.remoteConfigManager.clusters[clusterReference];
+          const cluster: Cluster = this.remoteConfigManager.clusters[clusterReference];
 
           context_.config.consensusNodes.push(
             new ConsensusNode(
               nodeAlias,
-              Templates.nodeIdFromNodeAlias(nodeAlias),
-              namespace,
+              nodeId,
+              namespace.name,
               clusterReference,
               context,
               cluster.dnsBaseDomain,
               cluster.dnsConsensusNodePattern,
               Templates.renderConsensusNodeFullyQualifiedDomainName(
                 nodeAlias,
-                Templates.nodeIdFromNodeAlias(nodeAlias),
-                namespace,
+                nodeId,
+                namespace.name,
                 clusterReference,
                 cluster.dnsBaseDomain,
                 cluster.dnsConsensusNodePattern,

@@ -25,10 +25,6 @@ export class Templates {
     return `network-${nodeAlias}-svc`;
   }
 
-  private static nodeAliasFromNetworkSvcName(svcName: string): NodeAlias {
-    return svcName.split('-').slice(1, -1).join('-') as NodeAlias;
-  }
-
   public static renderNetworkHeadlessSvcName(nodeAlias: NodeAlias): string {
     return `network-${nodeAlias}`;
   }
@@ -184,13 +180,8 @@ export class Templates {
     return `${Templates.renderNetworkSvcName(nodeAlias)}.${namespace.name}.svc.cluster.local`;
   }
 
-  private static nodeAliasFromFullyQualifiedNetworkSvcName(svcName: string): NodeAlias {
-    const parts = svcName.split('.');
-    return this.nodeAliasFromNetworkSvcName(parts[0]);
-  }
-
   public static nodeIdFromNodeAlias(nodeAlias: NodeAlias): NodeId {
-    for (let index = nodeAlias.length - 1; index > 0; index--) {
+    for (let index: number = nodeAlias.length - 1; index > 0; index--) {
       if (Number.isNaN(Number.parseInt(nodeAlias[index]))) {
         return Number.parseInt(nodeAlias.substring(index + 1, nodeAlias.length)) - 1;
       }
@@ -249,18 +240,6 @@ export class Templates {
         return {'envoy-proxy-secret': nodeAlias};
       }
     }
-  }
-
-  public static renderEnvoyProxyName(nodeAlias: NodeAlias): string {
-    return `envoy-proxy-${nodeAlias}`;
-  }
-
-  public static renderHaProxyName(nodeAlias: NodeAlias): string {
-    return `haproxy-${nodeAlias}`;
-  }
-
-  public static renderFullyQualifiedHaProxyName(nodeAlias: NodeAlias, namespace: NamespaceName): string {
-    return `${Templates.renderHaProxyName(nodeAlias)}-svc.${namespace}.svc.cluster.local`;
   }
 
   public static parseNodeAliasToIpMapping(unparsed: string): Record<NodeAlias, IP> {

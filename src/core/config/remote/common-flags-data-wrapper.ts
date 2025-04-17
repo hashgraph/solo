@@ -2,11 +2,11 @@
 
 import {Flags as flags} from '../../../commands/flags.js';
 import {type ToObject} from '../../../types/index.js';
-import {type RemoteConfigCommonFlagsStruct} from './types.js';
 import {type ConfigManager} from '../../config-manager.js';
 import {type CommandFlag} from '../../../types/flag-types.js';
 import {type AnyObject} from '../../../types/aliases.js';
 import {select as selectPrompt} from '@inquirer/prompts';
+import {type RemoteConfigCommonFlagsStruct} from './interfaces/remote-config-common-flags-struct.js';
 
 export class CommonFlagsDataWrapper implements ToObject<RemoteConfigCommonFlagsStruct> {
   private static readonly COMMON_FLAGS: CommandFlag[] = [

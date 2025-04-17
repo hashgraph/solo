@@ -4,23 +4,25 @@ import {Listr} from 'listr2';
 import {SoloError} from '../core/errors/solo-error.js';
 import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
 import * as helpers from '../core/helpers.js';
+import {getNodeAccountMap, showVersionBanner} from '../core/helpers.js';
 import * as constants from '../core/constants.js';
+import {JSON_RPC_RELAY_CHART} from '../core/constants.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
-import {getNodeAccountMap, showVersionBanner} from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {type AnyYargs, type ArgvStruct, type NodeAliases} from '../types/aliases.js';
+import {type AnyYargs, type ArgvStruct, type NodeAlias, type NodeAliases, type NodeId} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {RelayComponent} from '../core/config/remote/components/relay-component.js';
-import {ComponentType} from '../core/config/remote/enumerations.js';
+import {type RelayComponent} from '../core/config/remote/components/relay-component.js';
 import * as Base64 from 'js-base64';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {type Optional, type SoloListrTask} from '../types/index.js';
+import {type CommandDefinition, type Optional, type SoloListrTask} from '../types/index.js';
 import {HEDERA_JSON_RPC_RELAY_VERSION} from '../../version.js';
-import {JSON_RPC_RELAY_CHART} from '../core/constants.js';
+import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
+import {Templates} from '../core/templates.js';
 
 interface RelayDestroyConfigClass {
   chartDirectory: string;
@@ -331,8 +333,6 @@ export class RelayCommand extends BaseCommand {
           task: async context_ => {
             const config = context_.config;
 
-            const kubeContext = self.k8Factory.getK8(config.context).contexts().readCurrent();
-
             await self.chartManager.install(
               config.namespace,
               config.releaseName,
@@ -340,7 +340,7 @@ export class RelayCommand extends BaseCommand {
               JSON_RPC_RELAY_CHART,
               '',
               config.valuesArg,
-              kubeContext,
+              config.context,
             );
 
             showVersionBanner(self.logger, config.releaseName, HEDERA_JSON_RPC_RELAY_VERSION);
@@ -458,7 +458,7 @@ export class RelayCommand extends BaseCommand {
           task: async context_ => {
             const config = context_.config;
 
-            await this.chartManager.uninstall(config.namespace, config.releaseName, context_.config.context);
+            await this.chartManager.uninstall(config.namespace, config.releaseName, config.context);
 
             this.logger.showList(
               'Destroyed Relays',
@@ -470,7 +470,7 @@ export class RelayCommand extends BaseCommand {
           },
           skip: context_ => !context_.config.isChartInstalled,
         },
-        this.removeRelayComponent(),
+        this.disableRelayComponent(),
       ],
       {
         concurrent: false,
@@ -489,8 +489,8 @@ export class RelayCommand extends BaseCommand {
     return true;
   }
 
-  public getCommandDefinition() {
-    const self = this;
+  public getCommandDefinition(): CommandDefinition {
+    const self: this = this;
     return {
       command: RelayCommand.COMMAND_NAME,
       desc: 'Manage JSON RPC relays in solo network',
@@ -547,25 +547,36 @@ export class RelayCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          const {
-            config: {namespace, nodeAliases},
-          } = context_;
-          const cluster = this.remoteConfigManager.currentCluster;
+          const {namespace, nodeAliases, clusterRef} = context_.config;
 
-          remoteConfig.components.add(new RelayComponent('relay', cluster, namespace.name, nodeAliases));
+          const nodeIds: NodeId[] = nodeAliases.map((nodeAlias: NodeAlias) => Templates.nodeIdFromNodeAlias(nodeAlias));
+
+          remoteConfig.components.addNewComponent(
+            ComponentFactory.createNewRelayComponent(this.remoteConfigManager, clusterRef, namespace, nodeIds),
+          );
         });
       },
     };
   }
 
   /** Remove the relay component from remote config. */
-  public removeRelayComponent(): SoloListrTask<RelayDestroyContext> {
+  public disableRelayComponent(): SoloListrTask<RelayDestroyContext> {
     return {
       title: 'Remove relay component from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: async (): Promise<void> => {
+      task: async (context_): Promise<void> => {
+        const clusterReference: ClusterReference = context_.config.clusterRef;
+
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.remove('relay', ComponentType.Relay);
+          const relayComponents: RelayComponent[] =
+            remoteConfig.components.getComponentsByClusterReference<RelayComponent>(
+              ComponentTypes.Relay,
+              clusterReference,
+            );
+
+          for (const relayComponent of relayComponents) {
+            remoteConfig.components.removeComponent(relayComponent.id, ComponentTypes.Relay);
+          }
         });
       },
     };

@@ -7,12 +7,11 @@ import * as constants from '../../core/constants.js';
 import {type LockManager} from '../../core/lock/lock-manager.js';
 import {type RemoteConfigManager} from '../../core/config/remote/remote-config-manager.js';
 import {SoloError} from '../../core/errors/solo-error.js';
-import {ComponentType, ConsensusNodeStates} from '../../core/config/remote/enumerations.js';
 import {type Lock} from '../../core/lock/lock.js';
 import {type NodeCommandTasks} from './tasks.js';
 import {NodeSubcommandType} from '../../core/enumerations.js';
 import {NodeHelper} from './helper.js';
-import {type ArgvStruct, type NodeAlias, type NodeAliases} from '../../types/aliases.js';
+import {type ArgvStruct, type NodeAlias, type NodeAliases, NodeId} from '../../types/aliases.js';
 import {ConsensusNodeComponent} from '../../core/config/remote/components/consensus-node-component.js';
 import {type Listr} from 'listr2';
 import chalk from 'chalk';
@@ -28,6 +27,9 @@ import {type NodeDeleteContext} from './config-interfaces/node-delete-context.js
 import {type NodeAddContext} from './config-interfaces/node-add-context.js';
 import {type NodeUpdateContext} from './config-interfaces/node-update-context.js';
 import {type NodeUpgradeContext} from './config-interfaces/node-upgrade-context.js';
+import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
+import {DeploymentPhase} from '../../data/schema/model/remote/deployment-phase.js';
+import {Templates} from '../../core/templates.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
@@ -66,7 +68,7 @@ export class NodeCommandHandlers extends CommandHandler {
   private deletePrepareTaskList(argv: ArgvStruct, lease: Lock): SoloListrTask<NodeDeleteContext>[] {
     return [
       this.tasks.initialize(argv, this.configs.deleteConfigBuilder.bind(this.configs), lease),
-      this.validateSingleNodeState({excludedStates: []}),
+      this.validateSingleNodeState({excludedPhases: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -112,7 +114,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.initialize(argv, this.configs.addConfigBuilder.bind(this.configs), lease),
       // TODO instead of validating the state we need to do a remote config add component, and we will need to manually
       //  the nodeAlias based on the next available node ID + 1
-      // this.validateSingleNodeState({excludedStates: []}),
+      // this.validateSingleNodeState({excludedPhases: []}),
       this.tasks.checkPVCsEnabled(),
       this.tasks.identifyExistingNodes(),
       this.tasks.determineNewNodeAccountNumber(),
@@ -165,7 +167,7 @@ export class NodeCommandHandlers extends CommandHandler {
   private updatePrepareTasks(argv: ArgvStruct, lease: Lock): SoloListrTask<NodeUpdateContext>[] {
     return [
       this.tasks.initialize(argv, this.configs.updateConfigBuilder.bind(this.configs), lease),
-      this.validateSingleNodeState({excludedStates: []}),
+      this.validateSingleNodeState({excludedPhases: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -209,7 +211,7 @@ export class NodeCommandHandlers extends CommandHandler {
   private upgradePrepareTasks(argv: ArgvStruct, lease: Lock): SoloListrTask<NodeUpgradeContext>[] {
     return [
       this.tasks.initialize(argv, this.configs.upgradeConfigBuilder.bind(this.configs), lease),
-      this.validateAllNodeStates({excludedStates: []}),
+      this.validateAllNodePhases({excludedPhases: []}),
       this.tasks.identifyExistingNodes(),
       this.tasks.loadAdminKey(),
       this.tasks.prepareUpgradeZip(),
@@ -715,8 +717,8 @@ export class NodeCommandHandlers extends CommandHandler {
       argv,
       [
         this.tasks.initialize(argv, this.configs.refreshConfigBuilder.bind(this.configs), lease),
-        this.validateAllNodeStates({
-          acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP, ConsensusNodeStates.INITIALIZED],
+        this.validateAllNodePhases({
+          acceptedPhases: [DeploymentPhase.STARTED, DeploymentPhase.CONFIGURED, DeploymentPhase.DEPLOYED],
         }),
         this.tasks.identifyNetworkPods(),
         this.tasks.dumpNetworkNodesSaveState(),
@@ -769,12 +771,12 @@ export class NodeCommandHandlers extends CommandHandler {
       argv,
       [
         this.tasks.initialize(argv, this.configs.stopConfigBuilder.bind(this.configs), lease),
-        this.validateAllNodeStates({
-          acceptedStates: [ConsensusNodeStates.STARTED, ConsensusNodeStates.SETUP],
+        this.validateAllNodePhases({
+          acceptedPhases: [DeploymentPhase.STARTED, DeploymentPhase.CONFIGURED],
         }),
         this.tasks.identifyNetworkPods(1),
         this.tasks.stopNodes('nodeAliases'),
-        this.changeAllNodeStates(ConsensusNodeStates.INITIALIZED),
+        this.changeAllNodePhases(DeploymentPhase.STARTED),
       ],
       {
         concurrent: false,
@@ -796,14 +798,14 @@ export class NodeCommandHandlers extends CommandHandler {
       argv,
       [
         this.tasks.initialize(argv, this.configs.startConfigBuilder.bind(this.configs), lease),
-        this.validateAllNodeStates({acceptedStates: [ConsensusNodeStates.SETUP]}),
+        this.validateAllNodePhases({acceptedPhases: [DeploymentPhase.CONFIGURED]}),
         this.tasks.identifyExistingNodes(),
         this.tasks.uploadStateFiles(context_ => context_.config.stateFile.length === 0),
         this.tasks.startNodes('nodeAliases'),
         this.tasks.enablePortForwarding(),
         this.tasks.checkAllNodesAreActive('nodeAliases'),
         this.tasks.checkNodeProxiesAreActive(),
-        this.changeAllNodeStates(ConsensusNodeStates.STARTED),
+        this.changeAllNodePhases(DeploymentPhase.STARTED),
         this.tasks.addNodeStakes(),
       ],
       {
@@ -826,13 +828,13 @@ export class NodeCommandHandlers extends CommandHandler {
       argv,
       [
         this.tasks.initialize(argv, this.configs.setupConfigBuilder.bind(this.configs), lease),
-        this.validateAllNodeStates({
-          acceptedStates: [ConsensusNodeStates.INITIALIZED],
+        this.validateAllNodePhases({
+          acceptedPhases: [DeploymentPhase.DEPLOYED],
         }),
         this.tasks.identifyNetworkPods(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
         this.tasks.setupNetworkNodes('nodeAliases', true),
-        this.changeAllNodeStates(ConsensusNodeStates.SETUP),
+        this.changeAllNodePhases(DeploymentPhase.CONFIGURED),
       ],
       {
         concurrent: false,
@@ -857,7 +859,7 @@ export class NodeCommandHandlers extends CommandHandler {
         this.tasks.sendFreezeTransaction(),
         this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
         this.tasks.stopNodes('existingNodeAliases'),
-        this.changeAllNodeStates(ConsensusNodeStates.INITIALIZED),
+        this.changeAllNodePhases(DeploymentPhase.FROZEN),
       ],
       {
         concurrent: false,
@@ -883,7 +885,7 @@ export class NodeCommandHandlers extends CommandHandler {
         this.tasks.enablePortForwarding(),
         this.tasks.checkAllNodesAreActive('existingNodeAliases'),
         this.tasks.checkNodeProxiesAreActive(),
-        this.changeAllNodeStates(ConsensusNodeStates.STARTED),
+        this.changeAllNodePhases(DeploymentPhase.STARTED),
       ],
       {
         concurrent: false,
@@ -896,52 +898,24 @@ export class NodeCommandHandlers extends CommandHandler {
     return true;
   }
 
-  // TODO MOVE TO TASKS
-
-  /** Removes the consensus node, envoy and haproxy components from remote config.  */
-  public removeNodeAndProxies(): SoloListrTask<any> {
-    return {
-      skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      title: 'Remove node and proxies from remote config',
-      task: async (): Promise<void> => {
-        await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.remove('Consensus node name', ComponentType.ConsensusNode);
-          remoteConfig.components.remove('Envoy proxy name', ComponentType.EnvoyProxy);
-          remoteConfig.components.remove('HaProxy name', ComponentType.HaProxy);
-        });
-      },
-    };
-  }
-
   /**
    * Changes the state from all consensus nodes components in remote config.
    *
-   * @param state - to which to change the consensus node component
+   * @param phase - to which to change the consensus node component
    */
-  public changeAllNodeStates(state: ConsensusNodeStates): SoloListrTask<any> {
+  public changeAllNodePhases(phase: DeploymentPhase): SoloListrTask<any> {
     interface Context {
       config: {namespace: NamespaceName; consensusNodes: ConsensusNode[]};
     }
 
     return {
-      title: `Change node state to ${state} in remote config`,
+      title: `Change node state to ${phase} in remote config`,
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_: Context): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          const {
-            config: {namespace},
-          } = context_;
-
           for (const consensusNode of context_.config.consensusNodes) {
-            remoteConfig.components.edit(
-              new ConsensusNodeComponent(
-                consensusNode.name,
-                consensusNode.cluster,
-                namespace.name,
-                state,
-                consensusNode.nodeId,
-              ),
-            );
+            const nodeId: NodeId = Templates.nodeIdFromNodeAlias(consensusNode.name);
+            remoteConfig.components.changeNodePhase(nodeId, phase);
           }
         });
       },
@@ -951,15 +925,15 @@ export class NodeCommandHandlers extends CommandHandler {
   /**
    * Creates tasks to validate that each node state is either one of the accepted states or not one of the excluded.
    *
-   * @param acceptedStates - the state at which the nodes can be, not matching any of the states throws an error
-   * @param excludedStates - the state at which the nodes can't be, matching any of the states throws an error
+   * @param acceptedPhases - the state at which the nodes can be, not matching any of the states throws an error
+   * @param excludedPhases - the state at which the nodes can't be, matching any of the states throws an error
    */
-  public validateAllNodeStates({
-    acceptedStates,
-    excludedStates,
+  public validateAllNodePhases({
+    acceptedPhases,
+    excludedPhases,
   }: {
-    acceptedStates?: ConsensusNodeStates[];
-    excludedStates?: ConsensusNodeStates[];
+    acceptedPhases?: DeploymentPhase[];
+    excludedPhases?: DeploymentPhase[];
   }): SoloListrTask<any> {
     interface Context {
       config: {namespace: string; nodeAliases: NodeAliases};
@@ -976,7 +950,7 @@ export class NodeCommandHandlers extends CommandHandler {
         const subTasks: SoloListrTask<Context>[] = nodeAliases.map(nodeAlias => ({
           title: `Validating state for node ${nodeAlias}`,
           task: (_, task): void => {
-            const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
+            const state = this.validateNodeState(nodeAlias, components, acceptedPhases, excludedPhases);
 
             task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
           },
@@ -993,15 +967,15 @@ export class NodeCommandHandlers extends CommandHandler {
   /**
    * Creates tasks to validate that specific node state is either one of the accepted states or not one of the excluded.
    *
-   * @param acceptedStates - the state at which the node can be, not matching any of the states throws an error
-   * @param excludedStates - the state at which the node can't be, matching any of the states throws an error
+   * @param acceptedPhases - the state at which the node can be, not matching any of the states throws an error
+   * @param excludedPhases - the state at which the node can't be, matching any of the states throws an error
    */
   public validateSingleNodeState({
-    acceptedStates,
-    excludedStates,
+    acceptedPhases,
+    excludedPhases,
   }: {
-    acceptedStates?: ConsensusNodeStates[];
-    excludedStates?: ConsensusNodeStates[];
+    acceptedPhases?: DeploymentPhase[];
+    excludedPhases?: DeploymentPhase[];
   }): SoloListrTask<any> {
     interface Context {
       config: {namespace: string; nodeAlias: NodeAlias};
@@ -1017,7 +991,7 @@ export class NodeCommandHandlers extends CommandHandler {
 
         // TODO: Disabled for now until the node's state mapping is completed
         // const components = this.remoteConfigManager.components;
-        // const state = this.validateNodeState(nodeAlias, components, acceptedStates, excludedStates);
+        // const state = this.validateNodeState(nodeAlias, components, acceptedPhases, excludedPhases);
         // task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
       },
     };
@@ -1026,37 +1000,40 @@ export class NodeCommandHandlers extends CommandHandler {
   /**
    * @param nodeAlias - the alias of the node whose state to validate
    * @param components - the component data wrapper
-   * @param acceptedStates - the state at which the node can be, not matching any of the states throws an error
-   * @param excludedStates - the state at which the node can't be, matching any of the states throws an error
+   * @param acceptedPhases - the state at which the node can be, not matching any of the states throws an error
+   * @param excludedPhases - the state at which the node can't be, matching any of the states throws an error
    */
   private validateNodeState(
     nodeAlias: NodeAlias,
     components: ComponentsDataWrapper,
-    acceptedStates: Optional<ConsensusNodeStates[]>,
-    excludedStates: Optional<ConsensusNodeStates[]>,
-  ): ConsensusNodeStates {
+    acceptedPhases: Optional<DeploymentPhase[]>,
+    excludedPhases: Optional<DeploymentPhase[]>,
+  ): DeploymentPhase {
     let nodeComponent: ConsensusNodeComponent;
     try {
-      nodeComponent = components.getComponent<ConsensusNodeComponent>(ComponentType.ConsensusNode, nodeAlias);
+      nodeComponent = components.getComponent<ConsensusNodeComponent>(
+        ComponentTypes.ConsensusNode,
+        Templates.nodeIdFromNodeAlias(nodeAlias),
+      );
     } catch {
       throw new SoloError(`${nodeAlias} not found in remote config`);
     }
 
     // TODO: Enable once the states have been mapped
-    // if (acceptedStates && !acceptedStates.includes(nodeComponent.state)) {
+    // if (acceptedPhases && !acceptedPhases.includes(nodeComponent.state)) {
     //   const errorMessageData =
-    //     `accepted states: ${acceptedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+    //     `accepted states: ${acceptedPhases.join(', ')}, ` + `current state: ${nodeComponent.state}`;
     //
     //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
     // }
     //
-    // if (excludedStates && excludedStates.includes(nodeComponent.state)) {
+    // if (excludedPhases && excludedPhases.includes(nodeComponent.state)) {
     //   const errorMessageData =
-    //     `excluded states: ${excludedStates.join(', ')}, ` + `current state: ${nodeComponent.state}`;
+    //     `excluded states: ${excludedPhases.join(', ')}, ` + `current state: ${nodeComponent.state}`;
     //
     //   throw new SoloError(`${nodeAlias} has invalid state - ` + errorMessageData);
     // }
 
-    return nodeComponent.state;
+    return nodeComponent.phase;
   }
 }

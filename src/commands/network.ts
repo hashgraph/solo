@@ -11,13 +11,14 @@ import {UserBreak} from '../core/errors/user-break.js';
 import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
+import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {Templates} from '../core/templates.js';
 import {
   addDebugOptions,
-  resolveValidJsonFilePath,
-  sleep,
   parseNodeAliases,
+  resolveValidJsonFilePath,
   showVersionBanner,
+  sleep,
 } from '../core/helpers.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import fs from 'node:fs';
@@ -25,26 +26,30 @@ import {type KeyManager} from '../core/key-manager.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
-import {type AnyYargs, type IP, type NodeAlias, type NodeAliases} from '../types/aliases.js';
+import {
+  type AnyYargs,
+  type ArgvStruct,
+  type IP,
+  type NodeAlias,
+  type NodeAliases,
+  type NodeId,
+} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {ConsensusNodeComponent} from '../core/config/remote/components/consensus-node-component.js';
-import {ConsensusNodeStates} from '../core/config/remote/enumerations.js';
-import {EnvoyProxyComponent} from '../core/config/remote/components/envoy-proxy-component.js';
-import {HaProxyComponent} from '../core/config/remote/components/ha-proxy-component.js';
 import {v4 as uuidv4} from 'uuid';
-import {type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
+import {type SoloListr, type SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
-import {type ClusterReference, type ClusterReferences} from '../core/config/remote/types.js';
+import {type ClusterReference, type ClusterReferences, type Context} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
 import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
-import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
+import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -98,6 +103,12 @@ export interface NetworkDeployConfigClass {
   clusterRefs: ClusterReferences;
   domainNames?: string;
   domainNamesMapping?: Record<NodeAlias, string>;
+  debugNodeAlias: NodeAlias;
+  app: string;
+}
+
+interface NetworkDeployContext {
+  config: NetworkDeployConfigClass;
 }
 
 export interface NetworkDestroyContext {
@@ -362,35 +373,7 @@ export class NetworkCommand extends BaseCommand {
    * Prepare values args string for each cluster-ref
    * @param config
    */
-  async prepareValuesArgMap(config: {
-    chartDirectory?: string;
-    app?: string;
-    nodeAliases: string[];
-    debugNodeAlias?: NodeAlias;
-    enablePrometheusSvcMonitor?: boolean;
-    releaseTag?: string;
-    persistentVolumeClaims?: string;
-    valuesFile?: string;
-    haproxyIpsParsed?: Record<NodeAlias, IP>;
-    envoyIpsParsed?: Record<NodeAlias, IP>;
-    storageType: constants.StorageType;
-    resolvedThrottlesFile: string;
-    gcsWriteAccessKey: string;
-    gcsWriteSecrets: string;
-    gcsEndpoint: string;
-    gcsBucket: string;
-    gcsBucketPrefix: string;
-    awsWriteAccessKey: string;
-    awsWriteSecrets: string;
-    awsEndpoint: string;
-    awsBucket: string;
-    awsBucketPrefix: string;
-    backupBucket: string;
-    loadBalancerEnabled: boolean;
-    clusterRefs: ClusterReferences;
-    consensusNodes: ConsensusNode[];
-    domainNamesMapping?: Record<NodeAlias, string>;
-  }): Promise<Record<ClusterReference, string>> {
+  private async prepareValuesArgMap(config: NetworkDeployConfigClass): Promise<Record<ClusterReference, string>> {
     const valuesArguments: Record<ClusterReference, string> = this.prepareValuesArg(config);
 
     // prepare values files for each cluster
@@ -424,33 +407,7 @@ export class NetworkCommand extends BaseCommand {
    * Prepare the values argument for the helm chart for a given config
    * @param config
    */
-  prepareValuesArg(config: {
-    chartDirectory?: string;
-    app?: string;
-    consensusNodes: ConsensusNode[];
-    debugNodeAlias?: NodeAlias;
-    enablePrometheusSvcMonitor?: boolean;
-    releaseTag?: string;
-    persistentVolumeClaims?: string;
-    valuesFile?: string;
-    haproxyIpsParsed?: Record<NodeAlias, IP>;
-    envoyIpsParsed?: Record<NodeAlias, IP>;
-    storageType: constants.StorageType;
-    resolvedThrottlesFile: string;
-    gcsWriteAccessKey: string;
-    gcsWriteSecrets: string;
-    gcsEndpoint: string;
-    gcsBucket: string;
-    gcsBucketPrefix: string;
-    awsWriteAccessKey: string;
-    awsWriteSecrets: string;
-    awsEndpoint: string;
-    awsBucket: string;
-    awsBucketPrefix: string;
-    backupBucket: string;
-    loadBalancerEnabled: boolean;
-    domainNamesMapping?: Record<NodeAlias, string>;
-  }): Record<ClusterReference, string> {
+  private prepareValuesArg(config: NetworkDeployConfigClass): Record<ClusterReference, string> {
     const valuesArguments: Record<ClusterReference, string> = {};
     const clusterReferences: ClusterReference[] = [];
     let extraEnvironmentIndex = 0;
@@ -639,7 +596,10 @@ export class NetworkCommand extends BaseCommand {
     }
   }
 
-  async prepareConfig(task: any, argv: any, promptForNodeAliases: boolean = false) {
+  private async prepareConfig(
+    task: SoloListrTaskWrapper<NetworkDeployContext>,
+    argv: ArgvStruct,
+  ): Promise<NetworkDeployConfigClass> {
     this.configManager.update(argv);
     this.logger.debug('Updated config with argv', {config: this.configManager.config});
 
@@ -779,7 +739,7 @@ export class NetworkCommand extends BaseCommand {
     await Promise.all(
       context_.config.contexts.map(async context => {
         // Delete all if found
-        this.k8Factory
+        await this.k8Factory
           .getK8(context)
           .configMaps()
           .delete(context_.config.namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
@@ -833,16 +793,12 @@ export class NetworkCommand extends BaseCommand {
     const self = this;
     const lease = await self.leaseManager.create();
 
-    interface Context {
-      config: NetworkDeployConfigClass;
-    }
-
-    const tasks = new Listr<Context>(
+    const tasks: Listr<NetworkDeployContext> = new Listr<NetworkDeployContext>(
       [
         {
           title: 'Initialize',
           task: async (context_, task) => {
-            context_.config = await self.prepareConfig(task, argv, true);
+            context_.config = await self.prepareConfig(task, argv);
             return ListrLock.newAcquireLockTask(lease, task);
           },
         },
@@ -956,9 +912,9 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check for load balancer',
           skip: context_ => context_.config.loadBalancerEnabled === false,
-          task: (context_, task) => {
-            const subTasks: SoloListrTask<Context>[] = [];
-            const config = context_.config;
+          task: (context_, task): SoloListr<NetworkDeployContext> => {
+            const subTasks: SoloListrTask<NetworkDeployContext>[] = [];
+            const config: NetworkDeployConfigClass = context_.config;
 
             //Add check for network node service to be created and load balancer to be assigned (if load balancer is enabled)
             for (const consensusNode of config.consensusNodes) {
@@ -1062,9 +1018,9 @@ export class NetworkCommand extends BaseCommand {
         self.waitForNetworkPods(),
         {
           title: 'Check proxy pods are running',
-          task: (context_, task) => {
-            const subTasks: SoloListrTask<Context>[] = [];
-            const config = context_.config;
+          task: (context_, task): SoloListr<NetworkDeployContext> => {
+            const subTasks: SoloListrTask<NetworkDeployContext>[] = [];
+            const config: NetworkDeployConfigClass = context_.config;
 
             // HAProxy
             for (const consensusNode of config.consensusNodes) {
@@ -1112,7 +1068,7 @@ export class NetworkCommand extends BaseCommand {
         {
           title: 'Check auxiliary pods are ready',
           task: (_, task) => {
-            const subTasks: SoloListrTask<Context>[] = [];
+            const subTasks: SoloListrTask<NetworkDeployContext>[] = [];
 
             // minio
             subTasks.push({
@@ -1323,33 +1279,25 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /** Adds the consensus node, envoy and haproxy components to remote config.  */
-  public addNodesAndProxies(): SoloListrTask<any> {
+  public addNodesAndProxies(): SoloListrTask<NetworkDeployContext> {
     return {
       title: 'Add node and proxies to remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
-        const {
-          config: {namespace},
-        } = context_;
+        const {namespace} = context_.config;
 
         await this.remoteConfigManager.modify(async remoteConfig => {
           for (const consensusNode of context_.config.consensusNodes) {
-            remoteConfig.components.edit(
-              new ConsensusNodeComponent(
-                consensusNode.name,
-                consensusNode.cluster,
-                namespace.name,
-                ConsensusNodeStates.REQUESTED,
-                consensusNode.nodeId,
-              ),
-            );
+            const nodeId: NodeId = Templates.nodeIdFromNodeAlias(consensusNode.name);
+            const clusterReference: ClusterReference = consensusNode.cluster;
 
-            remoteConfig.components.add(
-              new EnvoyProxyComponent(`envoy-proxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
-            );
+            remoteConfig.components.changeNodePhase(nodeId, DeploymentPhase.REQUESTED);
 
-            remoteConfig.components.add(
-              new HaProxyComponent(`haproxy-${consensusNode.name}`, consensusNode.cluster, namespace.name),
+            remoteConfig.components.addNewComponent(
+              ComponentFactory.createNewEnvoyProxyComponent(this.remoteConfigManager, clusterReference, namespace),
+            );
+            remoteConfig.components.addNewComponent(
+              ComponentFactory.createNewHaProxyComponent(this.remoteConfigManager, clusterReference, namespace),
             );
           }
         });

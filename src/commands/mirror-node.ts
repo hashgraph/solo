@@ -8,22 +8,22 @@ import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {UserBreak} from '../core/errors/user-break.js';
 import * as constants from '../core/constants.js';
+import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {BaseCommand, type Options} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
+import {showVersionBanner} from '../core/helpers.js';
 import {type AnyYargs, type ArgvStruct} from '../types/aliases.js';
 import {type PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
-import {ComponentType} from '../core/config/remote/enumerations.js';
-import {MirrorNodeComponent} from '../core/config/remote/components/mirror-node-component.js';
+import {type MirrorNodeComponent} from '../core/config/remote/components/mirror-node-component.js';
 import * as fs from 'node:fs';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
-import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {ContainerName} from '../integration/kube/resources/container/container-name.js';
@@ -33,9 +33,10 @@ import {type CommandFlag} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentFactory} from '../core/config/remote/components/component-factory.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -796,7 +797,7 @@ export class MirrorNodeCommand extends BaseCommand {
             });
           },
         },
-        this.removeMirrorNodeComponents(),
+        this.disableMirrorNodeComponents(),
       ],
       {
         concurrent: false,
@@ -883,13 +884,23 @@ export class MirrorNodeCommand extends BaseCommand {
   }
 
   /** Removes the mirror node components from remote config. */
-  public removeMirrorNodeComponents(): SoloListrTask<MirrorNodeDestroyContext> {
+  public disableMirrorNodeComponents(): SoloListrTask<MirrorNodeDestroyContext> {
     return {
       title: 'Remove mirror node from remote config',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: async (): Promise<void> => {
+      task: async (context_): Promise<void> => {
+        const clusterReference: ClusterReference = context_.config.clusterRef;
+
         await this.remoteConfigManager.modify(async remoteConfig => {
-          remoteConfig.components.remove('mirrorNode', ComponentType.MirrorNode);
+          const mirrorNodeComponents: MirrorNodeComponent[] =
+            remoteConfig.components.getComponentsByClusterReference<MirrorNodeComponent>(
+              ComponentTypes.MirrorNode,
+              clusterReference,
+            );
+
+          for (const mirrorNodeComponent of mirrorNodeComponents) {
+            remoteConfig.components.removeComponent(mirrorNodeComponent.id, ComponentTypes.MirrorNode);
+          }
         });
       },
     };
@@ -902,11 +913,11 @@ export class MirrorNodeCommand extends BaseCommand {
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
       task: async (context_): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
-          const {
-            config: {namespace, clusterRef},
-          } = context_;
+          const {namespace, clusterRef} = context_.config;
 
-          remoteConfig.components.add(new MirrorNodeComponent('mirrorNode', clusterRef, namespace.name));
+          remoteConfig.components.addNewComponent(
+            ComponentFactory.createNewMirrorNodeComponent(this.remoteConfigManager, clusterRef, namespace),
+          );
         });
       },
     };
