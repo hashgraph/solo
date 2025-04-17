@@ -20,6 +20,10 @@ import {type NodeAlias} from '../../../types/aliases.js';
  */
 export class RemoteConfigValidator {
   private static getRelayLabels(): string[] {
+    // TODO:
+    //  https://github.com/hashgraph/solo/issues/1823
+    //  Add logic for selecting by specific label,
+    //  when multiple instances can be deployed at the same time.
     return [constants.SOLO_RELAY_LABEL];
   }
 
@@ -29,6 +33,10 @@ export class RemoteConfigValidator {
   }
 
   private static getMirrorNodeLabels(): string[] {
+    // TODO:
+    //  https://github.com/hashgraph/solo/issues/1823
+    //  Add logic for selecting by specific label,
+    //  when multiple instances can be deployed at the same time.
     return constants.SOLO_HEDERA_MIRROR_IMPORTER;
   }
 
@@ -38,7 +46,11 @@ export class RemoteConfigValidator {
   }
 
   private static getMirrorNodeExplorerLabels(): string[] {
-    return [constants.SOLO_HEDERA_EXPLORER_LABEL]; // TODO: also remove or use the prefix
+    // TODO:
+    //  https://github.com/hashgraph/solo/issues/1823
+    //  Add logic for selecting by specific label,
+    //  when multiple instances can be deployed at the same time.
+    return [constants.SOLO_HEDERA_EXPLORER_LABEL];
   }
 
   private static getConsensusNodeLabels(component: BaseComponent): string[] {
