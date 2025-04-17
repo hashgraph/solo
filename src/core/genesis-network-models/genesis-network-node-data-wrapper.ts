@@ -8,7 +8,7 @@ import {
   type ToObject,
 } from '../../types/index.js';
 import {GenesisNetworkDataWrapper} from './genesis-network-data-wrapper.js';
-import {ipv4ToByteArray, isIPv4Address} from '../helpers.js';
+import {ipv4ToBase64, isIPv4Address} from '../helpers.js';
 
 export class GenesisNetworkNodeDataWrapper
   extends GenesisNetworkDataWrapper
@@ -36,7 +36,7 @@ export class GenesisNetworkNodeDataWrapper
     this.serviceEndpoint.push({
       domainName: isIpV4Address ? '' : address,
       port,
-      ipAddressV4: isIpV4Address ? ipv4ToByteArray(address) : undefined,
+      ipAddressV4: isIpV4Address ? ipv4ToBase64(address) : undefined,
     });
   }
 

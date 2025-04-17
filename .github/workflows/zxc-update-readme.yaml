@@ -170,7 +170,7 @@ jobs:
           echo "Total README lines changed: $TOTAL_LINES_CHANGED"
 
       - name: Import GPG key
-        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6.3.0
+        uses: step-security/ghaction-import-gpg@6c8fe4d0126a59d57c21f87c9ae5dd3451fa3cca # v6.1.0
         if : ${{ github.event.inputs.dry-run-enabled != 'true' && !cancelled() && !failure() && inputs.commit-changes }}
         with:
           gpg_private_key: ${{ secrets.GH_ACCESS_GPG_KEY }}
