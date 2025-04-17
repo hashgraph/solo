@@ -18,7 +18,7 @@ import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
 import crypto from 'node:crypto';
-import {AccountCommand} from '../src/commands/account.js';
+import {type AccountCommand} from '../src/commands/account.js';
 import {type SoloLogger} from '../src/core/logging/solo-logger.js';
 import {type NodeAlias} from '../src/types/aliases.js';
 import {type K8Factory} from '../src/integration/kube/k8-factory.js';
@@ -51,7 +51,7 @@ import {
   type DeploymentName,
   type NamespaceNameAsString,
 } from '../src/core/config/remote/types.js';
-import {CommandInvoker} from './helpers/command-invoker.js';
+import {type CommandInvoker} from './helpers/command-invoker.js';
 import {PathEx} from '../src/business/utils/path-ex.js';
 import {type HelmClient} from '../src/integration/helm/helm-client.js';
 import {type NodeServiceMapping} from '../src/types/mappings/node-service-mapping.js';
@@ -129,6 +129,11 @@ interface Cmd {
   nodeCmdArg?: NodeCommand;
   accountCmdArg?: AccountCommand;
   deploymentCmdArg?: DeploymentCommand;
+  containerOverrides?: Record<string, object[]>;
+}
+
+function getTestNamespace(argv: Argv): NamespaceName {
+  return NamespaceName.of(argv.getArg<NamespaceNameAsString>(flags.namespace) || 'bootstrap-ns');
 }
 
 /** Initialize common test variables */
@@ -137,13 +142,10 @@ export function bootstrapTestVariables(
   argv: Argv,
   {k8FactoryArg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg, deploymentCmdArg}: Cmd,
 ): BootstrapResponse {
-  const namespace: NamespaceName = NamespaceName.of(
-    argv.getArg<NamespaceNameAsString>(flags.namespace) || 'bootstrap-ns',
-  );
+  const namespace: NamespaceName = getTestNamespace(argv);
 
   const deployment: string = argv.getArg<DeploymentName>(flags.deployment) || `${namespace.name}-deployment`;
   const cacheDirectory: string = argv.getArg<string>(flags.cacheDir) || getTestCacheDirectory(testName);
-  resetForTest(namespace.name, cacheDirectory);
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
   configManager.update(argv.build());
 
@@ -161,7 +163,7 @@ export function bootstrapTestVariables(
   const localConfig: LocalConfig = container.resolve(InjectTokens.LocalConfig);
   const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
   const testLogger: SoloLogger = getTestLogger();
-  const commandInvoker = new CommandInvoker({configManager, remoteConfigManager, k8Factory, logger: testLogger});
+  const commandInvoker = container.resolve(InjectTokens.CommandInvoker) as CommandInvoker;
 
   const options: TestOptions = {
     logger: testLogger,
@@ -191,12 +193,12 @@ export function bootstrapTestVariables(
       accountManager,
     },
     cmd: {
-      initCmd: initCmdArg || new InitCommand(options),
-      clusterCmd: clusterCmdArg || new ClusterCommand(options),
-      networkCmd: networkCmdArg || new NetworkCommand(options),
-      nodeCmd: nodeCmdArg || new NodeCommand(options),
-      accountCmd: accountCmdArg || new AccountCommand(options, constants.SHORTER_SYSTEM_ACCOUNTS),
-      deploymentCmd: deploymentCmdArg || new DeploymentCommand(options),
+      initCmd: initCmdArg || container.resolve(InjectTokens.InitCommand),
+      clusterCmd: clusterCmdArg || container.resolve(InjectTokens.ClusterCommand),
+      networkCmd: networkCmdArg || container.resolve(InjectTokens.NetworkCommand),
+      nodeCmd: nodeCmdArg || container.resolve(InjectTokens.NodeCommand),
+      accountCmd: accountCmdArg || container.resolve(InjectTokens.AccountCommand),
+      deploymentCmd: deploymentCmdArg || container.resolve(InjectTokens.DeploymentCommand),
     },
   };
 }
@@ -213,9 +215,13 @@ export function endToEndTestSuite(
     nodeCmdArg,
     accountCmdArg,
     startNodes,
+    containerOverrides,
   }: Cmd & {startNodes?: boolean},
   testsCallBack: (bootstrapResp: BootstrapResponse) => void = () => {},
 ): void {
+  const testLogger: SoloLogger = getTestLogger();
+  const testNamespace: NamespaceName = getTestNamespace(argv);
+  resetForTest(testNamespace.name, undefined, testLogger, false, containerOverrides);
   if (typeof startNodes !== 'boolean') {
     startNodes = true;
   }
@@ -235,16 +241,12 @@ export function endToEndTestSuite(
     opts: {k8Factory, chartManager, commandInvoker},
   } = bootstrapResp;
 
-  const testLogger: SoloLogger = getTestLogger();
-
   describe(`E2E Test Suite for '${testName}'`, function () {
     this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
 
     describe(`Bootstrap network for test [release ${argv.getArg<string>(flags.releaseTag)}]`, () => {
       before(() => {
-        bootstrapResp.opts.logger.showUser(
-          `------------------------- START: bootstrap (${testName}) ----------------------------`,
-        );
+        testLogger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`);
       });
 
       // TODO: add rest of prerequisites for setup
@@ -252,9 +254,7 @@ export function endToEndTestSuite(
       after(async function () {
         this.timeout(Duration.ofMinutes(5).toMillis());
         await container.resolve<NetworkNodes>(InjectTokens.NetworkNodes).getLogs(namespace);
-        bootstrapResp.opts.logger.showUser(
-          `------------------------- END: bootstrap (${testName}) ----------------------------`,
-        );
+        testLogger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`);
       });
 
       it('should cleanup previous deployment', async () => {
@@ -313,6 +313,7 @@ export function endToEndTestSuite(
       });
 
       it('generate key files', async () => {
+        const localConfig = container.resolve(InjectTokens.LocalConfig);
         await commandInvoker.invoke({
           argv: argv,
           command: NodeCommand.COMMAND_NAME,

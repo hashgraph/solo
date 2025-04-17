@@ -4,7 +4,6 @@ import sinon from 'sinon';
 import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 import {HEDERA_PLATFORM_VERSION_TAG, getTestCluster} from '../../test-utility.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
@@ -23,6 +22,7 @@ import {Argv} from '../../helpers/argv-wrapper.js';
 import {DefaultHelmClient} from '../../../src/integration/helm/impl/default-helm-client.js';
 import {LocalConfigDataWrapper} from '../../../src/core/config/local/local-config-data-wrapper.js';
 import {type EmailAddress} from '../../../src/core/config/remote/types.js';
+import {ClusterCommandHandlers} from '../../../src/commands/cluster/handlers.js';
 import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {getSoloVersion} from '../../../version.js';
@@ -94,8 +94,8 @@ describe('ClusterCommand unit tests', () => {
     });
 
     it('Install function is called with expected parameters', async () => {
-      const clusterCommand = new ClusterCommand(options);
-      await clusterCommand.handlers.setup(argv.build());
+      const clusterCommandHandlers = container.resolve(ClusterCommandHandlers) as ClusterCommandHandlers;
+      await clusterCommandHandlers.setup(argv.build());
 
       expect(options.chartManager.install.args[0][0].name).to.equal(constants.SOLO_SETUP_NAMESPACE.name);
       expect(options.chartManager.install.args[0][1]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
@@ -107,8 +107,8 @@ describe('ClusterCommand unit tests', () => {
       argv.setArg(flags.chartDirectory, 'test-directory');
       argv.setArg(flags.force, true);
 
-      const clusterCommand = new ClusterCommand(options);
-      await clusterCommand.handlers.setup(argv.build());
+      const clusterCommandHandlers = container.resolve(ClusterCommandHandlers) as ClusterCommandHandlers;
+      await clusterCommandHandlers.setup(argv.build());
 
       expect(options.chartManager.install.args[0][2]).to.equal(constants.SOLO_CLUSTER_SETUP_CHART);
     });

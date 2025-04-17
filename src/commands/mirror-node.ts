@@ -4,13 +4,12 @@ import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {Listr} from 'listr2';
 import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
-import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {UserBreak} from '../core/errors/user-break.js';
 import * as constants from '../core/constants.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {type ProfileManager} from '../core/profile-manager.js';
-import {BaseCommand, type Options} from './base.js';
+import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import * as helpers from '../core/helpers.js';
@@ -36,6 +35,9 @@ import {type ClusterReference, type DeploymentName} from '../core/config/remote/
 import {showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
+import {patchInject} from '../core/dependency-injection/container-helper.js';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -83,21 +85,16 @@ interface MirrorNodeDestroyContext {
   };
 }
 
+@injectable()
 export class MirrorNodeCommand extends BaseCommand {
-  private readonly accountManager: AccountManager;
-  private readonly profileManager: ProfileManager;
+  public constructor(
+    @inject(InjectTokens.AccountManager) private readonly accountManager?: AccountManager,
+    @inject(InjectTokens.ProfileManager) private readonly profileManager?: ProfileManager,
+  ) {
+    super();
 
-  public constructor(options: Options) {
-    super(options);
-    if (!options || !options.accountManager) {
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', options.accountManager);
-    }
-    if (!options || !options.profileManager) {
-      throw new MissingArgumentError('An instance of core/ProfileManager is required', options.downloader);
-    }
-
-    this.accountManager = options.accountManager;
-    this.profileManager = options.profileManager;
+    this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
+    this.profileManager = patchInject(profileManager, InjectTokens.ProfileManager, this.constructor.name);
   }
 
   public static readonly COMMAND_NAME = 'mirror-node';

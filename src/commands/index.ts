@@ -1,31 +1,31 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {ClusterCommand} from './cluster/index.js';
-import {InitCommand} from './init.js';
-import {MirrorNodeCommand} from './mirror-node.js';
-import {NetworkCommand} from './network.js';
-import {NodeCommand} from './node/index.js';
-import {RelayCommand} from './relay.js';
-import {AccountCommand} from './account.js';
-import {DeploymentCommand} from './deployment.js';
-import {ExplorerCommand} from './explorer.js';
-import {type Options} from './base.js';
+import {type ClusterCommand} from './cluster/index.js';
+import {type InitCommand} from './init.js';
+import {type MirrorNodeCommand} from './mirror-node.js';
+import {type NetworkCommand} from './network.js';
+import {type NodeCommand} from './node/index.js';
+import {type RelayCommand} from './relay.js';
+import {type AccountCommand} from './account.js';
+import {type DeploymentCommand} from './deployment.js';
+import {type ExplorerCommand} from './explorer.js';
+import {container} from 'tsyringe-neo';
+import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 
 /**
  * Return a list of Yargs command builder to be exposed through CLI
- * @param opts it is an Options object containing logger
  * @returns an array of Yargs command builder
  */
-export function Initialize(options: Options) {
-  const initCmd = new InitCommand(options);
-  const clusterCmd = new ClusterCommand(options);
-  const networkCommand = new NetworkCommand(options);
-  const nodeCmd = new NodeCommand(options);
-  const relayCmd = new RelayCommand(options);
-  const accountCmd = new AccountCommand(options);
-  const mirrorNodeCmd = new MirrorNodeCommand(options);
-  const explorerCommand = new ExplorerCommand(options);
-  const deploymentCommand = new DeploymentCommand(options);
+export function Initialize() {
+  const initCmd = container.resolve(InjectTokens.InitCommand) as InitCommand;
+  const clusterCmd = container.resolve(InjectTokens.ClusterCommand) as ClusterCommand;
+  const networkCommand = container.resolve(InjectTokens.NetworkCommand) as NetworkCommand;
+  const nodeCmd = container.resolve(InjectTokens.NodeCommand) as NodeCommand;
+  const relayCmd = container.resolve(InjectTokens.RelayCommand) as RelayCommand;
+  const accountCmd = container.resolve(InjectTokens.AccountCommand) as AccountCommand;
+  const mirrorNodeCmd = container.resolve(InjectTokens.MirrorNodeCommand) as MirrorNodeCommand;
+  const explorerCommand = container.resolve(InjectTokens.ExplorerCommand) as ExplorerCommand;
+  const deploymentCommand = container.resolve(InjectTokens.DeploymentCommand) as DeploymentCommand;
 
   return [
     initCmd.getCommandDefinition(),

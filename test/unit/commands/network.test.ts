@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
+import {getTestCluster, getTestLogger, HEDERA_PLATFORM_VERSION_TAG, testLocalConfigData} from '../../test-utility.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
@@ -22,7 +22,6 @@ import {container} from 'tsyringe-neo';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {type DependencyManager} from '../../../src/core/dependency-managers/index.js';
-import {type LocalConfig} from '../../../src/core/config/local/local-config.js';
 import {resetForTest} from '../../test-container.js';
 import {type ClusterChecks} from '../../../src/core/cluster-checks.js';
 import {type K8ClientConfigMaps} from '../../../src/integration/kube/k8-client/resources/config-map/k8-client-config-maps.js';
@@ -33,6 +32,8 @@ import {NamespaceName} from '../../../src/integration/kube/resources/namespace/n
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DefaultHelmClient} from '../../../src/integration/helm/impl/default-helm-client.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {type CertificateManager} from '../../../src/core/certificate-manager.js';
+import {type PlatformInstaller} from '../../../src/core/platform-installer.js';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);
@@ -53,16 +54,41 @@ describe('NetworkCommand unit tests', () => {
   describe('Chart Install Function is called correctly', () => {
     let options: any;
 
-    beforeEach(() => {
-      resetForTest();
-      options = {};
+    const k8SFactoryStub = sinon.stub() as unknown as K8Factory;
+    const clusterChecksStub = sinon.stub() as unknown as ClusterChecks;
+    const remoteConfigManagerStub = sinon.stub() as unknown as RemoteConfigManager;
+    const chartManagerStub = sinon.stub() as unknown as ChartManager;
+    const certificateManagerStub = sinon.stub() as unknown as CertificateManager;
+    const profileManagerStub = sinon.stub() as unknown as ProfileManager;
+    const platformInstallerStub = sinon.stub() as unknown as PlatformInstaller;
+    const keyManagerStub = sinon.stub() as unknown as KeyManager;
+    const depManagerStub = sinon.stub() as unknown as DependencyManager;
+    const helmStub = sinon.stub() as unknown as DefaultHelmClient;
+    let containerOverrides: any;
 
+    beforeEach(() => {
+      containerOverrides = {
+        K8Factory: [{useValue: k8SFactoryStub}],
+        ClusterChecks: [{useValue: clusterChecksStub}],
+        RemoteConfigManager: [{useValue: remoteConfigManagerStub}],
+        ChartManager: [{useValue: chartManagerStub}],
+        CertificateManager: [{useValue: certificateManagerStub}],
+        ProfileManager: [{useValue: profileManagerStub}],
+        PlatformInstaller: [{useValue: platformInstallerStub}],
+        KeyManager: [{useValue: keyManagerStub}],
+        DependencyManager: [{useValue: depManagerStub}],
+        Helm: [{useValue: helmStub}],
+      };
+
+      resetForTest(undefined, undefined, getTestLogger(), true, containerOverrides);
+
+      options = {};
       options.logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
 
       options.configManager = container.resolve<ConfigManager>(InjectTokens.ConfigManager);
       options.configManager.update(argv.build());
 
-      options.k8Factory = sinon.stub() as unknown as K8Factory;
+      options.k8Factory = k8SFactoryStub;
       const k8Stub = sinon.stub();
 
       options.k8Factory.default = sinon.stub().returns(k8Stub);
@@ -103,18 +129,13 @@ describe('NetworkCommand unit tests', () => {
       });
       options.k8Factory.default().clusters().readCurrent = sinon.stub().returns('solo-e2e');
 
-      const clusterChecksStub = sinon.stub() as unknown as ClusterChecks;
       clusterChecksStub.isMinioInstalled = sinon.stub();
       clusterChecksStub.isPrometheusInstalled = sinon.stub();
       clusterChecksStub.isCertManagerInstalled = sinon.stub();
-      container.registerInstance(InjectTokens.ClusterChecks, clusterChecksStub);
 
-      container.registerInstance(InjectTokens.K8Factory, options.k8Factory);
-
-      options.depManager = sinon.stub() as unknown as DependencyManager;
-      container.registerInstance<DependencyManager>(InjectTokens.DependencyManager, options.depManager);
-      options.localConfig = container.resolve<LocalConfig>(InjectTokens.LocalConfig);
-      options.helm = container.resolve<DefaultHelmClient>(InjectTokens.Helm);
+      options.depManager = depManagerStub;
+      options.localConfig = container.resolve<ConfigManager>(InjectTokens.LocalConfig);
+      options.helm = helmStub;
       options.helm.dependency = sinon.stub();
 
       ListrLock.newAcquireLockTask = sinon.stub().returns({
@@ -122,17 +143,18 @@ describe('NetworkCommand unit tests', () => {
       });
 
       options.keyManager = container.resolve<KeyManager>(InjectTokens.KeyManager);
+      options.keyManager.prepareTLSKeyFilePaths = sinon.stub();
       options.keyManager.copyGossipKeysToStaging = sinon.stub();
       options.keyManager.copyNodeKeysToStaging = sinon.stub();
 
-      options.platformInstaller = sinon.stub();
+      options.platformInstaller = platformInstallerStub;
       options.platformInstaller.copyNodeKeys = sinon.stub();
       container.registerInstance(InjectTokens.PlatformInstaller, options.platformInstaller);
 
       options.profileManager = container.resolve<ProfileManager>(InjectTokens.ProfileManager);
       options.profileManager.prepareValuesForSoloChart = sinon.stub();
 
-      options.certificateManager = sinon.stub();
+      options.certificateManager = certificateManagerStub;
       container.registerInstance(InjectTokens.CertificateManager, options.certificateManager);
 
       options.chartManager = container.resolve<ChartManager>(InjectTokens.ChartManager);
@@ -142,9 +164,12 @@ describe('NetworkCommand unit tests', () => {
       options.chartManager.uninstall = sinon.stub().returns(true);
 
       options.remoteConfigManager = container.resolve<RemoteConfigManager>(InjectTokens.RemoteConfigManager);
+      options.remoteConfigManager.isLoaded = sinon.stub().returns(true);
       options.remoteConfigManager.getConfigMap = sinon.stub().returns(null);
+      options.remoteConfigManager.modify = sinon.stub();
 
       options.localConfig.localConfigData._clusterRefs = {'solo-e2e': 'context-1'};
+      options.localConfig.localConfigData._deployments = testLocalConfigData.deployments;
 
       options.leaseManager = container.resolve<LockManager>(InjectTokens.LockManager);
       options.leaseManager.currentNamespace = sinon.stub().returns(testName);
@@ -158,7 +183,7 @@ describe('NetworkCommand unit tests', () => {
 
     it('Install function is called with expected parameters', async () => {
       try {
-        const networkCommand = new NetworkCommand(options);
+        const networkCommand = container.resolve<NetworkCommand>(NetworkCommand);
         options.remoteConfigManager.getConsensusNodes = sinon.stub().returns([{name: 'node1'}]);
         options.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
         options.remoteConfigManager.getClusterRefs = sinon.stub().returns({['solo-e2e']: 'context1'});
@@ -178,7 +203,7 @@ describe('NetworkCommand unit tests', () => {
       try {
         argv.setArg(flags.chartDirectory, 'test-directory');
         argv.setArg(flags.force, true);
-        const networkCommand = new NetworkCommand(options);
+        const networkCommand = container.resolve<NetworkCommand>(NetworkCommand);
 
         options.remoteConfigManager.getConsensusNodes = sinon.stub().returns([{name: 'node1'}]);
         options.remoteConfigManager.getContexts = sinon.stub().returns(['context1']);
@@ -211,7 +236,7 @@ describe('NetworkCommand unit tests', () => {
         options.remoteConfigManager.getContexts = sinon.stub().returns(['context-1']);
         options.remoteConfigManager.getClusterRefs = sinon.stub().returns({['cluster']: 'context-1'});
 
-        const networkCommand = new NetworkCommand(options);
+        const networkCommand = container.resolve<NetworkCommand>(NetworkCommand);
         const config = await networkCommand.prepareConfig(task, argv.build());
 
         expect(config.valuesArgMap).to.not.empty;

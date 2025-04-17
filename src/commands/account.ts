@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import chalk from 'chalk';
-import {BaseCommand, type Options} from './base.js';
+import {BaseCommand} from './base.js';
 import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {Flags as flags} from './flags.js';
@@ -20,6 +20,9 @@ import {type SoloListrTask} from '../types/index.js';
 import {Templates} from '../core/templates.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Base64} from 'js-base64';
+import {inject, injectable} from 'tsyringe-neo';
+import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
+import {patchInject} from '../core/dependency-injection/container-helper.js';
 
 interface UpdateAccountConfig {
   accountId: string;
@@ -37,8 +40,8 @@ interface UpdateAccountContext {
   accountInfo: {accountId: AccountId | string; balance: number; publicKey: string; privateKey?: string};
 }
 
+@injectable()
 export class AccountCommand extends BaseCommand {
-  private readonly accountManager: AccountManager;
   private accountInfo: {
     accountId: string;
     balance: number;
@@ -46,18 +49,16 @@ export class AccountCommand extends BaseCommand {
     privateKey?: string;
     accountAlias?: string;
   } | null;
-  private readonly systemAccounts: number[][];
 
-  public constructor(options: Options, systemAccounts: number[][] = constants.SYSTEM_ACCOUNTS) {
-    super(options);
+  public constructor(
+    @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
+    @inject(InjectTokens.SystemAccounts) private readonly systemAccounts: number[][],
+  ) {
+    super();
 
-    if (!options || !options.accountManager) {
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', options.accountManager);
-    }
-
-    this.accountManager = options.accountManager;
+    this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
     this.accountInfo = null;
-    this.systemAccounts = systemAccounts;
+    this.systemAccounts = patchInject(systemAccounts, InjectTokens.SystemAccounts, this.constructor.name);
   }
 
   public static readonly COMMAND_NAME = 'account';

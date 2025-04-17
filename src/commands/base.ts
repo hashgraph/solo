@@ -8,81 +8,42 @@ import {type RemoteConfigManager} from '../core/config/remote/remote-config-mana
 import {type ChartManager} from '../core/chart-manager.js';
 import {type ConfigManager} from '../core/config-manager.js';
 import {type DependencyManager} from '../core/dependency-managers/index.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
+import {type HelmClient} from '../integration/helm/helm-client.js';
 import * as constants from '../core/constants.js';
 import fs from 'node:fs';
 import {type ClusterReference, type ClusterReferences} from '../core/config/remote/types.js';
 import {Flags} from './flags.js';
-import {type SoloLogger} from '../core/logging/solo-logger.js';
-import {type PackageDownloader} from '../core/package-downloader.js';
-import {type PlatformInstaller} from '../core/platform-installer.js';
-import {type KeyManager} from '../core/key-manager.js';
-import {type AccountManager} from '../core/account-manager.js';
-import {type ProfileManager} from '../core/profile-manager.js';
-import {type CertificateManager} from '../core/certificate-manager.js';
 import {PathEx} from '../business/utils/path-ex.js';
-import {type K8Factory} from '../integration/kube/k8-factory.js';
-import {type HelmClient} from '../integration/helm/helm-client.js';
-
-export interface Options {
-  logger: SoloLogger;
-  helm: HelmClient;
-  k8Factory: K8Factory;
-  downloader: PackageDownloader;
-  platformInstaller: PlatformInstaller;
-  chartManager: ChartManager;
-  configManager: ConfigManager;
-  depManager: DependencyManager;
-  keyManager: KeyManager;
-  accountManager: AccountManager;
-  profileManager: ProfileManager;
-  leaseManager: LockManager;
-  certificateManager: CertificateManager;
-  localConfig: LocalConfig;
-  remoteConfigManager: RemoteConfigManager;
-}
+import {inject} from 'tsyringe-neo';
+import {patchInject} from '../core/dependency-injection/container-helper.js';
+import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 
 export abstract class BaseCommand extends ShellRunner {
-  protected readonly helm: HelmClient;
-  protected readonly k8Factory: K8Factory;
-  protected readonly chartManager: ChartManager;
-  public readonly configManager: ConfigManager;
-  protected readonly depManager: DependencyManager;
-  protected readonly leaseManager: LockManager;
-  public readonly localConfig: LocalConfig;
-  protected readonly remoteConfigManager: RemoteConfigManager;
-
-  constructor(options: Options) {
-    if (!options || !options.helm) {
-      throw new Error('An instance of core/Helm is required');
-    }
-    if (!options || !options.k8Factory) {
-      throw new Error('An instance of core/K8Factory is required');
-    }
-    if (!options || !options.chartManager) {
-      throw new Error('An instance of core/ChartManager is required');
-    }
-    if (!options || !options.configManager) {
-      throw new Error('An instance of core/ConfigManager is required');
-    }
-    if (!options || !options.depManager) {
-      throw new Error('An instance of core/DependencyManager is required');
-    }
-    if (!options || !options.localConfig) {
-      throw new Error('An instance of core/LocalConfig is required');
-    }
-    if (!options || !options.remoteConfigManager) {
-      throw new Error('An instance of core/config/RemoteConfigManager is required');
-    }
+  constructor(
+    @inject(InjectTokens.Helm) protected readonly helm?: HelmClient,
+    @inject(InjectTokens.K8Factory) protected readonly k8Factory?: K8Factory,
+    @inject(InjectTokens.ChartManager) protected readonly chartManager?: ChartManager,
+    @inject(InjectTokens.ConfigManager) public readonly configManager?: ConfigManager,
+    @inject(InjectTokens.DependencyManager) protected readonly depManager?: DependencyManager,
+    @inject(InjectTokens.LockManager) protected readonly leaseManager?: LockManager,
+    @inject(InjectTokens.LocalConfig) public readonly localConfig?: LocalConfig,
+    @inject(InjectTokens.RemoteConfigManager) protected readonly remoteConfigManager?: RemoteConfigManager,
+  ) {
     super();
 
-    this.helm = options.helm;
-    this.k8Factory = options.k8Factory;
-    this.chartManager = options.chartManager;
-    this.configManager = options.configManager;
-    this.depManager = options.depManager;
-    this.leaseManager = options.leaseManager;
-    this.localConfig = options.localConfig;
-    this.remoteConfigManager = options.remoteConfigManager;
+    this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
+    this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
+    this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
+    this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
+    this.depManager = patchInject(depManager, InjectTokens.DependencyManager, this.constructor.name);
+    this.leaseManager = patchInject(leaseManager, InjectTokens.LockManager, this.constructor.name);
+    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfig, this.constructor.name);
+    this.remoteConfigManager = patchInject(
+      remoteConfigManager,
+      InjectTokens.RemoteConfigManager,
+      this.constructor.name,
+    );
   }
 
   /**

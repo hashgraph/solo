@@ -4,11 +4,9 @@ import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import chalk from 'chalk';
 import {Listr} from 'listr2';
-import {IllegalArgumentError} from '../core/errors/illegal-argument-error.js';
-import {MissingArgumentError} from '../core/errors/missing-argument-error.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {UserBreak} from '../core/errors/user-break.js';
-import {BaseCommand, type Options} from './base.js';
+import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {Templates} from '../core/templates.js';
@@ -45,6 +43,9 @@ import {type PodReference} from '../integration/kube/resources/pod/pod-reference
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {inject, injectable} from 'tsyringe-neo';
+import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
+import {patchInject} from '../core/dependency-injection/container-helper.js';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -113,36 +114,22 @@ export interface NetworkDestroyContext {
   checkTimeout: boolean;
 }
 
+@injectable()
 export class NetworkCommand extends BaseCommand {
-  private readonly keyManager: KeyManager;
-  private readonly platformInstaller: PlatformInstaller;
-  private readonly profileManager: ProfileManager;
-  private readonly certificateManager: CertificateManager;
   private profileValuesFile?: Record<ClusterReference, string>;
 
-  public constructor(options: Options) {
-    super(options);
+  public constructor(
+    @inject(InjectTokens.CertificateManager) private readonly certificateManager: CertificateManager,
+    @inject(InjectTokens.KeyManager) private readonly keyManager: KeyManager,
+    @inject(InjectTokens.PlatformInstaller) private readonly platformInstaller: PlatformInstaller,
+    @inject(InjectTokens.ProfileManager) private readonly profileManager: ProfileManager,
+  ) {
+    super();
 
-    if (!options || !options.k8Factory) {
-      throw new Error('An instance of core/K8Factory is required');
-    }
-    if (!options || !options.keyManager) {
-      throw new IllegalArgumentError('An instance of core/KeyManager is required', options.keyManager);
-    }
-    if (!options || !options.platformInstaller) {
-      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', options.platformInstaller);
-    }
-    if (!options || !options.profileManager) {
-      throw new MissingArgumentError('An instance of core/ProfileManager is required', options.downloader);
-    }
-    if (!options || !options.certificateManager) {
-      throw new MissingArgumentError('An instance of core/CertificateManager is required', options.certificateManager);
-    }
-
-    this.certificateManager = options.certificateManager;
-    this.keyManager = options.keyManager;
-    this.platformInstaller = options.platformInstaller;
-    this.profileManager = options.profileManager;
+    this.certificateManager = patchInject(certificateManager, InjectTokens.CertificateManager, this.constructor.name);
+    this.keyManager = patchInject(keyManager, InjectTokens.KeyManager, this.constructor.name);
+    this.platformInstaller = patchInject(platformInstaller, InjectTokens.PlatformInstaller, this.constructor.name);
+    this.profileManager = patchInject(profileManager, InjectTokens.ProfileManager, this.constructor.name);
   }
 
   private static readonly DEPLOY_CONFIGS_NAME = 'deployConfigs';

@@ -1,49 +1,30 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {IllegalArgumentError} from '../../core/errors/illegal-argument-error.js';
 import {type AccountManager} from '../../core/account-manager.js';
 import {YargsCommand} from '../../core/yargs-command.js';
-import {BaseCommand, type Options} from './../base.js';
+import {BaseCommand} from './../base.js';
 import * as NodeFlags from './flags.js';
 import {type NodeCommandHandlers} from './handlers.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
-import {type ExtendedNetServer} from '../../types/index.js';
+import {inject, injectable} from 'tsyringe-neo';
 import {type AnyYargs} from '../../types/aliases.js';
 
 /**
  * Defines the core functionalities of 'node' command
  */
+@injectable()
 export class NodeCommand extends BaseCommand {
-  private readonly accountManager: AccountManager;
-  public readonly handlers: NodeCommandHandlers;
-  public _portForwards: ExtendedNetServer[];
+  public _portForwards: any;
 
-  public constructor(options: Options) {
-    super(options);
+  public constructor(
+    @inject(InjectTokens.AccountManager) private readonly accountManager?: AccountManager,
+    @inject(InjectTokens.NodeCommandHandlers) public readonly handlers?: NodeCommandHandlers,
+  ) {
+    super();
 
-    if (!options || !options.downloader) {
-      throw new IllegalArgumentError('An instance of core/PackageDownloader is required', options.downloader);
-    }
-    if (!options || !options.platformInstaller) {
-      throw new IllegalArgumentError('An instance of core/PlatformInstaller is required', options.platformInstaller);
-    }
-    if (!options || !options.keyManager) {
-      throw new IllegalArgumentError('An instance of core/KeyManager is required', options.keyManager);
-    }
-    if (!options || !options.accountManager) {
-      throw new IllegalArgumentError('An instance of core/AccountManager is required', options.accountManager);
-    }
-    if (!options || !options.profileManager) {
-      throw new IllegalArgumentError('An instance of ProfileManager is required', options.profileManager);
-    }
-    if (!options || !options.certificateManager) {
-      throw new IllegalArgumentError('An instance of CertificateManager is required', options.certificateManager);
-    }
-
-    this.accountManager = options.accountManager;
-
-    this.handlers = patchInject(null, InjectTokens.NodeCommandHandlers, this.constructor.name);
+    this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
+    this.handlers = patchInject(handlers, InjectTokens.NodeCommandHandlers, this.constructor.name);
     this._portForwards = [];
   }
 
