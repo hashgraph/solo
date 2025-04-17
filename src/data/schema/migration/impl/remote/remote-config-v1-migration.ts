@@ -80,6 +80,8 @@ export class RemoteConfigV1Migration implements SchemaMigration {
       });
     }
 
+    // TODO finish out the other components once we get the updated remote config from a deployed cluster
+
     // overlay the old cluster references with the new cluster references structure
     clone.clusters = clusters;
 
