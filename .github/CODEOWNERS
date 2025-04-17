@@ -2,15 +2,15 @@
 ##### Global Protection Rule ######
 ###################################
 # NOTE: This rule is overriden by the more specific rules below. This is the catch-all rule for all files not covered by the more specific rules below.
-*                                               @hashgraph/release-engineering @hashgraph/release-engineering-managers
+*                                               @hiero-ledger/solo-committers @hiero-ledger/solo-maintainers
 
 ############################
 #####  Project Files  ######
 ############################
 
-/src/**                                         @hashgraph/release-engineering
-/test/**                                        @hashgraph/release-engineering
-/resources/**                                   @hashgraph/release-engineering
+/src/**                                         @hiero-ledger/solo-committers
+/test/**                                        @hiero-ledger/solo-committers
+/resources/**                                   @hiero-ledger/solo-committers
 
 #########################
 #####  Core Files  ######
@@ -19,29 +19,29 @@
 # NOTE: Must be placed last to ensure enforcement over all other rules
 
 # Protection Rules for Github Configuration Files and Actions Workflows
-/.github/                                       @hashgraph/platform-ci @hashgraph/platform-ci-committers @hashgraph/release-engineering-managers
+/.github/                                       @hiero-ledger/github-maintainers @hiero-ledger/solo-maintainers
 
 # NodeJS project files
-package.json                                    @hashgraph/release-engineering-managers
-package-lock.json                               @hashgraph/release-engineering-managers
+package.json                                    @hiero-ledger/solo-maintainers
+package-lock.json                               @hiero-ledger/solo-maintainers
 
 # Codacy Tool Configurations
-/config/                                        @hashgraph/release-engineering-managers
-.remarkrc                                       @hashgraph/release-engineering-managers
+/config/                                        @hiero-ledger/solo-maintainers
+.remarkrc                                       @hiero-ledger/solo-maintainers
 
 # Semantic Release Configuration
-.releaserc                                      @hashgraph/release-engineering-managers
+.releaserc                                      @hiero-ledger/solo-maintainers @hiero-ledger/github-maintainers
 
 # Self-protection for root CODEOWNERS files (this file should not exist and should definitely require approval)
-/CODEOWNERS                                     @hashgraph/release-engineering-managers
+/CODEOWNERS                                     @hiero-ledger/github-maintainers
 
 # Protect the repository root files
-/README.md                                      @hashgraph/release-engineering @hashgraph/release-engineering-managers
-**/LICENSE                                      @hashgraph/release-engineering @hashgraph/release-engineering-managers
+/README.md                                      @hiero-ledger/solo-committers @hiero-ledger/solo-maintainers @hiero-ledger/github-maintainers
+**/LICENSE                                      @hiero-ledger/solo-committers @hiero-ledger/solo-maintainers @hiero-ledger/github-maintainers
 
 # CodeCov configuration
-**/codecov.yml                                  @hashgraph/release-engineering @hashgraph/release-engineering-managers
+**/codecov.yml                                  @hiero-ledger/solo-committers @hiero-ledger/solo-maintainers @hiero-ledger/github-maintainers
 
 # Git Ignore definitions
-**/.gitignore                                   @hashgraph/release-engineering @hashgraph/release-engineering-managers
-**/.gitignore.*                                 @hashgraph/release-engineering @hashgraph/release-engineering-managers
+**/.gitignore                                   @hiero-ledger/solo-committers @hiero-ledger/solo-maintainers @hiero-ledger/github-maintainers
+**/.gitignore.*                                 @hiero-ledger/solo-committers @hiero-ledger/solo-maintainers @hiero-ledger/github-maintainers

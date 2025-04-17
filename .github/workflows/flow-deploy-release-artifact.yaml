@@ -40,7 +40,7 @@ permissions:
 jobs:
   prepare-release:
     name: Release / Prepare
-    runs-on: solo-linux-medium
+    runs-on: hiero-solo-linux-medium
     outputs:
       version: ${{ steps.tag.outputs.version }}
     steps:
@@ -100,7 +100,7 @@ jobs:
 
   create-github-release:
     name: Github / Release
-    runs-on: solo-linux-medium
+    runs-on: hiero-solo-linux-medium
     needs:
       - prepare-release
       - update-readme

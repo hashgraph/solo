@@ -75,7 +75,7 @@ env:
 jobs:
   e2e-test:
     name: ${{ inputs.custom-job-label || 'E2E Test' }}
-    runs-on: solo-linux-large
+    runs-on: hiero-solo-linux-large
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
