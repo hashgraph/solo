@@ -19,7 +19,7 @@ import {type RelayComponentStruct} from '../../../../../../src/core/config/remot
 import {ComponentFactory} from '../../../../../../src/core/config/remote/components/component-factory.js';
 import {DeploymentPhase} from '../../../../../../src/data/schema/model/remote/deployment-phase.js';
 
-const remoteConfigManagerMock: any = {components: {getNewComponentIndex: (): number => 1}};
+const remoteConfigManagerMock: any = {components: {getNewComponentId: (): number => 1}};
 
 const componentId: ComponentId = 0;
 const clusterReference: ClusterReference = 'cluster-reference';
@@ -69,7 +69,7 @@ describe('RelayComponent', () => {
   });
 
   it('calling toObject() should return a valid data', () => {
-    const id: ComponentId = remoteConfigManagerMock.components.getNewComponentIndex();
+    const id: ComponentId = remoteConfigManagerMock.components.getNewComponentId();
 
     const values: RelayComponentStruct = {
       id,

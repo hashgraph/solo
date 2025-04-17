@@ -55,7 +55,7 @@ interface ComponentsData {
 }
 
 function prepareComponentsData(namespace: NamespaceName): ComponentsData {
-  const remoteConfigManagerMock: any = {components: {getNewComponentIndex: (): number => 1}};
+  const remoteConfigManagerMock: any = {components: {getNewComponentId: (): number => 1}};
 
   const clusterReference: ClusterReference = 'cluster';
   const nodeState: DeploymentPhase = DeploymentPhase.STARTED;
