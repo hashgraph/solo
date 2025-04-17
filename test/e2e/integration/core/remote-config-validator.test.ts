@@ -28,6 +28,7 @@ import {type ClusterReference, type ComponentId} from '../../../../src/core/conf
 import {ComponentFactory} from '../../../../src/core/config/remote/components/component-factory.js';
 import {type BaseComponent} from '../../../../src/core/config/remote/components/base-component.js';
 import {DeploymentPhase} from '../../../../src/data/schema/model/remote/deployment-phase.js';
+import {Templates} from '../../../../src/core/templates.js';
 
 interface ComponentsRecord {
   explorer: MirrorNodeExplorerComponent;
@@ -52,6 +53,7 @@ interface ComponentsData {
   components: ComponentsRecord;
   labelRecord: LabelRecord;
   componentsDataWrapper: ComponentsDataWrapper;
+  podNames: Record<string, string>;
 }
 
 function prepareComponentsData(namespace: NamespaceName): ComponentsData {
@@ -85,9 +87,19 @@ function prepareComponentsData(namespace: NamespaceName): ComponentsData {
     consensusNode: RemoteConfigValidator.getConsensusNodeLabels(components.consensusNode),
   };
 
+  const podNames: Record<string, string> = {
+    explorer: `hedera-explorer-${components.explorer.id}`,
+    mirrorNode: `mirror-importer-${components.mirrorNode.id}`,
+    relay: `relay-${components.relay.id}`,
+    consensusNode: Templates.renderNetworkPodName(Templates.renderNodeAliasFromNumber(components.consensusNode.id + 1))
+      .name,
+    haProxy: `haproxy-node1-${Templates.renderNodeAliasFromNumber(components.haProxy.id + 1)}`,
+    envoyProxy: `envoy-proxy-${Templates.renderNodeAliasFromNumber(components.envoyProxy.id + 1)}`,
+  };
+
   const componentsDataWrapper: ComponentsDataWrapper = ComponentsDataWrapper.initializeEmpty();
 
-  return {namespace, components, labelRecord, componentsDataWrapper};
+  return {namespace, components, labelRecord, componentsDataWrapper, podNames};
 }
 
 describe('RemoteConfigValidator', () => {
@@ -100,6 +112,7 @@ describe('RemoteConfigValidator', () => {
   let components: ComponentsRecord;
   let labelRecord: LabelRecord;
   let componentsDataWrapper: ComponentsDataWrapper;
+  let podNames: Record<string, string>;
 
   before(async () => {
     k8Factory = container.resolve(InjectTokens.K8Factory);
@@ -111,6 +124,7 @@ describe('RemoteConfigValidator', () => {
 
   beforeEach(() => {
     const testData: ComponentsData = prepareComponentsData(namespace);
+    podNames = testData.podNames;
     components = testData.components;
     labelRecord = testData.labelRecord;
     componentsDataWrapper = testData.componentsDataWrapper;
@@ -177,10 +191,7 @@ describe('RemoteConfigValidator', () => {
       });
 
       it('should succeed if component is present', async () => {
-        const component: BaseComponent = components[componentKey];
-
-        // TODO:
-        await createPod(component.id.toString(), labelRecord[componentKey]);
+        await createPod(podNames[componentKey], labelRecord[componentKey]);
 
         await RemoteConfigValidator.validateComponents(namespace, componentsDataWrapper, k8Factory, localConfig, false);
       });

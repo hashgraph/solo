@@ -58,7 +58,7 @@ export class RemoteConfigValidator {
   }
 
   private static consensusNodeSkipConditionCallback(nodeComponent: ConsensusNodeComponent): boolean {
-    return nodeComponent.phase === DeploymentPhase.REQUESTED;
+    return nodeComponent.phase === DeploymentPhase.REQUESTED || nodeComponent.phase === DeploymentPhase.STOPPED;
   }
 
   private static componentValidationsMapping: Record<
