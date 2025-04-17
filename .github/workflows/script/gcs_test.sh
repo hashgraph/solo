@@ -9,7 +9,7 @@ else
   storageType=${STORAGE_TYPE}
 fi
 
-if [ "${storageType}" == "gcs_only" ]; then
+if [ "${storageType}" != "minio_only" ]; then
   if [ -z "${GCS_ACCESS_KEY}" ]; then
     echo "GCS_ACCESS_KEY is not set. Exiting..."
     exit 1

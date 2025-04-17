@@ -148,19 +148,17 @@ if [ -z "${SOLO_DEPLOYMENT}" ]; then
   export SOLO_DEPLOYMENT="solo-deployment"
 fi
 create_test_account "${SOLO_DEPLOYMENT}"
-#clone_smart_contract_repo
-#setup_smart_contract_test
-#start_background_transactions
-#check_port_forward
-#start_contract_test
-#start_sdk_test
-#echo "Sleep a while to wait background transactions to finish"
-#sleep 30
+clone_smart_contract_repo
+setup_smart_contract_test
+start_background_transactions
+check_port_forward
+start_contract_test
+start_sdk_test
+echo "Sleep a while to wait background transactions to finish"
+sleep 30
 
 echo "Run mirror node acceptance test"
 
-helm upgrade mirror mirror/hedera-mirror  -n solo-e2e --reuse-values --set test.enabled=true --set test.image.pullPolicy=Always --set test.image.registry=ssheehy --set test.image.repository=hedera-mirror-test --set test.image.tag=latest --set test.config.hedera.mirror.test.acceptance.network=OTHER
-
-helm test mirror -n solo-e2e
-#check_monitor_log
-#check_importer_log
+helm test mirror -n solo-e2e --timeout 10m
+check_monitor_log
+check_importer_log
