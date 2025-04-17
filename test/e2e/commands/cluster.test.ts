@@ -22,19 +22,14 @@ import * as yaml from 'yaml';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 import {resetForTest} from '../../test-container.js';
+import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
 
 describe('ClusterCommand', () => {
   // mock showUser and showJSON to silent logging during tests
   before(() => {
     sinon.stub(SoloWinstonLogger.prototype, 'showUser');
     sinon.stub(SoloWinstonLogger.prototype, 'showJSON');
-  });
-
-  after(() => {
-    // @ts-expect-error: TS2339 - to restore
-    SoloWinstonLogger.prototype.showUser.restore();
-    // @ts-expect-error: TS2339 - to restore
-    SoloWinstonLogger.prototype.showJSON.restore();
+    fs.unlinkSync(PathEx.joinWithRealPath('test', 'data', 'tmp', DEFAULT_LOCAL_CONFIG_FILE));
   });
 
   const TEST_CONTEXT = getTestCluster();
@@ -51,13 +46,17 @@ describe('ClusterCommand', () => {
   argv.setArg(flags.clusterRef, TEST_CLUSTER);
   argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
   argv.setArg(flags.force, true);
-
   const {
     opts: {k8Factory, configManager, chartManager, commandInvoker},
     cmd: {clusterCmd},
   } = bootstrapTestVariables(testName, argv, {});
 
   after(async function () {
+    // @ts-expect-error: TS2339 - to restore
+    SoloWinstonLogger.prototype.showUser.restore();
+    // @ts-expect-error: TS2339 - to restore
+    SoloWinstonLogger.prototype.showJSON.restore();
+
     this.timeout(Duration.ofMinutes(3).toMillis());
 
     await k8Factory.default().namespaces().delete(namespace);
