@@ -15,7 +15,7 @@ import {ComponentTypes} from '../../../../../src/core/config/remote/enumerations
 import {type NodeId} from '../../../../../src/types/aliases.js';
 import {
   type ClusterReference,
-  type ComponentName,
+  type ComponentId,
   type NamespaceNameAsString,
 } from '../../../../../src/core/config/remote/types.js';
 import {type ComponentsDataStruct} from '../../../../../src/core/config/remote/interfaces/components-data-struct.js';
@@ -23,7 +23,7 @@ import {DeploymentPhase} from '../../../../../src/data/schema/model/remote/deplo
 
 export function createComponentsDataWrapper(): {
   values: {
-    name: string;
+    id: ComponentId;
     cluster: ClusterReference;
     namespace: NamespaceNameAsString;
     phase: DeploymentPhase.DEPLOYED;
@@ -38,10 +38,10 @@ export function createComponentsDataWrapper(): {
     mirrorNodeExplorers: Record<string, MirrorNodeExplorerComponent>;
   };
   wrapper: {componentsDataWrapper: ComponentsDataWrapper};
-  componentName: string;
+  componentId: ComponentId;
 } {
-  const name: string = 'name';
-  const componentName: string = name;
+  const id: ComponentId = 0;
+  const componentId: ComponentId = id;
 
   const cluster: ClusterReference = 'cluster';
   const namespace: NamespaceNameAsString = 'namespace';
@@ -49,27 +49,27 @@ export function createComponentsDataWrapper(): {
   const consensusNodeIds: NodeId[] = [0, 1];
 
   const relays: Record<string, RelayComponent> = {
-    [componentName]: new RelayComponent(name, cluster, namespace, phase, consensusNodeIds),
+    [componentId]: new RelayComponent(id, cluster, namespace, phase, consensusNodeIds),
   };
 
   const haProxies: Record<string, HaProxyComponent> = {
-    [componentName]: new HaProxyComponent(name, cluster, namespace, phase),
+    [componentId]: new HaProxyComponent(id, cluster, namespace, phase),
   };
 
   const mirrorNodes: Record<string, MirrorNodeComponent> = {
-    [componentName]: new MirrorNodeComponent(name, cluster, namespace, phase),
+    [componentId]: new MirrorNodeComponent(id, cluster, namespace, phase),
   };
 
   const envoyProxies: Record<string, EnvoyProxyComponent> = {
-    [componentName]: new EnvoyProxyComponent(name, cluster, namespace, phase),
+    [componentId]: new EnvoyProxyComponent(id, cluster, namespace, phase),
   };
 
   const consensusNodes: Record<string, ConsensusNodeComponent> = {
-    [componentName]: new ConsensusNodeComponent(name, cluster, namespace, phase, 0),
+    [componentId]: new ConsensusNodeComponent(id, cluster, namespace, phase),
   };
 
   const mirrorNodeExplorers: Record<string, MirrorNodeExplorerComponent> = {
-    [componentName]: new MirrorNodeExplorerComponent(name, cluster, namespace, phase),
+    [componentId]: new MirrorNodeExplorerComponent(id, cluster, namespace, phase),
   };
 
   // @ts-expect-error - TS267: to access private constructor
@@ -83,10 +83,10 @@ export function createComponentsDataWrapper(): {
   );
 
   return {
-    values: {name, cluster, namespace, phase, consensusNodeIds},
+    values: {id, cluster, namespace, phase, consensusNodeIds},
     components: {consensusNodes, haProxies, envoyProxies, mirrorNodes, mirrorNodeExplorers, relays},
     wrapper: {componentsDataWrapper},
-    componentName,
+    componentId,
   };
 }
 
@@ -125,10 +125,10 @@ describe('ComponentsDataWrapper', () => {
     const {
       wrapper: {componentsDataWrapper},
       components: {consensusNodes},
-      componentName,
+      componentId,
     } = createComponentsDataWrapper();
 
-    const existingComponent: ConsensusNodeComponent = consensusNodes[componentName];
+    const existingComponent: ConsensusNodeComponent = consensusNodes[componentId];
 
     expect(() => componentsDataWrapper.addNewComponent(existingComponent)).to.throw(SoloError, 'Component exists');
   });
@@ -138,23 +138,23 @@ describe('ComponentsDataWrapper', () => {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
 
-    const newComponentName: string = 'envoy';
-    const {name, cluster, namespace, phase} = {
-      name: newComponentName,
+    const newComponentId: ComponentId = 1;
+    const {id, cluster, namespace, phase} = {
+      id: newComponentId,
       cluster: 'cluster',
       namespace: 'new-namespace',
       phase: DeploymentPhase.DEPLOYED,
     };
-    const newComponent: EnvoyProxyComponent = new EnvoyProxyComponent(name, cluster, namespace, phase);
+    const newComponent: EnvoyProxyComponent = new EnvoyProxyComponent(id, cluster, namespace, phase);
 
     componentsDataWrapper.addNewComponent(newComponent);
 
     const componentDataWrapperObject: ComponentsDataStruct = componentsDataWrapper.toObject();
 
-    expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy]).has.own.property(newComponentName);
+    expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy]).has.own.property(newComponentId.toString());
 
-    expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy][newComponentName]).to.deep.equal({
-      name,
+    expect(componentDataWrapperObject[ComponentTypes.EnvoyProxy][newComponentId]).to.deep.equal({
+      id,
       cluster,
       namespace,
       phase,
@@ -166,25 +166,25 @@ describe('ComponentsDataWrapper', () => {
   it('should be able to change node state with the .changeNodeState(()', () => {
     const {
       wrapper: {componentsDataWrapper},
-      componentName,
+      componentId,
     } = createComponentsDataWrapper();
 
     const newNodeState: DeploymentPhase = DeploymentPhase.STOPPED;
 
-    componentsDataWrapper.changeNodePhase(componentName, newNodeState);
+    componentsDataWrapper.changeNodePhase(componentId, newNodeState);
 
-    expect(componentsDataWrapper.consensusNodes[componentName].phase).to.equal(newNodeState);
+    expect(componentsDataWrapper.consensusNodes[componentId].phase).to.equal(newNodeState);
   });
 
   it("should not be able to edit component with the .editComponent() if it doesn't exist ", () => {
     const {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
-    const notFoundComponentName: string = 'not_found';
+    const notFoundComponentId: ComponentId = 9;
 
-    expect(() => componentsDataWrapper.changeNodePhase(notFoundComponentName, DeploymentPhase.FROZEN)).to.throw(
+    expect(() => componentsDataWrapper.changeNodePhase(notFoundComponentId, DeploymentPhase.FROZEN)).to.throw(
       SoloError,
-      `Consensus node ${notFoundComponentName} doesn't exist`,
+      `Consensus node ${notFoundComponentId} doesn't exist`,
     );
   });
 
@@ -192,12 +192,12 @@ describe('ComponentsDataWrapper', () => {
     const {
       wrapper: {componentsDataWrapper},
       components: {relays},
-      componentName,
+      componentId,
     } = createComponentsDataWrapper();
 
-    componentsDataWrapper.removeComponent(componentName, ComponentTypes.Relay);
+    componentsDataWrapper.removeComponent(componentId, ComponentTypes.Relay);
 
-    expect(relays).to.not.have.own.property(componentName);
+    expect(relays).to.not.have.own.property(componentId.toString());
   });
 
   it("should not be able to remove component with the .removeComponent() if it doesn't exist ", () => {
@@ -205,27 +205,27 @@ describe('ComponentsDataWrapper', () => {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
 
-    const notFoundComponentName: string = 'not_found';
+    const notFoundComponentId: ComponentId = 9;
 
-    expect(() => componentsDataWrapper.removeComponent(notFoundComponentName, ComponentTypes.Relay)).to.throw(
+    expect(() => componentsDataWrapper.removeComponent(notFoundComponentId, ComponentTypes.Relay)).to.throw(
       SoloError,
-      `Component ${notFoundComponentName} of type ${ComponentTypes.Relay} not found while attempting to remove`,
+      `Component ${notFoundComponentId} of type ${ComponentTypes.Relay} not found while attempting to remove`,
     );
   });
 
   it('should be able to get components with .getComponent()', () => {
     const {
       wrapper: {componentsDataWrapper},
-      componentName,
+      componentId,
       components: {mirrorNodes},
     } = createComponentsDataWrapper();
 
     const mirrorNodeComponent: MirrorNodeComponent = componentsDataWrapper.getComponent<MirrorNodeComponent>(
       ComponentTypes.MirrorNode,
-      componentName,
+      componentId,
     );
 
-    expect(mirrorNodes[componentName].toObject()).to.deep.equal(mirrorNodeComponent.toObject());
+    expect(mirrorNodes[componentId].toObject()).to.deep.equal(mirrorNodeComponent.toObject());
   });
 
   it("should fail if trying to get component that doesn't exist with .getComponent()", () => {
@@ -233,11 +233,11 @@ describe('ComponentsDataWrapper', () => {
       wrapper: {componentsDataWrapper},
     } = createComponentsDataWrapper();
 
-    const notFoundComponentName: ComponentName = 'not_found';
+    const notFoundComponentId: ComponentId = 9;
     const type: ComponentTypes = ComponentTypes.MirrorNode;
 
-    expect(() => componentsDataWrapper.getComponent<MirrorNodeComponent>(type, notFoundComponentName)).to.throw(
-      `Component ${notFoundComponentName} of type ${type} not found while attempting to read`,
+    expect(() => componentsDataWrapper.getComponent<MirrorNodeComponent>(type, notFoundComponentId)).to.throw(
+      `Component ${notFoundComponentId} of type ${type} not found while attempting to read`,
     );
   });
 
@@ -252,7 +252,7 @@ describe('ComponentsDataWrapper', () => {
       componentsDataWrapper.getComponentsByClusterReference<MirrorNodeComponent>(ComponentTypes.MirrorNode, cluster);
 
     for (const mirrorNodeComponent of mirrorNodeComponents) {
-      expect(mirrorNodeComponent.toObject()).to.deep.equal(mirrorNodes[mirrorNodeComponent.name].toObject());
+      expect(mirrorNodeComponent.toObject()).to.deep.equal(mirrorNodes[mirrorNodeComponent.id].toObject());
       expect(mirrorNodeComponent.cluster).to.equal(cluster);
     }
 

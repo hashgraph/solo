@@ -46,7 +46,7 @@ export class ChartManager {
       }
 
       return await Promise.all(promises); // urls
-    } catch (error: Error | any) {
+    } catch (error) {
       throw new SoloError(`failed to setup chart repositories: ${error.message}`, error);
     }
   }

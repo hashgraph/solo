@@ -2,6 +2,7 @@
 
 import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
+
 import {RemoteConfigValidator} from '../../../../src/core/config/remote/remote-config-validator.js';
 import {ComponentsDataWrapper} from '../../../../src/core/config/remote/components-data-wrapper.js';
 import {SoloError} from '../../../../src/core/errors/solo-error.js';
@@ -11,8 +12,7 @@ import {type MirrorNodeComponent} from '../../../../src/core/config/remote/compo
 import {type ConsensusNodeComponent} from '../../../../src/core/config/remote/components/consensus-node-component.js';
 import {type MirrorNodeExplorerComponent} from '../../../../src/core/config/remote/components/mirror-node-explorer-component.js';
 import {type EnvoyProxyComponent} from '../../../../src/core/config/remote/components/envoy-proxy-component.js';
-
-import {type NodeAlias, type NodeAliases} from '../../../../src/types/aliases.js';
+import {type NodeId} from '../../../../src/types/aliases.js';
 import {container} from 'tsyringe-neo';
 import {NamespaceName} from '../../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {PodReference} from '../../../../src/integration/kube/resources/pod/pod-reference.js';
@@ -24,7 +24,7 @@ import {LocalConfig} from '../../../../src/core/config/local/local-config.js';
 import {getTestCacheDirectory} from '../../../test-utility.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {LocalConfigDataWrapper} from '../../../../src/core/config/local/local-config-data-wrapper.js';
-import {type ClusterReference, type ComponentName} from '../../../../src/core/config/remote/types.js';
+import {type ClusterReference, type ComponentId} from '../../../../src/core/config/remote/types.js';
 import {ComponentFactory} from '../../../../src/core/config/remote/components/component-factory.js';
 import {type BaseComponent} from '../../../../src/core/config/remote/components/base-component.js';
 import {DeploymentPhase} from '../../../../src/data/schema/model/remote/deployment-phase.js';
@@ -59,25 +59,15 @@ function prepareComponentsData(namespace: NamespaceName): ComponentsData {
 
   const clusterReference: ClusterReference = 'cluster';
   const nodeState: DeploymentPhase = DeploymentPhase.STARTED;
-  const nodeAlias: NodeAlias = 'node1';
+  const nodeId: NodeId = 0;
 
   const components: ComponentsRecord = {
     explorer: ComponentFactory.createNewExplorerComponent(remoteConfigManagerMock, clusterReference, namespace),
     mirrorNode: ComponentFactory.createNewMirrorNodeComponent(remoteConfigManagerMock, clusterReference, namespace),
     relay: ComponentFactory.createNewRelayComponent(remoteConfigManagerMock, clusterReference, namespace, [0]),
-    consensusNode: ComponentFactory.createNewConsensusNodeComponent(nodeAlias, clusterReference, namespace, nodeState),
-    haProxy: ComponentFactory.createNewHaProxyComponent(
-      remoteConfigManagerMock,
-      clusterReference,
-      namespace,
-      nodeAlias,
-    ),
-    envoyProxy: ComponentFactory.createNewEnvoyProxyComponent(
-      remoteConfigManagerMock,
-      clusterReference,
-      namespace,
-      nodeAlias,
-    ),
+    consensusNode: ComponentFactory.createNewConsensusNodeComponent(nodeId, clusterReference, namespace, nodeState),
+    haProxy: ComponentFactory.createNewHaProxyComponent(remoteConfigManagerMock, clusterReference, namespace),
+    envoyProxy: ComponentFactory.createNewEnvoyProxyComponent(remoteConfigManagerMock, clusterReference, namespace),
   };
 
   const labelRecord: LabelRecord = {
@@ -189,7 +179,8 @@ describe('RemoteConfigValidator', () => {
       it('should succeed if component is present', async () => {
         const component: BaseComponent = components[componentKey];
 
-        await createPod(component.name, labelRecord[componentKey]);
+        // TODO:
+        await createPod(component.id.toString(), labelRecord[componentKey]);
 
         await RemoteConfigValidator.validateComponents(namespace, componentsDataWrapper, k8Factory, localConfig, false);
       });
@@ -200,17 +191,17 @@ describe('RemoteConfigValidator', () => {
     it('Should not validate consensus nodes if skipConsensusNodes is enabled', async () => {
       const skipConsensusNodes: boolean = true;
 
-      const nodeAliases: NodeAliases = ['node1', 'node2', 'node3'];
+      const nodeIds: NodeId[] = [0, 1, 2];
 
-      const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> =
-        ComponentFactory.createConsensusNodeComponentsFromNodeIds(nodeAliases, 'cluster-ref', namespace);
+      const consensusNodeComponents: Record<ComponentId, ConsensusNodeComponent> =
+        ComponentFactory.createConsensusNodeComponentsFromNodeIds(nodeIds, 'cluster-ref', namespace);
 
       const componentsDataWrapper: ComponentsDataWrapper =
         ComponentsDataWrapper.initializeWithNodes(consensusNodeComponents);
 
-      for (const nodeAlias of nodeAliases) {
+      for (const nodeId of nodeIds) {
         // Make sure the status is STARTED
-        componentsDataWrapper.changeNodePhase(nodeAlias, DeploymentPhase.STARTED);
+        componentsDataWrapper.changeNodePhase(nodeId, DeploymentPhase.STARTED);
       }
 
       await RemoteConfigValidator.validateComponents(
@@ -226,16 +217,16 @@ describe('RemoteConfigValidator', () => {
 
     for (const nodeState of nodeStates) {
       it(`Should not validate consensus nodes if status is ${nodeState} `, async () => {
-        const nodeAliases: NodeAliases = ['node1', 'node2', 'node3'];
+        const nodeIds: NodeId[] = [0, 1, 2];
 
-        const consensusNodeComponents: Record<ComponentName, ConsensusNodeComponent> =
-          ComponentFactory.createConsensusNodeComponentsFromNodeIds(nodeAliases, 'cluster-ref', namespace);
+        const consensusNodeComponents: Record<ComponentId, ConsensusNodeComponent> =
+          ComponentFactory.createConsensusNodeComponentsFromNodeIds(nodeIds, 'cluster-ref', namespace);
 
         const componentsDataWrapper: ComponentsDataWrapper =
           ComponentsDataWrapper.initializeWithNodes(consensusNodeComponents);
 
-        for (const nodeAlias of nodeAliases) {
-          componentsDataWrapper.changeNodePhase(nodeAlias, nodeState);
+        for (const nodeId of nodeIds) {
+          componentsDataWrapper.changeNodePhase(nodeId, nodeState);
         }
 
         await RemoteConfigValidator.validateComponents(namespace, componentsDataWrapper, k8Factory, localConfig, false);

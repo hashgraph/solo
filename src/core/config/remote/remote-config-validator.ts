@@ -33,8 +33,8 @@ export class RemoteConfigValidator {
   }
 
   private static getEnvoyProxyLabels(component: BaseComponent): string[] {
-    const nodeAlias: NodeAlias = Templates.renderNodeAliasFromNumber(component.id + 1); // TODO
-    return [`app=envoy-${nodeAlias}`, 'solo.hedera.com/type=envoy-proxy'];
+    const nodeAlias: NodeAlias = Templates.renderNodeAliasFromNumber(component.id + 1);
+    return [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=envoy-proxy'];
   }
 
   private static getMirrorNodeExplorerLabels(): string[] {
