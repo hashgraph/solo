@@ -6,6 +6,10 @@ import {type ObjectStorageBackend} from '../api/object-storage-backend.js';
 import {StorageBackendError} from '../api/storage-backend-error.js';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
 
+/**
+ * YamlConfigMapStorageBackend is a storage backend that uses a {@link ConfigMap} to store data.
+ * The key will be the name of the property within the data object within the ConfigMap.
+ */
 export class YamlConfigMapStorageBackend extends ConfigMapStorageBackend implements ObjectStorageBackend {
   public async readObject(key: string): Promise<object> {
     const data: Buffer = await this.readBytes(key);
