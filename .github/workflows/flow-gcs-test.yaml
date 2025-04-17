@@ -129,7 +129,7 @@ jobs:
           .github/workflows/script/gcs_test.sh
 
       - name: Delete Test Directory after Test
-        # use always() to make sure bucket is deleted even if the test fails
+        # use always() to make sure bucket is deleted even if the test failed
         if: always()
         run: |
           gcloud storage rm --recursive gs://${BUCKET_NAME}/${{ steps.jobs.outputs.job_id }} --project=${{ vars.GCP_S3_PROJECT_ID }}

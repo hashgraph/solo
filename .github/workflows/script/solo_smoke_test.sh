@@ -158,7 +158,6 @@ echo "Sleep a while to wait background transactions to finish"
 sleep 30
 
 echo "Run mirror node acceptance test"
-
 helm test mirror -n solo-e2e --timeout 10m
 check_monitor_log
 check_importer_log
