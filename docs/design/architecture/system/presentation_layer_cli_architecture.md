@@ -511,9 +511,9 @@ operations associated with each resource.
 
 | Operation Name     | Command Syntax   | Description |
 |--------------------|------------------|-------------|
-| **Init**           | `init`           | Initializes system-level accounts and staking setup. |
-| **Accounts Rekey** | `accounts-rekey` | Rekeys critical system accounts using newly generated keys. |
-| **Staking Setup**  | `staking-setup`  | Configures staking parameters for the ledger. |
+| **Init**           | `init`           | Rekeys system accounts and stake consensus nodes. |
+| **Accounts Rekey** | `accounts-rekey` | Rekeys system accounts using newly generated keys. |
+| **Staking Setup**  | `staking-setup`  | Stake consensus nodes. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
