@@ -35,7 +35,7 @@ export class HelmExecutionException extends Error {
    * @param stdOut The standard output of the Helm executable
    * @param stdErr The standard error of the Helm executable
    */
-  constructor(exitCode: number, stdOut: string, stdErr: string);
+  constructor(exitCode: number, stdOut: string, stdError: string);
   /**
    * Constructs a new exception instance with the specified exit code, message, stdOut, and stdErr.
    * @param exitCode The exit code returned by the Helm executable or the operating system
@@ -43,7 +43,7 @@ export class HelmExecutionException extends Error {
    * @param stdOut The standard output of the Helm executable
    * @param stdErr The standard error of the Helm executable
    */
-  constructor(exitCode: number, message: string, stdOut: string, stdErr: string);
+  constructor(exitCode: number, message: string, stdOut: string, stdError: string);
   /**
    * Constructs a new exception instance with the specified exit code and cause using the default message.
    * @param exitCode The exit code returned by the Helm executable or the operating system
@@ -61,34 +61,34 @@ export class HelmExecutionException extends Error {
   constructor(
     exitCode: number,
     messageOrStdOutOrCause?: string | Error,
-    stdErrOrCause?: string | Error,
-    stdErrParam?: string,
+    stdErrorOrCause?: string | Error,
+    stdErrorParameter?: string,
   ) {
     let message: string;
     let cause: Error | undefined;
     let stdOut = '';
-    let stdErr = '';
+    let stdError = '';
 
     if (messageOrStdOutOrCause instanceof Error) {
       // Constructor with exitCode and cause
       message = HelmExecutionException.DEFAULT_MESSAGE.replace('%d', exitCode.toString());
       cause = messageOrStdOutOrCause;
     } else if (typeof messageOrStdOutOrCause === 'string') {
-      if (stdErrOrCause instanceof Error) {
+      if (stdErrorOrCause instanceof Error) {
         // Constructor with exitCode, message, and cause
         message = messageOrStdOutOrCause;
-        cause = stdErrOrCause;
-      } else if (typeof stdErrOrCause === 'string') {
-        if (stdErrParam) {
+        cause = stdErrorOrCause;
+      } else if (typeof stdErrorOrCause === 'string') {
+        if (stdErrorParameter) {
           // Constructor with exitCode, message, stdOut, and stdErr
           message = messageOrStdOutOrCause;
-          stdOut = stdErrOrCause;
-          stdErr = stdErrParam;
+          stdOut = stdErrorOrCause;
+          stdError = stdErrorParameter;
         } else {
           // Constructor with exitCode, stdOut, and stdErr
           message = HelmExecutionException.DEFAULT_MESSAGE.replace('%d', exitCode.toString());
           stdOut = messageOrStdOutOrCause;
-          stdErr = stdErrOrCause;
+          stdError = stdErrorOrCause;
         }
       } else {
         // Constructor with just exitCode
@@ -103,7 +103,7 @@ export class HelmExecutionException extends Error {
     this.name = 'HelmExecutionException';
     this.exitCode = exitCode;
     this.stdOut = stdOut;
-    this.stdErr = stdErr;
+    this.stdErr = stdError;
     if (cause) {
       this.cause = cause;
     }
@@ -137,7 +137,7 @@ export class HelmExecutionException extends Error {
    * Returns a string representation of the exception.
    * @returns A string representation of the exception
    */
-  toString(): string {
+  override toString(): string {
     return `HelmExecutionException{message=${this.message}, exitCode=${this.getExitCode()}, stdOut='${this.getStdOut()}', stdErr='${this.getStdErr()}'}`;
   }
 }

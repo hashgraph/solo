@@ -2,6 +2,8 @@
 # This script creates a zip file so that it can be copied out of the pod for research purposes
 set -o pipefail
 
+readonly chipType="${2}"
+
 readonly HAPI_DIR=/opt/hgcapp/services-hedera/HapiApp2.0
 readonly DATA_DIR=data
 readonly RESEARCH_ZIP=${HOSTNAME}.zip
@@ -49,10 +51,14 @@ AddToFileList ${CONFIG_DIR}
 AddToFileList ${KEYS_DIR}
 AddToFileList ${UPGRADE_DIR}
 echo "creating zip file" | tee -a ${LOG_FILE}
-#jar cvfM "${ZIP_FULLPATH}" "@${FILE_LIST}"
-dnf install zip -y | tee -a ${LOG_FILE}
-zip "${ZIP_FULLPATH}" -@ < "${FILE_LIST}" | tee -a ${LOG_FILE}
+if [[ "$chipType" =~ "M4" ]]; then
+  echo "Using unzip for M4 chip" | tee -a ${LOG_FILE}
+  zip -v "${ZIP_FULLPATH}" -@ < "${FILE_LIST}"
+  zip -v -u "${ZIP_FULLPATH}" "${OUTPUT_DIR}/support-zip.log"
+else
+  jar cvfM "${ZIP_FULLPATH}" "@${FILE_LIST}"
+  jar -u -v --file=${ZIP_FULLPATH} ${OUTPUT_DIR}/support-zip.log
+fi
 echo "...end support-zip.sh" | tee -a ${LOG_FILE}
-#jar -u -v --file=${ZIP_FULLPATH} ${OUTPUT_DIR}/support-zip.log
-zip -u -v "${ZIP_FULLPATH}" ${OUTPUT_DIR}/support-zip.log
+
 exit 0

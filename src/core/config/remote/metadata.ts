@@ -134,7 +134,9 @@ export class RemoteConfigMetadata
       soloVersion: this.soloVersion,
     } as RemoteConfigMetadataStructure;
 
-    if (this.migration) data.migration = this.migration.toObject();
+    if (this.migration) {
+      data.migration = this.migration.toObject();
+    }
 
     return data;
   }

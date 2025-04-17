@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
 export type ClassConstructor<T> = {
-  new (...args: unknown[]): T;
+  new (...arguments_: unknown[]): T;
 };

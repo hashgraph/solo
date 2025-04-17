@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import os from 'os';
+import os from 'node:os';
 import {SoloError} from '../errors/solo-error.js';
 import {ShellRunner} from '../shell-runner.js';
 import {HelmDependencyManager} from './helm-dependency-manager.js';
@@ -15,11 +15,9 @@ export class DependencyManager extends ShellRunner {
 
   constructor(@inject(InjectTokens.HelmDependencyManager) helmDepManager?: HelmDependencyManager) {
     super();
-    if (helmDepManager) {
-      this.depManagerMap = new Map().set(constants.HELM, helmDepManager);
-    } else {
-      this.depManagerMap = new Map().set(constants.HELM, container.resolve(HelmDependencyManager));
-    }
+    this.depManagerMap = helmDepManager
+      ? new Map().set(constants.HELM, helmDepManager)
+      : new Map().set(constants.HELM, container.resolve(HelmDependencyManager));
   }
 
   /**

@@ -33,14 +33,14 @@ export class NodeCommand extends BaseCommand {
   /**
    * stops and closes the port forwards
    * - calls the accountManager.close()
-   * - for all portForwards, calls k8Factory.default().pods().readByRef(null).stopPortForward(srv)
+   * - for all portForwards, calls k8Factory.default().pods().readByReference(null).stopPortForward(srv)
    */
   public async close(): Promise<void> {
     await this.accountManager.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
-        // pass null to readByRef because it isn't needed for stopPortForward()
-        await this.k8Factory.default().pods().readByRef(null).stopPortForward(srv);
+        // pass null to readByReference because it isn't needed for stopPortForward()
+        await this.k8Factory.default().pods().readByReference(null).stopPortForward(srv);
       }
     }
 

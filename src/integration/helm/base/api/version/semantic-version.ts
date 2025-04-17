@@ -16,9 +16,9 @@ export class SemanticVersion {
    */
   private static readonly SEMVER_PATTERN = new RegExp(
     '^' +
-      '((\\d+)\\.(\\d+)\\.(\\d+))' + // version string
-      '(?:-([\\dA-Za-z]+(?:\\.[\\dA-Za-z]+)*))?' + // prerelease suffix (optional)
-      '(?:\\+([\\dA-Za-z\\-]+(?:\\.[\\dA-Za-z\\-]+)*))?' + // build suffix (optional)
+      String.raw`((\d+)\.(\d+)\.(\d+))` + // version string
+      String.raw`(?:-([\dA-Za-z]+(?:\.[\dA-Za-z]+)*))?` + // prerelease suffix (optional)
+      String.raw`(?:\+([\dA-Za-z\-]+(?:\.[\dA-Za-z\-]+)*))?` + // build suffix (optional)
       '$',
   );
 
@@ -82,17 +82,17 @@ export class SemanticVersion {
     }
 
     try {
-      const major = parseInt(matcher[2], 10);
-      const minor = parseInt(matcher[3], 10);
-      const patch = parseInt(matcher[4], 10);
+      const major = Number.parseInt(matcher[2], 10);
+      const minor = Number.parseInt(matcher[3], 10);
+      const patch = Number.parseInt(matcher[4], 10);
       const prerelease = SemanticVersion.nullToBlank(matcher[5]);
       const build = SemanticVersion.nullToBlank(matcher[6]);
 
       return new SemanticVersion(major, minor, patch, prerelease, build);
-    } catch (e) {
+    } catch (error) {
       throw new InvalidSemanticVersionException(
         `The supplied version '${version}' is not a valid semantic version`,
-        e as Error,
+        error as Error,
       );
     }
   }
@@ -156,15 +156,19 @@ export class SemanticVersion {
    * @param obj the object to compare with
    * @returns true if the objects are equal, false otherwise
    */
-  public equals(obj: unknown): boolean {
-    if (this === obj) return true;
-    if (!(obj instanceof SemanticVersion)) return false;
+  public equals(object: unknown): boolean {
+    if (this === object) {
+      return true;
+    }
+    if (!(object instanceof SemanticVersion)) {
+      return false;
+    }
     return (
-      this._major === obj._major &&
-      this._minor === obj._minor &&
-      this._patch === obj._patch &&
-      this._prerelease === obj._prerelease &&
-      this._build === obj._build
+      this._major === object._major &&
+      this._minor === object._minor &&
+      this._patch === object._patch &&
+      this._prerelease === object._prerelease &&
+      this._build === object._build
     );
   }
 
@@ -193,8 +197,8 @@ export class SemanticVersion {
    * @param str the string to check
    * @returns the string or blank if null/undefined
    */
-  private static nullToBlank(str: string | null | undefined): string {
-    return str ?? '';
+  private static nullToBlank(string_: string | null | undefined): string {
+    return string_ ?? '';
   }
 
   /**
@@ -205,7 +209,9 @@ export class SemanticVersion {
    * @returns comparison result
    */
   private compareStrings(a: string, b: string): number {
-    if (a === b) return 0;
+    if (a === b) {
+      return 0;
+    }
     return a < b ? -1 : 1;
   }
 }

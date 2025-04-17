@@ -4,7 +4,6 @@ import {type Schema} from './schema.js';
 import {type SchemaMigration} from './schema-migration.js';
 import {Version} from '../../../../business/utils/version.js';
 import {type ClassConstructor} from '../../../../business/utils/class-constructor.type.js';
-import deepClone from 'deep-clone';
 import {type ObjectMapper} from '../../../mapper/api/object-mapper.js';
 import {SchemaValidationError} from './schema-validation-error.js';
 
@@ -21,7 +20,7 @@ export abstract class SchemaBase<T> implements Schema<T> {
       return null;
     }
 
-    const clone = deepClone(data);
+    const clone: any = structuredClone(data);
     let dataVersion: number = clone.schemaVersion;
     if (!dataVersion) {
       dataVersion = sourceVersion ? sourceVersion.value : 0;
@@ -38,16 +37,16 @@ export abstract class SchemaBase<T> implements Schema<T> {
 
     const versionJumps: number[] = this.migrations.map(value => value.version.value).sort();
 
-    for (let i = 1; i < versionJumps.length; i++) {
-      if (versionJumps[i] === versionJumps[i - 1]) {
-        throw new SchemaValidationError(`Duplicate migration version '${versionJumps[i]}'`);
+    for (let index = 1; index < versionJumps.length; index++) {
+      if (versionJumps[index] === versionJumps[index - 1]) {
+        throw new SchemaValidationError(`Duplicate migration version '${versionJumps[index]}'`);
       }
     }
 
     let currentVersion: Version<number> = this.nextVersionJump(new Version(0));
 
-    for (let i = 0; i < versionJumps.length; i++) {
-      const v: Version<number> = new Version(versionJumps[i]);
+    for (const versionJump of versionJumps) {
+      const v: Version<number> = new Version(versionJump);
       if (!v.equals(currentVersion)) {
         throw new SchemaValidationError(
           `Invalid migration version sequence detected; expected version '${v.value}' but got '${currentVersion.value}'`,

@@ -58,12 +58,12 @@ defaults:
 
 jobs:
   # Build job
-  Build:
+  build:
+    name: Build
     runs-on: solo-linux-medium
-
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
         with:
           egress-policy: audit
 
@@ -78,7 +78,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
 
@@ -103,7 +103,7 @@ jobs:
       # Upload the built site to GitHub Pages
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
-        if: ${{ endsWith(github.ref, 'main') }}
+        if: ${{ endsWith(github.ref, 'nonExisting') }}
         with:
           path: ./docs/site/public
 
@@ -115,16 +115,18 @@ jobs:
           path: ./docs/site/public
 
   # Deployment job
-  Deploy:
-    if: ${{ endsWith(github.ref, 'main') }}
+  deploy:
+    name: Deploy
+    runs-on: solo-linux-medium
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: solo-linux-medium
-    needs: Build
+    needs:
+      - build
+    if: ${{ endsWith(github.ref, 'nonExisting') }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
         with:
           egress-policy: audit
 

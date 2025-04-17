@@ -7,10 +7,10 @@ silent: false
 env:
   HUGO_ENVIRONMENT: production
   HUGO_ENV: production
-  HUGO_BASE_URL: https://hashgraph.github.io/solo
-  HUGO_ORIGIN: https://hashgraph.github.io
-  HUGO_HOST: hashgraph.github.io
-  HUGO_BASEPATH: /solo
+  HUGO_BASE_URL: https://solo.hiero.org/
+  HUGO_ORIGIN: https://solo.hiero.org
+  HUGO_HOST: solo.hiero.org
+  HUGO_BASEPATH: /
 
 tasks:
   default:
@@ -18,7 +18,7 @@ tasks:
       - task: "check-doc-dir"
       - task: "clean"
       - task: "install"
-      - task: "build"
+      - task: "build:all"
 
   start:
     cmds:
@@ -46,18 +46,24 @@ tasks:
       - rm -Rf themes
       - rm -f .hugo_build.lock
 
-  build:
+  build:all:
     cmds:
       - task: "build:typedoc"
       - task: "build:copy"
       - task: "build:help"
       - task: "build:hugo"
 
+  build:
+    cmds:
+      - rm -Rf dist
+      - npx tsc
+      - node {{.TASKFILE_DIR}}/../../resources/post-build-script.js
+
   build:help:
     dir: ../..
     cmds:
       - chmod 755 docs/site/generate_help.sh
-      - npm run build
+      - task: "build"
       - docs/site/generate_help.sh
 
   build:hugo:

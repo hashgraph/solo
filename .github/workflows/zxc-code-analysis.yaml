@@ -70,11 +70,6 @@ on:
         type: string
         required: false
         default: "e2e-standard"
-      e2e-mirror-node-test-subdir:
-        description: "E2E Mirror Node Test Subdirectory:"
-        type: string
-        required: false
-        default: "e2e-mirror-node"
       e2e-node-pem-stop-test-subdir:
         description: "E2E Node PEM Stop Test Subdirectory:"
         type: string
@@ -160,11 +155,6 @@ on:
         type: string
         required: false
         default: "E2E Standard Tests Coverage Report"
-      e2e-mirror-node-coverage-report:
-        description: "E2E Mirror Node Coverage Report:"
-        type: string
-        required: false
-        default: "E2E Mirror Node Tests Coverage Report"
       e2e-node-pem-stop-coverage-report:
         description: "E2E Node PEM Stop Coverage Report:"
         type: string
@@ -263,7 +253,7 @@ jobs:
     runs-on: solo-linux-medium
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
         with:
           egress-policy: audit
 
@@ -274,7 +264,7 @@ jobs:
           fetch-depth: ${{ inputs.enable-sonar-analysis && '0' || '' }}
 
       - name: Setup Node
-        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: ${{ inputs.node-version }}
 
@@ -312,13 +302,6 @@ jobs:
         with:
           name: ${{ inputs.e2e-standard-coverage-report }}
           path: 'coverage/${{ inputs.e2e-standard-test-subdir }}'
-
-      - name: Download E2E Mirror Node Coverage Report
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
-        if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
-        with:
-          name: ${{ inputs.e2e-mirror-node-coverage-report }}
-          path: 'coverage/${{ inputs.e2e-mirror-node-test-subdir }}'
 
       - name: Download E2E Node PEM Stop Coverage Report
         uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
@@ -426,7 +409,7 @@ jobs:
           path: "e2e_test_report"
 
       - name: Publish E2E Test Report
-        uses: EnricoMi/publish-unit-test-result-action@170bf24d20d201b842d7a52403b73ed297e6645b # v2.18.0
+        uses: step-security/publish-unit-test-result-action@cc82caac074385ae176d39d2d143ad05e1130b2d # v2.18.0
         if: ${{ (inputs.enable-codecov-analysis || inputs.enable-codacy-coverage) && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
         with:
           check_name: "E2E Test Report"

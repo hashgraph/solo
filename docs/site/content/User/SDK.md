@@ -7,6 +7,7 @@ Then we start with launching a local Solo network with the following commands:
 
 ```bash
 # launch a local Solo network with mirror node and hedera explorer
+cd examples
 task default-with-mirror
 ```
 

@@ -2,7 +2,7 @@
 
 import {type NodeId} from '../../types/aliases.js';
 import {type ServiceEndpoint} from '../../types/index.js';
-import {isIPv4Address} from '../helpers.js';
+import {ipv4ToBase64, isIPv4Address} from '../helpers.js';
 
 export abstract class GenesisNetworkDataWrapper {
   public gossipEndpoint: ServiceEndpoint[] = [];
@@ -20,7 +20,7 @@ export abstract class GenesisNetworkDataWrapper {
     this.gossipEndpoint.push({
       domainName: isIpV4Address ? '' : address,
       port,
-      ipAddressV4: isIpV4Address ? address : '',
+      ipAddressV4: isIpV4Address ? ipv4ToBase64(address) : undefined,
     });
   }
 }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import fs from 'fs';
+import fs from 'node:fs';
 import * as yaml from 'yaml';
 import {MissingArgumentError} from '../../errors/missing-argument-error.js';
 import {SoloError} from '../../errors/solo-error.js';
@@ -10,7 +10,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../dependency-injection/container-helper.js';
 import {InjectTokens} from '../../dependency-injection/inject-tokens.js';
 import {LocalConfigDataWrapper} from './local-config-data-wrapper.js';
-import {type ClusterRefs, type EmailAddress, type Version} from '../remote/types.js';
+import {type ClusterReferences, type EmailAddress, type Version} from '../remote/types.js';
 import {type Deployments} from './local-config-data.js';
 
 @injectable()
@@ -24,7 +24,9 @@ export class LocalConfig {
     this.filePath = patchInject(filePath, InjectTokens.LocalConfigFilePath, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
 
-    if (!this.filePath || this.filePath === '') throw new MissingArgumentError('a valid filePath is required');
+    if (!this.filePath || this.filePath === '') {
+      throw new MissingArgumentError('a valid filePath is required');
+    }
 
     if (this.configFileExists()) {
       const fileContent = fs.readFileSync(filePath, 'utf8');
@@ -51,7 +53,9 @@ export class LocalConfig {
    * @throws SoloError if the config is not loaded
    */
   public get userEmailAddress(): EmailAddress {
-    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
+    if (!this.isLoaded()) {
+      throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
+    }
     return this.localConfigData.userEmailAddress;
   }
 
@@ -60,7 +64,9 @@ export class LocalConfig {
    * @throws SoloError if the config is not loaded
    */
   public get soloVersion(): Version {
-    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
+    if (!this.isLoaded()) {
+      throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
+    }
     return this.localConfigData.soloVersion;
   }
 
@@ -69,7 +75,9 @@ export class LocalConfig {
    * @throws SoloError if the config is not loaded
    */
   public get deployments(): Readonly<Deployments> {
-    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
+    if (!this.isLoaded()) {
+      throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
+    }
     return this.localConfigData.deployments;
   }
 
@@ -77,8 +85,10 @@ export class LocalConfig {
    * @returns the cluster refs mapping from the local config data if it's loaded
    * @throws SoloError if the config is not loaded
    */
-  public get clusterRefs(): Readonly<ClusterRefs> {
-    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
+  public get clusterRefs(): Readonly<ClusterReferences> {
+    if (!this.isLoaded()) {
+      throw new SoloError(ErrorMessages.LOCAL_CONFIG_READING_BEFORE_LOADING);
+    }
     return this.localConfigData.clusterRefs;
   }
 
@@ -91,7 +101,9 @@ export class LocalConfig {
    * @throws SoloError if the local config is not loaded prior to modifying.
    */
   public async modify(callback: (config: LocalConfigDataWrapper) => Promise<void>): Promise<void> {
-    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_MODIFY_BEFORE_LOADING);
+    if (!this.isLoaded()) {
+      throw new SoloError(ErrorMessages.LOCAL_CONFIG_MODIFY_BEFORE_LOADING);
+    }
 
     await callback(this.localConfigData);
 
@@ -113,7 +125,9 @@ export class LocalConfig {
    * @throws SoloError
    */
   private async write(): Promise<void> {
-    if (!this.isLoaded()) throw new SoloError(ErrorMessages.LOCAL_CONFIG_WRITING_BEFORE_LOADING);
+    if (!this.isLoaded()) {
+      throw new SoloError(ErrorMessages.LOCAL_CONFIG_WRITING_BEFORE_LOADING);
+    }
 
     const yamlContent = yaml.stringify(this.localConfigData.toObject());
 

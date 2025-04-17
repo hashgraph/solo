@@ -1,8 +1,17 @@
 version: 3
 includes:
-  helper:
-    taskfile: ./Taskfile.helper.yml
+  tests:
+    taskfile: ./Taskfile.tests.yml
     flatten: true
+vars:
+  cross_env: npx cross-env
+  mocha_bin: npx mocha
+  c8_bin: npx c8
+
+  test_prefix: "{{ .cross_env }} MOCHA_SUITE_NAME"
+  reporter_prefix: "{{ .c8_bin }} --report-dir"
+  reporter_options_prefix: --reporter-options configFile=mocha-multi-reporter.json,cmrOutput=mocha-junit-reporter+mochaFile+junit
+
 env:
   SOLO_NETWORK_SIZE: 1
   SOLO_NAMESPACE: solo-e2e
@@ -22,39 +31,26 @@ env:
   EXPLORER_NAME_SPACE: "explorer-name-space"
   EXPLORER_DEPLOYMENT: "explorer-deployment"
   EXPLORER_CLUSTER_CONTEXT: "kind-solo-cluster"
-vars:
-  use_port_forwards: "true"
 
 tasks:
-  default:
-    silent: true
-    desc: install Solo, create a kind cluster, deploy the network, set it up, and start it
-    deps:
-      - task: "init"
+  check:
     cmds:
-      - echo "This command is meant to deploy a Solo network to a Kind cluster on your local machine, "
-      - echo "ctrl-c if this is not what you want to do."
-      - sleep 5
-      - task: "install"
-      - task: "start"
+      - npx remark . --quiet --frail
+      - npx eslint . | tee eslint.log && npx tsx lint-formatter.ts eslint.log
+      - npx tsc
+      - npx madge --circular {{.TASKFILE_DIR}}/src/*
+      - npx typedoc --emit none
 
-  install:
-    desc: create the cluster, solo init, solo cluster-ref create, solo node keys, solo network deploy
-    deps:
-      - task: "init"
+  format:
     cmds:
-      - task: "cluster:create"
-      - task: "solo:init"
-      - task: "solo:cluster:setup"
-      - task: "solo:cluster-ref:connect"
-      - task: "solo:deployment:create"
-      - task: "solo:deployment:add-cluster"
-      - task: "solo:keys"
-      - task: "solo:network:deploy"
+      - npx remark . --quiet --frail --output
+      - npx eslint --fix {{.TASKFILE_DIR}}
+      - npx tsc
+      - npx madge --circular {{.TASKFILE_DIR}}/src/*
+      - npx typedoc --emit none
 
-  destroy:
-    desc: destroy relay, mirror-node, and network
-    deps:
-      - task: "init"
+  build:
     cmds:
-      - task: "cluster:destroy"
+      - rm -Rf dist
+      - npx tsc
+      - node {{.TASKFILE_DIR}}/resources/post-build-script.js

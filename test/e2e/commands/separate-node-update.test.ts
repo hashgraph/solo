@@ -8,11 +8,11 @@ import * as constants from '../../../src/core/constants.js';
 import {
   accountCreationShouldSucceed,
   balanceQueryShouldSucceed,
-  e2eTestSuite,
+  endToEndTestSuite,
   getNodeAliasesPrivateKeysHash,
-  getTmpDir,
+  getTemporaryDirectory,
   HEDERA_PLATFORM_VERSION_TAG,
-} from '../../test-util.js';
+} from '../../test-utility.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {type NetworkNodes} from '../../../src/core/network-nodes.js';
@@ -44,7 +44,7 @@ argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.persistentVolumeClaims, true);
 
-e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
+endToEndTestSuite(namespace.name, argv, {}, bootstrapResp => {
   const {
     opts: {k8Factory, logger, remoteConfigManager, commandInvoker, accountManager, keyManager},
     cmd: {nodeCmd, accountCmd},
@@ -75,7 +75,11 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
         remoteConfigManager.getClusterRefs(),
         argv.getArg<DeploymentName>(flags.deployment),
       );
-      existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(existingServiceMap, k8Factory, getTmpDir());
+      existingNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
+        existingServiceMap,
+        k8Factory,
+        getTemporaryDirectory(),
+      );
     }).timeout(Duration.ofMinutes(8).toMillis());
 
     it('should succeed with init command', async () => {
@@ -89,26 +93,26 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
 
     it('should update a new node property successfully', async () => {
       // generate gossip and tls keys for the updated node
-      const tmpDir = getTmpDir();
+      const temporaryDirectory = getTemporaryDirectory();
 
       const signingKey = await keyManager.generateSigningKey(updateNodeId);
-      const signingKeyFiles = await keyManager.storeSigningKey(updateNodeId, signingKey, tmpDir);
+      const signingKeyFiles = await keyManager.storeSigningKey(updateNodeId, signingKey, temporaryDirectory);
       logger.debug(`generated test gossip signing keys for node ${updateNodeId} : ${signingKeyFiles.certificateFile}`);
       argv.setArg(flags.gossipPublicKey, signingKeyFiles.certificateFile);
       argv.setArg(flags.gossipPrivateKey, signingKeyFiles.privateKeyFile);
 
       const tlsKey = await keyManager.generateGrpcTlsKey(updateNodeId);
-      const tlsKeyFiles = await keyManager.storeTLSKey(updateNodeId, tlsKey, tmpDir);
+      const tlsKeyFiles = await keyManager.storeTLSKey(updateNodeId, tlsKey, temporaryDirectory);
       logger.debug(`generated test TLS keys for node ${updateNodeId} : ${tlsKeyFiles.certificateFile}`);
       argv.setArg(flags.tlsPublicKey, tlsKeyFiles.certificateFile);
       argv.setArg(flags.tlsPrivateKey, tlsKeyFiles.privateKeyFile);
 
-      const tempDir = 'contextDir';
+      const temporaryDirectory2 = 'contextDir';
       const argvPrepare = argv.clone();
-      argvPrepare.setArg(flags.outputDir, tempDir);
+      argvPrepare.setArg(flags.outputDir, temporaryDirectory2);
 
       const argvExecute = Argv.getDefaultArgv(namespace);
-      argvExecute.setArg(flags.inputDir, tempDir);
+      argvExecute.setArg(flags.inputDir, temporaryDirectory2);
 
       await commandInvoker.invoke({
         argv: argvPrepare,
@@ -142,7 +146,7 @@ e2eTestSuite(namespace.name, argv, {}, bootstrapResp => {
       const currentNodeIdsPrivateKeysHash = await getNodeAliasesPrivateKeysHash(
         existingServiceMap,
         k8Factory,
-        getTmpDir(),
+        getTemporaryDirectory(),
       );
 
       for (const [nodeAlias, existingKeyHashMap] of existingNodeIdsPrivateKeysHash.entries()) {

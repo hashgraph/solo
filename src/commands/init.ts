@@ -2,7 +2,7 @@
 
 import {Listr} from 'listr2';
 import {BaseCommand} from './base.js';
-import fs from 'fs';
+import fs from 'node:fs';
 import * as constants from '../core/constants.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {Flags as flags} from './flags.js';
@@ -28,9 +28,9 @@ export class InitCommand extends BaseCommand {
   async init(argv: any) {
     const self = this;
 
-    let cacheDir: string = this.configManager.getFlag<string>(flags.cacheDir) as string;
-    if (!cacheDir) {
-      cacheDir = constants.SOLO_CACHE_DIR as string;
+    let cacheDirectory: string = this.configManager.getFlag<string>(flags.cacheDir) as string;
+    if (!cacheDirectory) {
+      cacheDirectory = constants.SOLO_CACHE_DIR as string;
     }
 
     interface Config {
@@ -47,11 +47,11 @@ export class InitCommand extends BaseCommand {
       [
         {
           title: 'Setup home directory and cache',
-          task: ctx => {
+          task: context_ => {
             self.configManager.update(argv);
-            ctx.dirs = this.setupHomeDirectory();
+            context_.dirs = this.setupHomeDirectory();
 
-            ctx.config = {
+            context_.config = {
               userEmailAddress:
                 self.configManager.getFlag<EmailAddress>(flags.userEmailAddress) ||
                 flags.userEmailAddress.definition.defaultValue,
@@ -77,40 +77,42 @@ export class InitCommand extends BaseCommand {
         {
           title: 'Create local configuration',
           skip: () => this.localConfig.configFileExists(),
-          task: async (ctx, task): Promise<void> => {
-            const config = ctx.config;
+          task: async (context_, task): Promise<void> => {
+            const config = context_.config;
             await this.localConfig.create(config.userEmailAddress, getSoloVersion());
           },
         },
         {
           title: 'Setup chart manager',
-          task: async ctx => {
-            ctx.repoURLs = await this.chartManager.setup();
+          task: async context_ => {
+            context_.repoURLs = await this.chartManager.setup();
           },
         },
         {
-          title: `Copy templates in '${cacheDir}'`,
-          task: ctx => {
+          title: `Copy templates in '${cacheDirectory}'`,
+          task: context_ => {
             const resources = ['templates', 'profiles'];
-            for (const dirName of resources) {
-              const srcDir = PathEx.safeJoinWithBaseDirConfinement(
+            for (const directoryName of resources) {
+              const sourceDirectory = PathEx.safeJoinWithBaseDirConfinement(
                 constants.RESOURCES_DIR,
                 constants.RESOURCES_DIR,
-                dirName,
+                directoryName,
               );
-              if (!fs.existsSync(srcDir)) continue;
-
-              const destDir = PathEx.join(cacheDir, dirName);
-              if (!fs.existsSync(destDir)) {
-                fs.mkdirSync(destDir, {recursive: true});
+              if (!fs.existsSync(sourceDirectory)) {
+                continue;
               }
 
-              fs.cpSync(srcDir, destDir, {recursive: true});
+              const destinationDirectory = PathEx.join(cacheDirectory, directoryName);
+              if (!fs.existsSync(destinationDirectory)) {
+                fs.mkdirSync(destinationDirectory, {recursive: true});
+              }
+
+              fs.cpSync(sourceDirectory, destinationDirectory, {recursive: true});
             }
 
             if (argv.dev) {
-              self.logger.showList('Home Directories', ctx.dirs);
-              self.logger.showList('Chart Repository', ctx.repoURLs);
+              self.logger.showList('Home Directories', context_.dirs);
+              self.logger.showList('Chart Repository', context_.repoURLs);
             }
 
             self.logger.showUser(
@@ -136,8 +138,8 @@ export class InitCommand extends BaseCommand {
 
     try {
       await tasks.run();
-    } catch (e: Error | any) {
-      throw new SoloError('Error running init', e);
+    } catch (error: Error | any) {
+      throw new SoloError('Error running init', error);
     }
 
     return true;
@@ -160,10 +162,12 @@ export class InitCommand extends BaseCommand {
         await self
           .init(argv)
           .then(r => {
-            if (!r) throw new SoloError('Error running init, expected return value to be true');
+            if (!r) {
+              throw new SoloError('Error running init, expected return value to be true');
+            }
           })
-          .catch(err => {
-            throw new SoloError('Error running init', err);
+          .catch(error => {
+            throw new SoloError('Error running init', error);
           });
       },
     };

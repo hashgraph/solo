@@ -6,8 +6,8 @@ import {expect} from 'chai';
 import {after, before, describe, it} from 'mocha';
 import 'dotenv/config';
 
-import fs from 'fs';
-import os from 'os';
+import fs from 'node:fs';
+import os from 'node:os';
 import {Flags as flags} from '../src/commands/flags.js';
 import {ClusterCommand} from '../src/commands/cluster/index.js';
 import {InitCommand} from '../src/commands/init.js';
@@ -17,7 +17,7 @@ import {type DependencyManager} from '../src/core/dependency-managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {AccountBalanceQuery, AccountCreateTransaction, Hbar, HbarUnit, PrivateKey} from '@hashgraph/sdk';
 import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import {type AccountCommand} from '../src/commands/account.js';
 import {type SoloLogger} from '../src/core/logging/solo-logger.js';
 import {type NodeAlias} from '../src/types/aliases.js';
@@ -35,29 +35,31 @@ import {type ConfigManager} from '../src/core/config-manager.js';
 import {type ChartManager} from '../src/core/chart-manager.js';
 import {type PackageDownloader} from '../src/core/package-downloader.js';
 import {type KeyManager} from '../src/core/key-manager.js';
-import {HEDERA_PLATFORM_VERSION} from '../version.js';
+
 import {Duration} from '../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from './test-container.js';
 import {NamespaceName} from '../src/integration/kube/resources/namespace/namespace-name.js';
-import {PodRef} from '../src/integration/kube/resources/pod/pod-ref.js';
-import {ContainerRef} from '../src/integration/kube/resources/container/container-ref.js';
+import {PodReference} from '../src/integration/kube/resources/pod/pod-reference.js';
+import {ContainerReference} from '../src/integration/kube/resources/container/container-reference.js';
 import {type NetworkNodes} from '../src/core/network-nodes.js';
 import {InjectTokens} from '../src/core/dependency-injection/inject-tokens.js';
 import {DeploymentCommand} from '../src/commands/deployment.js';
 import {Argv} from './helpers/argv-wrapper.js';
-import {type ClusterRef, type DeploymentName, type NamespaceNameAsString} from '../src/core/config/remote/types.js';
+import {
+  type ClusterReference,
+  type DeploymentName,
+  type NamespaceNameAsString,
+} from '../src/core/config/remote/types.js';
 import {type CommandInvoker} from './helpers/command-invoker.js';
 import {PathEx} from '../src/business/utils/path-ex.js';
 import {type HelmClient} from '../src/integration/helm/helm-client.js';
 import {type NodeServiceMapping} from '../src/types/mappings/node-service-mapping.js';
 
-export const HEDERA_PLATFORM_VERSION_TAG = HEDERA_PLATFORM_VERSION;
-
 export const BASE_TEST_DIR = PathEx.join('test', 'data', 'tmp');
 
-export function getTestCluster(): ClusterRef {
-  const soloTestCluster: ClusterRef =
+export function getTestCluster(): ClusterReference {
+  const soloTestCluster: ClusterReference =
     process.env.SOLO_TEST_CLUSTER ||
     container.resolve<K8Factory>(InjectTokens.K8Factory).default().clusters().readCurrent() ||
     'solo-e2e';
@@ -69,7 +71,7 @@ export function getTestLogger() {
   return container.resolve<SoloLogger>(InjectTokens.SoloLogger);
 }
 
-export function getTestCacheDir(testName?: string) {
+export function getTestCacheDirectory(testName?: string) {
   const d = testName ? PathEx.join(BASE_TEST_DIR, testName) : BASE_TEST_DIR;
 
   if (!fs.existsSync(d)) {
@@ -78,11 +80,11 @@ export function getTestCacheDir(testName?: string) {
   return d;
 }
 
-export function getTmpDir() {
+export function getTemporaryDirectory() {
   return fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-'));
 }
 
-interface TestOpts {
+interface TestOptions {
   logger: SoloLogger;
   helm: HelmClient;
   k8Factory: K8Factory;
@@ -102,10 +104,10 @@ interface TestOpts {
   commandInvoker: CommandInvoker;
 }
 
-interface BootstrapResponse {
+export interface BootstrapResponse {
   deployment: string;
   namespace: NamespaceName;
-  opts: TestOpts;
+  opts: TestOptions;
   manager: {
     accountManager: AccountManager;
   };
@@ -143,7 +145,7 @@ export function bootstrapTestVariables(
   const namespace: NamespaceName = getTestNamespace(argv);
 
   const deployment: string = argv.getArg<DeploymentName>(flags.deployment) || `${namespace.name}-deployment`;
-  const cacheDir: string = argv.getArg<string>(flags.cacheDir) || getTestCacheDir(testName);
+  const cacheDirectory: string = argv.getArg<string>(flags.cacheDir) || getTestCacheDirectory(testName);
   const configManager: ConfigManager = container.resolve(InjectTokens.ConfigManager);
   configManager.update(argv.build());
 
@@ -163,7 +165,7 @@ export function bootstrapTestVariables(
   const testLogger: SoloLogger = getTestLogger();
   const commandInvoker = container.resolve(InjectTokens.CommandInvoker) as CommandInvoker;
 
-  const opts: TestOpts = {
+  const options: TestOptions = {
     logger: testLogger,
     helm,
     k8Factory,
@@ -174,7 +176,7 @@ export function bootstrapTestVariables(
     depManager,
     keyManager,
     accountManager,
-    cacheDir,
+    cacheDir: cacheDirectory,
     profileManager,
     leaseManager,
     certificateManager,
@@ -186,7 +188,7 @@ export function bootstrapTestVariables(
   return {
     namespace,
     deployment,
-    opts,
+    opts: options,
     manager: {
       accountManager,
     },
@@ -202,7 +204,7 @@ export function bootstrapTestVariables(
 }
 
 /** Bootstrap network in a given namespace, then run the test call back providing the bootstrap response */
-export function e2eTestSuite(
+export function endToEndTestSuite(
   testName: string,
   argv: Argv,
   {
@@ -394,8 +396,8 @@ export function balanceQueryShouldSucceed(
         .execute(accountManager._nodeClient);
 
       expect(balance.hbars).not.be.null;
-    } catch (e) {
-      logger.showUserError(e);
+    } catch (error) {
+      logger.showUserError(error);
       expect.fail();
     }
     await sleep(Duration.ofSeconds(1));
@@ -438,8 +440,8 @@ export function accountCreationShouldSucceed(
 
       expect(accountInfo.accountId).not.to.be.null;
       expect(accountInfo.balance).to.equal(amount);
-    } catch (e) {
-      logger.showUserError(e);
+    } catch (error) {
+      logger.showUserError(error);
       expect.fail();
     }
   }).timeout(Duration.ofMinutes(2).toMillis());
@@ -448,24 +450,24 @@ export function accountCreationShouldSucceed(
 export async function getNodeAliasesPrivateKeysHash(
   networkNodeServicesMap: NodeServiceMapping,
   k8Factory: K8Factory,
-  destDir: string,
+  destinationDirectory: string,
 ) {
-  const dataKeysDir = `${constants.HEDERA_HAPI_PATH}/data/keys`;
-  const tlsKeysDir = constants.HEDERA_HAPI_PATH;
+  const dataKeysDirectory = `${constants.HEDERA_HAPI_PATH}/data/keys`;
+  const tlsKeysDirectory = constants.HEDERA_HAPI_PATH;
   const nodeKeyHashMap = new Map<NodeAlias, Map<string, string>>();
   for (const networkNodeServices of networkNodeServicesMap.values()) {
     const keyHashMap = new Map<string, string>();
     const nodeAlias = networkNodeServices.nodeAlias;
-    const uniqueNodeDestDir = PathEx.join(destDir, nodeAlias);
-    if (!fs.existsSync(uniqueNodeDestDir)) {
-      fs.mkdirSync(uniqueNodeDestDir, {recursive: true});
+    const uniqueNodeDestinationDirectory = PathEx.join(destinationDirectory, nodeAlias);
+    if (!fs.existsSync(uniqueNodeDestinationDirectory)) {
+      fs.mkdirSync(uniqueNodeDestinationDirectory, {recursive: true});
     }
     await addKeyHashToMap(
       networkNodeServices.namespace,
       k8Factory,
       nodeAlias,
-      dataKeysDir,
-      uniqueNodeDestDir,
+      dataKeysDirectory,
+      uniqueNodeDestinationDirectory,
       keyHashMap,
       Templates.renderGossipPemPrivateKeyFile(nodeAlias),
     );
@@ -473,8 +475,8 @@ export async function getNodeAliasesPrivateKeysHash(
       networkNodeServices.namespace,
       k8Factory,
       nodeAlias,
-      tlsKeysDir,
-      uniqueNodeDestDir,
+      tlsKeysDirectory,
+      uniqueNodeDestinationDirectory,
       keyHashMap,
       'hedera.key',
     );
@@ -487,17 +489,19 @@ async function addKeyHashToMap(
   namespace: NamespaceName,
   k8Factory: K8Factory,
   nodeAlias: NodeAlias,
-  keyDir: string,
-  uniqueNodeDestDir: string,
+  keyDirectory: string,
+  uniqueNodeDestinationDirectory: string,
   keyHashMap: Map<string, string>,
   privateKeyFileName: string,
 ): Promise<void> {
   await k8Factory
     .default()
     .containers()
-    .readByRef(ContainerRef.of(PodRef.of(namespace, Templates.renderNetworkPodName(nodeAlias)), ROOT_CONTAINER))
-    .copyFrom(PathEx.join(keyDir, privateKeyFileName), uniqueNodeDestDir);
-  const keyBytes = fs.readFileSync(PathEx.joinWithRealPath(uniqueNodeDestDir, privateKeyFileName));
+    .readByRef(
+      ContainerReference.of(PodReference.of(namespace, Templates.renderNetworkPodName(nodeAlias)), ROOT_CONTAINER),
+    )
+    .copyFrom(PathEx.join(keyDirectory, privateKeyFileName), uniqueNodeDestinationDirectory);
+  const keyBytes = fs.readFileSync(PathEx.joinWithRealPath(uniqueNodeDestinationDirectory, privateKeyFileName));
   const keyString = keyBytes.toString();
   keyHashMap.set(privateKeyFileName, crypto.createHash('sha256').update(keyString).digest('base64'));
 }
@@ -524,3 +528,5 @@ export const testLocalConfigData = {
     'cluster-2': 'context-2',
   },
 };
+
+export {HEDERA_PLATFORM_VERSION as HEDERA_PLATFORM_VERSION_TAG} from '../version.js';

@@ -20,7 +20,9 @@ export abstract class K8ClientBase {
    * @throws MissingArgumentError - filters are required
    */
   private applyMetadataFilter(items: (object | any)[], filters: Record<string, string> = {}) {
-    if (!filters) throw new MissingArgumentError('filters are required');
+    if (!filters) {
+      throw new MissingArgumentError('filters are required');
+    }
 
     const matched = [];
     const filterMap = new Map(Object.entries(filters));
@@ -54,7 +56,9 @@ export abstract class K8ClientBase {
    */
   protected filterItem(items: (object | any)[], filters: Record<string, string> = {}) {
     const filtered = this.applyMetadataFilter(items, filters);
-    if (filtered.length > 1) throw new SoloError('multiple items found with filters', {filters});
+    if (filtered.length > 1) {
+      throw new SoloError('multiple items found with filters', {filters});
+    }
     return filtered[0];
   }
 

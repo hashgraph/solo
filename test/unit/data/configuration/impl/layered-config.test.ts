@@ -7,10 +7,10 @@ import {expect} from 'chai';
 
 class SimpleObject {
   public constructor(
-    public prop1?: string,
-    public prop2?: number,
-    public prop3?: boolean,
-    public prop4?: string[],
+    public properties1?: string,
+    public properties2?: number,
+    public properties3?: boolean,
+    public properties4?: string[],
   ) {}
 }
 
@@ -36,7 +36,7 @@ describe('LayeredConfig', () => {
     map2.set('number', '42');
     map3.set('key3', 'map3key3value3');
 
-    const simpleObject: SimpleObject = new SimpleObject('prop1', 42, true, ['prop4']);
+    const simpleObject: SimpleObject = new SimpleObject('properties1', 42, true, ['properties4']);
     map2.set('simpleObject', JSON.stringify(simpleObject));
     map1.set('simpleObjectArray', JSON.stringify([simpleObject]));
 
@@ -116,18 +116,18 @@ describe('LayeredConfig', () => {
 
   it('should return an object', () => {
     const simpleObject: SimpleObject = layeredConfig.asObject(SimpleObject, 'simpleObject');
-    expect(simpleObject.prop1).to.equal('prop1');
-    expect(simpleObject.prop2).to.equal(42);
-    expect(simpleObject.prop3).to.be.true;
-    expect(simpleObject.prop4).to.eql(['prop4']);
+    expect(simpleObject.properties1).to.equal('properties1');
+    expect(simpleObject.properties2).to.equal(42);
+    expect(simpleObject.properties3).to.be.true;
+    expect(simpleObject.properties4).to.eql(['properties4']);
   });
 
   it('should return an object array', () => {
     const simpleObjectArray: SimpleObject[] = layeredConfig.asObjectArray(SimpleObject, 'simpleObjectArray');
-    expect(simpleObjectArray[0].prop1).to.equal('prop1');
-    expect(simpleObjectArray[0].prop2).to.equal(42);
-    expect(simpleObjectArray[0].prop3).to.be.true;
-    expect(simpleObjectArray[0].prop4).to.eql(['prop4']);
+    expect(simpleObjectArray[0].properties1).to.equal('properties1');
+    expect(simpleObjectArray[0].properties2).to.equal(42);
+    expect(simpleObjectArray[0].properties3).to.be.true;
+    expect(simpleObjectArray[0].properties4).to.eql(['properties4']);
   });
 
   it('primitiveScalar should throw IllegalArgumentError', () => {

@@ -5,7 +5,7 @@
  */
 export const InjectTokens = {
   LogLevel: Symbol.for('LogLevel'),
-  DevMode: Symbol.for('DevMode'),
+  DevelopmentMode: Symbol.for('DevelopmentMode'),
   OsPlatform: Symbol.for('OsPlatform'),
   OsArch: Symbol.for('OsArch'),
   HelmInstallationDir: Symbol.for('HelmInstallationDir'),

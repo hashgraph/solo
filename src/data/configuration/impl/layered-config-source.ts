@@ -33,21 +33,21 @@ export abstract class LayeredConfigSource implements ConfigSource {
   public abstract get ordinal(): number;
 
   public asBoolean(key: string): boolean | null {
-    const stringVal: string = this.forest.valueFor(key);
+    const stringValue: string = this.forest.valueFor(key);
 
-    if (!stringVal || stringVal.trim().length === 0) {
+    if (!stringValue || stringValue.trim().length === 0) {
       return null;
     }
 
-    const val: unknown = ReflectAssist.coerce(stringVal);
-    if (typeof val === 'boolean') {
-      return val as boolean;
-    } else if (typeof val === 'string') {
-      return val === 'true';
-    } else if (typeof val === 'number') {
-      return val !== 0;
-    } else if (typeof val === 'object') {
-      if (val === null || val === undefined) {
+    const value: unknown = ReflectAssist.coerce(stringValue);
+    if (typeof value === 'boolean') {
+      return value as boolean;
+    } else if (typeof value === 'string') {
+      return value === 'true';
+    } else if (typeof value === 'number') {
+      return value !== 0;
+    } else if (typeof value === 'object') {
+      if (value === null || value === undefined) {
         return null;
       }
       return true;
@@ -57,19 +57,17 @@ export abstract class LayeredConfigSource implements ConfigSource {
   }
 
   public asNumber(key: string): number | null {
-    const stringVal: string = this.forest.valueFor(key);
+    const stringValue: string = this.forest.valueFor(key);
 
-    if (!stringVal || stringVal.trim().length === 0) {
+    if (!stringValue || stringValue.trim().length === 0) {
       return null;
     }
 
-    const val: unknown = ReflectAssist.coerce(stringVal);
-    if (typeof val === 'number') {
-      return val as number;
-    } else if (typeof val === 'object') {
-      if (val === null || val === undefined) {
-        return null;
-      }
+    const value: unknown = ReflectAssist.coerce(stringValue);
+    if (typeof value === 'number') {
+      return value as number;
+    } else if (typeof value === 'object' && (value === null || value === undefined)) {
+      return null;
     }
 
     throw new ConfigurationError('value is not a number');
@@ -81,7 +79,7 @@ export abstract class LayeredConfigSource implements ConfigSource {
     }
 
     try {
-      let obj: object = null;
+      let object: object = null;
 
       if (key) {
         const node = this.forest.nodeFor(key);
@@ -90,18 +88,14 @@ export abstract class LayeredConfigSource implements ConfigSource {
           return null;
         }
 
-        if (node.isLeaf()) {
-          obj = JSON.parse((node as LexerLeafNode).value);
-        } else {
-          obj = (node as LexerInternalNode).toObject();
-        }
+        object = node.isLeaf() ? JSON.parse((node as LexerLeafNode).value) : (node as LexerInternalNode).toObject();
       } else {
-        obj = this.forest.toObject();
+        object = this.forest.toObject();
       }
 
-      return this.mapper.fromObject(cls, obj);
-    } catch (e) {
-      throw new ConfigurationError('Failed to convert value to object', e);
+      return this.mapper.fromObject(cls, object);
+    } catch (error) {
+      throw new ConfigurationError('Failed to convert value to object', error);
     }
   }
 
@@ -124,10 +118,10 @@ export abstract class LayeredConfigSource implements ConfigSource {
     }
 
     try {
-      const objArray: object[] = (node as LexerInternalNode).toObject() as object[];
-      return plainToInstance(cls, objArray);
-    } catch (e) {
-      throw new ConfigurationError('Failed to convert value to object array', e);
+      const objectArray: object[] = (node as LexerInternalNode).toObject() as object[];
+      return plainToInstance(cls, objectArray);
+    } catch (error) {
+      throw new ConfigurationError('Failed to convert value to object array', error);
     }
   }
 
@@ -151,8 +145,8 @@ export abstract class LayeredConfigSource implements ConfigSource {
 
     try {
       return (node as LexerInternalNode).toObject() as string[];
-    } catch (e) {
-      throw new ConfigurationError('Failed to convert value to object array', e);
+    } catch (error) {
+      throw new ConfigurationError('Failed to convert value to object array', error);
     }
   }
 

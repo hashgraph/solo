@@ -59,7 +59,7 @@ function start_background_transactions ()
   # generate accounts as background traffic for two minutes
   # so record stream files can be kept pushing to mirror node
   cd solo
-  npm run solo-test -- account create --deployment solo-e2e --create-amount 15 > /dev/null 2>&1 &
+  npm run solo-test -- account create --deployment "${SOLO_DEPLOYMENT}" --create-amount 15 > /dev/null 2>&1 &
   cd -
 }
 
@@ -79,6 +79,10 @@ function start_contract_test ()
 function start_sdk_test ()
 {
   cd solo
+  if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+    curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_x86_64.tar.gz" | sudo tar -xz -C /usr/local/bin
+  fi
+  grpcurl -plaintext -d '{"file_id": {"fileNum": 102}, "limit": 0}' localhost:5600 com.hedera.mirror.api.proto.NetworkService/getNodes
   node examples/create-topic.js
   result=$?
 
@@ -134,13 +138,16 @@ function check_importer_log()
 # then call solo account init before deploy mirror and relay node
 if [ "$1" == "account-init" ]; then
   echo "Call solo account init"
-  npm run solo-test -- account init --deployment solo-e2e
+  npm run solo-test -- account init --deployment "${SOLO_DEPLOYMENT}"
 fi
 
 echo "Change to parent directory"
 
 cd ../
-create_test_account
+if [ -z "${SOLO_DEPLOYMENT}" ]; then
+  export SOLO_DEPLOYMENT="solo-deployment"
+fi
+create_test_account "${SOLO_DEPLOYMENT}"
 clone_smart_contract_repo
 setup_smart_contract_test
 start_background_transactions

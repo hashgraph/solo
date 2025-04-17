@@ -8,10 +8,8 @@ export class Version<T extends SemVer | number> {
       throw new RangeError('Invalid version');
     }
 
-    if (Version.isNumeric(value)) {
-      if (!Number.isSafeInteger(value) || (value as number) < 0) {
-        throw new RangeError('Invalid version');
-      }
+    if (Version.isNumeric(value) && (!Number.isSafeInteger(value) || (value as number) < 0)) {
+      throw new RangeError('Invalid version');
     }
   }
 
@@ -41,7 +39,7 @@ export class Version<T extends SemVer | number> {
       return 0;
     }
 
-    return NaN;
+    return Number.NaN;
   }
 
   public toString(): string {

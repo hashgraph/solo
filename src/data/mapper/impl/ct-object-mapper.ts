@@ -21,19 +21,19 @@ export class CTObjectMapper implements ObjectMapper {
     this.flatMapper = new FlatKeyMapper(patchInject(formatter, InjectTokens.KeyFormatter, CTObjectMapper.name));
   }
 
-  public fromArray<T extends R, R>(cls: ClassConstructor<T>, arr: object[]): R[] {
+  public fromArray<T extends R, R>(cls: ClassConstructor<T>, array: object[]): R[] {
     const result: R[] = [];
-    for (const item of arr) {
+    for (const item of array) {
       result.push(this.fromObject(cls, item));
     }
     return result;
   }
 
-  public fromObject<T extends R, R>(cls: ClassConstructor<T>, obj: object): R {
+  public fromObject<T extends R, R>(cls: ClassConstructor<T>, object: object): R {
     try {
-      return plainToInstance(cls, obj);
-    } catch (e) {
-      throw new ObjectMappingError(`Error converting object to class instance [ cls = '${cls.name}' ]`, e);
+      return plainToInstance(cls, object);
+    } catch (error) {
+      throw new ObjectMappingError(`Error converting object to class instance [ cls = '${cls.name}' ]`, error);
     }
   }
 
@@ -49,8 +49,11 @@ export class CTObjectMapper implements ObjectMapper {
   public toObject<T>(data: T): object {
     try {
       return instanceToPlain(data);
-    } catch (e) {
-      throw new ObjectMappingError(`Error converting class instance to object [ cls = '${data.constructor.name}' ]`, e);
+    } catch (error) {
+      throw new ObjectMappingError(
+        `Error converting class instance to object [ cls = '${data.constructor.name}' ]`,
+        error,
+      );
     }
   }
 
@@ -58,8 +61,8 @@ export class CTObjectMapper implements ObjectMapper {
     return this.flatMapper.flatten(data);
   }
 
-  public applyPropertyValue(obj: object, key: string, value: Primitive | PrimitiveArray | object | object[]): void {
-    if (!obj) {
+  public applyPropertyValue(object: object, key: string, value: Primitive | PrimitiveArray | object | object[]): void {
+    if (!object) {
       throw new IllegalArgumentError('obj must not be null or undefined');
     }
 
@@ -70,31 +73,31 @@ export class CTObjectMapper implements ObjectMapper {
     const normalizedKey: string = this.formatter.normalize(key);
     const components: string[] = this.formatter.split(normalizedKey);
 
-    let currentObj: object = obj;
-    for (let i = 0; i < components.length - 1; i++) {
-      const keyComponent: string = components[i];
+    let currentObject: object = object;
+    for (let index = 0; index < components.length - 1; index++) {
+      const keyComponent: string = components[index];
 
       // If the property is not found, we cannot proceed.
-      if (!(keyComponent in currentObj)) {
-        throw new ObjectMappingError(`Property not found [ key = '${key}', obj = '${currentObj}' ]`);
+      if (!(keyComponent in currentObject)) {
+        throw new ObjectMappingError(`Property not found [ key = '${key}', obj = '${currentObject}' ]`);
       }
 
-      const propertyType = typeof currentObj[keyComponent];
+      const propertyType = typeof currentObject[keyComponent];
 
       // If we are at the end of the key path, then set the property.
       // Otherwise, the property must be an object.
-      if (i === components.length - 1) {
-        currentObj[keyComponent] = value;
-      } else if (propertyType !== 'object' || Array.isArray(currentObj[keyComponent])) {
+      if (index === components.length - 1) {
+        currentObject[keyComponent] = value;
+      } else if (propertyType !== 'object' || Array.isArray(currentObject[keyComponent])) {
         throw new ObjectMappingError(
           `Non-terminal property is not an object [ key = '${key}', propertyType = '${propertyType}' ]`,
         );
       }
 
-      currentObj = currentObj[keyComponent] as object;
+      currentObject = currentObject[keyComponent] as object;
 
       // If the current object is null or undefined, we cannot proceed.
-      if (currentObj === undefined || currentObj === null) {
+      if (currentObject === undefined || currentObject === null) {
         throw new ObjectMappingError(`Intermediate object must not be null or undefined [ key = '${key}' ]`);
       }
     }

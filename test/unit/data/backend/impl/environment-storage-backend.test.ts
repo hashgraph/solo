@@ -27,7 +27,7 @@ describe('EnvironmentStorageBackend', () => {
   });
 
   it('list with no process.env', async () => {
-    const env: NodeJS.ProcessEnv = process.env;
+    const environment: NodeJS.ProcessEnv = process.env;
     try {
       delete process.env;
       const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend();
@@ -37,7 +37,7 @@ describe('EnvironmentStorageBackend', () => {
     } catch {
       expect.fail();
     } finally {
-      process.env = env;
+      process.env = environment;
     }
   });
 
@@ -69,7 +69,7 @@ describe('EnvironmentStorageBackend', () => {
   });
 
   it('readBytes with no process.env', async () => {
-    const env: NodeJS.ProcessEnv = process.env;
+    const environment: NodeJS.ProcessEnv = process.env;
     try {
       delete process.env;
       const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend();
@@ -83,7 +83,7 @@ describe('EnvironmentStorageBackend', () => {
     } catch {
       expect.fail();
     } finally {
-      process.env = env;
+      process.env = environment;
     }
   });
 

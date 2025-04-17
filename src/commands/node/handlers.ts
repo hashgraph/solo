@@ -93,7 +93,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.getNodeLogsAndConfigs(),
       this.tasks.updateChartWithConfigMap('Delete network node', NodeSubcommandType.DELETE),
       this.tasks.killNodes(),
-      this.tasks.sleep('Give time for pods to come up after being killed', 20000),
+      this.tasks.sleep('Give time for pods to come up after being killed', 20_000),
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.populateServiceMap(),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
@@ -191,7 +191,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.updateChartWithConfigMap(
         'Update chart to use new configMap due to account number change',
         NodeSubcommandType.UPDATE,
-        ctx => !ctx.config.newAccountNumber && !ctx.config.debugNodeAlias,
+        context_ => !context_.config.newAccountNumber && !context_.config.debugNodeAlias,
       ),
       this.tasks.killNodesAndUpdateConfigMap(),
       this.tasks.checkNodePodsAreRunning(),
@@ -798,7 +798,7 @@ export class NodeCommandHandlers extends CommandHandler {
         this.tasks.initialize(argv, this.configs.startConfigBuilder.bind(this.configs), lease),
         this.validateAllNodeStates({acceptedStates: [ConsensusNodeStates.SETUP]}),
         this.tasks.identifyExistingNodes(),
-        this.tasks.uploadStateFiles(ctx => ctx.config.stateFile.length === 0),
+        this.tasks.uploadStateFiles(context_ => context_.config.stateFile.length === 0),
         this.tasks.startNodes('nodeAliases'),
         this.tasks.enablePortForwarding(),
         this.tasks.checkAllNodesAreActive('nodeAliases'),
@@ -926,13 +926,13 @@ export class NodeCommandHandlers extends CommandHandler {
     return {
       title: `Change node state to ${state} in remote config`,
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: async (ctx: Context): Promise<void> => {
+      task: async (context_: Context): Promise<void> => {
         await this.remoteConfigManager.modify(async remoteConfig => {
           const {
             config: {namespace},
-          } = ctx;
+          } = context_;
 
-          for (const consensusNode of ctx.config.consensusNodes) {
+          for (const consensusNode of context_.config.consensusNodes) {
             remoteConfig.components.edit(
               new ConsensusNodeComponent(
                 consensusNode.name,
@@ -968,8 +968,8 @@ export class NodeCommandHandlers extends CommandHandler {
     return {
       title: 'Validate nodes states',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: (ctx: Context, task): Listr<any, any, any> => {
-        const nodeAliases = ctx.config.nodeAliases;
+      task: (context_: Context, task): Listr<any, any, any> => {
+        const nodeAliases = context_.config.nodeAliases;
 
         const components = this.remoteConfigManager.components;
 
@@ -1010,8 +1010,8 @@ export class NodeCommandHandlers extends CommandHandler {
     return {
       title: 'Validate nodes state',
       skip: (): boolean => !this.remoteConfigManager.isLoaded(),
-      task: (ctx: Context, task): void => {
-        const nodeAlias = ctx.config.nodeAlias;
+      task: (context_: Context, task): void => {
+        const nodeAlias = context_.config.nodeAlias;
 
         task.title += ` ${nodeAlias}`;
 

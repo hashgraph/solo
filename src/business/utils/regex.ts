@@ -7,7 +7,7 @@ export class Regex {
     throw new UnsupportedOperationError('This class cannot be instantiated');
   }
 
-  public static escape(str: string): string {
-    return str.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+  public static escape(string_: string): string {
+    return string_.replaceAll(/[-/\\^$*+?.()|[\]{}]/g, String.raw`\$&`);
   }
 }

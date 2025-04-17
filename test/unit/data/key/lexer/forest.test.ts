@@ -7,10 +7,10 @@ import {Lexer} from '../../../../../src/data/key/lexer/lexer.js';
 import {EnvironmentKeyFormatter} from '../../../../../src/data/key/environment-key-formatter.js';
 
 describe('Lexer: Forest', () => {
-  [
+  for (const item of [
     {formatter: ConfigKeyFormatter.instance(), type: 'config'},
     {formatter: EnvironmentKeyFormatter.instance(), type: 'environment'},
-  ].forEach(item => {
+  ]) {
     describe(`Using ${item.formatter.constructor.name}`, () => {
       it('constructor with null lexer should throw error', () => {
         // @ts-expect-error - testing private constructor
@@ -125,7 +125,7 @@ describe('Lexer: Forest', () => {
         }
       });
     });
-  });
+  }
 });
 
 function convertKey(key: string, type: string): string {

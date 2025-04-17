@@ -4,7 +4,7 @@ import {ComponentType, ConsensusNodeStates} from '../enumerations.js';
 import {BaseComponent} from './base-component.js';
 import {SoloError} from '../../../errors/solo-error.js';
 import {
-  type ClusterRef,
+  type ClusterReference,
   type ComponentName,
   type IConsensusNodeComponent,
   type NamespaceNameAsString,
@@ -30,7 +30,7 @@ export class ConsensusNodeComponent
    */
   public constructor(
     name: ComponentName,
-    cluster: ClusterRef,
+    cluster: ClusterReference,
     namespace: NamespaceNameAsString,
     public readonly state: ConsensusNodeStates,
     public readonly nodeId: number,
@@ -48,7 +48,7 @@ export class ConsensusNodeComponent
     return new ConsensusNodeComponent(name, cluster, namespace, state, nodeId);
   }
 
-  public validate(): void {
+  public override validate(): void {
     super.validate();
 
     if (!Object.values(ConsensusNodeStates).includes(this.state)) {
@@ -64,7 +64,7 @@ export class ConsensusNodeComponent
     }
   }
 
-  public toObject(): IConsensusNodeComponent {
+  public override toObject(): IConsensusNodeComponent {
     return {
       ...super.toObject(),
       state: this.state,

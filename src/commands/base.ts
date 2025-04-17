@@ -11,13 +11,16 @@ import {type DependencyManager} from '../core/dependency-managers/index.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type HelmClient} from '../integration/helm/helm-client.js';
 import * as constants from '../core/constants.js';
-import fs from 'fs';
-import {type ClusterRef, type ClusterRefs} from '../core/config/remote/types.js';
+import fs from 'node:fs';
+import {type ClusterReference, type ClusterReferences} from '../core/config/remote/types.js';
 import {Flags} from './flags.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {inject} from 'tsyringe-neo';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
+import {type HelmClient} from '../integration/helm/helm-client.js';
+
 
 export abstract class BaseCommand extends ShellRunner {
   constructor(
@@ -59,52 +62,56 @@ export abstract class BaseCommand extends ShellRunner {
    * @param profileValuesFile - mapping of clusterRef to the profile values file full path
    */
   static prepareValuesFilesMapMulticluster(
-    clusterRefs: ClusterRefs,
+    clusterReferences: ClusterReferences,
     chartDirectory?: string,
-    profileValuesFile?: Record<ClusterRef, string>,
+    profileValuesFile?: Record<ClusterReference, string>,
     valuesFileInput?: string,
-  ): Record<ClusterRef, string> {
+  ): Record<ClusterReference, string> {
     // initialize the map with an empty array for each cluster-ref
-    const valuesFiles: Record<ClusterRef, string> = {[Flags.KEY_COMMON]: ''};
-    Object.keys(clusterRefs).forEach(clusterRef => (valuesFiles[clusterRef] = ''));
+    const valuesFiles: Record<ClusterReference, string> = {[Flags.KEY_COMMON]: ''};
+    for (const clusterReference of Object.keys(clusterReferences)) {
+      valuesFiles[clusterReference] = '';
+    }
 
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
     if (chartDirectory) {
       const chartValuesFile = PathEx.join(chartDirectory, 'solo-deployment', 'values.yaml');
-      for (const clusterRef in valuesFiles) {
-        valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
+      for (const clusterReference in valuesFiles) {
+        valuesFiles[clusterReference] += ` --values ${chartValuesFile}`;
       }
     }
 
     if (profileValuesFile) {
-      Object.entries(profileValuesFile).forEach(([clusterRef, file]) => {
-        const valuesArg = ` --values ${file}`;
+      for (const [clusterReference, file] of Object.entries(profileValuesFile)) {
+        const valuesArgument = ` --values ${file}`;
 
-        if (clusterRef === Flags.KEY_COMMON) {
-          Object.keys(valuesFiles).forEach(clusterRef => (valuesFiles[clusterRef] += valuesArg));
+        if (clusterReference === Flags.KEY_COMMON) {
+          for (const clusterReference_ of Object.keys(valuesFiles)) {
+            valuesFiles[clusterReference_] += valuesArgument;
+          }
         } else {
-          valuesFiles[clusterRef] += valuesArg;
+          valuesFiles[clusterReference] += valuesArgument;
         }
-      });
+      }
     }
 
     if (valuesFileInput) {
       const parsed = Flags.parseValuesFilesInput(valuesFileInput);
-      Object.entries(parsed).forEach(([clusterRef, files]) => {
+      for (const [clusterReference, files] of Object.entries(parsed)) {
         let vf = '';
-        files.forEach(file => {
+        for (const file of files) {
           vf += ` --values ${file}`;
-        });
-
-        if (clusterRef === Flags.KEY_COMMON) {
-          Object.entries(valuesFiles).forEach(([clusterRef]) => {
-            valuesFiles[clusterRef] += vf;
-          });
-        } else {
-          valuesFiles[clusterRef] += vf;
         }
-      });
+
+        if (clusterReference === Flags.KEY_COMMON) {
+          for (const [clusterReference_] of Object.entries(valuesFiles)) {
+            valuesFiles[clusterReference_] += vf;
+          }
+        } else {
+          valuesFiles[clusterReference] += vf;
+        }
+      }
     }
 
     if (Object.keys(valuesFiles).length > 1) {
@@ -128,62 +135,62 @@ export abstract class BaseCommand extends ShellRunner {
    * @param profileValuesFile - the profile values file full path
    */
   static prepareValuesFilesMap(
-    clusterRefs: ClusterRefs,
+    clusterReferences: ClusterReferences,
     chartDirectory?: string,
     profileValuesFile?: string,
     valuesFileInput?: string,
-  ): Record<ClusterRef, string> {
+  ): Record<ClusterReference, string> {
     // initialize the map with an empty array for each cluster-ref
-    const valuesFiles: Record<ClusterRef, string> = {
+    const valuesFiles: Record<ClusterReference, string> = {
       [Flags.KEY_COMMON]: '',
     };
-    Object.keys(clusterRefs).forEach(clusterRef => {
-      valuesFiles[clusterRef] = '';
-    });
+    for (const clusterReference of Object.keys(clusterReferences)) {
+      valuesFiles[clusterReference] = '';
+    }
 
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
     if (chartDirectory) {
       const chartValuesFile = PathEx.join(chartDirectory, 'solo-deployment', 'values.yaml');
-      for (const clusterRef in valuesFiles) {
-        valuesFiles[clusterRef] += ` --values ${chartValuesFile}`;
+      for (const clusterReference in valuesFiles) {
+        valuesFiles[clusterReference] += ` --values ${chartValuesFile}`;
       }
     }
 
     if (profileValuesFile) {
       const parsed = Flags.parseValuesFilesInput(profileValuesFile);
-      Object.entries(parsed).forEach(([clusterRef, files]) => {
+      for (const [clusterReference, files] of Object.entries(parsed)) {
         let vf = '';
-        files.forEach(file => {
+        for (const file of files) {
           vf += ` --values ${file}`;
-        });
-
-        if (clusterRef === Flags.KEY_COMMON) {
-          Object.entries(valuesFiles).forEach(([cf]) => {
-            valuesFiles[cf] += vf;
-          });
-        } else {
-          valuesFiles[clusterRef] += vf;
         }
-      });
+
+        if (clusterReference === Flags.KEY_COMMON) {
+          for (const [cf] of Object.entries(valuesFiles)) {
+            valuesFiles[cf] += vf;
+          }
+        } else {
+          valuesFiles[clusterReference] += vf;
+        }
+      }
     }
 
     if (valuesFileInput) {
       const parsed = Flags.parseValuesFilesInput(valuesFileInput);
-      Object.entries(parsed).forEach(([clusterRef, files]) => {
+      for (const [clusterReference, files] of Object.entries(parsed)) {
         let vf = '';
-        files.forEach(file => {
+        for (const file of files) {
           vf += ` --values ${file}`;
-        });
-
-        if (clusterRef === Flags.KEY_COMMON) {
-          Object.entries(valuesFiles).forEach(([clusterRef]) => {
-            valuesFiles[clusterRef] += vf;
-          });
-        } else {
-          valuesFiles[clusterRef] += vf;
         }
-      });
+
+        if (clusterReference === Flags.KEY_COMMON) {
+          for (const [clusterReference_] of Object.entries(valuesFiles)) {
+            valuesFiles[clusterReference_] += vf;
+          }
+        } else {
+          valuesFiles[clusterReference] += vf;
+        }
+      }
     }
 
     if (Object.keys(valuesFiles).length > 1) {
@@ -200,9 +207,9 @@ export abstract class BaseCommand extends ShellRunner {
    * Setup home directories
    * @param dirs a list of directories that need to be created in sequence
    */
-  public setupHomeDirectory(dirs: string[] = []) {
-    if (!dirs || dirs?.length === 0) {
-      dirs = [
+  public setupHomeDirectory(directories: string[] = []) {
+    if (!directories || directories?.length === 0) {
+      directories = [
         constants.SOLO_HOME_DIR,
         constants.SOLO_LOGS_DIR,
         this.configManager.getFlag<string>(Flags.cacheDir) || constants.SOLO_CACHE_DIR,
@@ -212,17 +219,17 @@ export abstract class BaseCommand extends ShellRunner {
     const self = this;
 
     try {
-      dirs.forEach(dirPath => {
-        if (!fs.existsSync(dirPath)) {
-          fs.mkdirSync(dirPath, {recursive: true});
+      for (const directoryPath of directories) {
+        if (!fs.existsSync(directoryPath)) {
+          fs.mkdirSync(directoryPath, {recursive: true});
         }
-        self.logger.debug(`OK: setup directory: ${dirPath}`);
-      });
-    } catch (e) {
-      throw new SoloError(`failed to create directory: ${e.message}`, e);
+        self.logger.debug(`OK: setup directory: ${directoryPath}`);
+      }
+    } catch (error) {
+      throw new SoloError(`failed to create directory: ${error.message}`, error);
     }
 
-    return dirs;
+    return directories;
   }
 
   public setupHomeDirectoryTask() {

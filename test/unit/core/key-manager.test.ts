@@ -3,8 +3,8 @@
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 
-import fs from 'fs';
-import os from 'os';
+import fs from 'node:fs';
+import os from 'node:os';
 import {type KeyManager} from '../../../src/core/key-manager.js';
 import * as constants from '../../../src/core/constants.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
@@ -17,18 +17,18 @@ describe('KeyManager', () => {
   const keyManager: KeyManager = container.resolve(InjectTokens.KeyManager);
 
   it('should generate signing key', async () => {
-    const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'keys-'));
+    const temporaryDirectory = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'keys-'));
     const nodeAlias = 'node1' as NodeAlias;
     const keyPrefix = constants.SIGNING_KEY_PREFIX;
 
     const signingKey = await keyManager.generateSigningKey(nodeAlias);
 
-    const nodeKeyFiles = keyManager.prepareNodeKeyFilePaths(nodeAlias, tmpDir);
-    const files = await keyManager.storeNodeKey(nodeAlias, signingKey, tmpDir, nodeKeyFiles, keyPrefix);
+    const nodeKeyFiles = keyManager.prepareNodeKeyFilePaths(nodeAlias, temporaryDirectory);
+    const files = await keyManager.storeNodeKey(nodeAlias, signingKey, temporaryDirectory, nodeKeyFiles, keyPrefix);
     expect(files.privateKeyFile).not.to.be.null;
     expect(files.certificateFile).not.to.be.null;
 
-    const nodeKey = await keyManager.loadSigningKey(nodeAlias, tmpDir);
+    const nodeKey = await keyManager.loadSigningKey(nodeAlias, temporaryDirectory);
     expect(nodeKey.certificate.rawData.toString()).to.equal(signingKey.certificate.rawData.toString());
     expect(nodeKey.privateKey.algorithm).to.deep.equal(signingKey.privateKey.algorithm);
     expect(nodeKey.privateKey.type).to.deep.equal(signingKey.privateKey.type);
@@ -40,22 +40,22 @@ describe('KeyManager', () => {
       }),
     ).to.be.true;
 
-    fs.rmSync(tmpDir, {recursive: true});
+    fs.rmSync(temporaryDirectory, {recursive: true});
   });
 
   it('should generate TLS key', async () => {
-    const tmpDir = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'keys-'));
+    const temporaryDirectory = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'keys-'));
     const nodeAlias = 'node1';
 
     const tlsKey = await keyManager.generateGrpcTlsKey(nodeAlias);
     expect(tlsKey.certificate.subject).not.to.equal('');
     expect(tlsKey.certificate.issuer).not.to.equal('');
 
-    const files = await keyManager.storeTLSKey(nodeAlias, tlsKey, tmpDir);
+    const files = await keyManager.storeTLSKey(nodeAlias, tlsKey, temporaryDirectory);
     expect(files.privateKeyFile).not.to.be.null;
     expect(files.certificateFile).not.to.be.null;
 
-    const nodeKey = await keyManager.loadTLSKey(nodeAlias, tmpDir);
+    const nodeKey = await keyManager.loadTLSKey(nodeAlias, temporaryDirectory);
     expect(nodeKey.certificate.subject).to.deep.equal(tlsKey.certificate.subject);
     expect(nodeKey.certificate.issuer).to.deep.equal(tlsKey.certificate.issuer);
     expect(nodeKey.certificate.rawData.toString()).to.deep.equal(tlsKey.certificate.rawData.toString());
@@ -69,6 +69,6 @@ describe('KeyManager', () => {
       }),
     ).to.be.true;
 
-    fs.rmSync(tmpDir, {recursive: true});
+    fs.rmSync(temporaryDirectory, {recursive: true});
   }).timeout(Duration.ofSeconds(20).toMillis());
 });

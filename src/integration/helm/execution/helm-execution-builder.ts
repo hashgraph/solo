@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {execSync} from 'child_process';
-import {join} from 'path';
+import {join} from 'node:path';
 import {HelmExecution} from './helm-execution.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../../../core/dependency-injection/container-helper.js';
 import {type SoloLogger} from '../../../core/logging/solo-logger.js';
+import {Templates} from '../../../core/templates.js';
+import * as constants from '../../../core/constants.js';
 
 @injectable()
 /**
@@ -67,11 +68,7 @@ export class HelmExecutionBuilder {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
 
     try {
-      if (this.osPlatform === 'win32') {
-        this.helmExecutable = execSync('where helm').toString().trim();
-      } else {
-        this.helmExecutable = execSync('which helm').toString().trim();
-      }
+      this.helmExecutable = Templates.installationPath(constants.HELM, this.osPlatform);
     } catch (error) {
       this.logger?.error('Failed to find helm executable:', error);
       throw new Error('Failed to find helm executable. Please ensure helm is installed and in your PATH.');
@@ -193,12 +190,12 @@ export class HelmExecutionBuilder {
    */
   build(): HelmExecution {
     const command = this.buildCommand();
-    const env: Record<string, string> = {...process.env};
-    this._environmentVariables.forEach((value, key) => {
-      env[key] = value;
-    });
+    const environment: Record<string, string> = {...process.env};
+    for (const [key, value] of this._environmentVariables.entries()) {
+      environment[key] = value;
+    }
 
-    return new HelmExecution(command, this._workingDirectory, env);
+    return new HelmExecution(command, this._workingDirectory, environment);
   }
 
   /**
@@ -207,21 +204,17 @@ export class HelmExecutionBuilder {
    */
   private buildCommand(): string[] {
     const command: string[] = [];
-    command.push(this.helmExecutable);
-    command.push(...this._subcommands);
-    command.push(...this._flags);
+    command.push(this.helmExecutable, ...this._subcommands, ...this._flags);
 
-    this._arguments.forEach((value, key) => {
-      command.push(`--${key}`);
-      command.push(value);
-    });
+    for (const [key, value] of this._arguments.entries()) {
+      command.push(`--${key}`, value);
+    }
 
-    this._optionsWithMultipleValues.forEach(entry => {
-      entry.value.forEach(value => {
-        command.push(`--${entry.key}`);
-        command.push(value);
-      });
-    });
+    for (const entry of this._optionsWithMultipleValues) {
+      for (const value of entry.value) {
+        command.push(`--${entry.key}`, value);
+      }
+    }
 
     command.push(...this._positionals);
 
