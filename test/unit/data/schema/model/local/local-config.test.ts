@@ -10,7 +10,7 @@ import os from 'node:os';
 import {LocalConfig} from '../../../../../../src/data/schema/model/local/local-config.js';
 import {Deployment} from '../../../../../../src/data/schema/model/local/deployment.js';
 import {LocalConfigSchema} from '../../../../../../src/data/schema/migration/impl/local/local-config-schema.js';
-import {CTObjectMapper} from '../../../../../../src/data/mapper/impl/ct-object-mapper.js';
+import {ClassToObjectMapper} from '../../../../../../src/data/mapper/impl/class-to-object-mapper.js';
 import {ApplicationVersions} from '../../../../../../src/data/schema/model/common/application-versions.js';
 import {
   getSoloVersion,
@@ -23,7 +23,7 @@ import {
 import {ConfigKeyFormatter} from '../../../../../../src/data/key/config-key-formatter.js';
 
 describe('LocalConfig', () => {
-  const schema: LocalConfigSchema = new LocalConfigSchema(new CTObjectMapper(ConfigKeyFormatter.instance()));
+  const schema: LocalConfigSchema = new LocalConfigSchema(new ClassToObjectMapper(ConfigKeyFormatter.instance()));
   const localConfigPath = `test/data/v${getSoloVersion()}-local-config.yaml`;
 
   describe('Class Transformer', () => {

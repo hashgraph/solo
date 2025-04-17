@@ -14,11 +14,11 @@ import {type Primitive} from '../../../business/utils/primitive.js';
 import {type PrimitiveArray} from '../../../business/utils/primitive-array.js';
 
 @injectable()
-export class CTObjectMapper implements ObjectMapper {
+export class ClassToObjectMapper implements ObjectMapper {
   private readonly flatMapper: FlatKeyMapper;
 
   public constructor(@inject(InjectTokens.KeyFormatter) private readonly formatter: KeyFormatter) {
-    this.flatMapper = new FlatKeyMapper(patchInject(formatter, InjectTokens.KeyFormatter, CTObjectMapper.name));
+    this.flatMapper = new FlatKeyMapper(patchInject(formatter, InjectTokens.KeyFormatter, ClassToObjectMapper.name));
   }
 
   public fromArray<T extends R, R>(cls: ClassConstructor<T>, array: object[]): R[] {

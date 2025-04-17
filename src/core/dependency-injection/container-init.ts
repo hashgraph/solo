@@ -31,7 +31,7 @@ import {NodeCommandTasks} from '../../commands/node/tasks.js';
 import {ClusterCommandConfigs} from '../../commands/cluster/configs.js';
 import {NodeCommandConfigs} from '../../commands/node/configs.js';
 import {ErrorHandler} from '../error-handler.js';
-import {CTObjectMapper} from '../../data/mapper/impl/ct-object-mapper.js';
+import {ClassToObjectMapper} from '../../data/mapper/impl/class-to-object-mapper.js';
 import {HelmExecutionBuilder} from '../../integration/helm/execution/helm-execution-builder.js';
 import {DefaultHelmClient} from '../../integration/helm/impl/default-helm-client.js';
 import {HelpRenderer} from '../help-renderer.js';
@@ -92,7 +92,7 @@ export class Container {
     }
 
     // Data Layer ObjectMapper
-    container.register(InjectTokens.ObjectMapper, {useClass: CTObjectMapper}, {lifecycle: Lifecycle.Singleton});
+    container.register(InjectTokens.ObjectMapper, {useClass: ClassToObjectMapper}, {lifecycle: Lifecycle.Singleton});
     container.register(InjectTokens.KeyFormatter, {useValue: ConfigKeyFormatter.instance()});
 
     // Data Layer Config
