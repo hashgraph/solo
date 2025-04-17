@@ -150,6 +150,9 @@ describe('ClusterCommand', () => {
     const contextName = TEST_CONTEXT;
 
     const argv = Argv.initializeEmpty();
+    const cacheDirectory = getTestCacheDirectory();
+    argv.cacheDir = cacheDirectory;
+    argv.setArg(flags.cacheDir, cacheDirectory);
     argv.setArg(flags.clusterRef, clusterReference);
     argv.setArg(flags.quiet, true);
     argv.setArg(flags.context, contextName);
