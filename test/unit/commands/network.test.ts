@@ -33,6 +33,9 @@ import {NamespaceName} from '../../../src/integration/kube/resources/namespace/n
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {type DefaultHelmClient} from '../../../src/integration/helm/impl/default-helm-client.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import {SemVer, lt as SemVersionLessThan} from 'semver';
 
 const testName = 'network-cmd-unit';
 const namespace = NamespaceName.of(testName);
@@ -48,8 +51,25 @@ argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
 argv.setArg(flags.force, true);
 argv.setArg(flags.clusterSetupNamespace, constants.SOLO_SETUP_NAMESPACE.name);
 argv.setArg(flags.chartDirectory, undefined);
+if (SemVersionLessThan(new SemVer(version.HEDERA_PLATFORM_VERSION), new SemVer('v0.61.0'))) {
+  argv.setArg(flags.releaseTag, 'v0.61.0');
+}
 
 describe('NetworkCommand unit tests', () => {
+  before(async () => {
+    const sourceDirectory = PathEx.joinWithRealPath('test', 'data');
+    const destinationDirectory = path.join(sourceDirectory, 'tmp', 'templates');
+
+    if (!fs.existsSync(destinationDirectory)) {
+      fs.mkdirSync(destinationDirectory, {recursive: true});
+    }
+
+    fs.copyFileSync(
+      PathEx.joinWithRealPath(sourceDirectory, 'application.properties'),
+      path.join(destinationDirectory, 'application.properties'),
+    );
+  });
+
   describe('Chart Install Function is called correctly', () => {
     let options: any;
 

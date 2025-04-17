@@ -17,7 +17,7 @@ import chalk from 'chalk';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {type NodeAlias} from '../types/aliases.js';
 import {Duration} from './time/duration.js';
-import {getAppleSiliconChipset, sleep} from './helpers.js';
+import {getProcessorType, sleep} from './helpers.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
@@ -106,8 +106,6 @@ export class PlatformInstaller {
     }
 
     try {
-      const chipType = (await getAppleSiliconChipset(this.logger)).join('');
-      this.logger.info(`chipType: ${chipType}`);
       const scriptName = 'extract-platform.sh';
       const sourcePath = PathEx.joinWithRealPath(constants.RESOURCES_DIR, scriptName); // script source path
       await this.copyFiles(podReference, [sourcePath], constants.HEDERA_USER_HOME_DIR, undefined, context);
@@ -120,8 +118,12 @@ export class PlatformInstaller {
 
       const k8Containers = this.k8Factory.getK8(context).containers();
 
-      await k8Containers.readByRef(containerReference).execContainer(`chmod +x ${extractScript}`);
-      await k8Containers.readByRef(containerReference).execContainer([extractScript, tag, chipType]);
+      const container = k8Containers.readByRef(containerReference);
+      const chipType = await getProcessorType(container);
+      this.logger.info(`chipType: ${chipType}`);
+
+      await container.execContainer(`chmod +x ${extractScript}`);
+      await container.execContainer([extractScript, tag, chipType]);
 
       return true;
     } catch (error) {

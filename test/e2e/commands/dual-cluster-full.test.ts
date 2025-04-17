@@ -226,12 +226,12 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
         );
       expect(haProxyPod).to.have.lengthOf(1);
       createdAccountIds.push(
-        await verifyAccountCreateWasSuccessful(namespace, testClusterReferences),
-        await verifyAccountCreateWasSuccessful(namespace, testClusterReferences),
+        await verifyAccountCreateWasSuccessful(namespace, testClusterReferences, deployment),
+        await verifyAccountCreateWasSuccessful(namespace, testClusterReferences, deployment),
       );
     }
     // create one more account to make sure that the last one gets pushed to mirror node
-    await verifyAccountCreateWasSuccessful(namespace, testClusterReferences);
+    await verifyAccountCreateWasSuccessful(namespace, testClusterReferences, deployment);
   }).timeout(Duration.ofMinutes(5).toMillis());
 
   it(`${testName}: mirror node deploy`, async (): Promise<void> => {
@@ -398,10 +398,11 @@ function soloNodeStartArgv(deployment: DeploymentName): string[] {
 async function verifyAccountCreateWasSuccessful(
   namespace: NamespaceName,
   clusterReferences: ClusterReferences,
+  deployment: DeploymentName,
 ): Promise<string> {
   const accountManager: AccountManager = container.resolve<AccountManager>(InjectTokens.AccountManager);
   try {
-    await accountManager.refreshNodeClient(namespace, clusterReferences);
+    await accountManager.refreshNodeClient(namespace, clusterReferences, undefined, deployment);
     expect(accountManager._nodeClient).not.to.be.null;
     const privateKey: PrivateKey = PrivateKey.generate();
     const amount: number = 777;

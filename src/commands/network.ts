@@ -37,7 +37,13 @@ import {NamespaceName} from '../integration/kube/resources/namespace/namespace-n
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
-import {type ClusterReference, type ClusterReferences} from '../core/config/remote/types.js';
+import {
+  type ClusterReference,
+  type ClusterReferences,
+  type DeploymentName,
+  type Realm,
+  type Shard,
+} from '../core/config/remote/types.js';
 import {Base64} from 'js-base64';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Duration} from '../core/time/duration.js';
@@ -45,6 +51,7 @@ import {type PodReference} from '../integration/kube/resources/pod/pod-reference
 import {SOLO_DEPLOYMENT_CHART} from '../core/constants.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {SemVer, lt as SemVersionLessThan} from 'semver';
 
 export interface NetworkDeployConfigClass {
   applicationEnv: string;
@@ -390,17 +397,26 @@ export class NetworkCommand extends BaseCommand {
     clusterRefs: ClusterReferences;
     consensusNodes: ConsensusNode[];
     domainNamesMapping?: Record<NodeAlias, string>;
+    cacheDir: string;
   }): Promise<Record<ClusterReference, string>> {
     const valuesArguments: Record<ClusterReference, string> = this.prepareValuesArg(config);
 
     // prepare values files for each cluster
     const valuesArgumentMap: Record<ClusterReference, string> = {};
-    const profileName = this.configManager.getFlag(flags.profileName);
+    const profileName: string = this.configManager.getFlag(flags.profileName);
+    const deploymentName: DeploymentName = this.configManager.getFlag<DeploymentName>(flags.deployment);
+    const applicationPropertiesPath: string = PathEx.joinWithRealPath(
+      config.cacheDir,
+      'templates',
+      'application.properties',
+    );
 
     this.profileValuesFile = await this.profileManager.prepareValuesForSoloChart(
       profileName,
       config.consensusNodes,
       config.domainNamesMapping,
+      deploymentName,
+      applicationPropertiesPath,
     );
 
     const valuesFiles: Record<ClusterReference, string> = BaseCommand.prepareValuesFilesMapMulticluster(
@@ -704,6 +720,17 @@ export class NetworkCommand extends BaseCommand {
         'clusterRefs',
       ],
     ) as NetworkDeployConfigClass;
+
+    const realm: Realm = this.localConfig.getRealm(config.deployment);
+    const shard: Shard = this.localConfig.getShard(config.deployment);
+
+    const networkNodeVersion = new SemVer(config.releaseTag);
+    const minimumVersionForNonZeroRealms = new SemVer('0.61.0');
+    if ((realm !== 0 || shard !== 0) && SemVersionLessThan(networkNodeVersion, minimumVersionForNonZeroRealms)) {
+      throw new SoloError(
+        `The realm and shard values must be 0 when using the ${minimumVersionForNonZeroRealms} version of the network node`,
+      );
+    }
 
     if (config.haproxyIps) {
       config.haproxyIpsParsed = Templates.parseNodeAliasToIpMapping(config.haproxyIps);

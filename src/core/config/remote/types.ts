@@ -10,6 +10,8 @@ export type NamespaceNameAsString = string;
 export type DeploymentName = string;
 export type Context = string;
 export type ComponentName = string;
+export type Realm = number | Long;
+export type Shard = number | Long;
 
 export type ClusterReference = string;
 export type ClusterReferences = Record<ClusterReference, Context>;

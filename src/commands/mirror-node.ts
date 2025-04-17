@@ -33,9 +33,10 @@ import {type CommandFlag} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {showVersionBanner} from '../core/helpers.js';
+import {requiresJavaSveFix, showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {type AccountId} from '@hashgraph/sdk';
 
 interface MirrorNodeDeployConfigClass {
   chartDirectory: string;
@@ -240,6 +241,45 @@ export class MirrorNodeCommand extends BaseCommand {
     return valuesArgument;
   }
 
+  private async deployMirrorNode(context_: MirrorNodeDeployContext): Promise<void> {
+    await this.chartManager.install(
+      context_.config.namespace,
+      constants.MIRROR_NODE_RELEASE_NAME,
+      constants.MIRROR_NODE_CHART,
+      constants.MIRROR_NODE_RELEASE_NAME,
+      context_.config.mirrorNodeVersion,
+      context_.config.valuesArg,
+      context_.config.clusterContext,
+    );
+
+    showVersionBanner(this.logger, constants.MIRROR_NODE_RELEASE_NAME, context_.config.mirrorNodeVersion);
+
+    if (context_.config.enableIngress) {
+      // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
+      await this.k8Factory
+        .getK8(context_.config.clusterContext)
+        .ingresses()
+        .update(context_.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+          spec: {
+            ingressClassName: `${constants.MIRROR_INGRESS_CLASS_NAME}`,
+          },
+        });
+
+      // to support GRPC over HTTP/2
+      await this.k8Factory
+        .getK8(context_.config.clusterContext)
+        .configMaps()
+        .update(context_.config.namespace, constants.MIRROR_INGRESS_CONTROLLER, {
+          'backend-protocol': 'h2',
+        });
+
+      await this.k8Factory
+        .getK8(context_.config.clusterContext)
+        .ingressClasses()
+        .create(constants.MIRROR_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
+    }
+  }
+
   private async deploy(argv: ArgvStruct): Promise<boolean> {
     const self = this;
     const lease = await self.leaseManager.create();
@@ -293,14 +333,15 @@ export class MirrorNodeCommand extends BaseCommand {
               ? this.localConfig.clusterRefs[context_.config.clusterRef]
               : this.k8Factory.default().contexts().readCurrent();
 
+            const deploymentName: DeploymentName = self.configManager.getFlag<DeploymentName>(flags.deployment);
             await self.accountManager.loadNodeClient(
               context_.config.namespace,
               self.remoteConfigManager.getClusterRefs(),
-              self.configManager.getFlag<DeploymentName>(flags.deployment),
+              deploymentName,
               self.configManager.getFlag<boolean>(flags.forcePortForward),
             );
             if (context_.config.pinger) {
-              const startAccumulatorId = constants.HEDERA_NODE_ACCOUNT_ID_START;
+              const startAccumulatorId: AccountId = this.accountManager.getStartAccountId(deploymentName);
               const networkPods: Pod[] = await this.k8Factory
                 .getK8(context_.config.clusterContext)
                 .pods()
@@ -312,7 +353,8 @@ export class MirrorNodeCommand extends BaseCommand {
                 context_.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.nodes.0.host=${pod.podIp}`;
                 context_.config.valuesArg += ' --set monitor.config.hedera.mirror.monitor.nodes.0.nodeId=0';
 
-                const operatorId = context_.config.operatorId || constants.OPERATOR_ID;
+                const operatorId: string =
+                  context_.config.operatorId || this.accountManager.getOperatorAccountId(deploymentName).toString();
                 context_.config.valuesArg += ` --set monitor.config.hedera.mirror.monitor.operator.accountId=${operatorId}`;
 
                 if (context_.config.operatorKey) {
@@ -448,45 +490,70 @@ export class MirrorNodeCommand extends BaseCommand {
                 {
                   title: 'Deploy mirror-node',
                   task: async context_ => {
-                    await self.chartManager.install(
-                      context_.config.namespace,
-                      constants.MIRROR_NODE_RELEASE_NAME,
-                      constants.MIRROR_NODE_CHART,
-                      constants.MIRROR_NODE_RELEASE_NAME,
-                      context_.config.mirrorNodeVersion,
-                      context_.config.valuesArg,
-                      context_.config.clusterContext,
-                    );
+                    await self.deployMirrorNode(context_);
+                  },
+                },
+                {
+                  title: 'Apply UseSVE fix',
+                  task: async (context_, task) => {
+                    const namespace = context_.config.namespace;
+                    const importerLabels = ['app.kubernetes.io/component=importer', 'app.kubernetes.io/name=importer'];
+                    const pods: Pod[] = await this.k8Factory
+                      .getK8(context_.config.clusterContext)
+                      .pods()
+                      .list(namespace, importerLabels);
 
-                    showVersionBanner(
-                      self.logger,
-                      constants.MIRROR_NODE_RELEASE_NAME,
-                      context_.config.mirrorNodeVersion,
-                    );
+                    await self.k8Factory
+                      .getK8(context_.config.clusterContext)
+                      .pods()
+                      .waitForReadyStatus(
+                        context_.config.namespace,
+                        importerLabels,
+                        constants.PODS_READY_MAX_ATTEMPTS,
+                        constants.PODS_READY_DELAY,
+                      );
 
-                    if (context_.config.enableIngress) {
-                      // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
-                      await this.k8Factory
-                        .getK8(context_.config.clusterContext)
-                        .ingresses()
-                        .update(context_.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
-                          spec: {
-                            ingressClassName: `${constants.MIRROR_INGRESS_CLASS_NAME}`,
-                          },
-                        });
+                    if (pods.length === 0) {
+                      throw new SoloError('importer pod not found');
+                    }
+                    const importerPodName: PodName = pods[0].podReference.name;
+                    const importerContainerName = ContainerName.of('importer');
+                    const importerPodReference = PodReference.of(namespace, importerPodName);
+                    const containerReference = ContainerReference.of(importerPodReference, importerContainerName);
+                    const container = await self.k8Factory
+                      .getK8(context_.config.clusterContext)
+                      .containers()
+                      .readByRef(containerReference);
 
-                      // to support GRPC over HTTP/2
-                      await this.k8Factory
-                        .getK8(context_.config.clusterContext)
-                        .configMaps()
-                        .update(context_.config.namespace, constants.MIRROR_INGRESS_CONTROLLER, {
-                          'backend-protocol': 'h2',
-                        });
+                    // Temporary fix for M4 chips running JAVA 21.
+                    // This should be changed when mirror node allows for extending JAVA_OPTS env
+                    if (await requiresJavaSveFix(container)) {
+                      context_.config.valuesArg +=
+                        ' --set "graphql.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "importer.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "grpc.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "monitor.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "restjava.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 -XX:UseSVE=0"';
+                      context_.config.valuesArg +=
+                        ' --set "web3.env.JDK_JAVA_OPTIONS=-XX:MaxRAMPercentage=80 --enable-preview -XX:UseSVE=0"';
 
-                      await this.k8Factory
-                        .getK8(context_.config.clusterContext)
-                        .ingressClasses()
-                        .create(constants.MIRROR_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
+                      await self.deployMirrorNode(context_);
+                      for (const pod of pods) {
+                        // const podReference: PodReference = pod.podReference;
+                        const pods = await this.k8Factory
+                          .getK8(context_.config.clusterContext)
+                          .pods()
+                          .list(context_.config.namespace, ['app.kubernetes.io/instance=mirror']);
+                        for (const pod of pods) {
+                          await pod.killPod();
+                        }
+                      }
+                    } else {
+                      task.title += chalk.yellow(' (Skipped)');
                     }
                   },
                 },

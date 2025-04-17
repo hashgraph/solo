@@ -8,7 +8,7 @@ import {SoloError} from './errors/solo-error.js';
 import * as semver from 'semver';
 import {Templates} from './templates.js';
 import * as constants from './constants.js';
-import {PrivateKey, ServiceEndpoint, Long} from '@hashgraph/sdk';
+import {PrivateKey, ServiceEndpoint, type Long} from '@hashgraph/sdk';
 import {type NodeAlias, type NodeAliases} from '../types/aliases.js';
 import {type CommandFlag} from '../types/flag-types.js';
 import {type SoloLogger} from './logging/solo-logger.js';
@@ -23,7 +23,8 @@ import chalk from 'chalk';
 import {PathEx} from '../business/utils/path-ex.js';
 import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';
-import {ShellRunner} from './shell-runner.js';
+import {type Realm, type Shard} from './config/remote/types.js';
+import {type Container} from '../integration/kube/resources/container/container.js';
 
 export function getInternalAddress(
   releaseVersion: semver.SemVer | string,
@@ -216,24 +217,6 @@ export function isNumeric(string_: string) {
     !Number.isNaN(Number.parseInt(string_)) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
     !Number.isNaN(Number.parseFloat(string_))
   ); // ...and ensure strings of whitespace fail
-}
-
-/**
- * Create a map of node aliases to account IDs
- * @param nodeAliases
- * @returns the map of node IDs to account IDs
- */
-export function getNodeAccountMap(nodeAliases: NodeAliases): Map<NodeAlias, string> {
-  const accountMap: Map<NodeAlias, string> = new Map<NodeAlias, string>();
-  const realm: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
-  const shard: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
-  const firstAccountId: Long = constants.HEDERA_NODE_ACCOUNT_ID_START.num;
-
-  for (const nodeAlias of nodeAliases) {
-    const nodeAccount: string = `${realm}.${shard}.${Long.fromNumber(Templates.nodeIdFromNodeAlias(nodeAlias)).add(firstAccountId)}`;
-    accountMap.set(nodeAlias, nodeAccount);
-  }
-  return accountMap;
 }
 
 export function getEnvironmentValue(environmentVariableArray: string[], name: string) {
@@ -573,15 +556,19 @@ export function ipv4ToBase64(ipv4: string): string {
 }
 
 /** Get the Apple Silicon chip type */
-export async function getAppleSiliconChipset(logger: SoloLogger) {
-  const isMacOS = process.platform === 'darwin';
-  const isArm64 = process.arch === 'arm64';
-  if (isMacOS && isArm64) {
-    logger.info('Running on macOS with ARM architecture (likely Apple Silicon).');
-    const shellRunner = new ShellRunner();
-    return await shellRunner.run('sysctl -n machdep.cpu.brand_string');
-  } else {
-    logger.info('Not running on macOS ARM (Apple Silicon).');
-    return ['unknown'];
+export async function getProcessorType(container: Container): Promise<string> {
+  try {
+    return container.execContainer('uname -p');
+  } catch {
+    return 'unknown';
   }
+}
+
+export async function requiresJavaSveFix(container: Container) {
+  const chipSet = await getProcessorType(container);
+  return chipSet.includes('aarch') || chipSet.includes('arm');
+}
+
+export function entityId(shard: Shard, realm: Realm, number: Long | number | string): string {
+  return `${shard}.${realm}.${number}`;
 }

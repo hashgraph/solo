@@ -9,6 +9,8 @@ import {
   type ClusterReferences,
   type DeploymentName,
   type EmailAddress,
+  type Realm,
+  type Shard,
   type Version,
 } from '../remote/types.js';
 import {IsClusterReferences, IsDeployments} from '../../validator-decorators.js';
@@ -73,8 +75,8 @@ export class LocalConfigDataWrapper implements Validate, LocalConfigData, ToObje
     delete this._clusterRefs[clusterReference];
   }
 
-  public addDeployment(deployment: DeploymentName, namespace: NamespaceName): void {
-    this._deployments[deployment] = {clusters: [], namespace: namespace.name};
+  public addDeployment(deployment: DeploymentName, namespace: NamespaceName, realm: Realm, shard: Shard): void {
+    this._deployments[deployment] = {clusters: [], namespace: namespace.name, realm, shard};
   }
 
   public removeDeployment(deployment: DeploymentName): void {

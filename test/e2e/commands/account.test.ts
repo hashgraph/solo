@@ -31,8 +31,9 @@ import * as helpers from '../../../src/core/helpers.js';
 import {Templates} from '../../../src/core/templates.js';
 import * as Base64 from 'js-base64';
 import {Argv} from '../../helpers/argv-wrapper.js';
-import {type DeploymentName} from '../../../src/core/config/remote/types.js';
+import {type DeploymentName, type Realm, type Shard} from '../../../src/core/config/remote/types.js';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
+import {entityId} from '../../../src/core/helpers.js';
 
 const defaultTimeout = Duration.ofSeconds(20).toMillis();
 
@@ -48,6 +49,8 @@ argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);
 argv.setArg(flags.clusterRef, getTestCluster());
 argv.setArg(flags.soloChartVersion, version.SOLO_CHART_VERSION);
+argv.setArg(flags.realm, 0);
+argv.setArg(flags.shard, 0);
 
 // enable load balancer for e2e tests
 // argv.setArg(flags.loadBalancerEnabled, true);
@@ -105,8 +108,8 @@ endToEndTestSuite(testName, argv, {}, bootstrapResp => {
 
       describe('special accounts should have new keys', () => {
         const genesisKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
-        const realm = constants.HEDERA_NODE_ACCOUNT_ID_START.realm;
-        const shard = constants.HEDERA_NODE_ACCOUNT_ID_START.shard;
+        const realm: Realm = argv.getArg(flags.realm);
+        const shard: Shard = argv.getArg(flags.shard);
 
         before(async function () {
           this.timeout(Duration.ofSeconds(20).toMillis());
@@ -146,7 +149,7 @@ endToEndTestSuite(testName, argv, {}, bootstrapResp => {
             it(`account ${index} should not have genesis key`, async () => {
               expect(accountManager._nodeClient).not.to.be.null;
 
-              const accountId = `${realm}.${shard}.${index}`;
+              const accountId = entityId(shard, realm, index);
               testLogger.info(`Fetching account keys: accountId ${accountId}`);
               const keys = await accountManager.getAccountKeys(accountId);
               testLogger.info(`Fetched account keys: accountId ${accountId}`);

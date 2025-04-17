@@ -46,7 +46,11 @@ describe('LocalConfig', () => {
       expect(lc.versions.cli).to.deep.equal(new SemVer('0.35.1'));
       expect(lc.deployments).to.have.lengthOf(2);
       expect(lc.deployments[0].name).to.equal('dual-cluster-full-deployment');
+      expect(lc.deployments[0].realm).to.equal(0);
+      expect(lc.deployments[0].shard).to.equal(0);
       expect(lc.deployments[1].name).to.equal('deployment');
+      expect(lc.deployments[1].realm).to.equal(0);
+      expect(lc.deployments[1].shard).to.equal(0);
       expect(lc.clusterRefs).to.be.instanceOf(Map);
       expect(lc.clusterRefs).to.have.lengthOf(4);
       expect(lc.userIdentity).to.not.be.undefined.and.to.not.be.null;
@@ -55,8 +59,8 @@ describe('LocalConfig', () => {
 
     it('should transform class to plain', async () => {
       const deployments: Deployment[] = [
-        new Deployment('dual-cluster-full-deployment', 'dual-cluster-full', ['e2e-cluster-1', 'e2e-cluster-2']),
-        new Deployment('deployment', 'solo-e2e', ['cluster-1']),
+        new Deployment('dual-cluster-full-deployment', 'dual-cluster-full', ['e2e-cluster-1', 'e2e-cluster-2'], 0, 0),
+        new Deployment('deployment', 'solo-e2e', ['cluster-1'], 0, 0),
       ];
 
       const clusterReferences: Map<string, string> = new Map<string, string>();
@@ -73,7 +77,7 @@ describe('LocalConfig', () => {
         new SemVer(HEDERA_EXPLORER_VERSION),
         new SemVer(HEDERA_JSON_RPC_RELAY_VERSION),
       );
-      const lc = new LocalConfig(1, versions, deployments, clusterReferences);
+      const lc = new LocalConfig(2, versions, deployments, clusterReferences);
       const newPlainObject: object = instanceToPlain(lc);
 
       expect(newPlainObject).to.not.be.undefined.and.to.not.be.null;

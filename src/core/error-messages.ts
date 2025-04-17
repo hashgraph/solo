@@ -4,7 +4,7 @@ export class ErrorMessages {
   public static readonly LOCAL_CONFIG_DOES_NOT_EXIST =
     'Please create a local configuration first. Run "solo deployment create"';
 
-  public static readonly LOCAL_CONFIG_CURRENT_DEPLOYMENT_DOES_NOT_EXIST =
+  public static readonly LOCAL_CONFIG_DEPLOYMENT_DOES_NOT_EXIST =
     'The selected deployment does not correspond to a deployment in the local configuration';
 
   public static readonly LOCAL_CONFIG_GENERIC = 'Validation of local config failed';

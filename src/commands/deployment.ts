@@ -7,7 +7,13 @@ import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import chalk from 'chalk';
 import {ClusterCommandTasks} from './cluster/tasks.js';
-import {type ClusterReference, type DeploymentName, type NamespaceNameAsString} from '../core/config/remote/types.js';
+import {
+  type ClusterReference,
+  type DeploymentName,
+  type NamespaceNameAsString,
+  type Realm,
+  type Shard,
+} from '../core/config/remote/types.js';
 import {type SoloListrTask} from '../types/index.js';
 import {ErrorMessages} from '../core/error-messages.js';
 import {NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
@@ -57,7 +63,7 @@ export class DeploymentCommand extends BaseCommand {
 
   private static CREATE_FLAGS_LIST = {
     required: [],
-    optional: [flags.quiet, flags.namespace, flags.deployment],
+    optional: [flags.quiet, flags.namespace, flags.deployment, flags.realm, flags.shard],
   };
 
   private static DELETE_FLAGS_LIST = {
@@ -93,6 +99,8 @@ export class DeploymentCommand extends BaseCommand {
       quiet: boolean;
       namespace: NamespaceName;
       deployment: DeploymentName;
+      realm: Realm;
+      shard: Shard;
     }
 
     interface Context {
@@ -112,6 +120,8 @@ export class DeploymentCommand extends BaseCommand {
               quiet: self.configManager.getFlag<boolean>(flags.quiet),
               namespace: self.configManager.getFlag<NamespaceName>(flags.namespace),
               deployment: self.configManager.getFlag<DeploymentName>(flags.deployment),
+              realm: self.configManager.getFlag<Realm>(flags.realm) || flags.realm.definition.defaultValue,
+              shard: self.configManager.getFlag<Shard>(flags.shard) || flags.shard.definition.defaultValue,
             } as Config;
 
             if (self.localConfig.deployments && self.localConfig.deployments[context_.config.deployment]) {
@@ -124,7 +134,7 @@ export class DeploymentCommand extends BaseCommand {
         {
           title: 'Add deployment to local config',
           task: async (context_, task) => {
-            const {namespace, deployment} = context_.config;
+            const {namespace, deployment, realm, shard} = context_.config;
             task.title = `Adding deployment: ${deployment} with namespace: ${namespace.name} to local config`;
 
             if (this.localConfig.deployments[deployment]) {
@@ -132,7 +142,7 @@ export class DeploymentCommand extends BaseCommand {
             }
 
             await this.localConfig.modify(async localConfigData => {
-              localConfigData.addDeployment(deployment, namespace);
+              localConfigData.addDeployment(deployment, namespace, realm, shard);
             });
           },
         },
