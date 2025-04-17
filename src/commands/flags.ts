@@ -2401,7 +2401,7 @@ export class Flags {
     constName: 'realm',
     name: 'realm',
     definition: {
-      describe: 'Realm number',
+      describe: 'Realm number. Requires network-node > v61.0 for non-zero values',
       type: 'number',
       defaultValue: 0,
     },
@@ -2412,7 +2412,7 @@ export class Flags {
     constName: 'shard',
     name: 'shard',
     definition: {
-      describe: 'Shard number',
+      describe: 'Shard number. Requires network-node > v61.0 for non-zero values',
       type: 'number',
       defaultValue: 0,
     },
