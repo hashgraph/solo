@@ -222,7 +222,9 @@ export function endToEndTestSuite(
   const testLogger: SoloLogger = getTestLogger();
   const testNamespace: NamespaceName = getTestNamespace(argv);
   resetForTest(testNamespace.name, undefined, testLogger, false, containerOverrides);
-  if (typeof startNodes !== 'boolean') startNodes = true;
+  if (typeof startNodes !== 'boolean') {
+    startNodes = true;
+  }
 
   const bootstrapResp = bootstrapTestVariables(testName, argv, {
     k8FactoryArg,

@@ -145,15 +145,15 @@ endToEndTestSuite(
             }
           });
 
-        for (const [start, end] of testSystemAccounts) {
-          for (let index = start; index <= end; index++) {
-            it(`account ${index} should not have genesis key`, async () => {
-              expect(accountManager._nodeClient).not.to.be.null;
+          for (const [start, end] of testSystemAccounts) {
+            for (let index = start; index <= end; index++) {
+              it(`account ${index} should not have genesis key`, async () => {
+                expect(accountManager._nodeClient).not.to.be.null;
 
-              const accountId = `${realm}.${shard}.${index}`;
-              testLogger.info(`Fetching account keys: accountId ${accountId}`);
-              const keys = await accountManager.getAccountKeys(accountId);
-              testLogger.info(`Fetched account keys: accountId ${accountId}`);
+                const accountId = `${realm}.${shard}.${index}`;
+                testLogger.info(`Fetching account keys: accountId ${accountId}`);
+                const keys = await accountManager.getAccountKeys(accountId);
+                testLogger.info(`Fetched account keys: accountId ${accountId}`);
 
                 expect(keys.length).not.to.equal(0);
                 expect(keys[0].toString()).not.to.equal(genesisKey.toString());
@@ -185,14 +185,14 @@ endToEndTestSuite(
 
             accountId1 = accountInfo.accountId;
 
-          expect(accountInfo.privateKey).not.to.be.null;
-          expect(accountInfo.publicKey).not.to.be.null;
-          expect(accountInfo.balance).to.equal(configManager.getFlag(flags.amount));
-        } catch (error) {
-          testLogger.showUserError(error);
-          expect.fail();
-        }
-      }).timeout(Duration.ofSeconds(40).toMillis());
+            expect(accountInfo.privateKey).not.to.be.null;
+            expect(accountInfo.publicKey).not.to.be.null;
+            expect(accountInfo.balance).to.equal(configManager.getFlag(flags.amount));
+          } catch (error) {
+            testLogger.showUserError(error);
+            expect.fail();
+          }
+        }).timeout(Duration.ofSeconds(40).toMillis());
 
         it('should create account with private key and hbar amount options', async () => {
           try {
@@ -206,19 +206,19 @@ endToEndTestSuite(
               callback: async argv => accountCmd.create(argv),
             });
 
-          // @ts-expect-error - TS2341: to access private property
-          const accountInfo = accountCmd.accountInfo;
-          expect(accountInfo).not.to.be.null;
-          expect(accountInfo.accountId).not.to.be.null;
-          accountId2 = accountInfo.accountId;
-          expect(accountInfo.privateKey.toString()).to.equal(constants.GENESIS_KEY);
-          expect(accountInfo.publicKey).not.to.be.null;
-          expect(accountInfo.balance).to.equal(configManager.getFlag(flags.amount));
-        } catch (error) {
-          testLogger.showUserError(error);
-          expect.fail();
-        }
-      }).timeout(defaultTimeout);
+            // @ts-expect-error - TS2341: to access private property
+            const accountInfo = accountCmd.accountInfo;
+            expect(accountInfo).not.to.be.null;
+            expect(accountInfo.accountId).not.to.be.null;
+            accountId2 = accountInfo.accountId;
+            expect(accountInfo.privateKey.toString()).to.equal(constants.GENESIS_KEY);
+            expect(accountInfo.publicKey).not.to.be.null;
+            expect(accountInfo.balance).to.equal(configManager.getFlag(flags.amount));
+          } catch (error) {
+            testLogger.showUserError(error);
+            expect.fail();
+          }
+        }).timeout(defaultTimeout);
 
         it('should update account-1', async () => {
           try {
@@ -232,18 +232,18 @@ endToEndTestSuite(
               callback: async argv => accountCmd.update(argv),
             });
 
-          // @ts-expect-error - TS2341: to access private property
-          const accountInfo = accountCmd.accountInfo;
-          expect(accountInfo).not.to.be.null;
-          expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
-          expect(accountInfo.privateKey).to.be.undefined;
-          expect(accountInfo.publicKey).not.to.be.null;
-          expect(accountInfo.balance).to.equal(200);
-        } catch (error) {
-          testLogger.showUserError(error);
-          expect.fail();
-        }
-      }).timeout(defaultTimeout);
+            // @ts-expect-error - TS2341: to access private property
+            const accountInfo = accountCmd.accountInfo;
+            expect(accountInfo).not.to.be.null;
+            expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
+            expect(accountInfo.privateKey).to.be.undefined;
+            expect(accountInfo.publicKey).not.to.be.null;
+            expect(accountInfo.balance).to.equal(200);
+          } catch (error) {
+            testLogger.showUserError(error);
+            expect.fail();
+          }
+        }).timeout(defaultTimeout);
 
         it('should update account-2 with accountId, amount, new private key, and standard out options', async () => {
           try {
@@ -258,18 +258,18 @@ endToEndTestSuite(
               callback: async argv => accountCmd.update(argv),
             });
 
-          // @ts-expect-error - TS2341: to access private property
-          const accountInfo = accountCmd.accountInfo;
-          expect(accountInfo).not.to.be.null;
-          expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
-          expect(accountInfo.privateKey).to.be.undefined;
-          expect(accountInfo.publicKey).not.to.be.null;
-          expect(accountInfo.balance).to.equal(1110);
-        } catch (error) {
-          testLogger.showUserError(error);
-          expect.fail();
-        }
-      }).timeout(defaultTimeout);
+            // @ts-expect-error - TS2341: to access private property
+            const accountInfo = accountCmd.accountInfo;
+            expect(accountInfo).not.to.be.null;
+            expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
+            expect(accountInfo.privateKey).to.be.undefined;
+            expect(accountInfo.publicKey).not.to.be.null;
+            expect(accountInfo.balance).to.equal(1110);
+          } catch (error) {
+            testLogger.showUserError(error);
+            expect.fail();
+          }
+        }).timeout(defaultTimeout);
 
         it('should be able to get account-1', async () => {
           try {
@@ -282,18 +282,18 @@ endToEndTestSuite(
               callback: async argv => accountCmd.get(argv),
             });
 
-          // @ts-expect-error - TS2341: to access private property
-          const accountInfo = accountCmd.accountInfo;
-          expect(accountInfo).not.to.be.null;
-          expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
-          expect(accountInfo.privateKey).to.be.undefined;
-          expect(accountInfo.publicKey).to.be.ok;
-          expect(accountInfo.balance).to.equal(200);
-        } catch (error) {
-          testLogger.showUserError(error);
-          expect.fail();
-        }
-      }).timeout(defaultTimeout);
+            // @ts-expect-error - TS2341: to access private property
+            const accountInfo = accountCmd.accountInfo;
+            expect(accountInfo).not.to.be.null;
+            expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
+            expect(accountInfo.privateKey).to.be.undefined;
+            expect(accountInfo.publicKey).to.be.ok;
+            expect(accountInfo.balance).to.equal(200);
+          } catch (error) {
+            testLogger.showUserError(error);
+            expect.fail();
+          }
+        }).timeout(defaultTimeout);
 
         it('should be able to get account-2', async () => {
           try {
@@ -306,18 +306,18 @@ endToEndTestSuite(
               callback: async argv => accountCmd.get(argv),
             });
 
-          // @ts-expect-error - TS2341: to access private property
-          const accountInfo = accountCmd.accountInfo;
-          expect(accountInfo).not.to.be.null;
-          expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
-          expect(accountInfo.privateKey).to.be.undefined;
-          expect(accountInfo.publicKey).to.be.ok;
-          expect(accountInfo.balance).to.equal(1110);
-        } catch (error) {
-          testLogger.showUserError(error);
-          expect.fail();
-        }
-      }).timeout(defaultTimeout);
+            // @ts-expect-error - TS2341: to access private property
+            const accountInfo = accountCmd.accountInfo;
+            expect(accountInfo).not.to.be.null;
+            expect(accountInfo.accountId).to.equal(argv.getArg<string>(flags.accountId));
+            expect(accountInfo.privateKey).to.be.undefined;
+            expect(accountInfo.publicKey).to.be.ok;
+            expect(accountInfo.balance).to.equal(1110);
+          } catch (error) {
+            testLogger.showUserError(error);
+            expect.fail();
+          }
+        }).timeout(defaultTimeout);
 
         it('should create account with ecdsa private key and set alias', async () => {
           const ecdsaPrivateKey = PrivateKey.generateECDSA();
@@ -346,20 +346,20 @@ endToEndTestSuite(
               `${accountId.realm}.${accountId.shard}.${ecdsaPrivateKey.publicKey.toEvmAddress()}`,
             );
 
-          await accountManager.loadNodeClient(
-            namespace,
-            remoteConfigManager.getClusterRefs(),
-            argv.getArg<DeploymentName>(flags.deployment),
-            argv.getArg<boolean>(flags.forcePortForward),
-          );
-          const accountAliasInfo = await accountManager.accountInfoQuery(newAccountInfo.accountAlias);
-          expect(accountAliasInfo).not.to.be.null;
-        } catch (error) {
-          testLogger.showUserError(error);
-          expect.fail();
-        }
-      }).timeout(defaultTimeout);
-    });
+            await accountManager.loadNodeClient(
+              namespace,
+              remoteConfigManager.getClusterRefs(),
+              argv.getArg<DeploymentName>(flags.deployment),
+              argv.getArg<boolean>(flags.forcePortForward),
+            );
+            const accountAliasInfo = await accountManager.accountInfoQuery(newAccountInfo.accountAlias);
+            expect(accountAliasInfo).not.to.be.null;
+          } catch (error) {
+            testLogger.showUserError(error);
+            expect.fail();
+          }
+        }).timeout(defaultTimeout);
+      });
 
       describe('Test SDK create account and submit transaction', () => {
         let accountInfo: {
@@ -400,13 +400,13 @@ endToEndTestSuite(
             MY_ACCOUNT_ID = accountInfo.accountId;
             MY_PRIVATE_KEY = accountInfo.privateKey;
 
-          testLogger.info(`Account created: ${JSON.stringify(accountInfo)}`);
-          expect(accountInfo.accountId).not.to.be.null;
-          expect(accountInfo.balance).to.equal(amount);
-        } catch (error) {
-          testLogger.showUserError(error);
-        }
-      }).timeout(Duration.ofMinutes(2).toMillis());
+            testLogger.info(`Account created: ${JSON.stringify(accountInfo)}`);
+            expect(accountInfo.accountId).not.to.be.null;
+            expect(accountInfo.balance).to.equal(amount);
+          } catch (error) {
+            testLogger.showUserError(error);
+          }
+        }).timeout(Duration.ofMinutes(2).toMillis());
 
         it('Create client from network config and submit topic/message should succeed', async () => {
           try {
@@ -431,11 +431,11 @@ endToEndTestSuite(
 
             const submitReceipt = await submitResponse.getReceipt(sdkClient);
 
-          expect(submitReceipt.status).to.deep.equal(Status.Success);
-        } catch (error) {
-          testLogger.showUserError(error);
-        }
-      }).timeout(Duration.ofMinutes(2).toMillis());
+            expect(submitReceipt.status).to.deep.equal(Status.Success);
+          } catch (error) {
+            testLogger.showUserError(error);
+          }
+        }).timeout(Duration.ofMinutes(2).toMillis());
 
         // hitchhiker account test to test node freeze and restart
         it('Freeze and restart all nodes should succeed', async () => {
@@ -447,16 +447,17 @@ endToEndTestSuite(
               callback: async argv => nodeCmd.handlers.freeze(argv),
             });
 
-          await commandInvoker.invoke({
-            argv: argv,
-            command: NodeCommand.COMMAND_NAME,
-            subcommand: 'restart',
-            callback: async argv => nodeCmd.handlers.restart(argv),
-          });
-        } catch (error) {
-          testLogger.showUserError(error);
-        }
-      }).timeout(Duration.ofMinutes(4).toMillis());
+            await commandInvoker.invoke({
+              argv: argv,
+              command: NodeCommand.COMMAND_NAME,
+              subcommand: 'restart',
+              callback: async argv => nodeCmd.handlers.restart(argv),
+            });
+          } catch (error) {
+            testLogger.showUserError(error);
+          }
+        }).timeout(Duration.ofMinutes(4).toMillis());
+      });
     });
-  });
-});
+  },
+);

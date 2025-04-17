@@ -99,7 +99,7 @@ export class Container {
       HelmInstallationDir: [{useValue: PathEx.join(constants.SOLO_HOME_DIR, 'bin')}],
       HelmVersion: [{useValue: version.HELM_VERSION}],
       SystemAccounts: [{useValue: constants.SYSTEM_ACCOUNTS}],
-      cacheDirectory: [{useValue: cacheDirectory}],
+      CacheDir: [{useValue: cacheDirectory}],
       LocalConfigFilePath: [{useValue: PathEx.join(homeDirectory, constants.DEFAULT_LOCAL_CONFIG_FILE)}],
       LockRenewalService: [{useClass: IntervalLockRenewalService}, {lifecycle: Lifecycle.Singleton}],
       LockManager: [{useClass: LockManager}, {lifecycle: Lifecycle.Singleton}],

@@ -4,7 +4,6 @@ import sinon from 'sinon';
 import {beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 import {HEDERA_PLATFORM_VERSION_TAG, getTestCluster} from '../../test-utility.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
