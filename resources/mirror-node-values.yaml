@@ -90,6 +90,8 @@ rest:
     enabled: false
   redis:
     enabled: true
+  global:
+    hostname: "localhost"
 restjava:
   nodeSelector: {}
   tolerations:

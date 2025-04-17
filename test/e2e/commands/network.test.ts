@@ -2,13 +2,13 @@
 
 import {after, before, describe, it} from 'mocha';
 import {expect} from 'chai';
-
 import {bootstrapTestVariables, getTemporaryDirectory, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
 import * as constants from '../../../src/core/constants.js';
 import * as version from '../../../version.js';
 import {sleep} from '../../../src/core/helpers.js';
 import fs from 'node:fs';
 import {Flags as flags} from '../../../src/commands/flags.js';
+import {KeyManager} from '../../../src/core/key-manager.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
 import {PodName} from '../../../src/integration/kube/resources/pod/pod-name.js';
@@ -20,6 +20,7 @@ import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 import {DeploymentCommand} from '../../../src/commands/deployment.js';
 import {NetworkCommand} from '../../../src/commands/network.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import os from 'node:os';
 
 describe('NetworkCommand', function networkCommand() {
   this.bail(true);
@@ -41,10 +42,23 @@ describe('NetworkCommand', function networkCommand() {
   argv.setArg(flags.applicationEnv, applicationEnvironmentFilePath);
   argv.setArg(flags.loadBalancerEnabled, true);
 
+  const temporaryDirectory: string = os.tmpdir();
   const {
     opts: {k8Factory, accountManager, configManager, chartManager, commandInvoker, logger},
     cmd: {networkCmd, clusterCmd, initCmd, nodeCmd, deploymentCmd},
   } = bootstrapTestVariables(testName, argv, {});
+
+  // Setup TLS certificates in a before hook
+  before(async function () {
+    this.timeout(Duration.ofMinutes(1).toMillis());
+    await KeyManager.generateTls(temporaryDirectory, 'grpc');
+    await KeyManager.generateTls(temporaryDirectory, 'grpcWeb');
+  });
+
+  argv.setArg(flags.grpcTlsCertificatePath, 'node1=' + PathEx.join(temporaryDirectory, 'grpc.crt'));
+  argv.setArg(flags.grpcTlsKeyPath, 'node1=' + PathEx.join(temporaryDirectory, 'grpc.key'));
+  argv.setArg(flags.grpcWebTlsCertificatePath, 'node1=' + PathEx.join(temporaryDirectory, 'grpcWeb.crt'));
+  argv.setArg(flags.grpcWebTlsKeyPath, 'node1=' + PathEx.join(temporaryDirectory, 'grpcWeb.key'));
 
   after(async function () {
     this.timeout(Duration.ofMinutes(3).toMillis());

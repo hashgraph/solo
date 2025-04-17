@@ -3,6 +3,32 @@ set -eo pipefail
 
 source .github/workflows/script/helper.sh
 
+# Check the health of a service endpoint
+# $1: URL to check
+# $2: Expected content in response
+# $3: Service name for logging
+# $4: Protocol (http/https) for logging
+check_service_health() {
+  local url=$1
+  local expected_content=$2
+  local service_name=$3
+  local protocol=$4
+  local curl_args=()
+
+  if [[ $url == https://* ]]; then
+    curl_args+=(-k)
+  fi
+
+  local curl_output=$(curl "${curl_args[@]}" "$url")
+  if [[ $curl_output == *"$expected_content"* ]]; then
+    echo "$service_name $protocol is up and running"
+    return 0
+  else
+    echo "$service_name $protocol is not up and running"
+    return 1
+  fi
+}
+
 if [ -z "${STORAGE_TYPE}" ]; then
   storageType="minio_only"
 else
@@ -97,7 +123,11 @@ if [ "${storageType}" == "minio_only" ]; then
   task default-with-mirror
   cd -
 else
-  kind create cluster -n "${SOLO_CLUSTER_NAME}"
+  # get current script base directory
+  script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+  echo "script_dir: ${script_dir}"
+  # Use custom kind config file to expose ports used by explorer ingress controller NodePort configuration
+  kind create cluster -n "${SOLO_CLUSTER_NAME}" --config "${script_dir}"/kind-config.yaml
   npm run solo-test -- init
   npm run solo-test -- cluster-ref setup \
     -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
@@ -118,15 +148,29 @@ else
   npm run solo-test -- mirror-node deploy  --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} \
     --storage-type "${storageType}" \
     "${MIRROR_STORAGE_OPTIONS[@]}" \
+    --ingress-controller-value-file "${script_dir}"/mirror-ingress-controller-values.yaml \
+    --enable-ingress --domain-name localhost
 
   kubectl port-forward -n "${SOLO_NAMESPACE}" svc/mirror-grpc 5600:5600 > /dev/null 2>&1 &
+  kubectl port-forward -n "${SOLO_NAMESPACE}" svc/mirror-rest 5551:80 > /dev/null 2>&1 &
 
-  npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME}
+  npm run solo-test -- explorer deploy -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" \
+    --cluster-ref kind-${SOLO_CLUSTER_NAME} --tls-cluster-issuer-type self-signed --enable-hedera-explorer-tls \
+    --ingress-controller-value-file "${script_dir}"/explorer-ingress-controller-values.yaml \
+    --enable-ingress --domain-name localhost
 
   kubectl port-forward -n "${SOLO_NAMESPACE}" svc/haproxy-node1-svc 50211:50211 > /dev/null 2>&1 &
 
   explorer_svc="$(kubectl get svc -l app.kubernetes.io/component=hedera-explorer -n ${SOLO_NAMESPACE} --output json | jq -r '.items[].metadata.name')"
   kubectl port-forward -n "${SOLO_NAMESPACE}" svc/"${explorer_svc}" 8080:80 > /dev/null 2>&1 &
+
+  # Check Explorer endpoints
+  check_service_health "https://localhost:31001" "Hedera Mirror Node Explorer" "Explorer" "https" || exit 1
+  check_service_health "http://localhost:31000" "Hedera Mirror Node Explorer" "Explorer" "http" || exit 1
+
+  # Check Mirror API endpoints
+  check_service_health "https://localhost:32001/api/v1/accounts" "accounts" "Mirror" "https" || exit 1
+  check_service_health "http://localhost:32000/api/v1/accounts" "accounts" "Mirror" "http" || exit 1
 fi
 
 cd ..; create_test_account ${SOLO_DEPLOYMENT}; cd -

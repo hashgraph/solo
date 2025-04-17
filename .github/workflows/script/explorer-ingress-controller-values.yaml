@@ -1,0 +1,18 @@
+# Value file for explorer-ingress-controller
+# to accept http request on NodePort 31000 and forward to 8080,
+# and accept https request on NodePort 31001 and forward to 8443
+controller:
+  service:
+    type: NodePort
+    httpPorts:
+      - port: 8080
+        targetPort: 8080
+        nodePort: 31000
+    httpsPorts:
+      - port: 8443
+        targetPort: 8443
+        nodePort: 31001
+  config:
+    http-port: "8080"   # HAProxy listens for HTTP on 8080
+    https-port: "8443"  # HAProxy listens for HTTPS on 8443
+    ssl-redirect: "false" # Allow HTTP traffic (disable forced redirect to HTTPS)
