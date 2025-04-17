@@ -12,7 +12,7 @@ import {type Context} from './types.js';
 import {type K8Factory} from '../../../integration/kube/k8-factory.js';
 import {DeploymentPhase} from '../../../data/schema/model/remote/deployment-phase.js';
 import {Templates} from '../../templates.js';
-import {NodeAlias} from '../../../types/aliases.js';
+import {type NodeAlias} from '../../../types/aliases.js';
 
 /**
  * Static class is used to validate that components in the remote config
