@@ -3,7 +3,7 @@
 import {type ObjectStorageBackend} from '../api/object-storage-backend.js';
 import {FileStorageBackend} from './file-storage-backend.js';
 import {StorageBackendError} from '../api/storage-backend-error.js';
-import {parse, stringify} from 'yaml';
+import yaml from 'yaml';
 import {IllegalArgumentError} from '../../../core/errors/illegal-argument-error.js';
 import {PathEx} from '../../../business/utils/path-ex.js';
 
@@ -25,7 +25,7 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
     }
 
     try {
-      return parse(data.toString('utf-8'));
+      return yaml.parse(data.toString('utf8'));
     } catch (error) {
       throw new StorageBackendError(`error parsing yaml file: ${filePath}`, error);
     }
@@ -38,8 +38,8 @@ export class YamlFileStorageBackend extends FileStorageBackend implements Object
 
     const filePath: string = PathEx.join(this.basePath, key);
     try {
-      const yamlData: string = stringify(data, {sortMapEntries: true});
-      await this.writeBytes(key, Buffer.from(yamlData, 'utf-8'));
+      const yamlData: string = yaml.stringify(data, {sortMapEntries: true});
+      await this.writeBytes(key, Buffer.from(yamlData, 'utf8'));
     } catch (error) {
       throw new StorageBackendError(`error writing yaml file: ${filePath}`, error);
     }
