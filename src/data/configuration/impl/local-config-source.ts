@@ -13,7 +13,7 @@ export class LocalConfigSource extends MutableModelConfigSource<LocalConfig> imp
   }
 
   public get name(): string {
-    return 'LocalConfigSource';
+    return this.constructor.name;
   }
 
   public get ordinal(): number {
