@@ -6,9 +6,12 @@ import {ApplicationVersions} from '../common/application-versions.js';
 import {Cluster} from '../common/cluster.js';
 import {DeploymentState} from './deployment-state.js';
 import {DeploymentHistory} from './deployment-history.js';
+import {Version} from '../../../../business/utils/version.js';
 
 @Exclude()
 export class RemoteConfig {
+  public static readonly SCHEMA_VERSION: Version<number> = new Version(1);
+
   @Expose()
   public schemaVersion: number;
 
