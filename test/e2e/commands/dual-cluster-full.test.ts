@@ -9,7 +9,7 @@ import {main} from '../../../src/index.js';
 import {resetForTest} from '../../test-container.js';
 import {
   type ClusterReference,
-  type ClusterReferences,
+  type ClusterReferences, ComponentId,
   type DeploymentName,
 } from '../../../src/core/config/remote/types.js';
 import {NamespaceName} from '../../../src/integration/kube/resources/namespace/namespace-name.js';
@@ -134,10 +134,10 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
     }
     const remoteConfigManager: RemoteConfigManager = container.resolve(InjectTokens.RemoteConfigManager);
     expect(remoteConfigManager.isLoaded(), 'remote config manager should be loaded').to.be.true;
-    const consensusNodes: Record<string, ConsensusNodeComponent> = remoteConfigManager.components.consensusNodes;
+    const consensusNodes: Record<ComponentId, ConsensusNodeComponent> = remoteConfigManager.components.consensusNodes;
     expect(Object.entries(consensusNodes).length, 'consensus node count should be 2').to.equal(2);
-    expect(consensusNodes['node1'].cluster).to.equal(testClusterArray[0]);
-    expect(consensusNodes['node2'].cluster).to.equal(testClusterArray[1]);
+    expect(consensusNodes[0].cluster).to.equal(testClusterArray[0]);
+    expect(consensusNodes[1].cluster).to.equal(testClusterArray[1]);
     testLogger.info(`${testName}: finished solo deployment add-cluster`);
   });
 
