@@ -546,12 +546,30 @@ export function isIPv4Address(input: string): boolean {
 }
 
 /**
- * Convert an IPv4 address to a 4 byte array removing the periods
- * @param ip The IPv4 address to convert
- * @returns A Uint8Array represented as a number array representing the IPv4 address
+ * Convert an IPv4 address to a base64 string
+ * @param ipv4 The IPv4 address to convert
+ * @returns The base64 encoded string representation of the IPv4 address
  */
-export function ipv4ToByteArray(ip: string): number[] {
-  return [...new Uint8Array(ip.split('.').map(Number))];
+export function ipv4ToBase64(ipv4: string): string {
+  // Split the IPv4 address into its octets
+  const octets: number[] = ipv4.split('.').map(octet => {
+    const number_: number = Number.parseInt(octet, 10);
+    // eslint-disable-next-line unicorn/prefer-number-properties
+    if (isNaN(number_) || number_ < 0 || number_ > 255) {
+      throw new Error(`Invalid IPv4 address: ${ipv4}`);
+    }
+    return number_;
+  });
+
+  if (octets.length !== 4) {
+    throw new Error(`Invalid IPv4 address: ${ipv4}`);
+  }
+
+  // Convert the octets to a Uint8Array
+  const uint8Array: Uint8Array<ArrayBuffer> = new Uint8Array(octets);
+
+  // Base64 encode the byte array
+  return btoa(String.fromCodePoint(...uint8Array));
 }
 
 /** Get the Apple Silicon chip type */
