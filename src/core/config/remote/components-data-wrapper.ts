@@ -41,7 +41,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   public addNewComponent(component: BaseComponent): void {
     const componentId: ComponentId = component.id;
 
-    if (!componentId || typeof componentId !== 'string') {
+    if (typeof componentId !== 'number' || componentId < 0) {
       throw new SoloError(`Component id is required ${componentId}`);
     }
 
@@ -69,7 +69,7 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
 
   /** Used to remove specific component from their respective group. */
   public removeComponent(componentId: ComponentId, type: ComponentTypes): void {
-    if (!componentId || typeof componentId !== 'string') {
+    if (typeof componentId !== 'number' || componentId < 0) {
       throw new SoloError(`Component id is required ${componentId}`);
     }
 
@@ -288,7 +288,8 @@ export class ComponentsDataWrapper implements ComponentsDataWrapperApi {
   /** Validates that the component group mapping has only components from the expected instance */
   private validateComponentTypes(components: Record<ComponentId, BaseComponent>, expectedInstance: any): void {
     for (const [componentId, component] of Object.entries(components)) {
-      if (!componentId || typeof componentId !== 'number') {
+      if (typeof componentId !== 'number' || componentId < 0) {
+        console.log(componentId);
         throw new SoloError(`Invalid component id ${{[componentId]: component?.constructor?.name}}`);
       }
 

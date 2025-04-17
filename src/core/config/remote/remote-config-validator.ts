@@ -12,6 +12,7 @@ import {type Context} from './types.js';
 import {type K8Factory} from '../../../integration/kube/k8-factory.js';
 import {DeploymentPhase} from '../../../data/schema/model/remote/deployment-phase.js';
 import {Templates} from '../../templates.js';
+import {NodeAlias} from '../../../types/aliases.js';
 
 /**
  * Static class is used to validate that components in the remote config
@@ -23,8 +24,8 @@ export class RemoteConfigValidator {
   }
 
   private static getHaProxyLabels(component: BaseComponent): string[] {
-    const name: string = 'haproxy-' + component.id; // TODO: also remove or use the prefix
-    return [`app=${name}`];
+    const nodeAlias: NodeAlias = Templates.renderNodeAliasFromNumber(component.id + 1);
+    return [`app=haproxy-${nodeAlias}`, 'solo.hedera.com/type=haproxy'];
   }
 
   private static getMirrorNodeLabels(): string[] {
@@ -32,8 +33,8 @@ export class RemoteConfigValidator {
   }
 
   private static getEnvoyProxyLabels(component: BaseComponent): string[] {
-    const name: string = 'envoy-' + component.id; // TODO: also remove or use the prefix
-    return [`app=${name}`];
+    const nodeAlias: NodeAlias = Templates.renderNodeAliasFromNumber(component.id + 1); // TODO
+    return [`app=envoy-${nodeAlias}`, 'solo.hedera.com/type=envoy-proxy'];
   }
 
   private static getMirrorNodeExplorerLabels(): string[] {
