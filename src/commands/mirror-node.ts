@@ -23,7 +23,11 @@ import * as fs from 'node:fs';
 import {type Optional, type SoloListrTask} from '../types/index.js';
 import * as Base64 from 'js-base64';
 import {INGRESS_CONTROLLER_VERSION} from '../../version.js';
-import {INGRESS_CONTROLLER_NAME} from '../core/constants.js';
+import {
+  INGRESS_CONTROLLER_PREFIX,
+  MIRROR_INGRESS_TLS_SECRET_NAME,
+  MIRROR_INGRESS_CONTROLLER,
+} from '../core/constants.js';
 import {type NamespaceName} from '../integration/kube/resources/namespace/namespace-name.js';
 import {PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {ContainerName} from '../integration/kube/resources/container/container-name.js';
@@ -33,16 +37,19 @@ import {type CommandFlag} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {type ClusterReference, type DeploymentName} from '../core/config/remote/types.js';
-import {showVersionBanner} from '../core/helpers.js';
+import {KeyManager} from '../core/key-manager.js';
+import {prepareValuesFiles, showVersionBanner} from '../core/helpers.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 
 interface MirrorNodeDeployConfigClass {
+  cacheDir: string;
   chartDirectory: string;
   clusterContext: string;
   clusterRef: ClusterReference;
   namespace: NamespaceName;
   enableIngress: boolean;
+  ingressControllerValueFile: string;
   mirrorStaticIp: string;
   profileFile: string;
   profileName: string;
@@ -112,6 +119,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.chartDirectory,
       flags.deployment,
       flags.enableIngress,
+      flags.ingressControllerValueFile,
       flags.mirrorStaticIp,
       flags.profileFile,
       flags.profileName,
@@ -426,7 +434,11 @@ export class MirrorNodeCommand extends BaseCommand {
                     if (config.mirrorStaticIp !== '') {
                       mirrorIngressControllerValuesArgument += ` --set controller.service.loadBalancerIP=${context_.config.mirrorStaticIp}`;
                     }
-                    mirrorIngressControllerValuesArgument += ` --set fullnameOverride=${constants.MIRROR_INGRESS_CONTROLLER}`;
+                    mirrorIngressControllerValuesArgument += ` --set fullnameOverride=${MIRROR_INGRESS_CONTROLLER}`;
+                    mirrorIngressControllerValuesArgument += ` --set controller.ingressClass=${constants.MIRROR_INGRESS_CLASS_NAME}`;
+                    mirrorIngressControllerValuesArgument += ` --set controller.extraArgs.controller-class=${constants.MIRROR_INGRESS_CONTROLLER}`;
+
+                    mirrorIngressControllerValuesArgument += prepareValuesFiles(config.ingressControllerValueFile);
 
                     await self.chartManager.install(
                       config.namespace,
@@ -465,28 +477,50 @@ export class MirrorNodeCommand extends BaseCommand {
                     );
 
                     if (context_.config.enableIngress) {
+                      await KeyManager.createTlsSecret(
+                        this.k8Factory,
+                        context_.config.namespace,
+                        context_.config.domainName,
+                        context_.config.cacheDir,
+                        MIRROR_INGRESS_TLS_SECRET_NAME,
+                      );
                       // patch ingressClassName of mirror ingress so it can be recognized by haproxy ingress controller
+                      const updated: object = {
+                        metadata: {
+                          annotations: {
+                            'haproxy-ingress.github.io/backend-protocol': 'h1',
+                          },
+                        },
+                        spec: {
+                          ingressClassName: `${constants.MIRROR_INGRESS_CLASS_NAME}`,
+                          tls: [
+                            {
+                              hosts: [context_.config.domainName || 'localhost'],
+                              secretName: MIRROR_INGRESS_TLS_SECRET_NAME,
+                            },
+                          ],
+                        },
+                      };
                       await this.k8Factory
                         .getK8(context_.config.clusterContext)
                         .ingresses()
-                        .update(context_.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
-                          spec: {
-                            ingressClassName: `${constants.MIRROR_INGRESS_CLASS_NAME}`,
-                          },
-                        });
+                        .update(context_.config.namespace, constants.MIRROR_NODE_RELEASE_NAME, updated);
 
                       // to support GRPC over HTTP/2
                       await this.k8Factory
                         .getK8(context_.config.clusterContext)
                         .configMaps()
-                        .update(context_.config.namespace, constants.MIRROR_INGRESS_CONTROLLER, {
+                        .update(context_.config.namespace, MIRROR_INGRESS_CONTROLLER, {
                           'backend-protocol': 'h2',
                         });
 
                       await this.k8Factory
                         .getK8(context_.config.clusterContext)
                         .ingressClasses()
-                        .create(constants.MIRROR_INGRESS_CLASS_NAME, INGRESS_CONTROLLER_NAME);
+                        .create(
+                          constants.MIRROR_INGRESS_CLASS_NAME,
+                          INGRESS_CONTROLLER_PREFIX + MIRROR_INGRESS_CONTROLLER,
+                        );
                     }
                   },
                 },

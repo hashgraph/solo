@@ -29,6 +29,11 @@ AddToFileList()
     return
   fi
 
+  if [[ -L "${1}" ]];then
+    echo "Adding symbolic link: ${1}" | tee -a ${LOG_FILE}
+    find . -maxdepth 1 -type l -name ${1} -print  | tee -a ${LOG_FILE} >>${FILE_LIST}
+  fi
+
   if [[ -f "${1}" ]];then
     find . -maxdepth 1 -type f -name ${1} -print  | tee -a ${LOG_FILE} >>${FILE_LIST}
   else
@@ -53,11 +58,11 @@ AddToFileList ${UPGRADE_DIR}
 echo "creating zip file" | tee -a ${LOG_FILE}
 if [[ "$chipType" =~ "M4" ]]; then
   echo "Using unzip for M4 chip" | tee -a ${LOG_FILE}
-  zip -v "${ZIP_FULLPATH}" -@ < "${FILE_LIST}"
-  zip -v -u "${ZIP_FULLPATH}" "${OUTPUT_DIR}/support-zip.log"
+  zip -v "${ZIP_FULLPATH}" -@ < "${FILE_LIST}" >> ${LOG_FILE} 2>&1
+  zip -v -u "${ZIP_FULLPATH}" "${OUTPUT_DIR}/support-zip.log" >> ${LOG_FILE} 2>&1
 else
-  jar cvfM "${ZIP_FULLPATH}" "@${FILE_LIST}"
-  jar -u -v --file=${ZIP_FULLPATH} ${OUTPUT_DIR}/support-zip.log
+  jar cvfM "${ZIP_FULLPATH}" "@${FILE_LIST}" >> ${LOG_FILE} 2>&1
+  jar -u -v --file="${ZIP_FULLPATH}" "${OUTPUT_DIR}/support-zip.log" >> ${LOG_FILE} 2>&1
 fi
 echo "...end support-zip.sh" | tee -a ${LOG_FILE}
 

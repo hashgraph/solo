@@ -19,4 +19,4 @@ env:
   HEDERA_SERVICES_ROOT: "/home/gke1/workspaces/10nodes/hiero-consensus-node"
   LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"
   GENESIS_THROTTLES_FLAG: "--genesis-throttles-file {{.USER_WORKING_DIR}}/throttles.json"
-  # SOLO_CHARTS_DIR_FLAG: "--chart-directory /Users/user/source/solo-charts/charts"
+  # SOLO_CHARTS_DIR_FLAG: "--chart-dir /Users/user/source/solo-charts/charts"

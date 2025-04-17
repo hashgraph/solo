@@ -21,7 +21,7 @@ env:
   HEDERA_SERVICES_ROOT: "/Users/user/source/hiero-consensus-node"
   # LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"
   # DEBUG_NODE_ALIAS: "node2"
-  # SOLO_CHARTS_DIR_FLAG: "--chart-directory /Users/user/source/solo-charts/charts"
+  # SOLO_CHARTS_DIR_FLAG: "--chart-dir /Users/user/source/solo-charts/charts"
   # LOAD_BALANCER_FLAG: "--load-balancer"
   ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
   TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
