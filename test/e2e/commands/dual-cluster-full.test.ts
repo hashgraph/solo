@@ -89,7 +89,7 @@ describe('Dual Cluster Full E2E Test', async function dualClusterFullEndToEndTes
     testLogger = container.resolve<SoloWinstonLogger>(InjectTokens.SoloLogger);
     resetForTest(namespace.name, testCacheDirectory, testLogger, false);
     for (const item of contexts) {
-      const k8Client: K8 = container.resolve<K8ClientFactory>(InjectTokens.K8Factory).getK8(contexts[i]);
+      const k8Client: K8 = container.resolve<K8ClientFactory>(InjectTokens.K8Factory).getK8(item);
       await k8Client.namespaces().delete(namespace);
     }
     testLogger.info(`${testName}: starting dual cluster full e2e test`);

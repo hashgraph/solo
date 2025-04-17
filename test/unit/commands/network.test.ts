@@ -82,8 +82,8 @@ describe('NetworkCommand unit tests', () => {
 
       resetForTest(undefined, undefined, getTestLogger(), true, containerOverrides);
 
-      opts = {};
-      opts.logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+      options = {};
+      options.logger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
 
       options.configManager = container.resolve<ConfigManager>(InjectTokens.ConfigManager);
       options.configManager.update(argv.build());

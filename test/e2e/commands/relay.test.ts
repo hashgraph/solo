@@ -42,11 +42,11 @@ endToEndTestSuite(testName, argv, {}, (bootstrapResp: BootstrapResponse): void =
   } = bootstrapResp;
 
   describe('RelayCommand', async (): Promise<void> => {
-    const relayCmd: RelayCommand = new RelayCommand(bootstrapResp.opts);
+    let relayCommand: RelayCommand;
     const testLogger: SoloLogger = container.resolve(InjectTokens.SoloLogger);
 
     before(() => {
-      relayCmd = container.resolve(InjectTokens.RelayCommand);
+      relayCommand = container.resolve(InjectTokens.RelayCommand);
     });
 
     afterEach(async (): Promise<void> => {
@@ -75,7 +75,7 @@ endToEndTestSuite(testName, argv, {}, (bootstrapResp: BootstrapResponse): void =
               command: RelayCommand.COMMAND_NAME,
               subcommand: 'deploy',
               // @ts-expect-error to access private property
-              callback: async (argv: ArgvStruct): Promise<boolean> => relayCmd.deploy(argv),
+              callback: async (argv: ArgvStruct): Promise<boolean> => relayCommand.deploy(argv),
             });
           } catch (error) {
             logger.showUserError(error);
@@ -90,7 +90,7 @@ endToEndTestSuite(testName, argv, {}, (bootstrapResp: BootstrapResponse): void =
               command: RelayCommand.COMMAND_NAME,
               subcommand: 'destroy',
               // @ts-expect-error to access private modifier
-              callback: async (argv: ArgvStruct): Promise<boolean> => relayCmd.destroy(argv),
+              callback: async (argv: ArgvStruct): Promise<boolean> => relayCommand.destroy(argv),
             });
           } catch (error) {
             logger.showUserError(error);

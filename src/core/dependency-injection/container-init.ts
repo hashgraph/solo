@@ -93,14 +93,14 @@ export class Container {
 
     const defaults = {
       LogLevel: [{useValue: logLevel}],
-      DevMode: [{useValue: devMode}],
+      DevelopmentMode: [{useValue: developmentMode}],
       OsPlatform: [{useValue: os.platform()}],
       OsArch: [{useValue: os.arch()}],
       HelmInstallationDir: [{useValue: PathEx.join(constants.SOLO_HOME_DIR, 'bin')}],
       HelmVersion: [{useValue: version.HELM_VERSION}],
       SystemAccounts: [{useValue: constants.SYSTEM_ACCOUNTS}],
-      CacheDir: [{useValue: cacheDir}],
-      LocalConfigFilePath: [{useValue: PathEx.join(homeDir, constants.DEFAULT_LOCAL_CONFIG_FILE)}],
+      cacheDirectory: [{useValue: cacheDirectory}],
+      LocalConfigFilePath: [{useValue: PathEx.join(homeDirectory, constants.DEFAULT_LOCAL_CONFIG_FILE)}],
       LockRenewalService: [{useClass: IntervalLockRenewalService}, {lifecycle: Lifecycle.Singleton}],
       LockManager: [{useClass: LockManager}, {lifecycle: Lifecycle.Singleton}],
       K8Factory: [{useClass: K8ClientFactory}, {lifecycle: Lifecycle.Singleton}],

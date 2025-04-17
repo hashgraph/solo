@@ -18,9 +18,6 @@ import {PathEx} from '../business/utils/path-ex.js';
 import {inject} from 'tsyringe-neo';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
-import {type K8Factory} from '../integration/kube/k8-factory.js';
-import {type HelmClient} from '../integration/helm/helm-client.js';
-
 
 export abstract class BaseCommand extends ShellRunner {
   constructor(

@@ -116,7 +116,7 @@ export interface NetworkDestroyContext {
 
 @injectable()
 export class NetworkCommand extends BaseCommand {
-  private profileValuesFile?: Record<ClusterRef, string>;
+  private profileValuesFile?: Record<ClusterReference, string>;
 
   public constructor(
     @inject(InjectTokens.CertificateManager) private readonly certificateManager: CertificateManager,
