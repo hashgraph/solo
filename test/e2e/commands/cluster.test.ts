@@ -23,7 +23,6 @@ import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {SoloWinstonLogger} from '../../../src/core/logging/solo-winston-logger.js';
 import {resetForTest} from '../../test-container.js';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
-import {ClusterCommand} from '../../../src/commands/cluster/index.js';
 import {container} from 'tsyringe-neo';
 import {ClusterCommandHandlers} from '../../../src/commands/cluster/handlers.js';
 import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
@@ -33,7 +32,7 @@ describe('ClusterCommand', () => {
   before(() => {
     sinon.stub(SoloWinstonLogger.prototype, 'showUser');
     sinon.stub(SoloWinstonLogger.prototype, 'showJSON');
-    fs.unlinkSync(PathEx.joinWithRealPath('test', 'data', 'tmp', DEFAULT_LOCAL_CONFIG_FILE));
+    fs.unlinkSync(PathEx.joinWithRealPath(getTestCacheDirectory(), DEFAULT_LOCAL_CONFIG_FILE));
   });
 
   const TEST_CONTEXT = getTestCluster();
@@ -104,9 +103,10 @@ describe('ClusterCommand', () => {
   it('cluster-ref connect should pass with correct data', async () => {
     const {argv, clusterRef, contextName} = getClusterConnectDefaultArgv();
 
+    const localConfigPath = PathEx.joinWithRealPath(getTestCacheDirectory(), constants.DEFAULT_LOCAL_CONFIG_FILE);
+
     await clusterCmdHandlers.connect(argv.build());
 
-    const localConfigPath = PathEx.joinWithRealPath(getTestCacheDirectory(), constants.DEFAULT_LOCAL_CONFIG_FILE);
     const localConfigYaml = fs.readFileSync(localConfigPath).toString();
     const localConfigData = yaml.parse(localConfigYaml);
 
