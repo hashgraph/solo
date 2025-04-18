@@ -15,10 +15,10 @@ stackgres:
       storageClass: "standard-rwo"
 
 tolerations:
-  - key: "solo.hashgraph.io/role"
-    operator: "Equal"
-    value: "consensus-node"
-    effect: "NoSchedule"
+#  - key: "solo.hashgraph.io/role"
+#    operator: "Equal"
+#    value: "consensus-node"
+#    effect: "NoSchedule"
   - key: "solo.hashgraph.io/role"
     operator: "Equal"
     value: "test-clients"

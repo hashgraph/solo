@@ -7,11 +7,15 @@ vars:
   solo_home_override_dir: "/Users/user/.solo-gke-test"
   use_port_forwards: "false"
 env:
+  SOLO_CLUSTER_NAME: "solo-e2e"
   SOLO_NETWORK_SIZE: 4
   SOLO_NAMESPACE: solo-gke-test
   SOLO_DEPLOYMENT: solo-deployment-gke-test
-  CLUSTER_CONTEXT: "gke_hashsphere-staging_us-central1_jeromy-sphere-load-test-us-central"
-  # CLUSTER_CONTEXT: "gke_hashsphere-staging_us-central1_jeffrey-explorer-testing"
+  SOLO_CLUSTER_SETUP_NAMESPACE: solo-setup
+  SOLO_CLUSTER_RELEASE_NAME: solo-cluster-setup
+  MIRROR_RELEASE_NAME: mirror
+  CONTEXT: "gke_hashsphere-staging_us-central1_jeffrey-explorer-testing"
+  CLUSTER_REF: "gke_hashsphere-staging_us-central1_jeffrey-explorer-testing"
   # SOLO_CHART_VERSION: 0.39.0
   # CONSENSUS_NODE_VERSION: v0.58.0
   VALUES_FLAG: "--values-file {{.USER_WORKING_DIR}}/init-containers-values.yaml"
@@ -19,7 +23,7 @@ env:
   # SOLO_HOME: "{{.solo_home_override_dir}}"
   LOG4J2_FLAG: "--log4j2-xml {{.USER_WORKING_DIR}}/log4j2.xml"
   APPLICATION_PROPERTIES_FLAG: "--application-properties {{.USER_WORKING_DIR}}/application.properties"
-  HEDERA_SERVICES_ROOT: "/Users/user/source/hiero-consensus-node"
+  # HEDERA_SERVICES_ROOT: "/Users/user/source/hiero-consensus-node"
   #  LOCAL_BUILD_FLAG: "--local-build-path {{.HEDERA_SERVICES_ROOT}}/hedera-node/data"
   GENESIS_THROTTLES_FLAG: "--genesis-throttles-file {{.USER_WORKING_DIR}}/throttles.json"
 #  SOLO_CHARTS_DIR_FLAG: "--chart-dir /Users/user/source/solo-charts/charts"
@@ -27,13 +31,13 @@ env:
   ENABLE_EXPLORER_TLS_FLAG: "--enable-hedera-explorer-tls"
   ENABLE_EXPLORER_INGRESS: "--enable-ingress"
   ENABLE_MIRROR_INGRESS: "--enable-ingress"
-  TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type acme-staging"
+  TLS_CLUSTER_ISSUER_TYPE_FLAG: "--tls-cluster-issuer-type self-signed"
   # CLUSTER_TLS_FLAGS: "--cert-manager --cert-manager-crds"
 #  NETWORK_DEPLOY_EXTRA_FLAGS: "--haproxy-ips node1=<ip-address>,node2=<ip-address>,node3=<ip-address>,node4=<ip-address> --pvcs"
-  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/mirror-node-values.yaml --mirror-static-ip 34.55.235.252"
-  EXPLORER_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/ingress-values.yaml --hedera-explorer-static-ip 35.226.75.168"
+  MIRROR_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/mirror-node-values.yaml"
+  EXPLORER_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/ingress-values.yaml"
   EXPLORER_NAME_SPACE: "explorer-name-space"
   EXPLORER_DEPLOYMENT: "explorer-deployment"
-  EXPLORER_CLUSTER_CONTEXT: "{{ .CLUSTER_CONTEXT }}"
+  EXPLORER_CLUSTER_CONTEXT: "{{ .CONTEXT }}"
   RELAY_NODE_DEPLOY_EXTRA_FLAGS: "--values-file {{.USER_WORKING_DIR}}/relay-values.yaml"
   SKIP_NODE_PING: 'true'
