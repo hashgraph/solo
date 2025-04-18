@@ -40,7 +40,7 @@ permissions:
 jobs:
   prepare-release:
     name: Release / Prepare
-    runs-on: solo-linux-medium
+    runs-on: hiero-solo-linux-medium
     outputs:
       version: ${{ steps.tag.outputs.version }}
     steps:
@@ -100,7 +100,7 @@ jobs:
 
   create-github-release:
     name: Github / Release
-    runs-on: solo-linux-medium
+    runs-on: hiero-solo-linux-medium
     needs:
       - prepare-release
       - update-readme
@@ -130,7 +130,7 @@ jobs:
 
       - name: Import GPG key
         id: gpg_key
-        uses: crazy-max/ghaction-import-gpg@e89d40939c28e39f97cf32126055eeae86ba74ec # v6.3.0
+        uses: step-security/ghaction-import-gpg@6c8fe4d0126a59d57c21f87c9ae5dd3451fa3cca # v6.1.0
         with:
           gpg_private_key: ${{ secrets.GPG_KEY_CONTENTS }}
           passphrase: ${{ secrets.GPG_KEY_PASSPHRASE }}

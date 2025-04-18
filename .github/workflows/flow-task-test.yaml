@@ -37,7 +37,7 @@ permissions:
 jobs:
   example-task-file-test:
     timeout-minutes: 30
-    runs-on: solo-linux-large
+    runs-on: hiero-solo-linux-large
     strategy:
       fail-fast: false
       matrix:

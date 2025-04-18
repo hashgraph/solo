@@ -60,7 +60,7 @@ jobs:
   # Build job
   build:
     name: Build
-    runs-on: solo-linux-medium
+    runs-on: hiero-solo-linux-medium
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
@@ -117,7 +117,7 @@ jobs:
   # Deployment job
   deploy:
     name: Deploy
-    runs-on: solo-linux-medium
+    runs-on: hiero-solo-linux-medium
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

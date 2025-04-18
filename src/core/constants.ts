@@ -78,7 +78,8 @@ export const SOLO_HEDERA_EXPLORER_LABEL = 'app.kubernetes.io/component=hedera-ex
 export const INGRESS_CONTROLLER_CHART_URL =
   process.env.INGRESS_CONTROLLER_CHART_URL ?? 'https://haproxy-ingress.github.io/charts';
 export const INGRESS_CONTROLLER_RELEASE_NAME = 'haproxy-ingress';
-export const INGRESS_CONTROLLER_NAME = 'haproxy-ingress.github.io/controller';
+export const EXPLORER_INGRESS_CONTROLLER_RELEASE_NAME = 'explorer-haproxy-ingress';
+export const INGRESS_CONTROLLER_PREFIX = 'haproxy-ingress.github.io/controller/';
 
 export const CERT_MANAGER_NAME_SPACE = 'cert-manager';
 export const SOLO_HEDERA_MIRROR_IMPORTER = [
@@ -232,6 +233,8 @@ export const IGNORED_NODE_ACCOUNT_ID = '0.0.0';
 export const UPLOADER_SECRET_NAME = 'uploader-mirror-secrets';
 export const MINIO_SECRET_NAME = 'minio-secrets';
 export const BACKUP_SECRET_NAME = 'backup-uploader-secrets';
+export const MIRROR_INGRESS_TLS_SECRET_NAME = 'ca-secret-mirror-node';
+export const EXPLORER_INGRESS_TLS_SECRET_NAME = 'ca-secret-hiero-explorer';
 
 export const enum StorageType {
   MINIO_ONLY = 'minio_only',

@@ -14,6 +14,7 @@ vars:
   solo_logs_dir: "{{ .solo_user_dir }}/logs"
   solo_keys_dir: "{{ .solo_cache_dir }}/keys"
   solo_bin_dir: "{{ .solo_user_dir }}/bin"
+
   temp_prefix:
     sh: (echo "/tmp/solo-${USER}-$(date +%Y%m%d%H%M%S)")
   run_build_file:
@@ -113,6 +114,7 @@ tasks:
       - echo "SOLO_CHARTS_DIR_FLAG=${SOLO_CHARTS_DIR_FLAG}"
       - echo "LOAD_BALANCER_FLAG=${LOAD_BALANCER_FLAG}"
       - echo "ENABLE_EXPLORER_TLS_FLAG=${ENABLE_EXPLORER_TLS_FLAG}"
+      - echo "TLS_CLUSTER_ISSUER_TYPE_FLAG=${TLS_CLUSTER_ISSUER_TYPE_FLAG}"
       - echo "ENABLE_EXPLORER_INGRESS=${ENABLE_EXPLORER_INGRESS}"
       - echo "ENABLE_MIRROR_INGRESS=${ENABLE_MIRROR_INGRESS}"
       - echo "CLUSTER_TLS_FLAGS=${CLUSTER_TLS_FLAGS}"
