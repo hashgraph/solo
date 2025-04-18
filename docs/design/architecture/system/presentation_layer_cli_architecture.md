@@ -383,11 +383,11 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **Info**       | `info`         |             |
-| **Deploy**     | `deploy`       |             |
-| **Freeze**     | `freeze`       |             |
-| **Upgrade**    | `upgrade`      |             |
-| **Destroy**    | `destroy`      |             |
+| **Info**       | `info`         | Displays overall status and health information for the consensus network. |
+| **Deploy**     | `deploy`       | Installs and configures all consensus nodes for the deployment. |
+| **Freeze**     | `freeze`       | Initiates a network freeze for scheduled maintenance or upgrades. |
+| **Upgrade**    | `upgrade`      | Upgrades the software version running on all consensus nodes. |
+| **Destroy**    | `destroy`      | Removes all consensus network components from the deployment. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -397,16 +397,16 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **List**       | `list`         |             |
-| **Info**       | `info`         |             |
-| **Logs**       | `logs`         |             |
-| **Add**        | `add`          |             |
-| **Update**     | `update`       |             |
-| **Destroy**    | `destroy`      |             |
-| **Start**      | `start`        |             |
-| **Stop**       | `stop`         |             |
-| **Restart**    | `restart`      |             |
-| **Refresh**    | `refresh`      |             |
+| **List**       | `list`         | Lists all configured consensus nodes in the deployment. |
+| **Info**       | `info`         | Displays detailed information about a specific consensus node. |
+| **Logs**       | `logs`         | Shows logs for the specified consensus node. |
+| **Add**        | `add`          | Adds and configures a new consensus node to the deployment. |
+| **Update**     | `update`       | Updates the configuration of an existing consensus node. |
+| **Destroy**    | `destroy`      | Removes the specified consensus node from the deployment. |
+| **Start**      | `start`        | Starts the consensus node service. |
+| **Stop**       | `stop`         | Stops the consensus node service. |
+| **Restart**    | `restart`      | Restarts the consensus node service. |
+| **Refresh**    | `refresh`      | Refreshes the node configuration and restarts services. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -416,9 +416,9 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **List**       | `list`         |             |
-| **Download**   | `download`     |             |
-| **Upload**     | `upload`       |             |
+| **List**       | `list`         | Lists available state backups from consensus nodes. |
+| **Download**   | `download`     | Downloads a signed state from a consensus node. |
+| **Upload**     | `upload`       | Uploads a signed state to a consensus node. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -428,9 +428,9 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **Logs**       | `logs`         |             |
-| **Configs**    | `configs`      |             |
-| **All**        | `all`          |             |
+| **Logs**       | `logs`         | Collects logs from consensus nodes in the deployment. |
+| **Configs**    | `configs`      | Collects configuration files from consensus nodes. |
+| **All**        | `all`          | Captures logs, configs, and diagnostic artifacts from all consensus nodes. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -442,10 +442,10 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **List**       | `list`         |             |
-| **Info**       | `info`         |             |
-| **Attach**     | `attach`       |             |
-| **Detach**     | `detach`       |             |
+| **List**       | `list`         | Lists clusters associated with a deployment. |
+| **Info**       | `info`         | Shows detailed information about a cluster. |
+| **Attach**     | `attach`       | Attaches a cluster reference to a deployment. |
+| **Detach**     | `detach`       | Detaches a cluster reference from a deployment. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -455,11 +455,11 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **List**       | `list`         |             |
-| **Info**       | `info`         |             |
-| **Create**     | `create`       |             |
-| **Delete**     | `delete`       |             |
-| **Import**     | `import`       |             |
+| **List**       | `list`         | Lists all local deployment configurations. |
+| **Info**       | `info`         | Displays metadata and state information about a deployment. |
+| **Create**     | `create`       | Creates a new local deployment configuration. |
+| **Delete**     | `delete`       | Removes a local deployment configuration. |
+| **Import**     | `import`       | Imports deployment config from a file. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -469,8 +469,8 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **Info**       | `info`         |             |
-| **Destroy**    | `destroy`      |             |
+| **Info**       | `info`         | Shows the live state of a deployment across all clusters. |
+| **Destroy**    | `destroy`      | Removes all components of a deployment including remote resources. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -482,12 +482,12 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **List**       | `list`         |             |
-| **Info**       | `info`         |             |
-| **Logs**       | `logs`         |             |
-| **Add**        | `add`          |             |
-| **Upgrade**    | `upgrade`      |             |
-| **Destroy**    | `destroy`      |             |
+| **List**       | `list`         | Lists all nodes of the given type in the deployment. |
+| **Info**       | `info`         | Shows detailed information for a specific node instance. |
+| **Logs**       | `logs`         | Displays logs from the specified node instance. |
+| **Add**        | `add`          | Adds and configures a new node instance. |
+| **Upgrade**    | `upgrade`      | Upgrades the node software to a new version. |
+| **Destroy**    | `destroy`      | Deletes the specified node from the deployment. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -499,7 +499,7 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **Generate**   | `generate`     |             |
+| **Generate**   | `generate`     | Generates TLS keys required for consensus node communication. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -511,9 +511,9 @@ operations associated with each resource.
 
 | Operation Name     | Command Syntax   | Description |
 |--------------------|------------------|-------------|
-| **Init**           | `init`           |             |
-| **Accounts Rekey** | `accounts-rekey` |             |
-| **Staking Setup**  | `staking-setup`  |             |
+| **Init**           | `init`           | Rekeys system accounts and stake consensus nodes. |
+| **Accounts Rekey** | `accounts-rekey` | Rekeys system accounts using newly generated keys. |
+| **Staking Setup**  | `staking-setup`  | Stake consensus nodes. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -523,12 +523,12 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **List**       | `list`         |             |
-| **Info**       | `info`         |             |
-| **Create**     | `create`       |             |
-| **Update**     | `update`       |             |
-| **Delete**     | `delete`       |             |
-| **Import**     | `import`       |             |
+| **List**       | `list`         | Lists all ledger accounts. |
+| **Info**       | `info`         | Displays information for a specific account. |
+| **Create**     | `create`       | Creates a new ledger account. |
+| **Update**     | `update`       | Updates an existing ledger account. |
+| **Delete**     | `delete`       | Deletes a ledger account. |
+| **Import**     | `import`       | Imports account configuration from a file. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -538,8 +538,8 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **Transfer**   | `transfer`     |             |
-| **Balance**    | `balance`      |             |
+| **Transfer**   | `transfer`     | Transfers HBAR between accounts. |
+| **Balance**    | `balance`      | Displays the HBAR balance of an account. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -551,12 +551,12 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **List**       | `list`         |             |
-| **Info**       | `info`         |             |
-| **Logs**       | `logs`         |             |
-| **Add**        | `add`          |             |
-| **Upgrade**    | `upgrade`      |             |
-| **Destroy**    | `destroy`      |             |
+| **List**       | `list`         | Lists all nodes of the given type in the deployment. |
+| **Info**       | `info`         | Shows detailed information for a specific node instance. |
+| **Logs**       | `logs`         | Displays logs from the specified node instance. |
+| **Add**        | `add`          | Adds and configures a new node instance. |
+| **Upgrade**    | `upgrade`      | Upgrades the node software to a new version. |
+| **Destroy**    | `destroy`      |  Deletes the specified node from the deployment. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -568,12 +568,12 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **List**       | `list`         |             |
-| **Info**       | `info`         |             |
-| **Logs**       | `logs`         |             |
-| **Add**        | `add`          |             |
-| **Upgrade**    | `upgrade`      |             |
-| **Destroy**    | `destroy`      |             |
+| **List**       | `list`         | Lists all nodes of the given type in the deployment. |
+| **Info**       | `info`         | Shows detailed information for a specific node instance. |
+| **Logs**       | `logs`         | Displays logs from the specified node instance. |
+| **Add**        | `add`          | Adds and configures a new node instance. |
+| **Upgrade**    | `upgrade`      | Upgrades the node software to a new version. |
+| **Destroy**    | `destroy`      | Deletes the specified node from the deployment. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -585,9 +585,9 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **Info**       | `info`         |             |
-| **Deploy**     | `deploy`       |             |
-| **Destroy**    | `destroy`      |             |
+| **Info**       | `info`         | Displays details of the quick start configuration.            |
+| **Deploy**     | `deploy`       | Deploys all required components for the selected quick start configuration.            |
+| **Destroy**    | `destroy`      | Removes the deployed resources for the selected quick start configuration.            |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -597,9 +597,9 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **Info**       | `info`         |             |
-| **Deploy**     | `deploy`       |             |
-| **Destroy**    | `destroy`      |             |
+| **Info**       | `info`         | Displays details of the quick start configuration. |
+| **Deploy**     | `deploy`       | Deploys all required components for the selected quick start configuration. |
+| **Destroy**    | `destroy`      | Removes the deployed resources for the selected quick start configuration. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -609,9 +609,9 @@ operations associated with each resource.
 
 | Operation Name | Command Syntax | Description |
 |----------------|----------------|-------------|
-| **Info**       | `info`         |             |
-| **Deploy**     | `deploy`       |             |
-| **Destroy**    | `destroy`      |             |
+| **Info**       | `info`         | Displays details of the quick start configuration. |
+| **Deploy**     | `deploy`       | Deploys all required components for the selected quick start configuration. |
+| **Destroy**    | `destroy`      | Removes the deployed resources for the selected quick start configuration. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
