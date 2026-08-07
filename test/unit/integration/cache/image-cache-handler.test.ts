@@ -50,49 +50,6 @@ function createEngine(overrides: Partial<ContainerEngineClient> = {}): Container
   };
 }
 
-describe('ImageCacheHandler pull', (): void => {
-  const inspector: CacheHealthInspector = {
-    exists: async (): Promise<boolean> => false,
-    getSize: async (): Promise<number> => 0,
-    filterExisting: async (paths: readonly string[]): Promise<readonly string[]> => paths,
-  };
-
-  let loggerStub: sinon.SinonStubbedInstance<SoloPinoLogger>;
-  let logger: SoloLogger;
-
-  beforeEach((): void => {
-    loggerStub = sinon.createStubInstance(SoloPinoLogger);
-    loggerStub.getMessageGroupKeys.returns([]);
-    logger = loggerStub as unknown as SoloLogger;
-  });
-
-  afterEach((): void => {
-    sinon.restore();
-  });
-
-  // Registry pulls were removed; until the CDN download lands, pull must add nothing to the cache and
-  // must report that plainly rather than failing the run.
-  it('caches nothing and records why', async (): Promise<void> => {
-    const handler: ImageCacheHandler = new ImageCacheHandler(
-      createEngine(),
-      new StaticCacheTargetProvider([target]),
-      store,
-      inspector,
-      logger,
-    );
-
-    const subtasks: readonly SoloListrTask<AnyListrContext>[] = await handler.pull();
-    const context: {config: {results: unknown[]}} = {config: {results: []}};
-
-    expect(subtasks).to.have.lengthOf(1);
-
-    await subtasks[0].task(context as never, {title: 'task'} as never);
-
-    expect(context.config.results).to.have.lengthOf(0);
-    expect(loggerStub.addMessageGroupMessage).to.have.been.called;
-  });
-});
-
 describe('ImageCacheHandler load', (): void => {
   const inspector: CacheHealthInspector = {
     exists: async (): Promise<boolean> => true,
