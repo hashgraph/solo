@@ -152,6 +152,7 @@ describe('ImageCacheHandler pull', (): void => {
 
   it('skips the download when a valid archive is already cached', async (): Promise<void> => {
     await fs.writeFile(archivePath, ARCHIVE_CONTENTS);
+    await fs.writeFile(hashPath, ARCHIVE_HASH);
     sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
     const fetchFile: SinonStub = stubDownloader({});
 
@@ -164,6 +165,7 @@ describe('ImageCacheHandler pull', (): void => {
 
   it('deletes a cached archive whose hash no longer matches the manifest', async (): Promise<void> => {
     await fs.writeFile(archivePath, 'corrupted on disk');
+    await fs.writeFile(hashPath, ARCHIVE_HASH);
     sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
     const fetchFile: SinonStub = stubDownloader({});
 
@@ -243,6 +245,7 @@ describe('ImageCacheHandler pull', (): void => {
     await fs.writeFile(staleArchive, 'an archive from an older solo version');
     await fs.writeFile(`${staleArchive}.sha256`, 'a'.repeat(64));
     await fs.writeFile(archivePath, ARCHIVE_CONTENTS);
+    await fs.writeFile(hashPath, ARCHIVE_HASH);
     sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
 
     await runPull(createHandler(stubDownloader({})));
@@ -260,11 +263,59 @@ describe('ImageCacheHandler pull', (): void => {
   it('prunes nothing when the manifest is unavailable', async (): Promise<void> => {
     const staleArchive: string = PathEx.join(temporaryDirectory, 'docker.io__library__busybox__1.35.0.tar');
     await fs.writeFile(staleArchive, 'an archive from an older solo version');
+    await fs.writeFile(`${staleArchive}.sha256`, 'a'.repeat(64));
     sinon.stub(CacheManifestClient, 'fetchImages').rejects(new Error('manifest not published'));
 
     await runPull(createHandler(stubDownloader({})));
 
     expect(await exists(staleArchive)).to.equal(true);
+  });
+
+  it('removes an archive cached by an older solo version and downloads the published one', async (): Promise<void> => {
+    // The registry-pull model exported archives locally and never wrote a hash file next to them.
+    await fs.writeFile(archivePath, 'an archive exported from a local container engine');
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}`]: ARCHIVE_CONTENTS,
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`]: ARCHIVE_HASH,
+    });
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(loggerStub.addMessageGroupMessage).to.have.been.calledWithMatch(
+      sinon.match.string,
+      sinon.match(archivePath),
+    );
+    // the published archive replaced it in the same run
+    expect(await fs.readFile(archivePath, 'utf8')).to.equal(ARCHIVE_CONTENTS);
+    expect(await exists(hashPath)).to.equal(true);
+    expect(context.config.results).to.have.lengthOf(1);
+  });
+
+  it('removes an archive cached by an older solo version even without a manifest', async (): Promise<void> => {
+    await fs.writeFile(archivePath, 'an archive exported from a local container engine');
+    sinon.stub(CacheManifestClient, 'fetchImages').rejects(new Error('manifest not published'));
+
+    await runPull(createHandler(stubDownloader({})));
+
+    expect(await exists(archivePath)).to.equal(false);
+  });
+
+  it('finds nothing to migrate on a second run', async (): Promise<void> => {
+    await fs.writeFile(archivePath, ARCHIVE_CONTENTS);
+    await fs.writeFile(hashPath, ARCHIVE_HASH);
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({});
+    const handler: ImageCacheHandler = createHandler(fetchFile);
+
+    await runPull(handler);
+    loggerStub.addMessageGroupMessage.resetHistory();
+    await runPull(handler);
+
+    expect(loggerStub.addMessageGroupMessage).to.not.have.been.called;
+    expect(await exists(archivePath)).to.equal(true);
+    expect(await exists(hashPath)).to.equal(true);
+    expect(fetchFile).to.not.have.been.called;
   });
 
   it('leaves files that are not image cache entries alone', async (): Promise<void> => {

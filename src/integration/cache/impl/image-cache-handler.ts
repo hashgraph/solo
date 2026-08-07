@@ -75,14 +75,20 @@ export class ImageCacheHandler implements CacheOperationHandler {
    * from the CDN and the archive is accepted only when its computed SHA-256, the manifest hash, and the
    * published hash file all agree.
    *
-   * Files left over from an older Solo version are pruned first, so the cache only ever holds what the
-   * current manifest lists.
+   * Entries left behind by the registry-pull cache model are migrated away first and files left over from an
+   * older Solo version are pruned next, so the cache only ever holds what the current manifest lists.
    *
    * Nothing here aborts the run: an image that cannot be cached is reported in the end-of-run summary and
    * left for the cluster to pull from its registry.
    */
   public async pull(): Promise<SoloListrTask<AnyListrContext>[]> {
     const targets: readonly CacheTarget[] = await this.resolveRequiredArtifacts();
+
+    // Housekeeping runs here rather than as a task in the list returned below, because the command runs
+    // those tasks concurrently: a download that started before the cache was migrated would rehash the
+    // legacy archive, report it as a corrupted cache entry and leave the image uncached for the rest of the
+    // run, instead of quietly replacing it. Doing the work up front makes the order unconditional.
+    const migrated: readonly string[] = await this.migrateLegacyEntries(targets);
 
     let manifestImages: ReadonlyMap<string, CacheManifestImage>;
     try {
@@ -92,6 +98,7 @@ export class ImageCacheHandler implements CacheOperationHandler {
       this.logger.error('Failed to read the image cache manifest:', error);
 
       return [
+        ImageCacheHandler.buildHousekeepingTask(migrated, []),
         {
           title: 'Download image archives',
           task: (_, task): void => {
@@ -103,6 +110,8 @@ export class ImageCacheHandler implements CacheOperationHandler {
         },
       ];
     }
+
+    const pruned: readonly string[] = await this.pruneStaleFiles(targets, manifestImages);
 
     const pullTasks: SoloListrTask<AnyListrContext>[] = targets.map((target): SoloListrTask<AnyListrContext> => {
       const reference: string = `${target.name}:${target.version}`;
@@ -133,7 +142,82 @@ export class ImageCacheHandler implements CacheOperationHandler {
       };
     });
 
-    return [this.buildPruneTask(targets, manifestImages), ...pullTasks];
+    return [ImageCacheHandler.buildHousekeepingTask(migrated, pruned), ...pullTasks];
+  }
+
+  /**
+   * Reports the housekeeping {@link pull} already performed on the cache directory. Every file is named in
+   * the end-of-run image cache maintenance summary; this is the line in the task list that points at it.
+   */
+  private static buildHousekeepingTask(
+    migrated: readonly string[],
+    pruned: readonly string[],
+  ): SoloListrTask<AnyListrContext> {
+    const changes: string[] = [];
+
+    if (migrated.length > 0) {
+      changes.push(`removed ${migrated.length} archive(s) cached by an older version of solo`);
+    }
+
+    if (pruned.length > 0) {
+      changes.push(`pruned ${pruned.length} file(s) the manifest does not list`);
+    }
+
+    return {
+      title: 'Tidy the image cache',
+      task: (_, task): void => {
+        task.title +=
+          ' - ' + (changes.length === 0 ? chalk.green('nothing to tidy') : chalk.yellow(changes.join(', ')));
+      },
+    };
+  }
+
+  /**
+   * Removes the image cache entries an older Solo version wrote, so the first pull after an upgrade starts
+   * from a cache the new model can reason about.
+   *
+   * Before the CDN model, archives were produced locally by exporting an image the container engine had
+   * pulled from its registry. Nothing published a hash for those bytes, so they were written on their own,
+   * and the registry-pull code that produced them is gone. An archive with no hash file next to it is
+   * therefore an entry of the old model: it cannot be verified now, it cannot be verified later, and the
+   * epic requires that only verified archives are loaded into a cluster. It is deleted, and
+   * {@link downloadArchive} fetches the published archive for that image in the same run.
+   *
+   * The rule is the layout rather than a file name, which is what makes this safe to run on every pull:
+   * every archive the new model writes gets its hash file first, so a current entry is never mistaken for a
+   * legacy one, and a second run finds nothing left to do.
+   *
+   * @returns the names of the files that were removed
+   */
+  private async migrateLegacyEntries(targets: readonly CacheTarget[]): Promise<readonly string[]> {
+    const entries: readonly Dirent[] = await this.readImageCacheDirectory(targets);
+    const fileNames: ReadonlySet<string> = new Set<string>(
+      entries.filter((entry): boolean => entry.isFile()).map((entry): string => entry.name),
+    );
+
+    const migrated: string[] = [];
+
+    for (const fileName of fileNames) {
+      if (
+        !fileName.endsWith(ImageCacheHandler.ARCHIVE_FILE_EXTENSION) ||
+        fileNames.has(`${fileName}${ImageCacheHandler.HASH_FILE_EXTENSION}`)
+      ) {
+        continue;
+      }
+
+      // fileName is a single directory entry, so the join can only ever address a file inside the image
+      // cache directory itself.
+      const filePath: string = PathEx.join(this.resolveImageCacheDirectory(targets), fileName);
+      await fs.rm(filePath, {force: true});
+
+      this.recordMaintenance(
+        'Removed an image archive cached by an older version of solo, which published no hash to verify it ' +
+          `against; the published archive is downloaded in its place: ${filePath}`,
+      );
+      migrated.push(fileName);
+    }
+
+    return migrated;
   }
 
   /** Fetches the manifest for the running Solo version, keyed by image reference. */
@@ -143,22 +227,6 @@ export class ImageCacheHandler implements CacheOperationHandler {
     return new Map<string, CacheManifestImage>(
       images.map((image): [string, CacheManifestImage] => [image.image, image]),
     );
-  }
-
-  private buildPruneTask(
-    targets: readonly CacheTarget[],
-    manifestImages: ReadonlyMap<string, CacheManifestImage>,
-  ): SoloListrTask<AnyListrContext> {
-    return {
-      title: 'Prune stale image cache files',
-      task: async (_, task): Promise<void> => {
-        const pruned: readonly string[] = await this.pruneStaleFiles(targets, manifestImages);
-
-        task.title +=
-          ' - ' +
-          (pruned.length === 0 ? chalk.green('nothing to prune') : chalk.yellow(`removed ${pruned.length} file(s)`));
-      },
-    };
   }
 
   /**
@@ -174,21 +242,8 @@ export class ImageCacheHandler implements CacheOperationHandler {
     targets: readonly CacheTarget[],
     manifestImages: ReadonlyMap<string, CacheManifestImage>,
   ): Promise<readonly string[]> {
-    if (targets.length === 0) {
-      return [];
-    }
-
-    const directory: string = PathEx.dirname(this.store.resolvePath(targets[0], CacheArtifactEnum.IMAGE));
+    const entries: readonly Dirent[] = await this.readImageCacheDirectory(targets);
     const keep: ReadonlySet<string> = this.resolveExpectedFileNames(targets, manifestImages);
-
-    let entries: Dirent[];
-    try {
-      entries = await fs.readdir(directory, {withFileTypes: true});
-    } catch {
-      // nothing has been cached yet, so there is nothing to prune
-      return [];
-    }
-
     const pruned: string[] = [];
 
     for (const entry of entries) {
@@ -198,7 +253,7 @@ export class ImageCacheHandler implements CacheOperationHandler {
 
       // entry.name is a single directory entry, so the join can only ever address a file inside the
       // image cache directory itself.
-      const filePath: string = PathEx.join(directory, entry.name);
+      const filePath: string = PathEx.join(this.resolveImageCacheDirectory(targets), entry.name);
       await fs.rm(filePath, {force: true});
 
       this.recordMaintenance(`Pruned stale image cache file, not listed in the manifest: ${filePath}`);
@@ -237,6 +292,27 @@ export class ImageCacheHandler implements CacheOperationHandler {
     }
 
     return names;
+  }
+
+  /**
+   * The directory the catalog store keeps image archives in. Derived from a target's resolved archive path
+   * rather than assembled here, so the layout stays owned by the store alone.
+   */
+  private resolveImageCacheDirectory(targets: readonly CacheTarget[]): string {
+    return PathEx.dirname(this.store.resolvePath(targets[0], CacheArtifactEnum.IMAGE));
+  }
+
+  /** Directory entries of the image cache, empty when nothing has been cached yet. */
+  private async readImageCacheDirectory(targets: readonly CacheTarget[]): Promise<readonly Dirent[]> {
+    if (targets.length === 0) {
+      return [];
+    }
+
+    try {
+      return await fs.readdir(this.resolveImageCacheDirectory(targets), {withFileTypes: true});
+    } catch {
+      return [];
+    }
   }
 
   private static isCacheFileName(fileName: string): boolean {
