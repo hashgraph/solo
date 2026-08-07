@@ -88,7 +88,6 @@ export class InjectTokens {
   public static GvproxyDependencyManager: symbol = Symbol.for('GvproxyDependencyManager');
   public static NetavarkDependencyManager: symbol = Symbol.for('NetavarkDependencyManager');
   public static AardvarkDnsDependencyManager: symbol = Symbol.for('AardvarkDnsDependencyManager');
-  public static CraneDependencyManager: symbol = Symbol.for('CraneDependencyManager');
 
   // Dependency Directories
   public static HelmInstallationDirectory: symbol = Symbol.for('HelmInstallationDirectory');
@@ -96,7 +95,6 @@ export class InjectTokens {
   public static KubectlInstallationDirectory: symbol = Symbol.for('KubectlInstallationDirectory');
   public static PodmanInstallationDirectory: symbol = Symbol.for('PodmanInstallationDirectory');
   public static PodmanDependenciesInstallationDirectory: symbol = Symbol.for('PodmanDependenciesInstallationDirectory');
-  public static CraneInstallationDirectory: symbol = Symbol.for('CraneInstallationDirectory');
 
   // Dependency Versions
   public static HelmVersion: symbol = Symbol.for('HelmVersion');
@@ -107,7 +105,6 @@ export class InjectTokens {
   public static GvproxyVersion: symbol = Symbol.for('GvproxyVersion');
   public static NetavarkVersion: symbol = Symbol.for('NetavarkVersion');
   public static AardvarkDnsVersion: symbol = Symbol.for('AardvarkDnsVersion');
-  public static CraneVersion: symbol = Symbol.for('CraneVersion');
 
   // Cache
   public static CacheHandlerRegistry: symbol = Symbol.for('CacheHandlerRegistry');

@@ -57,7 +57,6 @@ export const NETAVARK: string = 'netavark';
 export const AARDVARK_DNS: string = 'aardvark-dns';
 export const DOCKER: string = 'docker';
 export const KUBECTL: string = 'kubectl';
-export const CRANE: string = 'crane';
 export const BASE_DEPENDENCIES: string[] = [HELM, KIND, KUBECTL];
 export const DEFAULT_CLUSTER: string = 'solo-cluster';
 export const RESOURCES_DIR: string = PathEx.joinWithRealPath(ROOT_DIR, 'resources');

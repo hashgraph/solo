@@ -15,7 +15,6 @@ import {VfkitDependencyManager} from './vfkit-dependency-manager.js';
 import {GvproxyDependencyManager} from './gvproxy-dependency-manager.js';
 import {NetavarkDependencyManager} from './netavark-dependency-manager.js';
 import {AardvarkDnsDependencyManager} from './aardvark-dns-dependency-manager.js';
-import {CraneDependencyManager} from './crane-dependency-manager.js';
 
 export type DependencyManagerType =
   | HelmDependencyManager
@@ -25,8 +24,7 @@ export type DependencyManagerType =
   | VfkitDependencyManager
   | GvproxyDependencyManager
   | NetavarkDependencyManager
-  | AardvarkDnsDependencyManager
-  | CraneDependencyManager;
+  | AardvarkDnsDependencyManager;
 
 @injectable()
 export class DependencyManager extends ShellRunner {
@@ -41,7 +39,6 @@ export class DependencyManager extends ShellRunner {
     @inject(InjectTokens.GvproxyDependencyManager) gvproxyDependencyManager?: GvproxyDependencyManager,
     @inject(InjectTokens.NetavarkDependencyManager) netavarkDependencyManager?: NetavarkDependencyManager,
     @inject(InjectTokens.AardvarkDnsDependencyManager) aardvarkDnsDependencyManager?: AardvarkDnsDependencyManager,
-    @inject(InjectTokens.CraneDependencyManager) craneDependencyManager?: CraneDependencyManager,
   ) {
     super();
     this.dependancyManagerMap = new Map();
@@ -84,11 +81,6 @@ export class DependencyManager extends ShellRunner {
     this.dependancyManagerMap.set(
       constants.AARDVARK_DNS,
       aardvarkDnsDependencyManager || container.resolve(InjectTokens.AardvarkDnsDependencyManager),
-    );
-
-    this.dependancyManagerMap.set(
-      constants.CRANE,
-      craneDependencyManager || container.resolve(InjectTokens.CraneDependencyManager),
     );
   }
 

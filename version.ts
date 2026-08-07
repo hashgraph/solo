@@ -22,7 +22,6 @@ export const GVPROXY_VERSION: string = 'v0.8.7';
 export const NETAVARK_VERSION: string = 'v2.0.0';
 export const AARDVARK_DNS_VERSION: string = 'v2.0.0';
 export const KUBECTL_VERSION: string = 'v1.32.2';
-export const CRANE_VERSION: string = 'v0.21.4';
 
 export const SOLO_CHART_VERSION: string = constants.getEnvironmentVariable('SOLO_CHART_VERSION') || '0.66.0';
 export const HEDERA_PLATFORM_VERSION: string = constants.getEnvironmentVariable('CONSENSUS_NODE_VERSION') || 'v0.75.1';
