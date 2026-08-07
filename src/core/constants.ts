@@ -573,6 +573,8 @@ export const NETWORK_LOAD_GENERATOR_POD_RUNNING_DELAY: number =
 export const PORT_FORWARDING_MESSAGE_GROUP: string = 'port-forwarding';
 // Collects images that failed to cache (pull) or load so a summary can be shown at the end of the run.
 export const CACHE_IMAGE_FAILURE_MESSAGE_GROUP: string = 'cache-image-failures';
+// Collects the housekeeping the image cache performed (pruned files) so a summary can be shown at the end of the run.
+export const CACHE_IMAGE_MAINTENANCE_MESSAGE_GROUP: string = 'cache-image-maintenance';
 export const GRPC_PORT: number = +getEnvironmentVariable('GRPC_PORT') || 50_211;
 export const GRPCS_PORT: number = GRPC_PORT + 1;
 export const GRPC_LOCAL_PORT: number = +getEnvironmentVariable('GRPC_LOCAL_PORT') || 35_211;
