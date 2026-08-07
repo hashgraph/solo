@@ -294,6 +294,7 @@ import {InitSystemFilesFailedSoloError} from './classes/system/init-system-files
 import {CacheProviderNotConfiguredSoloError} from './classes/system/cache-provider-not-configured-solo-error.js';
 import {CacheManifestDownloadFailedSoloError} from './classes/system/cache-manifest-download-failed-solo-error.js';
 import {CacheManifestInvalidSoloError} from './classes/system/cache-manifest-invalid-solo-error.js';
+import {CacheArchiveHashMismatchSoloError} from './classes/system/cache-archive-hash-mismatch-solo-error.js';
 import {PodTerminationTimeoutSoloError} from './classes/system/pod-termination-timeout-solo-error.js';
 import {TimeoutSoloError} from './classes/system/timeout-solo-error.js';
 import {ClusterRoleCheckFailedSoloError} from './classes/system/cluster-role-check-failed-solo-error.js';
@@ -833,6 +834,7 @@ export class SoloErrors {
     readonly cacheProviderNotConfigured: typeof CacheProviderNotConfiguredSoloError;
     readonly cacheManifestDownloadFailed: typeof CacheManifestDownloadFailedSoloError;
     readonly cacheManifestInvalid: typeof CacheManifestInvalidSoloError;
+    readonly cacheArchiveHashMismatch: typeof CacheArchiveHashMismatchSoloError;
     readonly podTerminationTimeout: typeof PodTerminationTimeoutSoloError;
     readonly timeout: typeof TimeoutSoloError;
     readonly clusterRoleCheckFailed: typeof ClusterRoleCheckFailedSoloError;
@@ -922,6 +924,7 @@ export class SoloErrors {
     cacheProviderNotConfigured: CacheProviderNotConfiguredSoloError,
     cacheManifestDownloadFailed: CacheManifestDownloadFailedSoloError,
     cacheManifestInvalid: CacheManifestInvalidSoloError,
+    cacheArchiveHashMismatch: CacheArchiveHashMismatchSoloError,
     podTerminationTimeout: PodTerminationTimeoutSoloError,
     timeout: TimeoutSoloError,
     clusterRoleCheckFailed: ClusterRoleCheckFailedSoloError,
