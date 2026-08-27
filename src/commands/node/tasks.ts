@@ -4259,6 +4259,15 @@ export class NodeCommandTasks {
    * @param profileValuesFile
    * @param valuesFileInput
    */
+  /**
+   * Name of the consensus-node chart, sourced from `resources/config/helm-chart-config.yaml` so that a
+   * renamed or relocated chart does not require a code change. Falls back to the built-in name when the
+   * layered config has not been loaded.
+   */
+  private get consensusChartName(): string {
+    return Templates.resolveConsensusChartName(this.soloConfig.helmChart.name);
+  }
+
   private prepareHelmChartValuesFilesMap(
     clusterReferences: ClusterReferences,
     chartDirectory?: string,
@@ -4279,7 +4288,7 @@ export class NodeCommandTasks {
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
     if (chartDirectory) {
-      const chartValuesFile: string = PathEx.join(chartDirectory, 'solo-deployment', 'values.yaml');
+      const chartValuesFile: string = PathEx.join(chartDirectory, this.consensusChartName, 'values.yaml');
       for (const clusterReference in chartValuesMap) {
         HelmChartValues.addFileForCluster(chartValuesMap, valueFilePathsMap, clusterReference, chartValuesFile);
       }

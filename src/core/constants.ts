@@ -72,8 +72,16 @@ export const KIND_NODE_IMAGE: string =
 export const PODMAN_MACHINE_NAME: string = 'podman-machine-default';
 export const SOLO_DEV_OUTPUT: boolean = Boolean(getEnvironmentVariable('SOLO_DEV_OUTPUT')) || false;
 
-export const CONFIG: {ENABLE_IMAGE_CACHE: boolean} = {
+export const CONFIG: {ENABLE_IMAGE_CACHE: boolean; EXPERIMENTAL_PER_CONSENSUS_NODE_CHART: boolean} = {
   ENABLE_IMAGE_CACHE: getEnvironmentVariable('ENABLE_IMAGE_CACHE') !== 'false',
+
+  // Deploys each consensus node as its own `consensus-node` Helm release alongside a shared release for
+  // the network-scoped resources, instead of one umbrella `solo-deployment` release holding every node.
+  // Experimental and unvalidated against a live cluster, so it is opt-in and defaults to off. Teardown
+  // sweeps per-node releases regardless of this flag, so a network deployed with it on stays destroyable
+  // with it off.
+  EXPERIMENTAL_PER_CONSENSUS_NODE_CHART:
+    getEnvironmentVariable('EXPERIMENTAL_PER_CONSENSUS_NODE_CHART') === 'true' || false,
 };
 
 export const ROOT_CONTAINER: ContainerName = ContainerName.of('root-container');
@@ -129,6 +137,8 @@ export const SOLO_SETUP_NAMESPACE: NamespaceName = NamespaceName.of('solo-setup'
 export const SOLO_TESTING_CHART_URL: string = 'oci://ghcr.io/hashgraph/solo-charts';
 // TODO: remove after migrated to resources/solo-config.yaml
 export const SOLO_DEPLOYMENT_CHART: string = 'solo-deployment';
+/** Single-consensus-node chart, installed once per node when EXPERIMENTAL_PER_CONSENSUS_NODE_CHART is set. */
+export const CONSENSUS_NODE_CHART: string = 'consensus-node';
 // TODO: remove after migrated to resources/solo-config.yaml
 export const SOLO_CERT_MANAGER_CHART: string = 'solo-cert-manager';
 export const SOLO_SHARED_RESOURCES_CHART: string = 'solo-shared-resources';
