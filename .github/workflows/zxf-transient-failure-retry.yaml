@@ -1,0 +1,224 @@
+##
+# Copyright (C) 2023-2026 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+# Reruns the failed jobs of a pull request workflow when, and only when, every failed job carries a
+# known transient infrastructure signature. Every rule below was derived from the failed job logs of
+# a five day window; a failure that does not match one is left alone so that a real regression stays
+# red instead of being hidden behind a rerun. The rerun endpoint works at run level and cannot
+# target a subset, so a run mixing transient and genuine failures is not retried at all.
+name: 'ZXF: Transient Failure Retry'
+
+on:
+  workflow_run:
+    workflows:
+      - 'PR Checks'
+      - 'Test Examples'
+      - 'Test Migration Process'
+      - 'Test GCS as Bucket Storage'
+      - 'Standard Runner One-Shot Deploy and Destroy'
+      - 'Windows One-Shot Deploy and Destroy'
+      - 'Install Validation'
+      - 'Install Validation (Podman Runtime)'
+      - 'Performance Test Solo Deployment'
+      - 'CodeQL'
+    types:
+      - completed
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+env:
+  # Total attempts a run may reach, counting the original. Guards against an endless retry loop
+  # when a matching failure turns out to be persistent rather than transient.
+  MAX_RUN_ATTEMPTS: '3'
+
+jobs:
+  retry-transient-failure:
+    name: 'Retry Transient Failure'
+    # Only a completed run that concluded in failure is eligible. A cancelled or interrupted run
+    # does not reach the retry path, and a stale run is not retried once the job-level gate has
+    # already rejected it.
+    if: >-
+      ${{
+        github.event.workflow_run.status == 'completed' &&
+        startsWith(github.event.workflow_run.event, 'pull_request') &&
+        github.event.workflow_run.conclusion == 'failure'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write # reads the observed run's job logs and reruns its failed jobs
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Rerun Failed Jobs With A Transient Signature
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const run = context.payload.workflow_run;
+            const maxRunAttempts = Number(process.env.MAX_RUN_ATTEMPTS);
+
+            // Each rule needs a failed step whose name matches one of its prefixes (an empty list
+            // matches any failed step), the `required` signature present in the job log, and the
+            // `forbidden` signature absent. Matching on the log as well as the step name keeps a
+            // deterministic failure in an infrastructure step - a moved dependency version, a bad
+            // ref, a compile error - from being retried, which only burns runners and hides the bug.
+            const rules = [
+              {
+                description: 'checkout could not reach the remote',
+                stepPrefixes: ['checkout'],
+                required: /The action 'Checkout[^']*' has timed out after \d+ minutes?/,
+                forbidden: /fatal:|RPC failed|index-pack failed|Repository not found|could not read Username/,
+              },
+              {
+                // The distribution is fetched by `Setup WSL2`, by its retry, and by an explicit
+                // web-download fallback. Any of the three can be the step that runs out of time,
+                // so all three gate this rule: run 33757121299 timed out in the fallback alone.
+                description: 'WSL distribution download exceeded its budget',
+                stepPrefixes: ['setup wsl2', 'retry setup wsl2', 'install ubuntu wsl distribution fallback'],
+                required: /The action '(Setup WSL2|Retry Setup WSL2|Install Ubuntu WSL distribution fallback)' has timed out after \d+ minutes?/,
+                forbidden: /error TS\d{4}/,
+              },
+              {
+                description: 'kind could not bind a host port held by a leaked cluster',
+                stepPrefixes: [],
+                required: /docker: Error response from daemon:[\s\S]{0,200}(port is already allocated|driver failed programming external connectivity)/,
+                forbidden: /error TS\d{4}/,
+              },
+              {
+                description: 'distribution mirror rejected a metadata request',
+                stepPrefixes: ['bootstrap container'],
+                required: /Failed to retrieve new repository metadata|Access to requested URL is forbidden|Curl error \(22\)/,
+                forbidden: /error TS\d{4}|Failed to run task "build:compile"/,
+              },
+            ];
+
+            const readJobLog = async (jobId) => {
+              try {
+                const response = await github.rest.actions.downloadJobLogsForWorkflowRun({
+                  owner, repo, job_id: jobId,
+                });
+                // Windows logs carry NUL bytes and every runner colourises errors, both of which
+                // break a plain match: a compile error arrives as "error" and " TS1117" separated
+                // by SGR escape sequences.
+                return String(response.data)
+                  .replaceAll(/\u001B\[[\d;]*[a-zA-Z]/g, '')
+                  .replaceAll(/[\0\r]/g, '');
+              } catch (error) {
+                // A log we cannot read leaves the job unclassified rather than retried, so an
+                // unreadable log costs a manual rerun instead of masking a genuine failure.
+                core.warning(`Could not read the log of job ${jobId}: ${error.message}`);
+                return undefined;
+              }
+            };
+
+            // Repeated from the job condition so a cancelled run is refused even if the trigger
+            // is ever widened, and so the behaviour can be exercised in isolation.
+            if (run.conclusion !== 'failure') {
+              core.info(`${run.name} run ${run.id} concluded as '${run.conclusion}', not 'failure'. Nothing to retry.`);
+              return;
+            }
+
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              owner, repo, run_id: run.id, filter: 'latest', per_page: 100,
+            });
+
+            // A cancelled job means the run was interrupted before the final state could settle.
+            // Retrying a stale or partial run is not safe, so the whole run is left alone.
+            const cancelledJobs = jobs.filter(job => job.conclusion === 'cancelled');
+            if (cancelledJobs.length > 0) {
+              core.info(
+                `${run.name} run ${run.id} was interrupted (cancelled jobs: ` +
+                `${cancelledJobs.map(job => job.name).join(', ')}). Leaving the run alone.`
+              );
+              return;
+            }
+
+            // Cancelled jobs and cancelled steps are never classified: only an outright failure
+            // carries a signature worth reading.
+            const failedJobs = jobs.filter(job => job.conclusion === 'failure');
+            const reasons = [];
+
+            for (const job of failedJobs) {
+              const failedStepNames = (job.steps ?? [])
+                .filter(step => step.conclusion === 'failure')
+                .map(step => step.name.toLowerCase());
+
+              const candidates = rules.filter(rule =>
+                rule.stepPrefixes.length === 0 ||
+                failedStepNames.some(name => rule.stepPrefixes.some(prefix => name.startsWith(prefix))));
+
+              if (candidates.length === 0) {
+                continue;
+              }
+
+              const log = await readJobLog(job.id);
+              if (log === undefined) {
+                continue;
+              }
+
+              const matched = candidates.find(rule => rule.required.test(log) && !rule.forbidden.test(log));
+              if (matched) {
+                reasons.push(`${job.name}: ${matched.description}`);
+              }
+            }
+
+            const failedJobSummary = failedJobs.map(job => job.name).join(', ') || 'none';
+
+            if (reasons.length === 0) {
+              core.info(
+                `${run.name} run ${run.id} (attempt ${run.run_attempt}) failed without a transient ` +
+                `signature. Failed jobs: ${failedJobSummary}. Leaving the run alone.`
+              );
+              return;
+            }
+
+            // `rerun-failed-jobs` is a run level endpoint: it reruns every failed job and their
+            // dependents, not the subset matched above. A run mixing a transient failure with a
+            // real regression would therefore rerun the regression too. Retry only when every
+            // failed job is transient; a mixed run is left alone and stays red for a human.
+            if (reasons.length !== failedJobs.length) {
+              core.info(
+                `${run.name} run ${run.id} mixes transient and non-transient failures ` +
+                `(${reasons.length} of ${failedJobs.length} failed jobs are transient). ` +
+                `Failed jobs: ${failedJobSummary}. Leaving the run alone.`
+              );
+              return;
+            }
+
+            if (run.run_attempt >= maxRunAttempts) {
+              core.warning(
+                `Transient failures found (${reasons.join('; ')}), but run ${run.id} is already at ` +
+                `attempt ${run.run_attempt} of ${maxRunAttempts}; not rerunning. ${run.html_url}`
+              );
+              return;
+            }
+
+            await github.rest.actions.reRunWorkflowFailedJobs({ owner, repo, run_id: run.id });
+            core.notice(
+              `Transient failures found (${reasons.join('; ')}). Reran the failed jobs of run ` +
+              `${run.id}, which was at attempt ${run.run_attempt} of ${maxRunAttempts}. ${run.html_url}`
+            );

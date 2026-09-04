@@ -14,21 +14,21 @@
 # limitations under the License.
 ##
 
-name: 'Solo Image Cache'
-description: 'Restore or save Solo container image archives through GitHub Actions cache.'
+name: 'Solo Bin Cache'
+description: 'Restore or save the Solo managed dependency binaries through GitHub Actions cache.'
 
 inputs:
   operation:
     description: 'Cache operation to run.'
     required: true
   cache-path:
-    description: 'Solo image archive directory to cache.'
+    description: 'Solo dependency binary directory to cache.'
     required: false
-    default: '~/.solo/cache/images'
+    default: '~/.solo/bin'
   key-prefix:
     description: 'Stable cache key prefix.'
     required: false
-    default: 'solo-image-cache'
+    default: 'solo-bin-cache'
   key-suffix:
     description: 'Hash or version suffix for the cache key.'
     required: true
@@ -47,54 +47,60 @@ runs:
     - name: Build Cache Metadata
       id: cache-metadata
       shell: bash
+      env:
+        OPERATION: ${{ inputs.operation }}
+        KEY_PREFIX: ${{ inputs.key-prefix }}
+        KEY_SUFFIX: ${{ inputs.key-suffix }}
       run: |
         set -euo pipefail
 
-        case "${{ inputs.operation }}" in
+        case "${OPERATION}" in
           restore|save) ;;
-          *) echo "Unsupported operation: ${{ inputs.operation }} (expected 'restore' or 'save')" >&2; exit 1 ;;
+          *) echo "Unsupported operation: ${OPERATION} (expected 'restore' or 'save')" >&2; exit 1 ;;
         esac
 
-        primary_key="${{ inputs.key-prefix }}-${RUNNER_OS}-${RUNNER_ARCH}-${{ inputs.key-suffix }}"
+        primary_key="${KEY_PREFIX}-${RUNNER_OS}-${RUNNER_ARCH}-${KEY_SUFFIX}"
         {
           echo "primary-key=${primary_key}"
           echo "restore-keys<<RESTORE_KEYS"
-          echo "${{ inputs.key-prefix }}-${RUNNER_OS}-${RUNNER_ARCH}-"
+          echo "${KEY_PREFIX}-${RUNNER_OS}-${RUNNER_ARCH}-"
           echo "RESTORE_KEYS"
         } >> "${GITHUB_OUTPUT}"
 
-    - name: Restore Solo Image Cache
+    - name: Restore Solo Bin Cache
       id: restore
       if: ${{ inputs.operation == 'restore' }}
       continue-on-error: true
-      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ inputs.cache-path }}
         key: ${{ steps.cache-metadata.outputs.primary-key }}
         restore-keys: ${{ steps.cache-metadata.outputs.restore-keys }}
 
-    - name: Inspect Solo Image Cache
+    - name: Inspect Solo Bin Cache
       id: inspect
       if: ${{ inputs.operation == 'save' }}
       shell: bash
+      env:
+        BIN_DIR: ${{ inputs.cache-path }}
       run: |
         set -euo pipefail
 
         # The path arrives double quoted, so bash never tilde expands it; expand a leading
         # '~' by hand or every existence test below would report a missing directory.
-        image_cache_dir="${{ inputs.cache-path }}"
-        image_cache_dir="${image_cache_dir/#\~/${HOME}}"
+        bin_dir="${BIN_DIR}"
+        bin_dir="${bin_dir/#\~/${HOME}}"
 
-        if [[ -d "${image_cache_dir}" ]] && find "${image_cache_dir}" -type f -name '*.tar' -print -quit | grep -q .; then
+        if [[ -d "${bin_dir}" ]] && find "${bin_dir}" -type f -print -quit | grep -q .; then
           echo "has-files=true" >> "${GITHUB_OUTPUT}"
         else
           echo "has-files=false" >> "${GITHUB_OUTPUT}"
         fi
 
-    - name: Save Solo Image Cache
+    - name: Save Solo Bin Cache
       if: ${{ inputs.operation == 'save' && steps.inspect.outputs.has-files == 'true' }}
       continue-on-error: true
-      uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ inputs.cache-path }}
         key: ${{ steps.cache-metadata.outputs.primary-key }}

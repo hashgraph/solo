@@ -231,9 +231,12 @@ export class ChartManager {
     return (await this.getInstalledRelease(namespaceName, chartReleaseName, kubeContext)) !== undefined;
   }
 
-  /** Returns the installed Helm release matching the given release name, or undefined when it is not installed. */
+  /**
+   * Returns the installed Helm release matching the given release name, or undefined when it is not installed.
+   * Pass `undefined` for `namespaceName` to search across all namespaces.
+   */
   public async getInstalledRelease(
-    namespaceName: NamespaceName,
+    namespaceName: NamespaceName | undefined,
     chartReleaseName: string,
     kubeContext?: string,
   ): Promise<ReleaseItem | undefined> {
