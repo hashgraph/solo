@@ -27,6 +27,19 @@ import {type CommandFlag} from '../../../src/types/flag-types.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {OperatingSystem} from '../../../src/business/utils/operating-system.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import {type KindClient} from '../../../src/integration/kind/kind-client.js';
+
+interface BaseCommandInternal {
+  isLocalImageReference: (imageReference: string) => boolean;
+  kindLoadComponentImage: (componentImage: string, clusterContext: string) => Promise<void>;
+  remoteConfig: {getContexts: () => Context[]};
+  depManager: {getExecutable: (dependency: string) => Promise<string>};
+  kindBuilder: {
+    executable: (executable: string) => {
+      build: () => Promise<KindClient>;
+    };
+  };
+}
 
 class TestBaseCommand extends BaseCommand {
   public async close(): Promise<void> {}
@@ -273,12 +286,13 @@ describe('BaseCommand', (): void => {
       'hiero-explorer:my-build',
       'hiero-json-rpc-relay:local',
       'myimage:latest',
+      'localhost:5001/block-node-server',
+      'localhost:5001/block-node-server:0.38.0',
     ];
 
     const registryCases: string[] = [
       'ghcr.io/hiero-ledger/block-node-server:0.36.0',
       'docker.io/library/redis:7',
-      'localhost:5000/myimage:tag',
       'registry.example.com/org/image:v1',
     ];
 
@@ -295,6 +309,81 @@ describe('BaseCommand', (): void => {
         expect(baseCmd.isLocalImageReference(reference)).to.be.false;
       });
     }
+  });
+
+  describe('kindLoadComponentImage', (): void => {
+    it('should load a local image into every Kind target context', async (): Promise<void> => {
+      const baseCommandInternal: BaseCommandInternal = baseCmd as unknown as BaseCommandInternal;
+      const loadDockerImageStub: SinonStub = sinon.stub().resolves();
+      const kindClient: KindClient = {loadDockerImage: loadDockerImageStub} as unknown as KindClient;
+
+      baseCommandInternal.remoteConfig = {
+        getContexts: (): Context[] => ['kind-first', 'kind-second'],
+      };
+      baseCommandInternal.depManager = {
+        getExecutable: async (dependency: string): Promise<string> => {
+          expect(dependency).to.equal('kind');
+          return 'kind';
+        },
+      };
+      baseCommandInternal.kindBuilder = {
+        executable: (executable: string): {build: () => Promise<KindClient>} => {
+          expect(executable).to.equal('kind');
+          return {build: async (): Promise<KindClient> => kindClient};
+        },
+      };
+
+      await baseCommandInternal.kindLoadComponentImage('block-node-server:0.38.0', 'kind-first');
+
+      expect(loadDockerImageStub).to.have.been.calledTwice;
+      expect(loadDockerImageStub).to.have.been.calledWith('block-node-server:0.38.0', sinon.match.has('name', 'first'));
+      expect(loadDockerImageStub).to.have.been.calledWith(
+        'block-node-server:0.38.0',
+        sinon.match.has('name', 'second'),
+      );
+    });
+
+    it('should ignore non-Kind deployment contexts when loading a local image onto a selected Kind context', async (): Promise<void> => {
+      const baseCommandInternal: BaseCommandInternal = baseCmd as unknown as BaseCommandInternal;
+      const loadDockerImageStub: SinonStub = sinon.stub().resolves();
+      const kindClient: KindClient = {loadDockerImage: loadDockerImageStub} as unknown as KindClient;
+
+      baseCommandInternal.remoteConfig = {
+        getContexts: (): Context[] => ['remote-cluster', 'kind-first'],
+      };
+      baseCommandInternal.depManager = {
+        getExecutable: async (dependency: string): Promise<string> => {
+          expect(dependency).to.equal('kind');
+          return 'kind';
+        },
+      };
+      baseCommandInternal.kindBuilder = {
+        executable: (executable: string): {build: () => Promise<KindClient>} => {
+          expect(executable).to.equal('kind');
+          return {build: async (): Promise<KindClient> => kindClient};
+        },
+      };
+
+      await baseCommandInternal.kindLoadComponentImage('block-node-server:0.38.0', 'kind-first');
+
+      expect(loadDockerImageStub).to.have.been.calledOnce;
+      expect(loadDockerImageStub).to.have.been.calledWith('block-node-server:0.38.0', sinon.match.has('name', 'first'));
+    });
+
+    it('should explain how to make an image available to a non-Kind target context', async (): Promise<void> => {
+      const baseCommandInternal: BaseCommandInternal = baseCmd as unknown as BaseCommandInternal;
+      baseCommandInternal.remoteConfig = {
+        getContexts: (): Context[] => ['kind-first'],
+      };
+
+      await expect(
+        baseCommandInternal.kindLoadComponentImage('block-node-server:0.38.0', 'remote-cluster'),
+      ).to.be.rejectedWith(
+        "Component image 'block-node-server:0.38.0' requires Kind image loading, but target cluster context(s) " +
+          "'remote-cluster' are not Kind clusters. Push the image to a registry reachable from every target " +
+          'cluster and pass that registry image reference to --component-image.',
+      );
+    });
   });
 
   describe('kindClusterNameFromContext', (): void => {
