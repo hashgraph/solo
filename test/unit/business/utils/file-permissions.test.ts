@@ -115,6 +115,46 @@ describe('FilePermissions', (): void => {
     });
   });
 
+  describe('isReadable', (): void => {
+    // chmod does not deny the owner on Windows, and root ignores mode bits entirely, so the denial case
+    // can only be staged as an unprivileged POSIX user.
+    const canDenyReads: boolean = process.platform !== 'win32' && process.getuid?.() !== 0;
+    let root: string;
+
+    beforeEach((): void => {
+      chmodStub.restore(); // these cases exercise real permissions, not a stub
+      root = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'file-readable-'));
+    });
+
+    afterEach((): void => {
+      fs.rmSync(root, {recursive: true, force: true});
+    });
+
+    it('should report a readable file as readable', (): void => {
+      const readable: string = PathEx.join(root, 'readable.yaml');
+      fs.writeFileSync(readable, 'kind: CustomResourceDefinition');
+
+      expect(FilePermissions.isReadable(readable)).to.be.true;
+    });
+
+    it('should report a missing file as unreadable', (): void => {
+      expect(FilePermissions.isReadable(PathEx.join(root, 'absent.yaml'))).to.be.false;
+    });
+
+    // The #5302 shape: the file is present, so existsSync is satisfied, but it cannot be opened. Probing
+    // with fs.accessSync would not catch this on Windows, where access ignores ACLs.
+    (canDenyReads ? it : it.skip)('should report a present but unopenable file as unreadable', (): void => {
+      const poisoned: string = PathEx.join(root, 'poisoned.yaml');
+      fs.writeFileSync(poisoned, 'kind: CustomResourceDefinition');
+      fs.chmodSync(poisoned, 0o000);
+
+      expect(fs.existsSync(poisoned), 'the file must still exist, or this is not the case under test').to.be.true;
+      expect(FilePermissions.isReadable(poisoned)).to.be.false;
+
+      fs.chmodSync(poisoned, 0o600); // restore so the temporary tree can be removed
+    });
+  });
+
   describe('restrictTreeToOwner on POSIX', (): void => {
     if (process.platform !== 'win32') {
       it('should clear group-write and all other bits recursively (0755 -> 0750, 0644 -> 0640)', (): void => {

@@ -1321,6 +1321,20 @@ export class NetworkCommand extends BaseCommand {
         `podlogs-crd-${versions.GRAFANA_PODLOGS_CRD_VERSION}.yaml`,
       );
 
+      // A file left unreadable by an older solo still satisfies existsSync, so the cache hit below would
+      // reuse it and only fail later at apply time. Discard it instead, so the deploy repairs itself
+      // rather than requiring the user to clear ~/.solo by hand.
+      if (fs.existsSync(temporaryFile) && !FilePermissions.isReadable(temporaryFile)) {
+        this.logger.debug(`Discarding unreadable cached CRD file, it will be re-created: ${temporaryFile}`);
+        try {
+          fs.rmSync(temporaryFile, {force: true});
+        } catch (error) {
+          // Removing it needs delete permission on the cache directory. When that is denied too there is
+          // nothing left to try, so name the file and how to repair it.
+          throw new SoloErrors.system.cachedFileInaccessible(temporaryFile, error as Error);
+        }
+      }
+
       // Download and cache the CRD YAML.  The cache file is keyed by the CRD version so
       // it is automatically invalidated when GRAFANA_PODLOGS_CRD_VERSION is bumped.
       // SOLO_CACHE_DIR persists across job steps (unlike os.tmpdir() which is ephemeral),

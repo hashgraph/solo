@@ -67,6 +67,32 @@ export class FilePermissions {
   }
 
   /**
+   * Whether the current user can actually open a path for reading.
+   *
+   * Deliberately a real `open` rather than `fs.accessSync(targetPath, R_OK)`: on Windows `fs.access`
+   * does not consult ACLs, so it reports a file whose DACL denies everyone as accessible. Opening the
+   * handle is what forces the access check on every platform.
+   *
+   * @param targetPath - the path to probe
+   * @returns true when the path could be opened for reading
+   */
+  public static isReadable(targetPath: string): boolean {
+    let fileHandle: number | undefined;
+    try {
+      fileHandle = fs.openSync(targetPath, 'r');
+      return true;
+    } catch {
+      // Unreadable for any reason — an empty DACL, a foreign owner, a cleared mode — is the same
+      // answer to the caller: this path cannot be used as it stands.
+      return false;
+    } finally {
+      if (fileHandle !== undefined) {
+        fs.closeSync(fileHandle);
+      }
+    }
+  }
+
+  /**
    * Clear group-write and all "other" permission bits from a single path, keeping the owner bits
    * (0755 -> 0750, 0644 -> 0640). This is the POSIX equivalent of applying a 0027 umask to an
    * already-created path.
