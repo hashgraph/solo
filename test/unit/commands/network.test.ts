@@ -34,6 +34,8 @@ import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {type CertificateManager} from '../../../src/core/certificate-manager.js';
 import {type PlatformInstaller} from '../../../src/core/platform-installer.js';
 import fs from 'node:fs';
+import * as os from 'node:os';
+import {FilePermissions} from '../../../src/business/utils/file-permissions.js';
 import {type InstanceOverrides} from '../../../src/core/dependency-injection/container-init.js';
 import {ValueContainer} from '../../../src/core/dependency-injection/value-container.js';
 import {type LocalConfigRuntimeState} from '../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
@@ -687,6 +689,60 @@ describe('NetworkCommand unit tests', (): void => {
         }
         sinon.restore();
       }
+    });
+  });
+  // #5302: a cache file left unreadable by an older solo still satisfies existsSync, so the deploy would
+  // reuse it and fail at apply time. writeCacheFile is the replacement path; it stages the content under a
+  // unique name and renames it into place, so nothing tests the destination before writing to it.
+  describe('writeCacheFile', (): void => {
+    // chmod does not deny the owner on Windows, and root ignores mode bits, so the poisoned case can only
+    // be staged as an unprivileged POSIX user.
+    const canDenyReads: boolean = process.platform !== 'win32' && process.getuid?.() !== 0;
+    let cacheRoot: string;
+    let cachedFile: string;
+
+    function writeCacheFile(destinationPath: string, content: string): void {
+      (NetworkCommand as unknown as {writeCacheFile: (path: string, content: string) => void}).writeCacheFile(
+        destinationPath,
+        content,
+      );
+    }
+
+    beforeEach((): void => {
+      cacheRoot = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'network-cache-'));
+      cachedFile = PathEx.join(cacheRoot, 'podlogs-crd-v1.11.3.yaml');
+    });
+
+    afterEach((): void => {
+      fs.rmSync(cacheRoot, {recursive: true, force: true});
+    });
+
+    it('writes the content and leaves no staging file behind', (): void => {
+      writeCacheFile(cachedFile, 'kind: CustomResourceDefinition\n');
+
+      expect(fs.readFileSync(cachedFile, 'utf8')).to.equal('kind: CustomResourceDefinition\n');
+      expect(fs.readdirSync(cacheRoot).filter((entry: string): boolean => entry.includes('partial'))).to.be.empty;
+    });
+
+    it('replaces an existing cache file rather than checking it first', (): void => {
+      fs.writeFileSync(cachedFile, 'stale content');
+
+      writeCacheFile(cachedFile, 'fresh content');
+
+      expect(fs.readFileSync(cachedFile, 'utf8')).to.equal('fresh content');
+    });
+
+    (canDenyReads ? it : it.skip)('recovers a cache file that can no longer be read', (): void => {
+      fs.writeFileSync(cachedFile, 'poisoned by an older solo');
+      fs.chmodSync(cachedFile, 0o000);
+
+      // The reuse decision the deploy makes: unreadable means discard and re-create.
+      expect(FilePermissions.isReadable(cachedFile), 'the poisoned file must not look reusable').to.be.false;
+      fs.rmSync(cachedFile, {force: true});
+      writeCacheFile(cachedFile, 'kind: CustomResourceDefinition\n');
+
+      expect(FilePermissions.isReadable(cachedFile)).to.be.true;
+      expect(fs.readFileSync(cachedFile, 'utf8')).to.equal('kind: CustomResourceDefinition\n');
     });
   });
 });

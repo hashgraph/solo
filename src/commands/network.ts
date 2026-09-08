@@ -26,6 +26,7 @@ import {HelmChartValues} from '../integration/helm/model/values.js';
 import {type PerNodeIdentity} from '../types/helm-values.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
 import fs from 'node:fs';
+import {randomUUID} from 'node:crypto';
 import path from 'node:path';
 import {type KeyManager} from '../core/key-manager.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
@@ -1272,6 +1273,32 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /**
+   * Write a file into the solo cache in one step.
+   *
+   * The content lands in a uniquely named staging file, is restricted to the owner there, and is then
+   * renamed over the destination. Renaming replaces whatever is at the path atomically, so nothing has
+   * to test the destination before writing to it — which is what made the previous check-then-write a
+   * race — and a download that dies midway cannot leave a truncated file for the next run to reuse.
+   *
+   * @param destinationPath - the cache path to end up with the content
+   * @param content - the file content
+   */
+  private static writeCacheFile(destinationPath: string, content: string): void {
+    const stagingPath: string = `${destinationPath}.${process.pid}.${randomUUID()}.partial`;
+
+    try {
+      fs.writeFileSync(stagingPath, content, 'utf8');
+      // Hardened before the rename, so the file is never briefly group/other-readable under its final
+      // name; fs.writeFileSync bypasses the umask when the file already exists.
+      FilePermissions.restrictToOwner(stagingPath, false);
+      fs.renameSync(stagingPath, destinationPath);
+    } catch (error) {
+      fs.rmSync(stagingPath, {force: true});
+      throw error;
+    }
+  }
+
+  /**
    * Ensure the PodLogs CRD from Grafana Alloy is installed
    */
   private async ensurePodLogsCrd({contexts}: NetworkDeployConfigClass): Promise<void> {
@@ -1321,31 +1348,37 @@ export class NetworkCommand extends BaseCommand {
         `podlogs-crd-${versions.GRAFANA_PODLOGS_CRD_VERSION}.yaml`,
       );
 
-      // A file left unreadable by an older solo still satisfies existsSync, so the cache hit below would
-      // reuse it and only fail later at apply time. Discard it instead, so the deploy repairs itself
-      // rather than requiring the user to clear ~/.solo by hand.
-      if (fs.existsSync(temporaryFile) && !FilePermissions.isReadable(temporaryFile)) {
-        this.logger.debug(`Discarding unreadable cached CRD file, it will be re-created: ${temporaryFile}`);
+      // Cache the CRD YAML. The cache file is keyed by the CRD version so it is automatically
+      // invalidated when GRAFANA_PODLOGS_CRD_VERSION is bumped. SOLO_CACHE_DIR persists across job
+      // steps (unlike os.tmpdir() which is ephemeral), ensuring we only make one network request per
+      // job even if multiple contexts need the CRD installed.
+      //
+      // The reuse decision is a single readability probe rather than existsSync: a file left unreadable
+      // by an older solo (see #5302) exists but cannot be opened, so an existence check would reuse it
+      // and only fail later at apply time. One probe answers "missing or unusable" for both cases.
+      if (!FilePermissions.isReadable(temporaryFile)) {
         try {
+          // force:true makes this a no-op when the file is simply absent.
           fs.rmSync(temporaryFile, {force: true});
         } catch (error) {
           // Removing it needs delete permission on the cache directory. When that is denied too there is
           // nothing left to try, so name the file and how to repair it.
           throw new SoloErrors.system.cachedFileInaccessible(temporaryFile, error as Error);
         }
-      }
 
-      // Download and cache the CRD YAML.  The cache file is keyed by the CRD version so
-      // it is automatically invalidated when GRAFANA_PODLOGS_CRD_VERSION is bumped.
-      // SOLO_CACHE_DIR persists across job steps (unlike os.tmpdir() which is ephemeral),
-      // ensuring we only make one network request per job even if multiple contexts need
-      // the CRD installed.
-      if (!fs.existsSync(temporaryFile)) {
-        // Prefer a vendored CRD file to avoid external network/rate-limit failures in CI.
-        if (fs.existsSync(LOCAL_CRD_FILE)) {
-          fs.copyFileSync(LOCAL_CRD_FILE, temporaryFile);
+        let crdYaml: string | undefined;
+
+        // Prefer a vendored CRD file to avoid external network/rate-limit failures in CI. Read it
+        // directly rather than testing for it first, so a file that disappears in between surfaces as a
+        // download fallback instead of a crash.
+        try {
+          crdYaml = fs.readFileSync(LOCAL_CRD_FILE, 'utf8');
           this.logger.debug(`Using local PodLogs CRD file: ${LOCAL_CRD_FILE}`);
-        } else {
+        } catch {
+          crdYaml = undefined;
+        }
+
+        if (crdYaml === undefined) {
           const downloadErrors: string[] = [];
 
           // Attempt #1: GitHub Contents API.
@@ -1358,8 +1391,7 @@ export class NetworkCommand extends BaseCommand {
 
           if (apiResponse.ok) {
             const json: {content: string} = (await apiResponse.json()) as {content: string};
-            const yamlContent: string = Buffer.from(json.content.replaceAll(/\s/g, ''), 'base64').toString('utf8');
-            fs.writeFileSync(temporaryFile, yamlContent, 'utf8');
+            crdYaml = Buffer.from(json.content.replaceAll(/\s/g, ''), 'base64').toString('utf8');
           } else {
             const apiError: string = `${apiResponse.status} ${apiResponse.statusText}`.trim();
             downloadErrors.push(`GitHub API: ${apiError}`);
@@ -1376,13 +1408,11 @@ export class NetworkCommand extends BaseCommand {
               downloadErrors.push(`Raw URL: ${rawError}`);
               throw new Error(`Failed to download CRD YAML (${downloadErrors.join('; ')})`);
             }
-            const yamlContent: string = await rawResponse.text();
-            fs.writeFileSync(temporaryFile, yamlContent, 'utf8');
+            crdYaml = await rawResponse.text();
           }
         }
 
-        // The cached CRD file may have been copyFileSync'd from a packaged (0755) source, bypassing umask.
-        FilePermissions.restrictToOwner(temporaryFile, false);
+        NetworkCommand.writeCacheFile(temporaryFile, crdYaml);
       }
 
       try {
