@@ -625,6 +625,18 @@ export class NodeCommandConfigs {
       this.configManager,
     );
 
+    // Parsed the same way setupConfigBuilder does, so the roster a transplant writes describes the same
+    // endpoints setup gave the network rather than falling back to the defaults.
+    if (context_.config.domainNames) {
+      context_.config.domainNamesMapping = Templates.parseNodeAliasToDomainNameMapping(context_.config.domainNames);
+    }
+    context_.config.gossipEndpointPortMapping = Templates.parseNodeAliasToPortMapping(
+      context_.config.gossipEndpointPort,
+    );
+    context_.config.serviceEndpointPortMapping = Templates.parseNodeAliasToPortMapping(
+      context_.config.serviceEndpointPort,
+    );
+
     return context_.config;
   }
 

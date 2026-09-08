@@ -47,10 +47,24 @@ import {findDeploymentsFromRemoteConfig} from '../util/remote-config-helper.js';
 import {GetSoloRemoteConfigMapTask} from '../util/get-solo-remote-config-map-task.js';
 import {type RemoteDeploymentInfo} from '../util/remote-deployment-info.js';
 import {type K8Factory} from '../../integration/kube/k8-factory.js';
+import {type NodeStartConfigClass} from './config-interfaces/node-start-config-class.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
   private readonly nodeConfigManager: ConfigManager;
+
+  /**
+   * Whether `consensus node start` should leave the roster in the restored state alone.
+   *
+   * Only a transplant wants its roster replaced. Restoring a network's own state must keep the roster
+   * that state carries, or the platform hits a roster transition it cannot replay past.
+   *
+   * Exposed as a static so the task wiring and its test share one definition — a copy in the test
+   * would keep passing while this changed.
+   */
+  public static skipOverrideNetworkJson({config}: {config: NodeStartConfigClass}): boolean {
+    return !config.transplant;
+  }
 
   public constructor(
     @inject(InjectTokens.LockManager) private readonly leaseManager: LockManager,
@@ -1183,11 +1197,7 @@ export class NodeCommandHandlers extends CommandHandler {
         this.validateAllNodePhases({acceptedPhases: [DeploymentPhase.CONFIGURED]}),
         this.tasks.identifyExistingNodes(),
         this.tasks.uploadStateFiles(({config}): boolean => config.stateFile.length === 0),
-        // Only a transplant wants its roster replaced. Restoring a network's own state must leave the roster
-        // in the state alone, or the platform hits a roster transition it cannot replay past.
-        this.tasks.installOverrideNetworkJson(
-          ({config}): boolean => !config.transplant || config.stateFile.length === 0,
-        ),
+        this.tasks.installOverrideNetworkJson(NodeCommandHandlers.skipOverrideNetworkJson),
         this.tasks.startNodes('nodeAliases'),
         // Must precede checkNodesAndProxiesAreActive: when --debug-node-alias is set the JVM starts
         // with suspend=y and will never reach ACTIVE until a debugger connects via this port-forward.

@@ -11,6 +11,8 @@ import {ConsensusNodePathTemplates} from '../../../../src/core/consensus-node-pa
 import {PodReference} from '../../../../src/integration/kube/resources/pod/pod-reference.js';
 import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.js';
 import * as constants from '../../../../src/core/constants.js';
+import {NodeCommandHandlers} from '../../../../src/commands/node/handlers.js';
+import {type NodeStartConfigClass} from '../../../../src/commands/node/config-interfaces/node-start-config-class.js';
 import {type SoloListrTask, type SoloListrTaskWrapper} from '../../../../src/types/index.js';
 import {type AnyListrContext} from '../../../../src/types/aliases.js';
 
@@ -35,7 +37,7 @@ function createTasks(container: FakeContainer): NodeCommandTasks {
   return tasks;
 }
 
-async function runTask(tasks: NodeCommandTasks): Promise<void> {
+async function runTask(tasks: NodeCommandTasks, configOverrides: Record<string, unknown> = {}): Promise<void> {
   const task: SoloListrTask<AnyListrContext> = tasks.installOverrideNetworkJson(
     false,
   ) as unknown as SoloListrTask<AnyListrContext>;
@@ -49,6 +51,7 @@ async function runTask(tasks: NodeCommandTasks): Promise<void> {
         // Deliberately no stagingDir/cacheDir: START_FLAGS omits the flags that populate them, so the real
         // start config has neither. Supplying them here once hid a crash on `undefined`.
         podRefs: {node1: PodReference.of(NamespaceName.of('solo-e2e'), PodName.of('network-node1-0'))},
+        ...configOverrides,
       },
     } as unknown as AnyListrContext,
     {} as unknown as SoloListrTaskWrapper<AnyListrContext>,
@@ -131,25 +134,41 @@ describe('installOverrideNetworkJson', (): void => {
     expect(tasks.installOverrideNetworkJson(skip).skip).to.equal(skip);
   });
 
+  // The roster must describe the endpoints the target network was actually set up with. Without these the
+  // generated override falls back to HEDERA_NODE_EXTERNAL_GOSSIP_PORT and GRPC_PORT, replacing a correct
+  // roster with a default-port one — the failure this feature exists to prevent, from the other direction.
+  it('passes the endpoint overrides through, so the roster is not written on the defaults', async (): Promise<void> => {
+    const domainNamesMapping: Record<string, string> = {node1: 'node1.example.com'};
+    const gossipEndpointPortMapping: Record<string, number> = {node1: 12_345};
+    const serviceEndpointPortMapping: Record<string, number> = {node1: 23_456};
+
+    await runTask(tasks, {domainNamesMapping, gossipEndpointPortMapping, serviceEndpointPortMapping});
+
+    const generate: sinon.SinonStub = generateStub(tasks);
+    expect(generate.firstCall.args[4]).to.deep.equal(domainNamesMapping);
+    expect(generate.firstCall.args[5]).to.deep.equal(gossipEndpointPortMapping);
+    expect(generate.firstCall.args[6]).to.deep.equal(serviceEndpointPortMapping);
+  });
+
   // The predicate `consensus node start` supplies. Getting this wrong installed an override on every state
   // restore, which broke the state-save-and-restore example: replacing the roster in a network's own state
-  // forces a roster transition the consensus node cannot replay past.
+  // forces a roster transition the consensus node cannot replay past. Imported rather than re-declared, so
+  // a change to the real predicate fails here instead of passing against a copy.
   describe('the skip predicate used by consensus node start', (): void => {
-    const skipPredicate = ({config}: {config: {transplant?: boolean; stateFile: string}}): boolean =>
-      !config.transplant || config.stateFile.length === 0;
+    const skipPredicate: (context: {config: NodeStartConfigClass}) => boolean =
+      NodeCommandHandlers.skipOverrideNetworkJson;
 
-    it('runs only when a transplant is asked for and a state is supplied', (): void => {
-      expect(skipPredicate({config: {transplant: true, stateFile: '/tmp/state.zip'}})).to.be.false;
+    function configOf(transplant?: boolean): {config: NodeStartConfigClass} {
+      return {config: {transplant} as NodeStartConfigClass};
+    }
+
+    it('runs only when a transplant is asked for', (): void => {
+      expect(skipPredicate(configOf(true))).to.be.false;
     });
 
     it('skips a restore of the network own state, which must keep the roster in that state', (): void => {
-      expect(skipPredicate({config: {transplant: false, stateFile: '/tmp/state.zip'}})).to.be.true;
-      expect(skipPredicate({config: {stateFile: '/tmp/state.zip'}})).to.be.true;
-    });
-
-    it('skips a plain start, where there is no state to override anything for', (): void => {
-      expect(skipPredicate({config: {transplant: true, stateFile: ''}})).to.be.true;
-      expect(skipPredicate({config: {stateFile: ''}})).to.be.true;
+      expect(skipPredicate(configOf(false))).to.be.true;
+      expect(skipPredicate(configOf())).to.be.true;
     });
   });
 });

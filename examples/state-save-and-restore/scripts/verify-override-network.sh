@@ -25,6 +25,14 @@ echo "verifying $TARGET_NAMESPACE/$POD"
 
 in_pod() { kubectl exec -n "$TARGET_NAMESPACE" "$POD" -c root-container -- sh -c "$1" 2>/dev/null; }
 
+# Probe once before asserting. in_pod discards stderr, so a failed exec is indistinguishable from a grep
+# that matched nothing — and the AccessDeniedException assertion below tests for *absence*, so it would
+# report PASS against a pod that was never reached.
+if ! kubectl exec -n "$TARGET_NAMESPACE" "$POD" -c root-container -- true >/dev/null 2>&1; then
+  fail "cannot exec into $TARGET_NAMESPACE/$POD; nothing below can be trusted"
+  exit 1
+fi
+
 # The node reporting that it parsed the file is the strongest evidence available; everything else is
 # circumstantial. Note the node MOVES the file into data/config/.archive/<round>/ once it has been consumed,
 # so asserting on data/config/override-network.json after a successful start would wrongly fail.

@@ -1769,6 +1769,9 @@ export class NodeCommandTasks {
             config.namespace,
             config.consensusNodes,
             temporaryDirectory,
+            config.domainNamesMapping,
+            config.gossipEndpointPortMapping,
+            config.serviceEndpointPortMapping,
           );
 
           for (const nodeAlias of config.nodeAliases) {
