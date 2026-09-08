@@ -65,6 +65,11 @@ if (new SemanticVersion<string>(version.HEDERA_PLATFORM_VERSION).lessThan('v0.61
   argv.setArg(flags.releaseTag, 'v0.61.0');
 }
 
+// Typed view over the private cache writer, so the tests exercise the real implementation.
+const writeCacheFile: (destinationPath: string, content: string) => void = (
+  NetworkCommand as unknown as {writeCacheFile: (destinationPath: string, content: string) => void}
+).writeCacheFile;
+
 describe('NetworkCommand unit tests', (): void => {
   before(async (): Promise<void> => {
     const sourceDirectory: string = PathEx.joinWithRealPath('test', 'data');
@@ -700,13 +705,6 @@ describe('NetworkCommand unit tests', (): void => {
     const canDenyReads: boolean = process.platform !== 'win32' && process.getuid?.() !== 0;
     let cacheRoot: string;
     let cachedFile: string;
-
-    function writeCacheFile(destinationPath: string, content: string): void {
-      (NetworkCommand as unknown as {writeCacheFile: (path: string, content: string) => void}).writeCacheFile(
-        destinationPath,
-        content,
-      );
-    }
 
     beforeEach((): void => {
       cacheRoot = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'network-cache-'));
