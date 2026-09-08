@@ -155,6 +155,20 @@ export const MINIO_OPERATOR_CHART_URL: string =
   getEnvironmentVariable('MINIO_OPERATOR_CHART_URL') ?? 'https://operator.min.io/';
 export const MINIO_OPERATOR_CHART: string = 'operator';
 export const MINIO_OPERATOR_RELEASE_NAME: string = 'operator';
+/**
+ * The MinIO Operator's CRDs, which are cluster-scoped and so outlive the namespace the operator was
+ * installed into.
+ *
+ * This list tracks {@link MINIO_OPERATOR_VERSION} and must be revisited when that moves —
+ * `policybindings.sts.min.io` only exists from operator v5 onward.
+ *
+ * Read as "any one present means something owned these", deliberately unlike `CERT_MANAGER_CRDS` (all
+ * must be present) and the prometheus list (counted N of N). Those two decide whether to install a
+ * chart, so a partial install should not count; this one decides whether cluster-scoped leftovers are in
+ * the way, and a single leftover is enough to break the install. An older operator that predates
+ * `policybindings` is therefore still detected by its `tenants` CRD.
+ */
+export const MINIO_OPERATOR_CRDS: string[] = ['tenants.minio.min.io', 'policybindings.sts.min.io'];
 
 export const METRICS_SERVER_CHART_URL: string =
   getEnvironmentVariable('METRICS_SERVER_CHART_URL') ?? 'https://kubernetes-sigs.github.io/metrics-server/';
@@ -351,7 +365,6 @@ export const MIRROR_POSTGRES_TRUNCATE_SQL_FILE: string = PathEx.joinWithRealPath
 export const UPGRADE_MIGRATIONS_FILE: string = PathEx.join(RESOURCES_DIR, 'component-upgrade-migrations.json');
 export const SOLO_DEPLOYMENT_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'solo-values.yaml');
 export const BLOCK_NODE_TSS_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'block-node-tss-values.yaml');
-export const CLEANUP_STATE_ROUNDS_SCRIPT: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'cleanup-state-rounds.sh');
 export const RENAME_STATE_NODE_ID_SCRIPT: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'rename-state-node-id.sh');
 export const NODE_LOG_FAILURE_MSG: string = 'failed to download logs from pod';
 export const ONE_SHOT_WITH_BLOCK_NODE: string = getEnvironmentVariable('ONE_SHOT_WITH_BLOCK_NODE') || 'false';

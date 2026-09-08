@@ -191,8 +191,9 @@ async function executeKubectl(
 
     const kubectlProcess: ChildProcess = spawn(kubectlCommand, commandArguments, {
       shell: false,
+      // The parent baked its session PATH and variables into this worker's environment at spawn.
       env: SubprocessEnvironment.forCommand(SubprocessCommandProfile.KUBECTL, {
-        PATH: `${kubectlInstallationDirectory}${path.delimiter}${process.env.PATH}`,
+        PATH: `${kubectlInstallationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
       }),
       stdio: options.captureOutput ? ['ignore', 'pipe', 'pipe'] : 'inherit',
       windowsHide: os.platform() === 'win32',

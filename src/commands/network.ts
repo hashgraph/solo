@@ -11,6 +11,7 @@ import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {DEFAULT_SOLO_NAMESPACE_LABELS, getEnvironmentVariable} from '../core/constants.js';
 import {SharedClusterResourceReport} from '../core/shared-cluster-resource-report.js';
+import {ClusterCrdProbe} from '../core/cluster-crd-probe.js';
 import {Templates} from '../core/templates.js';
 import {
   Helpers,
@@ -1400,17 +1401,18 @@ export class NetworkCommand extends BaseCommand {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for (const [_, context] of clusterRefs) {
       const chartValues: HelmChartValues = new HelmChartValues();
-      let missingCount: number = 0;
       const foundCrdVersions: Set<string> = new Set<string>();
 
+      const presentCrds: Map<string, Record<string, string>> = await ClusterCrdProbe.probe(
+        this.k8Factory,
+        context,
+        CRDS.map(({crd}): string => crd),
+      );
+      const missingCount: number = CRDS.length - presentCrds.size;
+
       for (const {key, crd} of CRDS) {
-        const crdLabels: Record<string, string> | undefined = await this.k8Factory
-          .getK8(context)
-          .crds()
-          .readLabels(crd);
-        if (crdLabels === undefined) {
-          missingCount++;
-        } else {
+        const crdLabels: Record<string, string> | undefined = presentCrds.get(crd);
+        if (crdLabels !== undefined) {
           chartValues.set(`${key}.enabled`, false);
           foundCrdVersions.add(SharedClusterResourceReport.versionFromLabels(crdLabels));
         }

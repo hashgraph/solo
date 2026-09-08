@@ -144,6 +144,7 @@ import {MirrorNodeInvalidComponentIdSoloError} from './classes/validation/mirror
 import {ClusterSetupFailedSoloError} from './classes/deployment/cluster-setup-failed-solo-error.js';
 import {ClusterResetFailedSoloError} from './classes/deployment/cluster-reset-failed-solo-error.js';
 import {MinioInstallFailedSoloError} from './classes/deployment/minio-install-failed-solo-error.js';
+import {MinioOperatorCrdsOrphanedSoloError} from './classes/system/minio-operator-crds-orphaned-solo-error.js';
 import {PrometheusInstallFailedSoloError} from './classes/deployment/prometheus-install-failed-solo-error.js';
 import {MetricsServerInstallFailedSoloError} from './classes/deployment/metrics-server-install-failed-solo-error.js';
 import {ClusterRoleInstallFailedSoloError} from './classes/deployment/cluster-role-install-failed-solo-error.js';
@@ -831,7 +832,9 @@ export class SoloErrors {
     readonly podTerminationTimeout: typeof PodTerminationTimeoutSoloError;
     readonly timeout: typeof TimeoutSoloError;
     readonly clusterRoleCheckFailed: typeof ClusterRoleCheckFailedSoloError;
+    readonly minioOperatorCrdsOrphaned: typeof MinioOperatorCrdsOrphanedSoloError;
   } = Object.freeze({
+    minioOperatorCrdsOrphaned: MinioOperatorCrdsOrphanedSoloError,
     blockNodePodNotFound: BlockNodePodNotFoundSoloError,
     blockNodeNotReady: BlockNodeNotReadySoloError,
     blockNodeNotInRemoteConfig: BlockNodeNotInRemoteConfigSoloError,

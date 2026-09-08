@@ -47,7 +47,7 @@ jobs:
     runs-on: hiero-solo-linux-medium
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
@@ -110,6 +110,8 @@ jobs:
 
       - name: Compare warnings with target branch
         if: ${{ github.event_name == 'pull_request' }}
+        env:
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
           get_warnings() {
             file="$1"
@@ -121,7 +123,7 @@ jobs:
             fi
           }
           # Determine the PR target (base) branch
-          target_branch="${{ github.event.pull_request.base.ref }}"
+          target_branch="${TARGET_BRANCH}"
           echo "Target branch: $target_branch"
           # Fetch and check out the target branch from origin
           git fetch origin "$target_branch":"$target_branch"

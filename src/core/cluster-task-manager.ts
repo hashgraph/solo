@@ -3,6 +3,7 @@
 import {inject, injectable} from 'tsyringe-neo';
 import {ShellRunner} from './shell-runner.js';
 import {SubprocessCommandProfile} from './subprocess-command-profile.js';
+import {SubprocessEnvironment} from './subprocess-environment.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {OsPackageManager} from './package-managers/os-package-manager.js';
 import {BrewPackageManager} from './package-managers/brew-package-manager.js';
@@ -152,7 +153,7 @@ export class ClusterTaskManager extends ShellRunner {
             this.logger.info('Podman not found, installing Podman...');
             await this.brewPackageManager.installPackages(['podman']);
             const brewBin: string[] = await this.run('which', ['podman']);
-            process.env.PATH = `${process.env.PATH}:${brewBin.join('').replace('/podman', '')}`;
+            SubprocessEnvironment.appendSessionPath(brewBin.join('').replace('/podman', ''));
           }
         },
       } as SoloListrTask<AnyObject>,
@@ -172,7 +173,7 @@ export class ClusterTaskManager extends ShellRunner {
           const sudoEnvironment: Record<string, string> = {
             PATH:
               `${this.podmanInstallationDirectory}${path.delimiter}` +
-              `${this.kindInstallationDirectory}${path.delimiter}${process.env.PATH}`,
+              `${this.kindInstallationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
           };
           // PATH must include both kindInstallationDirectory (for kind) and podmanPath (for podman).
           const kindRuntimePath: string = `${sudoEnvironment.PATH}${path.delimiter}${podmanPath}`;
@@ -360,7 +361,7 @@ export class ClusterTaskManager extends ShellRunner {
         onSudoGranted,
         'env',
         [
-          `PATH=${podmanBinaryDirectory}${path.delimiter}${process.env.PATH || ''}`,
+          `PATH=${podmanBinaryDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
           ...configurationArguments,
           'podman',
           'info',
@@ -428,7 +429,7 @@ export class ClusterTaskManager extends ShellRunner {
             title: 'Create Podman machine...',
             task: async (): Promise<void> => {
               const podmanEnvironment: Record<string, string> = {
-                PATH: `${this.podmanInstallationDirectory}${path.delimiter}${process.env.PATH}`,
+                PATH: `${this.podmanInstallationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
               };
               await this.podmanDependencyManager.setupConfig();
               const podmanExecutable: string = await this.podmanDependencyManager.getExecutable();
@@ -461,7 +462,7 @@ export class ClusterTaskManager extends ShellRunner {
           {
             title: 'Configure kind to use podman...',
             task: async (): Promise<void> => {
-              process.env.KIND_EXPERIMENTAL_PROVIDER = 'podman';
+              SubprocessEnvironment.setSessionVariable('KIND_EXPERIMENTAL_PROVIDER', constants.PODMAN);
             },
             skip: (): boolean => skipPodmanTasks,
           } as SoloListrTask<AnyObject>,
