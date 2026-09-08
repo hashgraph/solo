@@ -16,6 +16,7 @@ import {Zippy} from '../zippy.js';
 import {GitHubRelease, ReleaseInfo, PodmanMode} from '../../types/index.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {OperatingSystem} from '../../business/utils/operating-system.js';
+import {SubprocessEnvironment} from '../subprocess-environment.js';
 
 const PODMAN_RELEASES_LIST_URL: string = 'https://api.github.com/repos/containers/podman/releases';
 
@@ -315,7 +316,7 @@ export class PodmanDependencyManager extends BaseDependencyManager {
     let configContent: string = fs.readFileSync(templatePath, 'utf8');
     configContent = configContent.replace('$HELPER_BINARIES_DIR', this.helpersDirectory.replaceAll('\\', '/'));
     fs.writeFileSync(destinationPath, configContent, 'utf8');
-    process.env.CONTAINERS_CONF = destinationPath;
+    SubprocessEnvironment.setSessionVariable('CONTAINERS_CONF', destinationPath);
   }
 
   /**

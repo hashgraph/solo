@@ -37,9 +37,7 @@ on:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 defaults:
   run:
@@ -49,12 +47,17 @@ jobs:
   deploy:
     name: Deploy
     runs-on: hiero-solo-linux-medium
+    # Callers must grant these scopes on the calling job; otherwise the run fails to start.
+    permissions:
+      contents: write # gh release upload attaches the docs archives to the release
+      pages: write # configure-pages and deploy-pages
+      id-token: write # required by actions/deploy-pages
     environment:
       name: github-pages # security guard on what branch/tag can run this job
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
@@ -104,17 +107,20 @@ jobs:
 
       - name: Attach Docs as Release Artifacts
         if: ${{ inputs.attach-docs-enabled && !inputs.dry-run-enabled && !cancelled() && !failure() }}
+        env:
+          DOCS_BUILD_LABEL_INPUT: ${{ inputs.docs-build-label }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eo pipefail
-          RELEASE_VERSION="${{ inputs.docs-build-label }}"
+          RELEASE_VERSION="${DOCS_BUILD_LABEL_INPUT}"
           # Ensure the release version is set
           if [[ -z "${RELEASE_VERSION}" ]]; then
             echo "Error: docs-build-label input is required for attaching release artifacts." >&2
             exit 1
           fi
           cd docs/site
-          # Create the release artifact tarballs
-          GH_TOKEN=${{ secrets.GITHUB_TOKEN }} HUGO_SOLO_VERSION="${RELEASE_VERSION}" task github:upload:release:assets
+          # Create the release artifact tarballs; GH_TOKEN is inherited from the step environment.
+          HUGO_SOLO_VERSION="${RELEASE_VERSION}" task github:upload:release:assets
 
       # Upload / stage the built site to GitHub Pages
       - name: Upload Pages Artifact
@@ -126,4 +132,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         if: ${{ !inputs.dry-run-enabled && !cancelled() && !failure() }}
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

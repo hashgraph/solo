@@ -84,7 +84,7 @@ jobs:
             runner: hiero-solo-linux-large
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
@@ -111,13 +111,23 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: task build:compile
 
+      - name: Restore Solo Bin Cache
+        # source mode only: restoring into ~/.solo/bin for the global-package matrix entry would
+        # create ~/.solo before the "Assert Clean Environment" step runs, failing that assertion.
+        id: solo-bin-cache
+        if: ${{ matrix.install-mode == 'source' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Restore Solo Image Cache
         # source mode only: restoring the image cache populates ~/.solo/cache/images, which would
         # both create ~/.solo (failing the global-package "Assert Clean Environment" step) and
         # defeat that mode's no-cached-images purpose.
         id: solo-image-cache
         if: ${{ matrix.install-mode == 'source' && !cancelled() && !failure() }}
-        uses: ./.github/actions/solo-image-cache
+        uses: $/.github/actions/solo-image-cache
         with:
           operation: restore
           key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
@@ -216,6 +226,13 @@ jobs:
           done
           echo "ERROR: Mirror REST API did not become available after 5 minutes."
           exit 1
+
+      - name: Save Solo Bin Cache
+        if: ${{ matrix.install-mode == 'source' && github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
 
       - name: Collect Diagnostics on Failure
         if: ${{ failure() }}

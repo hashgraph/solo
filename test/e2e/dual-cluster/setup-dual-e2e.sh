@@ -2,8 +2,6 @@
 set -eo pipefail
 
 task build:compile
-# install dependencies in case they haven't been installed yet, and cache args for subsequent commands
-npm run solo -- init || exit 1
 export PATH=~/.solo/bin:${PATH}
 
 ##### Setup Environment #####

@@ -38,8 +38,6 @@ tasks:
             echo "Skipping npm install - using development version"
           fi
 
-      # Run solo init to install dependencies
-      - cmd: $SOLO_COMMAND init --dev
 
       # Create Kind cluster
       - cmd: |
@@ -55,9 +53,6 @@ tasks:
 
       # Set kubectl context
       - cmd: kubectl config set-context {{ .CONTEXT }}
-
-      # Solo init
-      - cmd: $SOLO_COMMAND init
 
       # Solo cluster-ref config connect
       - cmd: $SOLO_COMMAND cluster-ref config connect --cluster-ref {{ .CLUSTER_REFERENCE }} --context {{ .CONTEXT }}

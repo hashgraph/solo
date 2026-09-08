@@ -39,12 +39,7 @@ defaults:
     shell: bash
 
 permissions:
-  contents: write
-  packages: write
-  pages: write
-  id-token: write
-  issues: write
-  pull-requests: write
+  contents: read
 
 jobs:
   prepare-release:
@@ -56,12 +51,12 @@ jobs:
       need-hg-release: ${{ steps.check-hg-release-needed.outputs.need-hg-release || 'false' }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
       - name: Prepare Release
-        uses: pandaswhocode/initialize-github-job@20496f59a2a0a1108f7a1ab9648640e150f1a56b # 1.3.1
+        uses: pandaswhocode/initialize-github-job@0ed960ecaed898893e404ad55c7aa12fdc3b2a53 # 1.4.0
         with:
           checkout: 'true'
           checkout-ref: '${{ github.ref }}'
@@ -169,12 +164,12 @@ jobs:
       hl-package-name: ${{ steps.set-hl-package-name.outputs.hl-package-name }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
       - name: Prepare Job
-        uses: pandaswhocode/initialize-github-job@20496f59a2a0a1108f7a1ab9648640e150f1a56b # 1.3.1
+        uses: pandaswhocode/initialize-github-job@0ed960ecaed898893e404ad55c7aa12fdc3b2a53 # 1.4.0
         with:
           checkout: 'true'
           checkout-ref: '${{ github.ref }}'
@@ -213,6 +208,8 @@ jobs:
   create-github-release:
     name: 'Create GitHub Release'
     runs-on: hiero-solo-linux-medium
+    permissions:
+      contents: read # every write in this job authenticates with GH_ACCESS_TOKEN, not GITHUB_TOKEN
     if: ${{ needs.prepare-release.outputs.need-hl-release == 'true' || needs.prepare-release.outputs.need-hg-release == 'true' }}
     needs:
       - prepare-release
@@ -222,12 +219,12 @@ jobs:
       need-hg-publish: ${{ steps.update-for-dual-publish.outputs.need-hg-publish || 'false' }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
       - name: Prepare Job
-        uses: pandaswhocode/initialize-github-job@20496f59a2a0a1108f7a1ab9648640e150f1a56b # 1.3.1
+        uses: pandaswhocode/initialize-github-job@0ed960ecaed898893e404ad55c7aa12fdc3b2a53 # 1.4.0
         with:
           checkout: 'true'
           checkout-ref: '${{ github.ref }}'
@@ -538,18 +535,21 @@ jobs:
   publish-npm-packages:
     name: Publish Release Packages
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # OIDC token for npm trusted publishing (no NPM_TOKEN is configured)
     needs:
       - get-package-info
       - create-github-release
     if: ${{ needs.create-github-release.outputs.need-hl-publish == 'true' || needs.create-github-release.outputs.need-hg-publish == 'true' || inputs.dry-run-enabled == true }}
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
       - name: Prepare Job
-        uses: pandaswhocode/initialize-github-job@20496f59a2a0a1108f7a1ab9648640e150f1a56b # 1.3.1
+        uses: pandaswhocode/initialize-github-job@0ed960ecaed898893e404ad55c7aa12fdc3b2a53 # 1.4.0
         with:
           checkout: 'true'
           checkout-ref: '${{ github.ref }}'
@@ -648,7 +648,7 @@ jobs:
 
   docs-automation:
     name: Docs Automation
-    uses: ./.github/workflows/zxc-docs-automation.yaml
+    uses: $/.github/workflows/zxc-docs-automation.yaml
 
   setup:
     name: Hugo Docs Setup
@@ -659,7 +659,7 @@ jobs:
       - prepare-release
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
@@ -680,7 +680,7 @@ jobs:
   # Do a Hugo build for the docs site for the release branch
   hugo-docs-build:
     name: Hugo Docs Build
-    uses: ./.github/workflows/zxc-hugo-build.yaml
+    uses: $/.github/workflows/zxc-hugo-build.yaml
     needs:
       - prepare-release
       - create-github-release
@@ -695,7 +695,7 @@ jobs:
   #  to GitHub Pages
   hugo-docs-build-main:
     name: Hugo Docs Build Main
-    uses: ./.github/workflows/zxc-hugo-build.yaml
+    uses: $/.github/workflows/zxc-hugo-build.yaml
     needs:
       - hugo-docs-build
     with:
@@ -708,12 +708,16 @@ jobs:
   # Publish the Hugo docs site to GitHub Pages unless dry-run is enabled
   hugo-docs-publish:
     name: Hugo Docs Publish
+    permissions:
+      contents: write # zxc-hugo-publish.yaml attaches the docs archives to the release
+      pages: write # zxc-hugo-publish.yaml deploys to GitHub Pages
+      id-token: write # required by actions/deploy-pages
     if: ${{ inputs.dry-run-enabled != true && !cancelled() && !failure() }}
     needs:
       - prepare-release
       - hugo-docs-build-main
       - docs-automation
-    uses: ./.github/workflows/zxc-hugo-publish.yaml
+    uses: $/.github/workflows/zxc-hugo-publish.yaml
     with:
       docs-build-label: 'v${{ needs.prepare-release.outputs.version }}'
       dry-run-enabled: ${{ inputs.dry-run-enabled }}

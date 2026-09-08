@@ -144,6 +144,7 @@ import {MirrorNodeInvalidComponentIdSoloError} from './classes/validation/mirror
 import {ClusterSetupFailedSoloError} from './classes/deployment/cluster-setup-failed-solo-error.js';
 import {ClusterResetFailedSoloError} from './classes/deployment/cluster-reset-failed-solo-error.js';
 import {MinioInstallFailedSoloError} from './classes/deployment/minio-install-failed-solo-error.js';
+import {MinioOperatorCrdsOrphanedSoloError} from './classes/system/minio-operator-crds-orphaned-solo-error.js';
 import {PrometheusInstallFailedSoloError} from './classes/deployment/prometheus-install-failed-solo-error.js';
 import {MetricsServerInstallFailedSoloError} from './classes/deployment/metrics-server-install-failed-solo-error.js';
 import {ClusterRoleInstallFailedSoloError} from './classes/deployment/cluster-role-install-failed-solo-error.js';
@@ -153,7 +154,6 @@ import {BackupExportFailedSoloError} from './classes/deployment/backup-export-fa
 import {BackupImportFailedSoloError} from './classes/deployment/backup-import-failed-solo-error.js';
 import {BackupRestoreClustersFailedSoloError} from './classes/deployment/backup-restore-clusters-failed-solo-error.js';
 import {DeployNetworkFailedSoloError} from './classes/deployment/deploy-network-failed-solo-error.js';
-import {InitFailedSoloError} from './classes/deployment/init-failed-solo-error.js';
 import {BlockNodeClusterContextNotFoundSoloError} from './classes/deployment/block-node-cluster-context-not-found-solo-error.js';
 import {MirrorNodeClusterContextNotFoundSoloError} from './classes/deployment/mirror-node-cluster-context-not-found-solo-error.js';
 import {AccountCreationFailedSoloError} from './classes/component/account-creation-failed-solo-error.js';
@@ -201,6 +201,7 @@ import {HederaFileAppendFailedSoloError} from './classes/component/hedera-file-a
 import {NodeStatusEmptyResponseSoloError} from './classes/component/node-status-empty-response-solo-error.js';
 import {NodeStatusMissingLineSoloError} from './classes/component/node-status-missing-line-solo-error.js';
 import {PredefinedAccountsCreationFailedSoloError} from './classes/component/predefined-accounts-creation-failed-solo-error.js';
+import {NodeContainerCrashedSoloError} from './classes/component/node-container-crashed-solo-error.js';
 import {InvalidHbarAmountSoloError} from './classes/validation/invalid-hbar-amount-solo-error.js';
 import {InvalidFileIdFormatSoloError} from './classes/validation/invalid-file-id-format-solo-error.js';
 import {InvalidEndpointFormatSoloError} from './classes/validation/invalid-endpoint-format-solo-error.js';
@@ -364,7 +365,6 @@ export class SoloErrors {
     readonly backupImportFailed: typeof BackupImportFailedSoloError;
     readonly backupRestoreClustersFailed: typeof BackupRestoreClustersFailedSoloError;
     readonly deployNetworkFailed: typeof DeployNetworkFailedSoloError;
-    readonly initFailed: typeof InitFailedSoloError;
     readonly blockNodeClusterContextNotFound: typeof BlockNodeClusterContextNotFoundSoloError;
     readonly mirrorNodeClusterContextNotFound: typeof MirrorNodeClusterContextNotFoundSoloError;
   } = Object.freeze({
@@ -396,7 +396,6 @@ export class SoloErrors {
     backupImportFailed: BackupImportFailedSoloError,
     backupRestoreClustersFailed: BackupRestoreClustersFailedSoloError,
     deployNetworkFailed: DeployNetworkFailedSoloError,
-    initFailed: InitFailedSoloError,
     blockNodeClusterContextNotFound: BlockNodeClusterContextNotFoundSoloError,
     mirrorNodeClusterContextNotFound: MirrorNodeClusterContextNotFoundSoloError,
   });
@@ -494,6 +493,7 @@ export class SoloErrors {
     readonly nodeStatusEmptyResponse: typeof NodeStatusEmptyResponseSoloError;
     readonly nodeStatusMissingLine: typeof NodeStatusMissingLineSoloError;
     readonly predefinedAccountsCreationFailed: typeof PredefinedAccountsCreationFailedSoloError;
+    readonly nodeContainerCrashed: typeof NodeContainerCrashedSoloError;
   } = Object.freeze({
     nodeTransactionFailed: NodeTransactionFailedSoloError,
     nodeBuildUploadFailed: NodeBuildUploadFailedSoloError,
@@ -586,6 +586,7 @@ export class SoloErrors {
     nodeStatusEmptyResponse: NodeStatusEmptyResponseSoloError,
     nodeStatusMissingLine: NodeStatusMissingLineSoloError,
     predefinedAccountsCreationFailed: PredefinedAccountsCreationFailedSoloError,
+    nodeContainerCrashed: NodeContainerCrashedSoloError,
   });
 
   // 4xxx — Validation: User input, flags, IDs, formatting
@@ -833,7 +834,9 @@ export class SoloErrors {
     readonly podTerminationTimeout: typeof PodTerminationTimeoutSoloError;
     readonly timeout: typeof TimeoutSoloError;
     readonly clusterRoleCheckFailed: typeof ClusterRoleCheckFailedSoloError;
+    readonly minioOperatorCrdsOrphaned: typeof MinioOperatorCrdsOrphanedSoloError;
   } = Object.freeze({
+    minioOperatorCrdsOrphaned: MinioOperatorCrdsOrphanedSoloError,
     blockNodePodNotFound: BlockNodePodNotFoundSoloError,
     blockNodeNotReady: BlockNodeNotReadySoloError,
     blockNodeNotInRemoteConfig: BlockNodeNotInRemoteConfigSoloError,

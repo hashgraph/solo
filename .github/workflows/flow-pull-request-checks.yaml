@@ -36,12 +36,7 @@ on:
       - ready_for_review
 
 permissions:
-  id-token: write
   contents: read
-  actions: write
-  pull-requests: write
-  checks: write
-  statuses: write
 
 defaults:
   run:
@@ -58,7 +53,7 @@ jobs:
       matrix: ${{ steps.set_matrix.outputs.matrix }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
           # allow internal Podman/Kind HTTPS calls between pods/services on the runner (no internet egress)
@@ -86,19 +81,23 @@ jobs:
 
   code-style:
     name: Code Style
-    uses: ./.github/workflows/zxc-code-style.yaml
+    uses: $/.github/workflows/zxc-code-style.yaml
     with:
       custom-job-label: Standard
 
   check-production-overrides:
     name: Production Overrides
-    uses: ./.github/workflows/zxc-check-production-overrides.yaml
+    uses: $/.github/workflows/zxc-check-production-overrides.yaml
     with:
       custom-job-label: Standard
 
   unit-tests:
     name: Unit Tests
-    uses: ./.github/workflows/zxc-unit-test.yaml
+    permissions:
+      contents: read
+      checks: write # zxc-unit-test.yaml publishes a unit test report check run
+      pull-requests: write # zxc-unit-test.yaml comments the report on the pull request
+    uses: $/.github/workflows/zxc-unit-test.yaml
     needs:
       - code-style
       - check-production-overrides
@@ -109,7 +108,7 @@ jobs:
   e2e-tests:
     name: E2E Tests (${{ matrix.e2e-test-type.name }})
     if: ${{ !cancelled() && always() }}
-    uses: ./.github/workflows/zxc-e2e-test.yaml
+    uses: $/.github/workflows/zxc-e2e-test.yaml
     needs:
       - generate_matrix
       - code-style
@@ -141,7 +140,11 @@ jobs:
 
   codecov:
     name: CodeCov
-    uses: ./.github/workflows/zxc-code-analysis.yaml
+    permissions:
+      contents: read
+      checks: write # zxc-code-analysis.yaml publishes an E2E test report check run
+      pull-requests: write # zxc-code-analysis.yaml comments the report on the pull request
+    uses: $/.github/workflows/zxc-code-analysis.yaml
     needs:
       - unit-tests
       - e2e-tests
@@ -157,7 +160,11 @@ jobs:
 
   codacy-coverage:
     name: Codacy
-    uses: ./.github/workflows/zxc-code-analysis.yaml
+    permissions:
+      contents: read
+      checks: write # zxc-code-analysis.yaml publishes an E2E test report check run
+      pull-requests: write # zxc-code-analysis.yaml comments the report on the pull request
+    uses: $/.github/workflows/zxc-code-analysis.yaml
     needs:
       - unit-tests
       - e2e-tests
@@ -174,11 +181,11 @@ jobs:
 
   docs-automation:
     name: Docs Automation
-    uses: ./.github/workflows/zxc-docs-automation.yaml
+    uses: $/.github/workflows/zxc-docs-automation.yaml
     # If it is a workflow dispatch AND we are skipping unit test and coverage, skip Hugo Docs Build job
     # If it is a PR, check if it's a draft PR. If a draft PR, check if it starts with 'trunk-merge', if true then run Docs Automation job
     # If it is regular PR, always run Docs Automation job
-    if: >
+    if: >-
       ${{ (!(github.event_name == 'workflow_dispatch' && github.event.inputs.skip-unit-and-coverage) ||
       (github.event_name == 'pull_request' && (github.event.pull_request.draft == false ||
       startsWith(github.event.pull_request.title, 'trunk-merge')))) && !cancelled() }}

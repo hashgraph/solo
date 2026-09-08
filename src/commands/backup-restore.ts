@@ -3248,17 +3248,6 @@ export class BackupRestoreCommand extends BaseCommand {
       );
 
       initTasks.push(
-        // Initialize Solo for the cluster
-        invokeSoloCommand(
-          `Initialize Solo for cluster '${clusterReference}'`,
-          'init',
-          (): string[] => {
-            const argv: string[] = CommandHelpers.newArgv();
-            argv.push('init');
-            return argv;
-          },
-          this.taskList,
-        ),
         invokeSoloCommand(
           `Connect to cluster '${contextName}'`,
           ClusterReferenceCommandDefinition.CONNECT_COMMAND,

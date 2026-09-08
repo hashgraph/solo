@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import path from 'node:path';
 import {type SinonStub} from 'sinon';
 import sinon from 'sinon';
 import {expect} from 'chai';
@@ -200,5 +201,92 @@ describe('SubprocessEnvironment', (): void => {
     expect(environment.PATH).to.equal('/custom/bin:/usr/bin');
     // override is present even though KUBECONFIG is not on the generic allowlist
     expect(environment.KUBECONFIG).to.equal('/dev/null');
+  });
+
+  describe('session environment state', (): void => {
+    afterEach((): void => {
+      SubprocessEnvironment.resetForTesting();
+    });
+
+    it('forwards a session variable only to profiles whose allowlist includes it', (): void => {
+      SubprocessEnvironment.setSessionVariable('CONTAINERS_CONF', '/solo/config/containers.conf');
+
+      expect(SubprocessEnvironment.forCommand(SubprocessCommandProfile.CONTAINER_ENGINE).CONTAINERS_CONF).to.equal(
+        '/solo/config/containers.conf',
+      );
+      expect(SubprocessEnvironment.forCommand(SubprocessCommandProfile.KIND).CONTAINERS_CONF).to.equal(
+        '/solo/config/containers.conf',
+      );
+      expect(SubprocessEnvironment.forCommand(SubprocessCommandProfile.HELM)).to.not.have.property('CONTAINERS_CONF');
+    });
+
+    it('lets a session variable override the inherited parent value', (): void => {
+      setTemporaryEnvironmentVariable('KUBECONFIG', '/home/user/.kube/config');
+      SubprocessEnvironment.setSessionVariable('KUBECONFIG', '/solo/kubeconfig');
+
+      expect(SubprocessEnvironment.forCommand(SubprocessCommandProfile.KUBECTL).KUBECONFIG).to.equal(
+        '/solo/kubeconfig',
+      );
+    });
+
+    it('rejects PATH as a session variable regardless of casing', (): void => {
+      for (const name of ['PATH', 'Path', 'path']) {
+        expect((): void => SubprocessEnvironment.setSessionVariable(name, '/custom/bin'), name).to.throw(
+          'PATH must be registered with prependSessionPath/appendSessionPath',
+        );
+      }
+    });
+
+    it('exposes session variables through the sessionVariable getter', (): void => {
+      expect(SubprocessEnvironment.sessionVariable('KIND_EXPERIMENTAL_PROVIDER')).to.equal(undefined);
+
+      SubprocessEnvironment.setSessionVariable('KIND_EXPERIMENTAL_PROVIDER', 'podman');
+
+      expect(SubprocessEnvironment.sessionVariable('KIND_EXPERIMENTAL_PROVIDER')).to.equal('podman');
+    });
+
+    it('wraps the inherited PATH with the session path additions', (): void => {
+      setTemporaryEnvironmentVariable('PATH', '/usr/bin');
+      SubprocessEnvironment.prependSessionPath('/home/linuxbrew/.linuxbrew/bin');
+      SubprocessEnvironment.appendSessionPath('/opt/podman/bin');
+
+      const environment: Record<string, string> = SubprocessEnvironment.forCommand(SubprocessCommandProfile.GENERIC);
+
+      const expectedPath: string = ['/home/linuxbrew/.linuxbrew/bin', '/usr/bin', '/opt/podman/bin'].join(
+        path.delimiter,
+      );
+      expect(environment.PATH).to.equal(expectedPath);
+      expect(SubprocessEnvironment.currentPath()).to.equal(expectedPath);
+    });
+
+    it('gives the most recently prepended directory the highest precedence', (): void => {
+      setTemporaryEnvironmentVariable('PATH', '/usr/bin');
+      SubprocessEnvironment.prependSessionPath('/first');
+      SubprocessEnvironment.prependSessionPath('/second');
+
+      expect(SubprocessEnvironment.currentPath()).to.equal(['/second', '/first', '/usr/bin'].join(path.delimiter));
+    });
+
+    it('ignores duplicate session path registrations', (): void => {
+      setTemporaryEnvironmentVariable('PATH', '/usr/bin');
+      SubprocessEnvironment.prependSessionPath('/solo/bin');
+      SubprocessEnvironment.appendSessionPath('/solo/bin');
+      SubprocessEnvironment.appendSessionPath('/solo/bin');
+
+      expect(SubprocessEnvironment.currentPath()).to.equal(['/solo/bin', '/usr/bin'].join(path.delimiter));
+    });
+
+    it('still applies overrides last, winning over session values', (): void => {
+      SubprocessEnvironment.setSessionVariable('KUBECONFIG', '/solo/kubeconfig');
+      SubprocessEnvironment.appendSessionPath('/solo/bin');
+
+      const environment: Record<string, string> = SubprocessEnvironment.forCommand(SubprocessCommandProfile.KUBECTL, {
+        KUBECONFIG: '/dev/null',
+        PATH: '/custom/bin',
+      });
+
+      expect(environment.KUBECONFIG).to.equal('/dev/null');
+      expect(environment.PATH).to.equal('/custom/bin');
+    });
   });
 });

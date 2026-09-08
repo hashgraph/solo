@@ -151,6 +151,160 @@ java.lang.NullPointerException
     expect(reportText).to.include('java.lang.NullPointerException');
   });
 
+  it('detects a memory-limit kill recorded as exit code 137 rather than OOMKilled', (): void => {
+    // The kubelet frequently records a memory-limit kill as `exitCode: 137` (128 + SIGKILL) with
+    // `reason: Error` and no OOMKilled anywhere. The pod is Running and Ready again by collection
+    // time, so the readiness check does not flag it either.
+    const describeSample: string = `pod:
+  status:
+    phase: Running
+    containerStatuses:
+      - name: block-node-server
+        ready: true
+        restartCount: 9
+        lastState:
+          terminated:
+            exitCode: 137
+            reason: Error
+            finishedAt: 2026-08-27T16:03:36.000Z
+        state:
+          running:
+            startedAt: 2026-08-27T16:03:36.000Z
+events: []
+`;
+
+    const describeDirectory: string = path.join(temporaryDirectory, 'hiero-components-logs', 'sphere-1');
+    fs.mkdirSync(describeDirectory, {recursive: true});
+    fs.writeFileSync(path.join(describeDirectory, 'block-node-1-0.describe.txt'), describeSample, 'utf8');
+
+    new DiagnosticsAnalyzer(loggerStub).analyze(temporaryDirectory, '');
+
+    const reportPath: string = path.join(temporaryDirectory, 'diagnostics-analysis.txt');
+    const reportText: string = fs.readFileSync(reportPath, 'utf8');
+    expect(reportText).to.include('OOM-related failure detected for pod block-node-1-0');
+    expect(reportText).to.include('exitCode: 137');
+    // The restart count distinguishes a one-off kill from an ongoing loop.
+    expect(reportText).to.include('restartCount: 9');
+  });
+
+  it('does not report an OOM for a container that exited non-zero for another reason', (): void => {
+    const describeSample: string = `pod:
+  status:
+    phase: Running
+    containerStatuses:
+      - name: block-node-server
+        ready: true
+        restartCount: 2
+        lastState:
+          terminated:
+            exitCode: 1
+            reason: Error
+events: []
+`;
+
+    const describeDirectory: string = path.join(temporaryDirectory, 'hiero-components-logs', 'sphere-1');
+    fs.mkdirSync(describeDirectory, {recursive: true});
+    fs.writeFileSync(path.join(describeDirectory, 'block-node-1-0.describe.txt'), describeSample, 'utf8');
+
+    new DiagnosticsAnalyzer(loggerStub).analyze(temporaryDirectory, '');
+
+    const reportPath: string = path.join(temporaryDirectory, 'diagnostics-analysis.txt');
+    const reportText: string = fs.readFileSync(reportPath, 'utf8');
+    expect(reportText).to.not.include('OOM-related failure');
+  });
+
+  it('detects JVM heap exhaustion in a log that carries no ERROR or FATAL level', (): void => {
+    // The block node logs through java.util.logging (FINE/INFO/WARNING/SEVERE) and the JVM prints
+    // heap exhaustion with no level at all, so nothing in this log matches ERROR or FATAL.
+    // "OutOfMemoryError" has no word boundary before "Error", so \bERROR\b does not match it.
+    const componentLogDirectory: string = path.join(temporaryDirectory, 'hiero-components-logs');
+    fs.mkdirSync(componentLogDirectory, {recursive: true});
+    fs.writeFileSync(
+      path.join(componentLogDirectory, 'block-node-1-0-1.log'),
+      [
+        '2026-08-27T15:58:09.147755355Z 2026-08-27 15:58:09.050+0000 FINE    [org.hiero.block.node.stream.publisher.LiveStreamPublisherManager addHandler] Added new handler 147',
+        '2026-08-27T16:01:06.672252440Z java.lang.OutOfMemoryError: Java heap space',
+        '2026-08-27T16:01:06.672777238Z Dumping heap to /tmp/dump.hprof ...',
+        '2026-08-27T16:01:18.738172420Z Exception in thread "server-@default-listener" java.lang.OutOfMemoryError: Java heap space',
+      ].join('\n'),
+      'utf8',
+    );
+
+    new DiagnosticsAnalyzer(loggerStub).analyze(temporaryDirectory, '');
+
+    const reportPath: string = path.join(temporaryDirectory, 'diagnostics-analysis.txt');
+    const reportText: string = fs.readFileSync(reportPath, 'utf8');
+    // Reported as an out-of-memory death, not a routine app-error, so it ranks with the other
+    // memory kills instead of last.
+    expect(reportText).to.include('JVM heap exhaustion detected in pod log: block-node-1-0-1');
+    expect(reportText).to.include('[Out Of Memory]');
+    expect(reportText).to.include('line 2: ');
+    expect(reportText).to.include('line 4: ');
+  });
+
+  it('matches Exception only as a standalone word, skipping class-name suffixes and prose', (): void => {
+    // `Exception` is matched as its own word and case-sensitively. `SocketWriterException` is
+    // low-level connection churn a server logs routinely and must not raise a finding: there is no
+    // word boundary before "Exception" in a class-name suffix. Lowercase prose must not match either.
+    const componentLogDirectory: string = path.join(temporaryDirectory, 'hiero-components-logs');
+    fs.mkdirSync(componentLogDirectory, {recursive: true});
+    fs.writeFileSync(
+      path.join(componentLogDirectory, 'blocknode-0.log'),
+      [
+        '2026-08-27T16:01:22.515Z 2026-08-27 16:01:22.515+0000 INFO    [PbjProtocolHandler init] Failed to initialize grpc protocol handler',
+        '2026-08-27T16:01:22.580687714Z io.helidon.common.socket.SocketWriterException',
+        '2026-08-27T16:01:22.580754160Z \tat io.helidon.common.socket.SocketWriterAsync.flush(SocketWriterAsync.java:179)',
+        '2026-08-27T16:01:22.580786976Z Caused by: java.net.SocketException: Broken pipe',
+        '2026-08-27T16:02:00.000Z 2026-08-27 16:02:00.000+0000 INFO    [Startup] Configured exception handling for the request pipeline',
+      ].join('\n'),
+      'utf8',
+    );
+
+    new DiagnosticsAnalyzer(loggerStub).analyze(temporaryDirectory, '');
+
+    const reportPath: string = path.join(temporaryDirectory, 'diagnostics-analysis.txt');
+    const reportText: string = fs.readFileSync(reportPath, 'utf8');
+    expect(reportText).to.not.include('blocknode-0');
+    expect(reportText).to.not.include('SocketWriterException');
+  });
+
+  it('shows the most severe findings in the terminal summary regardless of discovery order', (): void => {
+    // The terminal summary prints only the first ten findings. It used to iterate the *unordered*
+    // array, so which findings made the cut depended on the order the scanners ran in: describe
+    // files are scanned before pod logs, so ten not-ready pods (severity 3) crowded out a heap
+    // exhaustion (severity 2) found later, even though the report file ranked it above them.
+    const componentLogDirectory: string = path.join(temporaryDirectory, 'hiero-components-logs');
+    fs.mkdirSync(componentLogDirectory, {recursive: true});
+
+    for (let index: number = 0; index < 10; index++) {
+      fs.writeFileSync(
+        path.join(componentLogDirectory, `mirror-${index}-rest.describe.txt`),
+        ['pod:', '  status:', '    phase: Pending', 'events: []', ''].join('\n'),
+        'utf8',
+      );
+    }
+    fs.writeFileSync(
+      path.join(componentLogDirectory, 'block-node-1-0-1.log'),
+      '2026-08-27T16:01:06.672252440Z java.lang.OutOfMemoryError: Java heap space',
+      'utf8',
+    );
+
+    const userMessages: string[] = [];
+    const capturingLogger: SoloLogger = {
+      showUser: (message: string): void => {
+        userMessages.push(message);
+      },
+      debug: (): void => {},
+    } as unknown as SoloLogger;
+
+    new DiagnosticsAnalyzer(capturingLogger).analyze(temporaryDirectory, '');
+
+    const summary: string = userMessages.join('\n');
+    // Present at all, and ahead of the lower-severity readiness findings.
+    expect(summary).to.include('JVM heap exhaustion detected in pod log: block-node-1-0-1');
+    expect(summary.indexOf('JVM heap exhaustion')).to.be.lessThan(summary.indexOf('Pod not ready/running'));
+  });
+
   it('detects image-pull failures from YAML pod describe content', (): void => {
     const describeSample: string = `pod:
   status:
@@ -295,7 +449,7 @@ containers:
       importerLogPath,
       [
         '2026-05-19T17:08:39.170Z 2026-05-19T17:08:39.170Z ERROR scheduling-6 o.h.m.i.d.b.BlockNode Failed to get server status for BlockNode(block-node-1.one-shot.svc.cluster.local:40840) io.grpc.StatusRuntimeException: UNAVAILABLE: io exception',
-        '2026-05-19T17:08:39.170Z 2026-05-19T17:08:39.170Z ERROR scheduling-6 o.h.m.i.d.b.CompositeBlockSource Failed to get block from BLOCK_NODE source org.hiero.mirror.importer.exception.BlockStreamException: No block node can provide block 0',
+        '2026-05-19T17:08:39.170Z 2026-05-19T17:08:39.170Z ERROR scheduling-6 o.h.m.i.d.b.CompositeBlockSource Failed to get block from BLOCK_NODE source: No block node can provide block 0',
         '2026-05-19T17:08:40.170Z 2026-05-19T17:08:40.170Z INFO RecordFileParser Successfully processed 1 items',
         '2026-05-19T17:08:41.170Z 2026-05-19T17:08:41.170Z INFO RecordFileParser Successfully processed 1 items',
         '2026-05-19T17:08:42.170Z 2026-05-19T17:08:42.170Z ERROR scheduling-6 o.h.m.i.d.b.BlockNode Failed to get server status for BlockNode(block-node-1.one-shot.svc.cluster.local:40840) io.grpc.StatusRuntimeException: UNAVAILABLE: io exception',
@@ -315,7 +469,7 @@ containers:
       'line 1: 2026-05-19T17:08:39.170Z ERROR scheduling-6 o.h.m.i.d.b.BlockNode Failed to get server status for BlockNode(block-node-1.one-shot.svc.cluster.local:40840) io.grpc.StatusRuntimeException: UNAVAILABLE: io exception',
     );
     expect(reportText).to.not.include(
-      'line 2: 2026-05-19T17:08:39.170Z ERROR scheduling-6 o.h.m.i.d.b.CompositeBlockSource Failed to get block from BLOCK_NODE source org.hiero.mirror.importer.exception.BlockStreamException: No block node can provide block 0',
+      'line 2: 2026-05-19T17:08:39.170Z ERROR scheduling-6 o.h.m.i.d.b.CompositeBlockSource Failed to get block from BLOCK_NODE source: No block node can provide block 0',
     );
   });
 
@@ -508,6 +662,114 @@ containers:
     expect(reportText).to.not.include('ERROR:  relation "crypto_allowance_migration" does not exist');
     // Auth failures within 90-second startup window should be suppressed
     expect(reportText).to.not.include('FATAL:  password authentication failed');
+  });
+
+  it('suppresses importer block-node read errors only when a later block success follows', (): void => {
+    const componentLogDirectory: string = path.join(temporaryDirectory, 'hiero-components-logs');
+    fs.mkdirSync(componentLogDirectory, {recursive: true});
+    const importerLogPath: string = path.join(componentLogDirectory, 'mirror-main-importer.log');
+    fs.writeFileSync(
+      importerLogPath,
+      [
+        // Recovered: an HTTP/2 GOAWAY, a not-yet-available block, and a misaligned first block item,
+        // all followed by further successful block processing.
+        '2026-08-27T16:49:10.505Z 2026-08-27T16:49:10.505Z ERROR scheduling-4 o.h.m.i.d.b.BlockNode Failed to get server status detail for BlockNode(block-node-1.one-shot.svc.cluster.local:40840) io.grpc.StatusRuntimeException: INTERNAL: Abrupt GOAWAY closed sent stream. HTTP/2 error code: PROTOCOL_ERROR',
+        '2026-08-27T16:49:10.506Z 2026-08-27T16:49:10.506Z ERROR scheduling-4 o.h.m.i.d.b.CompositeBlockSource Failed to get block from BLOCK_NODE source: No block node can provide block 14',
+        '2026-08-27T16:49:11.000Z 2026-08-27T16:49:11.000Z ERROR scheduling-4 o.h.m.i.d.b.CompositeBlockSource Failed to get block from BLOCK_NODE source org.hiero.mirror.importer.exception.BlockStreamException: Incorrect first block item case ROUND_HEADER',
+        '2026-08-27T16:49:12.000Z 2026-08-27T16:49:12.000Z INFO pool-10-thread-2 o.h.m.i.p.r.RecordFileParser Successfully processed 1 items from 0000000000000000014.blk in 1.1 ms',
+        '2026-08-27T16:49:13.000Z 2026-08-27T16:49:13.000Z INFO pool-10-thread-2 o.h.m.i.p.r.RecordFileParser Successfully processed 1 items from 0000000000000000015.blk in 1.2 ms',
+        // Terminal: no success follows, so this must stay visible.
+        '2026-08-27T16:50:00.000Z 2026-08-27T16:50:00.000Z ERROR scheduling-4 o.h.m.i.d.b.CompositeBlockSource Failed to get block from BLOCK_NODE source: No block node can provide block 16',
+      ].join('\n'),
+      'utf8',
+    );
+
+    new DiagnosticsAnalyzer(loggerStub).analyze(temporaryDirectory, '');
+
+    const reportPath: string = path.join(temporaryDirectory, 'diagnostics-analysis.txt');
+    const reportText: string = fs.readFileSync(reportPath, 'utf8');
+    expect(reportText).to.not.include('line 1: ');
+    expect(reportText).to.not.include('line 2: ');
+    expect(reportText).to.not.include('line 3: ');
+    // A block-node failure with no subsequent progress is a real outage, not a retried blip.
+    expect(reportText).to.include('line 6: ');
+  });
+
+  it('suppresses account balance downloader errors when no cloud storage is configured', (): void => {
+    const componentLogDirectory: string = path.join(temporaryDirectory, 'hiero-components-logs');
+    fs.mkdirSync(componentLogDirectory, {recursive: true});
+    const importerLogPath: string = path.join(componentLogDirectory, 'mirror-main-importer.log');
+    fs.writeFileSync(
+      importerLogPath,
+      [
+        '2026-08-27T16:49:23.136Z 2026-08-27T16:49:23.136Z ERROR parallel-1 o.h.m.i.d.b.AccountBalancesDownloader Error downloading signature files for node 0 software.amazon.awssdk.core.exception.SdkClientException: Unable to load credentials from any of the providers in the chain AwsCredentialsProviderChain(credentialsProviders=[SystemPropertyCredentialsProvider()])',
+        "2026-08-27T16:49:28.133Z 2026-08-27T16:49:28.133Z ERROR scheduling-4 o.h.m.i.d.b.AccountBalancesDownloader Error downloading files reactor.core.Exceptions$ReactiveException: java.util.concurrent.TimeoutException: Did not observe any item or terminal signal within 5000ms in 'flatMap' (and no fallback has been configured)",
+        // An unrelated downloader failure must not be swept up by the cloud-storage rule.
+        '2026-08-27T16:49:30.000Z 2026-08-27T16:49:30.000Z ERROR scheduling-4 o.h.m.i.d.b.AccountBalancesDownloader Error downloading files java.lang.IllegalStateException: corrupt balance file',
+      ].join('\n'),
+      'utf8',
+    );
+
+    new DiagnosticsAnalyzer(loggerStub).analyze(temporaryDirectory, '');
+
+    const reportPath: string = path.join(temporaryDirectory, 'diagnostics-analysis.txt');
+    const reportText: string = fs.readFileSync(reportPath, 'utf8');
+    expect(reportText).to.not.include('line 1: ');
+    expect(reportText).to.not.include('line 2: ');
+    expect(reportText).to.include('line 3: ');
+  });
+
+  it('suppresses mirror web3 missing-table errors during startup', (): void => {
+    const componentLogDirectory: string = path.join(temporaryDirectory, 'hiero-components-logs');
+    fs.mkdirSync(componentLogDirectory, {recursive: true});
+    const web3LogPath: string = path.join(componentLogDirectory, 'mirror-1-web3-6c6964dd4c-545hp.log');
+    fs.writeFileSync(
+      web3LogPath,
+      [
+        '2026-08-27T16:47:54.316Z 2026-08-27T16:47:54.316Z INFO main o.h.m.w.Web3Application Started Web3Application',
+        '2026-08-27T16:47:54.808Z 2026-08-27T16:47:54.808Z WARN task-1 o.h.orm.jdbc.error ERROR: relation "file_data" does not exist',
+        '2026-08-27T16:47:54.809Z 2026-08-27T16:47:54.809Z WARN task-1 o.h.orm.jdbc.error ERROR: relation "file_data" does not exist',
+        '2026-08-27T16:58:00.000Z 2026-08-27T16:58:00.000Z WARN task-1 o.h.orm.jdbc.error ERROR: relation "file_data" does not exist',
+      ].join('\n'),
+      'utf8',
+    );
+
+    new DiagnosticsAnalyzer(loggerStub).analyze(temporaryDirectory, '');
+
+    const reportPath: string = path.join(temporaryDirectory, 'diagnostics-analysis.txt');
+    const reportText: string = fs.readFileSync(reportPath, 'utf8');
+    expect(reportText).to.not.include('line 2: ');
+    expect(reportText).to.not.include('line 3: ');
+    // Long after startup a missing table is a real schema problem.
+    expect(reportText).to.include('line 4: ');
+  });
+
+  it('suppresses mirror restjava missing-table errors only during startup', (): void => {
+    const componentLogDirectory: string = path.join(temporaryDirectory, 'hiero-components-logs');
+    fs.mkdirSync(componentLogDirectory, {recursive: true});
+    const restJavaLogPath: string = path.join(componentLogDirectory, 'mirror-1-restjava-5bfc4c8679-sxbfw.log');
+    fs.writeFileSync(
+      restJavaLogPath,
+      [
+        '2026-08-27T15:36:33.663Z 2026-08-27T15:36:33.663Z INFO main o.h.m.r.RestJavaApplication Started RestJavaApplication in 4.522 seconds',
+        '2026-08-27T15:36:33.664Z 2026-08-27T15:36:33.664Z WARN scheduling-1 o.h.orm.jdbc.error ERROR: relation "file_data" does not exist',
+        '2026-08-27T15:36:33.664Z 2026-08-27T15:36:33.664Z ERROR scheduling-1 o.s.s.s.TaskUtils$LoggingErrorHandler Unexpected error occurred in scheduled task org.springframework.dao.InvalidDataAccessResourceUsageException: JDBC exception executing SQL [ERROR: relation "file_data" does not exist',
+        '2026-08-27T15:36:33.665Z Caused by: org.postgresql.util.PSQLException: ERROR: relation "file_data" does not exist',
+        '2026-08-27T15:45:00.000Z 2026-08-27T15:45:00.000Z ERROR scheduling-1 o.s.s.s.TaskUtils$LoggingErrorHandler Unexpected error occurred in scheduled task org.springframework.dao.InvalidDataAccessResourceUsageException: JDBC exception executing SQL [ERROR: relation "file_data" does not exist',
+      ].join('\n'),
+      'utf8',
+    );
+
+    new DiagnosticsAnalyzer(loggerStub).analyze(temporaryDirectory, '');
+
+    const reportPath: string = path.join(temporaryDirectory, 'diagnostics-analysis.txt');
+    const reportText: string = fs.readFileSync(reportPath, 'utf8');
+    // The startup-window entry and its cascaded "Caused by:" continuation are both suppressed.
+    expect(reportText).to.not.include('line 2: ');
+    expect(reportText).to.not.include('line 3: ');
+    expect(reportText).to.not.include('line 4: ');
+    // A missing table long after startup is a real schema problem.
+    expect(reportText).to.include('line 5: ');
   });
 
   it('suppresses transient solo.log block-node copy verification size mismatch errors', (): void => {

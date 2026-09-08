@@ -28,4 +28,10 @@ export interface ShellRunOptions {
   idleTimeoutMs?: number;
   /** Working directory (cwd) for the spawned process. */
   workingDirectory?: string;
+  /**
+   * Marks the command as an expected/best-effort probe: a non-zero exit or spawn error is logged at
+   * `debug` instead of `error`. The returned promise still rejects so callers keep their existing
+   * catch handling. Defaults to false.
+   */
+  bestEffort?: boolean;
 }

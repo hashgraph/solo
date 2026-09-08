@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import os from 'node:os';
+import path from 'node:path';
 import {SubprocessCommandProfile} from './subprocess-command-profile.js';
+import {SoloErrors} from './errors/solo-errors.js';
 
 /**
  * Builds a minimal, explicit environment for spawning external commands.
@@ -14,7 +16,7 @@ import {SubprocessCommandProfile} from './subprocess-command-profile.js';
  *
  * Intentionally dependency-free (no dependency-injection, no logging, no heavy imports) so
  * that the standalone `persist-port-forward` script can import it without pulling in the
- * container.
+ * container. The registered error classes are the one exception; they have no runtime dependencies.
  */
 export class SubprocessEnvironment {
   /** Environment variable names inherited by every external command on every platform. */
@@ -125,9 +127,116 @@ export class SubprocessEnvironment {
     [SubprocessCommandProfile.BREW]: ['HOMEBREW_'],
   };
 
+  /**
+   * Environment variables established at runtime for the remainder of this solo invocation
+   * (e.g. `KIND_EXPERIMENTAL_PROVIDER` once kind is configured to use podman, or
+   * `CONTAINERS_CONF` once a solo-owned podman configuration is written). They are merged over
+   * the parent environment and pass through the same per-profile allowlists, so they behave
+   * exactly like inherited variables — without mutating the global `process.env`.
+   */
+  private static readonly sessionVariables: Map<string, string> = new Map();
+
+  /** Directories prepended to the `PATH` handed to every child process, highest precedence first. */
+  private static readonly sessionPathPrepends: string[] = [];
+
+  /** Directories appended to the `PATH` handed to every child process, in registration order. */
+  private static readonly sessionPathAppends: string[] = [];
+
   /** Returns true when the current platform is Windows. Isolated for testability. */
   private static isWindowsPlatform(): boolean {
     return os.platform() === 'win32';
+  }
+
+  /**
+   * Registers an environment variable for every subsequently spawned command in this solo
+   * invocation. The variable is still subject to the per-profile allowlists, exactly as if it
+   * were present in the parent environment. `PATH` must not be set this way — use
+   * {@link prependSessionPath} / {@link appendSessionPath} instead.
+   *
+   * @param name - the environment variable name
+   * @param value - the value to hand to child processes
+   */
+  public static setSessionVariable(name: string, value: string): void {
+    if (name.toLowerCase() === 'path') {
+      throw new SoloErrors.validation.illegalArgument(
+        'PATH must be registered with prependSessionPath/appendSessionPath',
+        name,
+      );
+    }
+    SubprocessEnvironment.sessionVariables.set(name, value);
+  }
+
+  /**
+   * The value registered via {@link setSessionVariable} for this solo invocation, or undefined.
+   * Callers that also honor a user-provided variable should fall back to the parent environment
+   * when this returns undefined.
+   *
+   * @param name - the environment variable name
+   */
+  public static sessionVariable(name: string): string | undefined {
+    return SubprocessEnvironment.sessionVariables.get(name);
+  }
+
+  /**
+   * Registers a directory to prepend to the `PATH` of every subsequently spawned command in this
+   * solo invocation. The directory takes precedence over previously registered ones. Duplicate
+   * registrations are ignored.
+   *
+   * @param directory - the directory holding binaries child processes must resolve first
+   */
+  public static prependSessionPath(directory: string): void {
+    if (directory && !SubprocessEnvironment.isSessionPathRegistered(directory)) {
+      SubprocessEnvironment.sessionPathPrepends.unshift(directory);
+    }
+  }
+
+  /**
+   * Registers a directory to append to the `PATH` of every subsequently spawned command in this
+   * solo invocation. Duplicate registrations are ignored.
+   *
+   * @param directory - the directory holding binaries child processes should be able to resolve
+   */
+  public static appendSessionPath(directory: string): void {
+    if (directory && !SubprocessEnvironment.isSessionPathRegistered(directory)) {
+      SubprocessEnvironment.sessionPathAppends.push(directory);
+    }
+  }
+
+  /**
+   * The `PATH` child processes resolve binaries against: the parent `PATH` wrapped with the
+   * session path additions. For callers that construct explicit environment prefixes
+   * (`sudo env PATH=...`) or `PATH` overrides instead of relying on {@link forCommand}.
+   */
+  public static currentPath(): string {
+    const base: string = process.env.PATH ?? process.env.Path ?? '';
+    return SubprocessEnvironment.withSessionPathAdditions(base);
+  }
+
+  /** Clears every session variable and path addition. Session state is write-once per invocation; only tests may call this. */
+  public static resetForTesting(): void {
+    SubprocessEnvironment.sessionVariables.clear();
+    SubprocessEnvironment.sessionPathPrepends.length = 0;
+    SubprocessEnvironment.sessionPathAppends.length = 0;
+  }
+
+  /** The environment's `PATH` key, matched case-insensitively (POSIX `PATH`, Windows `Path`); `PATH` when absent. */
+  public static pathKey(environment: Record<string, string>): string {
+    return Object.keys(environment).find((key: string): boolean => key.toLowerCase() === 'path') ?? 'PATH';
+  }
+
+  private static isSessionPathRegistered(directory: string): boolean {
+    return (
+      SubprocessEnvironment.sessionPathPrepends.includes(directory) ||
+      SubprocessEnvironment.sessionPathAppends.includes(directory)
+    );
+  }
+
+  private static withSessionPathAdditions(basePath: string): string {
+    return [
+      ...SubprocessEnvironment.sessionPathPrepends,
+      ...(basePath ? [basePath] : []),
+      ...SubprocessEnvironment.sessionPathAppends,
+    ].join(path.delimiter);
   }
 
   /**
@@ -161,19 +270,32 @@ export class SubprocessEnvironment {
       (prefix: string): string => normalize(prefix),
     );
 
-    const environment: Record<string, string> = {};
-    for (const [name, value] of Object.entries(process.env)) {
-      if (value === undefined) {
-        continue;
-      }
+    const isAllowedName: (name: string) => boolean = (name: string): boolean => {
       const normalized: string = normalize(name);
-      if (
+      return (
         allowedExactNames.has(normalized) ||
         allowedPrefixes.some((prefix: string): boolean => normalized.startsWith(prefix))
-      ) {
+      );
+    };
+
+    const environment: Record<string, string> = {};
+    for (const [name, value] of Object.entries(process.env)) {
+      if (value !== undefined && isAllowedName(name)) {
         // Preserve the original variable name (and its casing) for the child process.
         environment[name] = value;
       }
+    }
+    // Separate pass: session state must never be counted or reported as parent-environment inheritance.
+    for (const [name, value] of SubprocessEnvironment.sessionVariables.entries()) {
+      if (isAllowedName(name)) {
+        environment[name] = value;
+      }
+    }
+
+    if (SubprocessEnvironment.sessionPathPrepends.length > 0 || SubprocessEnvironment.sessionPathAppends.length > 0) {
+      const pathKey: string = SubprocessEnvironment.pathKey(environment);
+      // Deliberate: even with no parent PATH the child gets one, so solo-installed binaries resolve.
+      environment[pathKey] = SubprocessEnvironment.withSessionPathAdditions(environment[pathKey] ?? '');
     }
 
     return {...environment, ...overrides};

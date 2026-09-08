@@ -25,7 +25,7 @@ type ChalkColor = typeof chalk.red;
 /**
  * Pino-based implementation of the SoloLogger interface.
  *
- * Emits two files under constants.SOLO_LOGS_DIR:
+ * Emits two files under the `logs` subdirectory of the container-configured Solo home directory:
  *  - solo.ndjson : newline-delimited JSON (authoritative)
  *  - solo.log    : pretty human-readable
  */
@@ -42,17 +42,51 @@ export class SoloPinoLogger implements SoloLogger {
   private readonly MINOR_LINE_SEPARATOR: string =
     '-------------------------------------------------------------------------------';
 
+  /**
+   * Log files are created owner-only. Solo logs command lines, Helm arguments and Kubernetes
+   * responses; the object redaction configured below is best-effort, so the files must not be
+   * readable by other users on a shared machine. `0644` — what the stream libraries default to —
+   * is world-readable and violates the SOLO_HOME permission policy the e2e suite asserts.
+   *
+   * The mode is applied at creation rather than chmod'ed afterwards, which would leave a window at
+   * `0644` and would miss the files rotation creates later. A umask can only clear further bits, so
+   * the result is never looser than this.
+   */
+  private static readonly LOG_FILE_MODE: number = 0o600;
+  /** Matching owner-only mode for the directory holding those files. */
+  private static readonly LOG_DIRECTORY_MODE: number = 0o700;
+
   private static readonly MAX_BOX_WIDTH: number = 120;
   private static readonly MIN_BOX_WIDTH: number = 70;
 
   /**
+   * Resolves the home directory whose `logs` subdirectory receives the log files. Honouring the
+   * container-configured home keeps a container pointed at a different home — the test container,
+   * for example — from writing into the user's real `~/.solo/logs`.
+   */
+  private static resolveHomeDirectory(homeDirectory: string | undefined): string {
+    if (homeDirectory) {
+      return homeDirectory;
+    }
+    try {
+      return patchInject(homeDirectory, InjectTokens.HomeDirectory, SoloPinoLogger.name);
+    } catch {
+      // The logger can be constructed before the container is initialized, in which case no home has
+      // been configured yet and the default is the correct destination.
+      return constants.SOLO_HOME_DIR;
+    }
+  }
+
+  /**
    * @param logLevel - the log level to use (fatal|error|warn|info|debug|trace)
    * @param developmentMode - if true, show full stack traces in error messages
+   * @param homeDirectory - the Solo home directory whose `logs` subdirectory receives the log files
    */
   public constructor(
     @inject(InjectTokens.LogLevel) logLevel?: string,
     @inject(InjectTokens.DevelopmentMode) private developmentMode?: boolean,
     @inject(InjectTokens.OneShotState) private readonly oneShotState?: OneShotState,
+    @inject(InjectTokens.HomeDirectory) homeDirectory?: string,
   ) {
     logLevel = patchInject(logLevel, InjectTokens.LogLevel, this.constructor.name) ?? 'info';
     this.developmentMode = patchInject(developmentMode, InjectTokens.DevelopmentMode, this.constructor.name);
@@ -60,9 +94,9 @@ export class SoloPinoLogger implements SoloLogger {
     this.nextTraceId();
 
     // Ensure logs directory exists
-    const logsDirectory: string = constants.SOLO_LOGS_DIR;
+    const logsDirectory: string = PathEx.join(SoloPinoLogger.resolveHomeDirectory(homeDirectory), 'logs');
     try {
-      mkdirSync(logsDirectory, {recursive: true});
+      mkdirSync(logsDirectory, {recursive: true, mode: SoloPinoLogger.LOG_DIRECTORY_MODE});
     } catch {
       // no-op: if this fails, pino will attempt to create the files and error if impossible
     }
@@ -102,12 +136,14 @@ export class SoloPinoLogger implements SoloLogger {
       const ndjsonStream: ReturnType<typeof pino.destination> = pino.destination({
         dest: PathEx.join(logsDirectory, ndjsonFileName),
         sync: true,
+        mode: SoloPinoLogger.LOG_FILE_MODE,
       });
       const prettyStream: ReturnType<typeof pinoPretty> = pinoPretty({
         ...prettyOptions,
         destination: pino.destination({
           dest: PathEx.join(logsDirectory, prettyFileName),
           sync: true,
+          mode: SoloPinoLogger.LOG_FILE_MODE,
         }),
       });
       this.pinoLogger = pino(
@@ -123,6 +159,7 @@ export class SoloPinoLogger implements SoloLogger {
         size: constants.LOG_MAX_FILE_SIZE,
         interval: constants.LOG_ROTATION_INTERVAL,
         maxFiles: constants.LOG_MAX_FILES,
+        mode: SoloPinoLogger.LOG_FILE_MODE,
       };
       const ndjsonStream: RotatingFileStream = createStream(ndjsonFileName, rotationOptions);
       const prettyStream: ReturnType<typeof pinoPretty> = pinoPretty({

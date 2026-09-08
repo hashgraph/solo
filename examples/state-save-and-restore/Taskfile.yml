@@ -63,8 +63,6 @@ tasks:
   setup:
     desc: Deploy initial network with external PostgreSQL database
     cmds:
-      # Run solo init to install dependencies
-      - cmd: $SOLO_COMMAND init --dev
       - task: create-cluster
       - task: init-solo
       - task: deploy-external-database

@@ -43,6 +43,7 @@ export const ErrorCodeRegistry: Record<string, string> = {
   BLOCK_NODE_CLUSTER_CONTEXT_NOT_FOUND: 'SOLO-2029',
   MIRROR_NODE_CLUSTER_CONTEXT_NOT_FOUND: 'SOLO-2030',
   DEPLOYMENT_IMPORT_FAILED: 'SOLO-2031',
+  MINIO_OPERATOR_CRDS_ORPHANED: 'SOLO-2032',
 
   // 3xxx - Component: Relay, Mirror Node, Explorer, CN runtime
   NODE_TRANSACTION_FAILED: 'SOLO-3001',
@@ -137,6 +138,7 @@ export const ErrorCodeRegistry: Record<string, string> = {
   GOSSIP_KEY_SECRET_RESTORE_FAILED: 'SOLO-3091',
   SDK_CLIENT_NO_HEALTHY_NODES: 'SOLO-3092',
   NODE_KEY_LOAD_FAILED: 'SOLO-3093',
+  NODE_CONTAINER_CRASHED: 'SOLO-3094',
 
   // 4xxx - Validation: User input, flags, IDs, formatting
   MISSING_ARGUMENT: 'SOLO-4001',

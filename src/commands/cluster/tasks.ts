@@ -8,13 +8,14 @@ import {ListrLock} from '../../core/lock/listr-lock.js';
 import {SoloErrors} from '../../core/errors/solo-errors.js';
 
 import {type K8Factory} from '../../integration/kube/k8-factory.js';
-import {type Context, type ReleaseNameData, type SoloListr, type SoloListrTask} from '../../types/index.js';
-import {type NamespaceName} from '../../types/namespace/namespace-name.js';
+import {type Context, type SoloListr, type SoloListrTask} from '../../types/index.js';
+import {NamespaceName} from '../../types/namespace/namespace-name.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {type SoloLogger} from '../../core/logging/solo-logger.js';
 import {type ChartManager} from '../../core/chart-manager.js';
 import {SharedClusterResourceReport} from '../../core/shared-cluster-resource-report.js';
+import {ClusterCrdProbe} from '../../core/cluster-crd-probe.js';
 import {type ReleaseItem} from '../../integration/helm/model/release/release-item.js';
 import {type ClusterRole} from '../../integration/kube/resources/rbac/cluster-role.js';
 import {type LockManager} from '../../core/lock/lock-manager.js';
@@ -34,7 +35,6 @@ import {Lock} from '../../core/lock/lock.js';
 import {RemoteConfigRuntimeState} from '../../business/runtime-state/config/remote/remote-config-runtime-state.js';
 import {type OneShotState} from '../../core/one-shot-state.js';
 import * as versions from '../../../version.js';
-import {findMinioOperator} from '../../core/helpers.js';
 import {K8} from '../../integration/kube/k8.js';
 import {HelmChartValues} from '../../integration/helm/model/values.js';
 import {Flags} from '../flags.js';
@@ -61,22 +61,43 @@ export class ClusterCommandTasks {
     this.oneShotState = patchInject(oneShotState, InjectTokens.OneShotState, this.constructor.name);
   }
 
-  public findMinioOperator(context: Context): Promise<ReleaseNameData> {
-    return findMinioOperator(context, this.k8Factory);
-  }
-
   public async installMinioOperatorChart(clusterSetupNamespace: NamespaceName, context: Context): Promise<void> {
-    const existingMinioOperator: ReleaseNameData = await this.findMinioOperator(context);
+    // The operator's CRDs are cluster-scoped, so they are what a second install collides with — and they
+    // remain after the operator's pods and namespace are gone. Their presence therefore says that some
+    // release once owned them, not that an operator is running now; the release is what says that.
+    const existingCrds: Map<string, Record<string, string>> = await ClusterCrdProbe.probe(
+      this.k8Factory,
+      context,
+      constants.MINIO_OPERATOR_CRDS,
+    );
+    const owningRelease: ReleaseItem | undefined = await this.chartManager.getInstalledRelease(
+      undefined,
+      constants.MINIO_OPERATOR_RELEASE_NAME,
+      context,
+    );
 
-    if (existingMinioOperator.exists) {
+    if (owningRelease) {
+      const foundVersions: Set<string> = new Set(
+        [...existingCrds.values()].map((labels: Record<string, string>): string =>
+          SharedClusterResourceReport.versionFromLabels(labels),
+        ),
+      );
       SharedClusterResourceReport.show(
         this.logger,
         'MinIO Operator',
         context,
-        `Helm release '${existingMinioOperator.releaseName}' (${SharedClusterResourceReport.formatVersion(existingMinioOperator.version)})`,
+        `release '${owningRelease.name}' (${owningRelease.chart}) in namespace ${owningRelease.namespace}` +
+          (foundVersions.size > 0 ? ` with CRDs ${[...foundVersions].join(', ')}` : ''),
         `version ${versions.MINIO_OPERATOR_VERSION} as release '${constants.MINIO_OPERATOR_RELEASE_NAME}'`,
       );
       return;
+    }
+
+    if (existingCrds.size > 0) {
+      // Orphaned: the CRDs outlived their release. Installing over them fails because Helm will not adopt
+      // resources it does not own, and skipping the install would leave the Tenant created later with no
+      // operator to reconcile it — a silent hang far from this cause. Say so here instead.
+      throw new SoloErrors.system.minioOperatorCrdsOrphaned([...existingCrds.keys()], context);
     }
 
     try {
@@ -498,19 +519,64 @@ export class ClusterCommandTasks {
     };
   }
 
+  /**
+   * Decides whether a MinIO Operator release is one solo installed, and so one reset may remove.
+   *
+   * Two signals, both required. The chart identifies what was installed — solo always installs the
+   * `operator` chart from `MINIO_OPERATOR_CHART_URL`, so a release running a different chart under the
+   * same release name is somebody else's. The namespace identifies who installed it: the cluster-setup
+   * namespace is where solo puts it, and any namespace holding a solo remote config belongs to a solo
+   * deployment. Anything outside both is left alone.
+   */
+  private async isSoloInstalledMinioOperator(
+    release: ReleaseItem,
+    clusterSetupNamespace: NamespaceName,
+    context: Context,
+  ): Promise<boolean> {
+    // ReleaseItem.chart is `<name>-<version>`, e.g. `operator-7.1.1`.
+    if (!release.chart?.startsWith(`${constants.MINIO_OPERATOR_CHART}-`)) {
+      return false;
+    }
+
+    if (release.namespace === clusterSetupNamespace.name) {
+      return true;
+    }
+
+    // Context-scoped: a multi-cluster reset targets one cluster, and the default one need not be it.
+    return this.clusterChecks.isRemoteConfigPresentInNamespace(NamespaceName.of(release.namespace), context);
+  }
+
   public uninstallMinioOperator(): SoloListrTask<ClusterReferenceResetContext> {
     return {
       title: 'Uninstall MinIO Operator chart',
-      task: async ({config: {clusterSetupNamespace: namespace, context}}): Promise<void> => {
-        const {exists: isMinioInstalled, releaseName}: ReleaseNameData = await this.findMinioOperator(context);
+      task: async ({config: {clusterSetupNamespace, context}}): Promise<void> => {
+        // Looked up across all namespaces: solo does not always install the operator into the namespace
+        // this reset was invoked with, and uninstalling the wrong one is what left the CRDs behind.
+        const release: ReleaseItem | undefined = await this.chartManager.getInstalledRelease(
+          undefined,
+          constants.MINIO_OPERATOR_RELEASE_NAME,
+          context,
+        );
 
-        if (isMinioInstalled) {
-          await this.chartManager.uninstall(namespace, releaseName, context);
-
-          this.logger.showUserUnlessOneShot('✅ MinIO Operator chart uninstalled successfully');
-        } else {
+        if (!release) {
           this.logger.showUserUnlessOneShot('⏭️  MinIO Operator chart not installed, skipping');
+          return;
         }
+
+        // `operator` is also the release name in MinIO's own documented install, so a name match alone
+        // would let reset uninstall a user's unrelated operator in some other namespace. Only remove one
+        // that looks like solo's: solo's chart, in a namespace solo manages.
+        if (!(await this.isSoloInstalledMinioOperator(release, clusterSetupNamespace, context))) {
+          this.logger.showUserUnlessOneShot(
+            `⏭️  Leaving MinIO Operator release '${release.name}' (${release.chart}) in namespace ` +
+              `${release.namespace} alone: it was not installed by solo`,
+          );
+          return;
+        }
+
+        await this.chartManager.uninstall(NamespaceName.of(release.namespace), release.name, context);
+
+        this.logger.showUserUnlessOneShot('✅ MinIO Operator chart uninstalled successfully');
       },
     };
   }

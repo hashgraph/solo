@@ -63,13 +63,7 @@ import {KeysCommandDefinition} from '../../../command-definitions/keys-command-d
 import {type InvokedSoloCommand, invokeSoloCommand} from '../../../command-helpers.js';
 import {Flags as flags} from '../../../flags.js';
 import * as constants from '../../../../core/constants.js';
-import {
-  createDirectoryIfNotExists,
-  entityId,
-  Helpers,
-  remoteConfigsToDeploymentsTable,
-  sleep,
-} from '../../../../core/helpers.js';
+import {createDirectoryIfNotExists, entityId, Helpers, sleep} from '../../../../core/helpers.js';
 import {Duration} from '../../../../core/time/duration.js';
 import {BlockNodeDeployedEvent} from '../../../../core/events/event-types/block-node-deployed-event.js';
 import {MirrorNodeDeployedEvent} from '../../../../core/events/event-types/mirror-node-deployed-event.js';
@@ -93,7 +87,6 @@ import {ExplorerStateSchema} from '../../../../data/schema/model/remote/state/ex
 import {RelayNodeStateSchema} from '../../../../data/schema/model/remote/state/relay-node-state-schema.js';
 import {DeploymentPhase} from '../../../../data/schema/model/remote/deployment-phase.js';
 import {ComponentTypes} from '../../../../core/config/remote/enumerations/component-types.js';
-import {ConfigMap} from '../../../../integration/kube/resources/config-map/config-map.js';
 import {ServiceReference} from '../../../../integration/kube/resources/service/service-reference.js';
 import {ServiceName} from '../../../../integration/kube/resources/service/service-name.js';
 import chalk from 'chalk';
@@ -448,37 +441,6 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             leaseReference.value = await this.leaseManager.create();
             return ListrLock.newAcquireLockTask(leaseReference.value, task);
           },
-        }),
-      }),
-      new OrchestratorPipelinePhase('Check for other deployments', {
-        asListrTask: (): SoloListrTask<OneShotSingleDeployContext> => ({
-          title: 'Check for other deployments',
-          task: async (
-            _: OneShotSingleDeployContext,
-            task: SoloListrTaskWrapper<OneShotSingleDeployContext>,
-          ): Promise<void> => {
-            const existingRemoteConfigs: ConfigMap[] = await this.k8Factory
-              .default()
-              .configMaps()
-              .listForAllNamespaces(Templates.renderConfigMapRemoteConfigLabels());
-            if (existingRemoteConfigs.length > 0) {
-              const existingDeploymentsTable: string[] = remoteConfigsToDeploymentsTable(existingRemoteConfigs);
-              const promptOptions: {default: boolean; message: string} = {
-                default: false,
-                message:
-                  'Warning: Existing solo deployment detected in cluster.\n\n' +
-                  existingDeploymentsTable.join('\n') +
-                  '\n\nCreating another deployment will require additional' +
-                  ' CPU and memory resources. Do you want to proceed and create another deployment?',
-              };
-              const proceed: boolean = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, promptOptions);
-              if (!proceed) {
-                throw new UserBreak('Aborted by user');
-              }
-            }
-          },
-          skip: (context_: OneShotSingleDeployContext): boolean =>
-            context_.config.force === true || context_.config.quiet === true,
         }),
       }),
       OrchestratorPipelinePhase.composite(

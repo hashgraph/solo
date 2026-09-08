@@ -37,9 +37,7 @@ on:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -60,7 +58,7 @@ jobs:
       versioned-release: ${{ steps.set-inputs.outputs.versioned_release }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
@@ -138,7 +136,7 @@ jobs:
   docs-automation:
     name: Docs Automation
     if: ${{ needs.setup.outputs.versioned-release == 'true' && !cancelled() && !failure() }}
-    uses: ./.github/workflows/zxc-docs-automation.yaml
+    uses: $/.github/workflows/zxc-docs-automation.yaml
     needs:
       - setup
     secrets:
@@ -148,7 +146,7 @@ jobs:
   hugo-docs-build:
     name: Hugo Docs Build
     if: ${{ needs.setup.outputs.versioned-release == 'true' && !cancelled() && !failure() }}
-    uses: ./.github/workflows/zxc-hugo-build.yaml
+    uses: $/.github/workflows/zxc-hugo-build.yaml
     needs:
       - setup
     with:
@@ -161,7 +159,7 @@ jobs:
   #  to GitHub Pages.  This runs after hugo-docs-build if the docs-build-label is not 'main'.
   hugo-docs-build-main:
     name: Hugo Docs Build - Main
-    uses: ./.github/workflows/zxc-hugo-build.yaml
+    uses: $/.github/workflows/zxc-hugo-build.yaml
     needs:
       - setup
       - hugo-docs-build
@@ -175,8 +173,12 @@ jobs:
   # Publish the Hugo docs site to GitHub Pages unless dry-run is enabled or if this is a merge to release/* branch
   hugo-docs-publish:
     name: Hugo Docs Publish
+    permissions:
+      contents: write # zxc-hugo-publish.yaml attaches the docs archives to the release
+      pages: write # zxc-hugo-publish.yaml deploys to GitHub Pages
+      id-token: write # required by actions/deploy-pages
     if: ${{ needs.setup.outputs.versioned-release == 'true' && inputs.dry-run-enabled != 'true' && startsWith(github.ref_name, 'release/') && !cancelled() && !failure() }}
-    uses: ./.github/workflows/zxc-hugo-publish.yaml
+    uses: $/.github/workflows/zxc-hugo-publish.yaml
     needs:
       - setup
       - hugo-docs-build-main
@@ -193,7 +195,7 @@ jobs:
   hugo-docs-build-main-only:
     name: Hugo Docs Build - Main Only
     if: ${{ needs.setup.outputs.versioned-release == 'false' && !cancelled() && !failure() }}
-    uses: ./.github/workflows/zxc-hugo-build.yaml
+    uses: $/.github/workflows/zxc-hugo-build.yaml
     needs:
       - setup
     with:
@@ -205,7 +207,11 @@ jobs:
   # Publish the Hugo docs site to GitHub Pages unless dry-run is enabled or if this is a merge to release/* branch
   hugo-docs-publish-main-only:
     name: Hugo Docs Publish - Main Only
-    uses: ./.github/workflows/zxc-hugo-publish.yaml
+    permissions:
+      contents: write # zxc-hugo-publish.yaml attaches the docs archives to the release
+      pages: write # zxc-hugo-publish.yaml deploys to GitHub Pages
+      id-token: write # required by actions/deploy-pages
+    uses: $/.github/workflows/zxc-hugo-publish.yaml
     needs:
       - setup
       - hugo-docs-build-main-only

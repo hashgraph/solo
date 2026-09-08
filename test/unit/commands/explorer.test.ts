@@ -61,6 +61,8 @@ type ExplorerHarness = {
 
 type ExplorerCommandInternal = {
   prepareHederaExplorerChartValues: (config: Record<string, unknown>) => Promise<HelmChartValues>;
+  isLocalImageAvailableInDocker: (componentImage: string) => boolean;
+  kindLoadComponentImage: (componentImage: string, clusterContext: string) => Promise<void>;
 };
 
 const createNamespace: (namespaceName: string) => NamespaceName = (namespaceName: string): NamespaceName =>
@@ -524,6 +526,29 @@ describe('ExplorerCommand unit tests', (): void => {
 
     expect(stopPortForwardsStub).to.not.have.been.called;
     expect(managePortForwardsStub).to.not.have.been.called;
+  });
+
+  it('loads an available local Explorer image before chart deployment', async (): Promise<void> => {
+    const harness: ExplorerHarness = await createHarness(sandbox);
+    const deployConfig: Record<string, unknown> = {
+      ...createDeployConfig('explorer-local-image'),
+      componentImage: 'localhost:5001/hiero-explorer:1.2.3',
+    };
+    const explorerCommandInternal: ExplorerCommandInternal = harness.command as unknown as ExplorerCommandInternal;
+    const kindLoadComponentImageStub: SinonStub = sandbox
+      .stub(explorerCommandInternal, 'kindLoadComponentImage')
+      .resolves();
+    sandbox.stub(explorerCommandInternal, 'isLocalImageAvailableInDocker').returns(true);
+    const chartUpgradeStub: SinonStub = sandbox.stub(harness.chartManager, 'upgrade').resolves();
+
+    (harness.configManager.getConfig as SinonStub).returns(deployConfig);
+    await harness.command.add({[flags.deployment.name]: 'deployment-1'} as never);
+
+    expect(kindLoadComponentImageStub).to.have.been.calledOnceWithExactly(
+      'localhost:5001/hiero-explorer:1.2.3',
+      'cluster-context-1',
+    );
+    expect(kindLoadComponentImageStub).to.have.been.calledBefore(chartUpgradeStub.getCall(2));
   });
 
   it('upgrade builds the expected task flow and upgrades explorer state without reinstalling cert-manager', async (): Promise<void> => {

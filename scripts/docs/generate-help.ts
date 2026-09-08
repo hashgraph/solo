@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// eslint-disable-next-line n/no-extraneous-import
 import 'reflect-metadata';
 import fs from 'node:fs';
 import path from 'node:path';

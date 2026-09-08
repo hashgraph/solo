@@ -133,8 +133,6 @@ tasks:
             echo "Skipping npm install - using development version"
           fi
 
-      # Run solo init to install dependencies
-      - cmd: $SOLO_COMMAND init --dev
 
       # Delete existing clusters and reset docker network in parallel
       - cmd: |
@@ -176,10 +174,9 @@ tasks:
           wait
           echo "✅ MetalLB installed on both clusters"
 
-      # Setup Cluster 1 (solo init installs the solo Helm chart into c1's solo-setup namespace)
+      # Setup Cluster 1
       - cmd: echo "🔧 Setting up Cluster 1..."
       - cmd: kubectl config use-context kind-solo-e2e-c1
-      - cmd: $SOLO_COMMAND init
       - cmd: $SOLO_COMMAND cluster-ref config setup -s solo-setup --quiet-mode --dev
       - cmd: $SOLO_COMMAND cluster-ref config connect --cluster-ref solo-e2e-c1 --context kind-solo-e2e-c1
 
@@ -330,7 +327,6 @@ tasks:
     cmds:
      - cmd: |
           rm -rf ~/.solo/local-config.yaml;
-          $SOLO_COMMAND init
           {{ .TIMEOUT_COMMAND }} 700s $SOLO_COMMAND config ops restore-clusters --input-dir {{ .BACKUP_DIR }} \
             --metallb-config {{ .TASKFILE_DIR }}/metallb-cluster-{index}.yaml \
             --zip-password {{ .ZIP_PASSWORD }} --zip-file {{ .ZIP_INPUT_FILE }}

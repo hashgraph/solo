@@ -111,6 +111,8 @@ export class FilePermissions {
   /** Run `icacls` against a path and return its standard output. */
   private static icacls(targetPath: string, subcommand: string[]): string {
     return execFileSync('icacls', [targetPath, ...subcommand], {
+      // No shell: the path is user-influenced and must never reach a command interpreter.
+      shell: false,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
       env: SubprocessEnvironment.forCommand(SubprocessCommandProfile.GENERIC),

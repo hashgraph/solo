@@ -567,7 +567,7 @@ export class MirrorNodeCommand extends BaseCommand {
           .setLiteral('web3.image.pullPolicy', 'Never')
           .setLiteral('monitor.image.pullPolicy', 'Never');
       }
-    } else {
+    } else if (this.shouldApplyMirrorNodeImageTagOverrides(config.mirrorNodeChartDirectory)) {
       this.addMirrorNodeImageTagOverrides(chartValues, config.mirrorNodeVersion);
     }
 
@@ -678,6 +678,16 @@ export class MirrorNodeCommand extends BaseCommand {
     chartValues.add(this.prepareBlockNodeIntegrationValues(config));
 
     return chartValues;
+  }
+
+  /**
+   * A local/custom chart directory (`--mirror-node-chart-dir`) may carry its own SNAPSHOT image
+   * tags (e.g. for testing a locally built mirror node image). Forcing the tag to the resolved
+   * `mirrorNodeVersion` in that case would clobber the chart's own default, so the override is
+   * skipped unless the user explicitly requested a version. See issue #5892.
+   */
+  private shouldApplyMirrorNodeImageTagOverrides(mirrorNodeChartDirectory: string): boolean {
+    return !mirrorNodeChartDirectory || this.configManager.wasFlagProvidedByUser(flags.mirrorNodeVersion);
   }
 
   private addMirrorNodeImageTagOverrides(chartValues: HelmChartValues, mirrorNodeVersion: string): void {

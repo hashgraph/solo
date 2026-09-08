@@ -80,7 +80,11 @@ runs:
       run: |
         set -euo pipefail
 
+        # The path arrives double quoted, so bash never tilde expands it; expand a leading
+        # '~' by hand or every existence test below would report a missing directory.
         image_cache_dir="${{ inputs.cache-path }}"
+        image_cache_dir="${image_cache_dir/#\~/${HOME}}"
+
         if [[ -d "${image_cache_dir}" ]] && find "${image_cache_dir}" -type f -name '*.tar' -print -quit | grep -q .; then
           echo "has-files=true" >> "${GITHUB_OUTPUT}"
         else

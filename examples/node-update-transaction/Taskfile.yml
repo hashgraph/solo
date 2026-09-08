@@ -39,8 +39,6 @@ tasks:
             echo "Skipping npm install - using development version"
           fi
 
-      # Run solo init to install dependencies
-      - cmd: $SOLO_COMMAND init --dev
 
       - cmd: |
           # Clean up any existing Kind clusters
@@ -52,8 +50,6 @@ tasks:
           # Clean up Solo data
           rm -Rf ~/.solo
 
-      # Run solo init to install dependencies
-      - cmd: $SOLO_COMMAND init --dev
 
       - cmd: |
           # Create Kind cluster
