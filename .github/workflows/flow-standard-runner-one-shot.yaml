@@ -160,13 +160,15 @@ jobs:
         run: |
           task -t scripts/Taskfile.release.yml dual-publish:pack OUTPUT_DIR=output/hl
 
+      # This installs the tarball the "pack" step just built from this checkout, not a
+      # registry package — there is no version to pin or lockfile to point at.
       - name: Globally Install Solo
         # SOLO_NO_CACHE skips the postinstall image-cache population so no images are cached before deploy.
         if: ${{ matrix.install-mode == 'global-package' }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         env:
           SOLO_NO_CACHE: 'true'
-        run: |
+        run: | # zizmor: ignore[adhoc-packages]
           npm install -g ./output/hl/hiero-ledger-solo-*.tgz
           echo "Installed Solo version:"
           solo --version
