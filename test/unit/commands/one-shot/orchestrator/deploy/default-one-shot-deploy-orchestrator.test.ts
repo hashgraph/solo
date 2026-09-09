@@ -718,6 +718,56 @@ describe('DefaultOneShotDeployOrchestrator Confirm cleanup of existing deploymen
   });
 });
 
+function getPipelineTasks(): MockType[] {
+  const orchestrator: DefaultOneShotDeployOrchestrator = makeMinimalOrchestrator();
+  const pipeline: OrchestratorPipeline<OneShotSingleDeployContext> = orchestrator.buildDeployPipeline(
+    {_: []} as MockType,
+    {required: [], optional: []} as MockType,
+    {} as MockType,
+    {} as MockType,
+  );
+  return pipeline.tasks as MockType[];
+}
+
+describe('DefaultOneShotDeployOrchestrator pipeline does not duplicate the existing-deployment confirmation (#5944)', (): void => {
+  it('does not contain a "Check for other deployments" phase', (): void => {
+    const tasks: MockType[] = getPipelineTasks();
+    const checkForOtherDeployments: MockType | undefined = tasks.find(
+      (task: MockType): boolean => task.title === 'Check for other deployments',
+    );
+    expect(checkForOtherDeployments).to.be.undefined;
+  });
+
+  it('contains exactly one confirmation phase that gates on existing deployment state', (): void => {
+    const tasks: MockType[] = getPipelineTasks();
+    const confirmationPhases: MockType[] = tasks.filter(
+      (task: MockType): boolean => task.title === 'Confirm cleanup of existing deployment state',
+    );
+    expect(confirmationPhases).to.have.lengthOf(1);
+  });
+
+  it('the self-healing confirmation does not skip when existing state is detected', (): void => {
+    const tasks: MockType[] = getPipelineTasks();
+    const confirmPhase: MockType = tasks.find(
+      (task: MockType): boolean => task.title === 'Confirm cleanup of existing deployment state',
+    );
+    expect(confirmPhase).to.not.be.undefined;
+    const existingState: DeploymentStateSnapshot = makeSnapshot({
+      remoteConfig: {configMapExists: true, componentPhases: new Map(), orphanedOnKindCluster: false},
+    });
+    expect(confirmPhase.skip({config: makeConfig(), deploymentStateSnapshot: existingState})).to.be.false;
+  });
+
+  it('the self-healing confirmation skips when there is no pre-existing state', (): void => {
+    const tasks: MockType[] = getPipelineTasks();
+    const confirmPhase: MockType = tasks.find(
+      (task: MockType): boolean => task.title === 'Confirm cleanup of existing deployment state',
+    );
+    expect(confirmPhase).to.not.be.undefined;
+    expect(confirmPhase.skip({config: makeConfig(), deploymentStateSnapshot: makeSnapshot()})).to.be.true;
+  });
+});
+
 describe('DefaultOneShotDeployOrchestrator reconcileEffectiveVersions', (): void => {
   const releaseTagKey: string = Flags.getFormattedFlagKey(Flags.consensusNodeVersion);
   const soloChartVersionKey: string = Flags.getFormattedFlagKey(Flags.soloChartVersion);
