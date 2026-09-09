@@ -108,6 +108,7 @@ import {CacheCommand} from '../../commands/cache.js';
 import {ImageCacheHandlerBuilder} from '../../integration/cache/impl/image-cache-handler-builder.js';
 import {DockerClient} from '../../integration/container-engine/docker-client.js';
 import {ContainerEngineResourceInspector} from '../../integration/container-engine/container-engine-resource-inspector.js';
+import {ClusterStateService} from '../../integration/container-engine/cluster-state-service.js';
 import {DefaultCacheHandlerRegistry} from '../../integration/cache/impl/default-cache-handler-registry.js';
 import {DefaultCacheHealthInspector} from '../../integration/cache/impl/default-cache-health-inspector.js';
 import {FileSystemCacheCatalogStore} from '../../integration/cache/impl/file-system-cache-catalog-store.js';
@@ -217,6 +218,7 @@ export class Container {
       new SingletonContainer(InjectTokens.ImageCacheHandlerBuilder, ImageCacheHandlerBuilder),
       new SingletonContainer(InjectTokens.ContainerEngineClient, DockerClient),
       new SingletonContainer(InjectTokens.ContainerEngineResourceInspector, ContainerEngineResourceInspector),
+      new SingletonContainer(InjectTokens.ClusterStateService, ClusterStateService),
 
       // Command Definitions
       new SingletonContainer(InjectTokens.BackupRestoreCommandDefinition, BackupRestoreCommandDefinition),

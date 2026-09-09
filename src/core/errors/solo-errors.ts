@@ -258,6 +258,9 @@ import {HelmChartGenericInstallFailedSoloError} from './classes/system/helm-char
 import {HelmChartUninstallFailedSoloError} from './classes/system/helm-chart-uninstall-failed-solo-error.js';
 import {HelmChartUpgradeFailedSoloError} from './classes/system/helm-chart-upgrade-failed-solo-error.js';
 import {HelmChartPullNoArchiveSoloError} from './classes/system/helm-chart-pull-no-archive-solo-error.js';
+import {ContainerEngineNotFoundSoloError} from './classes/system/container-engine-not-found-solo-error.js';
+import {ContainerEngineStartFailedSoloError} from './classes/system/container-engine-start-failed-solo-error.js';
+import {KindClusterContainerNotFoundSoloError} from './classes/system/kind-cluster-container-not-found-solo-error.js';
 import {FileNotFoundSoloError} from './classes/system/file-not-found-solo-error.js';
 import {FileCopyFailedSoloError} from './classes/system/file-copy-failed-solo-error.js';
 import {FileEmptySoloError} from './classes/system/file-empty-solo-error.js';
@@ -795,6 +798,9 @@ export class SoloErrors {
     readonly helmChartUninstallFailed: typeof HelmChartUninstallFailedSoloError;
     readonly helmChartUpgradeFailed: typeof HelmChartUpgradeFailedSoloError;
     readonly helmChartPullNoArchive: typeof HelmChartPullNoArchiveSoloError;
+    readonly containerEngineNotFound: typeof ContainerEngineNotFoundSoloError;
+    readonly containerEngineStartFailed: typeof ContainerEngineStartFailedSoloError;
+    readonly kindClusterContainerNotFound: typeof KindClusterContainerNotFoundSoloError;
     readonly fileNotFound: typeof FileNotFoundSoloError;
     readonly fileCopyFailed: typeof FileCopyFailedSoloError;
     readonly fileEmpty: typeof FileEmptySoloError;
@@ -881,6 +887,9 @@ export class SoloErrors {
     helmChartUninstallFailed: HelmChartUninstallFailedSoloError,
     helmChartUpgradeFailed: HelmChartUpgradeFailedSoloError,
     helmChartPullNoArchive: HelmChartPullNoArchiveSoloError,
+    containerEngineNotFound: ContainerEngineNotFoundSoloError,
+    containerEngineStartFailed: ContainerEngineStartFailedSoloError,
+    kindClusterContainerNotFound: KindClusterContainerNotFoundSoloError,
     fileNotFound: FileNotFoundSoloError,
     fileCopyFailed: FileCopyFailedSoloError,
     fileEmpty: FileEmptySoloError,
