@@ -93,6 +93,19 @@ jobs:
             // ref, a compile error - from being retried, which only burns runners and hides the bug.
             const rules = [
               {
+                // `go install` verifies every module against the checksum database, so a failure
+                // from sum.golang.org or the module proxy stops the build even though nothing is
+                // wrong with the module itself. A genuine mismatch reports "SECURITY ERROR:
+                // checksum mismatch" and a toolchain skew reports "requires go >= ", both settled
+                // failures that must never be retried - the latter burned three attempts of run
+                // 33480747973 before the version was pinned.
+                description: 'Go module server could not be reached',
+                stepPrefixes: [],
+                required:
+                  /(sum|proxy)\.golang\.org[^\n]*(stream error|INTERNAL_ERROR|connection reset|unexpected EOF|i\/o timeout|502|503|504|Service Unavailable)/,
+                forbidden: /SECURITY ERROR|checksum mismatch|requires go >= /,
+              },
+              {
                 // The runner downloads every referenced action before the first step runs, so a
                 // stall at codeload.github.com fails the implicit `Set up job` step. The runner
                 // has already retried internally ("after 3 attempts"), so the archive is
