@@ -318,20 +318,17 @@ export abstract class BaseCommand extends ShellRunner {
     return checkDockerImageExists(name, tag);
   }
 
-  protected async kindLoadComponentImage(componentImage: string, clusterContext: string): Promise<void> {
-    const additionalKindContexts: Context[] = this.remoteConfig
-      .getContexts()
-      .filter((context: Context): boolean => context.startsWith('kind-') && context !== clusterContext);
-    const targetContexts: Context[] = [...new Set<Context>([clusterContext, ...additionalKindContexts])];
-    const nonKindContexts: Context[] = targetContexts.filter(
-      (context: Context): boolean => !context.startsWith('kind-'),
-    );
-
-    if (nonKindContexts.length > 0) {
+  /** Loads a local component image into the required cluster context's Kind cluster, then best-effort into any additional Kind contexts. */
+  protected async kindLoadComponentImage(
+    componentImage: string,
+    clusterContext: string,
+    additionalContexts: Context[] = [],
+  ): Promise<void> {
+    if (!clusterContext.startsWith('kind-')) {
       throw new SoloErrors.validation.illegalArgument(
-        `Component image '${componentImage}' requires Kind image loading, but target cluster context(s) ` +
-          `'${nonKindContexts.join("', '")}' are not Kind clusters. Push the image to a registry reachable ` +
-          'from every target cluster and pass that registry image reference to --component-image.',
+        `Component image '${componentImage}' requires Kind image loading, but target cluster context ` +
+          `'${clusterContext}' is not a Kind cluster. Push the image to a registry reachable ` +
+          'from the target cluster and pass that registry image reference to --component-image.',
         componentImage,
       );
     }
@@ -339,14 +336,42 @@ export abstract class BaseCommand extends ShellRunner {
     const kindExecutable: string = await this.depManager.getExecutable(constants.KIND);
     const kindClient: KindClient = await this.kindBuilder.executable(kindExecutable).build();
 
-    for (const targetContext of targetContexts) {
-      const kindClusterName: string = this.kindClusterNameFromContext(targetContext);
-      this.logger.debug(`Loading '${componentImage}' into Kind cluster '${kindClusterName}'`);
-      await kindClient.loadDockerImage(
-        componentImage,
-        LoadDockerImageOptionsBuilder.builder().name(kindClusterName).build(),
-      );
+    await this.loadImageIntoKindContext(kindClient, componentImage, clusterContext);
+
+    const extraContexts: Context[] = [...new Set<Context>(additionalContexts)].filter(
+      (context: Context): boolean => context !== clusterContext,
+    );
+    for (const targetContext of extraContexts) {
+      if (!targetContext.startsWith('kind-')) {
+        this.logger.warn(
+          `Skipping preload of component image '${componentImage}' into non-Kind cluster context ` +
+            `'${targetContext}'; components deployed there must pull the image from a registry.`,
+        );
+        continue;
+      }
+      try {
+        await this.loadImageIntoKindContext(kindClient, componentImage, targetContext);
+      } catch (error) {
+        // best-effort: a stale or unreachable additional Kind context must not fail the deploy to the required cluster
+        this.logger.warn(
+          `Failed to preload component image '${componentImage}' into Kind cluster context '${targetContext}'; continuing`,
+          error,
+        );
+      }
     }
+  }
+
+  private async loadImageIntoKindContext(
+    kindClient: KindClient,
+    componentImage: string,
+    targetContext: Context,
+  ): Promise<void> {
+    const kindClusterName: string = this.kindClusterNameFromContext(targetContext);
+    this.logger.debug(`Loading '${componentImage}' into Kind cluster '${kindClusterName}'`);
+    await kindClient.loadDockerImage(
+      componentImage,
+      LoadDockerImageOptionsBuilder.builder().name(kindClusterName).build(),
+    );
   }
 
   protected async throwIfNamespaceIsMissing(context: Context, namespace: NamespaceName): Promise<void> {
