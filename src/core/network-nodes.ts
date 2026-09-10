@@ -486,12 +486,15 @@ export class NetworkNodes {
           );
 
           if (kind === 'frozen-fallback') {
-            // A frozen deployment can expose the FROZEN platform status before a
-            // freeze-marked round becomes fully signed on disk. In that case,
-            // export the newest fully signed non-freeze round instead of waiting
-            // indefinitely for a freeze round that may never materialize.
+            // A frozen deployment can expose the FROZEN platform status without ever
+            // producing a fully signed freeze round on disk — some consensus-node
+            // versions report SIGNING_WEIGHT_SUM: 0 for freeze states, so this is the
+            // expected outcome on those versions rather than a transient condition.
+            // Export the newest fully signed non-freeze round instead of waiting
+            // indefinitely for a freeze round that may never appear.
             this.logger.warn(
-              `[state-download] ${podName}: deployment is FROZEN but no fully signed freeze round exists on disk yet; using the newest fully signed non-freeze round`,
+              `[state-download] ${podName}: deployment is FROZEN but no fully signed freeze round exists on disk ` +
+                '(expected when the platform does not sign freeze states); using the newest fully signed non-freeze round',
             );
           }
 
