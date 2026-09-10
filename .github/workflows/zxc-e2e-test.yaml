@@ -243,6 +243,8 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Posix Dependencies
@@ -359,14 +361,16 @@ jobs:
         if: ${{ runner.os == 'linux' && inputs.local-java-build && !cancelled() && !failure() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         shell: bash
+        env:
+          CONSENSUS_NODE_VERSION_INPUT: ${{ inputs.consensus-node-version }}
         run: |
           set -euo pipefail
           source .github/workflows/script/helper.sh
 
-          if [ -z "${{ inputs.consensus-node-version }}" ]; then
+          if [ -z "${CONSENSUS_NODE_VERSION_INPUT}" ]; then
             consensus_node_version="$(extract_version HEDERA_PLATFORM_VERSION version.ts)"
           else
-            consensus_node_version="${{ inputs.consensus-node-version }}"
+            consensus_node_version="${CONSENSUS_NODE_VERSION_INPUT}"
           fi
 
           normalized_version="$(echo "${consensus_node_version}" | sed -E 's/^v//; s/-.*$//')"
@@ -445,27 +449,33 @@ jobs:
         timeout-minutes: ${{ fromJSON(inputs.test-timeout-minutes) }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          CONSENSUS_NODE_VERSION_INPUT: ${{ inputs.consensus-node-version }}
+          LOCAL_JAVA_BUILD_INPUT: ${{ inputs.local-java-build }}
+          TEST_SCRIPT_INPUT: ${{ inputs.test-script }}
+          CLUSTER_NAME_INPUT: ${{ inputs.cluster-name }}
+          DUAL_CLUSTER_NODE_COUNT_INPUT: ${{ inputs.dual-cluster-node-count || 3 }}
+          CUSTOM_JOB_LABEL_INPUT: ${{ inputs.custom-job-label }}
         run: |
           export PATH=~/.solo/bin:${PATH}
           echo "PATH: $PATH"
           source .github/workflows/script/helper.sh
-          if [[ -z "${{ inputs.consensus-node-version }}" ]]; then
-              if [[ "${{ inputs.local-java-build }}" != "true" ]]; then
+          if [[ -z "${CONSENSUS_NODE_VERSION_INPUT}" ]]; then
+              if [[ "${LOCAL_JAVA_BUILD_INPUT}" != "true" ]]; then
                   echo "No consensus node version provided, using default from version-test.ts"
               else
-                  if [[ "${{ inputs.test-script }}" == "test-e2e-block-node" ]]; then
+                  if [[ "${TEST_SCRIPT_INPUT}" == "test-e2e-block-node" ]]; then
                     echo "Use default from version.ts for block node test"
                   else
                     export CONSENSUS_NODE_VERSION=$(extract_version HEDERA_PLATFORM_VERSION version.ts)
                   fi
               fi
           else
-              export CONSENSUS_NODE_VERSION=${{ inputs.consensus-node-version }}
+              export CONSENSUS_NODE_VERSION="${CONSENSUS_NODE_VERSION_INPUT}"
           fi
-          echo SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1 > .env
-          echo SOLO_DUAL_CLUSTER_NODE_COUNT=${{ inputs.dual-cluster-node-count || 3 }} >> .env
+          echo "SOLO_TEST_CLUSTER=${CLUSTER_NAME_INPUT}-c1" > .env
+          echo "SOLO_DUAL_CLUSTER_NODE_COUNT=${DUAL_CLUSTER_NODE_COUNT_INPUT}" >> .env
 
-          if [[ "${{ inputs.custom-job-label }}" != "One Shot Single - using Podman" ]]; then
+          if [[ "${CUSTOM_JOB_LABEL_INPUT}" != "One Shot Single - using Podman" ]]; then
             # Verify cluster connectivity before running tests
             echo "Verifying cluster connectivity..."
             kubectl cluster-info || {
@@ -479,7 +489,7 @@ jobs:
             echo "FORCE_PODMAN=true" >> .env
           fi
 
-          if [[ "${{ inputs.custom-job-label }}" == "One Shot Single" ]]; then
+          if [[ "${CUSTOM_JOB_LABEL_INPUT}" == "One Shot Single" ]]; then
             echo "ENABLE_IMAGE_CACHE=true" >> .env
           fi
 
@@ -515,7 +525,7 @@ jobs:
           }
           trap cleanup SIGTERM SIGINT
 
-          TASK_COMMAND="${{ env.CG_EXEC }} task ${{ inputs.test-script }}"
+          TASK_COMMAND="${CG_EXEC} task ${TEST_SCRIPT_INPUT}"
           if command -v setsid >/dev/null 2>&1; then
             setsid bash -lc "${TASK_COMMAND}" &
           else
@@ -616,8 +626,9 @@ jobs:
         env:
           LOG_FILE: "${{ steps.log-metrics.outputs.solo_log_dir }}/log_file.md"
           JSON_INPUT: "${{ toJSON(fromJSON(steps.log-metrics.outputs.json_log)) }}"
+          CUSTOM_JOB_LABEL_INPUT: ${{ inputs.custom-job-label }}
         run: |
-          echo "## Log Metrics - ${{ inputs.custom-job-label }}" >> $LOG_FILE
+          echo "## Log Metrics - ${CUSTOM_JOB_LABEL_INPUT}" >> $LOG_FILE
           echo "" >> $LOG_FILE
 
           # Add ASCII resource chart if available
@@ -691,6 +702,8 @@ jobs:
       - name: Cleanup Kind Clusters
         if: ${{ always() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          CLUSTER_NAME_INPUT: ${{ inputs.cluster-name }}
         run: |
           export PATH=~/.solo/bin:${PATH}
 
@@ -709,8 +722,8 @@ jobs:
             } >&2
           }
 
-          for i in $(seq 1 ${{ env.SOLO_CLUSTER_DUALITY }}); do
-            timeout 60 kind delete cluster -n "${{ inputs.cluster-name }}-c${i}" || true
+          for i in $(seq 1 "${SOLO_CLUSTER_DUALITY}"); do
+            timeout 60 kind delete cluster -n "${CLUSTER_NAME_INPUT}-c${i}" || true
           done
           exit_code=0
           timeout 30 docker network rm -f kind || exit_code=$?

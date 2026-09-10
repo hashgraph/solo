@@ -129,6 +129,8 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node
@@ -189,6 +191,12 @@ jobs:
 
       - name: Resolve Versions
         id: versions
+        env:
+          CN_VERSION_INPUT: ${{ inputs.consensus-node-version }}
+          BN_VERSION_INPUT: ${{ inputs.block-node-version }}
+          MN_VERSION_INPUT: ${{ inputs.mirror-node-version }}
+          RELAY_VERSION_INPUT: ${{ inputs.relay-version }}
+          EXPLORER_VERSION_INPUT: ${{ inputs.explorer-version }}
         run: |
           # Read defaults from version.ts and allow input overrides
           source .github/workflows/script/helper.sh
@@ -198,11 +206,11 @@ jobs:
           DEFAULT_RELAY=$(extract_version HEDERA_JSON_RPC_RELAY_VERSION version.ts)
           DEFAULT_EXPLORER=$(extract_version EXPLORER_VERSION version.ts)
 
-          CN_VERSION="${{ inputs.consensus-node-version }}"
-          BN_VERSION="${{ inputs.block-node-version }}"
-          MN_VERSION="${{ inputs.mirror-node-version }}"
-          RELAY_VERSION="${{ inputs.relay-version }}"
-          EXPLORER_VERSION="${{ inputs.explorer-version }}"
+          CN_VERSION="${CN_VERSION_INPUT}"
+          BN_VERSION="${BN_VERSION_INPUT}"
+          MN_VERSION="${MN_VERSION_INPUT}"
+          RELAY_VERSION="${RELAY_VERSION_INPUT}"
+          EXPLORER_VERSION="${EXPLORER_VERSION_INPUT}"
 
           echo "cn-version=${CN_VERSION:-$DEFAULT_CN}" >> "$GITHUB_OUTPUT"
           echo "bn-version=${BN_VERSION:-$DEFAULT_BN}" >> "$GITHUB_OUTPUT"
