@@ -49,6 +49,14 @@ env:
   WSL_UBUNTU_INSTALLER_FILE: 'ubuntu-24.04.4-wsl-amd64.wsl'
   WSL_UBUNTU_INSTALLER_URL: 'https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-wsl-amd64.wsl'
   WSL_UBUNTU_INSTALLER_SHA256: '9b2f7730dc68227dd04a9f3e5eab86ad85caf556b8606ad94f1f29ff5c4fd3f5'
+  # Windows-side Docker CLI. Kind shells out to whichever `docker` is on PATH to talk to the WSL2
+  # daemon over DOCKER_HOST, so the runner image's bundled client is a silent, unpinned input to
+  # this job. Image 20260907.229 rolled it 29.1.5 -> 29.7.2 and `docker exec` started returning an
+  # empty stdout stream over tcp://localhost:2375 (issue #5975). 29.1.5 is the last version this
+  # workflow was observed green on; bump it deliberately, with a run to prove it.
+  WINDOWS_DOCKER_CLI_VERSION: '29.1.5'
+  WINDOWS_DOCKER_CLI_URL: 'https://download.docker.com/win/static/stable/x86_64/docker-29.1.5.zip'
+  WINDOWS_DOCKER_CLI_SHA256: '2c4d7ac136334cb67d11392f7df610590a805936176d76c417010591c8dd2c14'
 
 jobs:
   standard-runner-one-shot-windows:
@@ -356,6 +364,30 @@ jobs:
           sudo -n -E -- bash /tmp/install-docker.sh
           ss -tlnp | grep 2375
 
+      - name: Pin Windows Docker CLI
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # See the WINDOWS_DOCKER_CLI_* note at the top of this workflow. Install the pinned client
+          # ahead of the runner's bundled one on PATH so kind, Solo and this workflow all use it.
+          $installDirectory = Join-Path $env:RUNNER_TEMP "docker-cli-$env:WINDOWS_DOCKER_CLI_VERSION"
+          $archivePath = Join-Path $env:RUNNER_TEMP "docker-cli-$env:WINDOWS_DOCKER_CLI_VERSION.zip"
+          Invoke-WebRequest -Uri $env:WINDOWS_DOCKER_CLI_URL -OutFile $archivePath
+
+          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualHash -ne $env:WINDOWS_DOCKER_CLI_SHA256) {
+            throw "Docker CLI archive failed SHA-256 validation: expected $env:WINDOWS_DOCKER_CLI_SHA256, got $actualHash"
+          }
+
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $installDirectory -Force
+          # The archive also carries dockerd.exe, which this job never runs — the daemon lives in WSL2.
+          $clientDirectory = Join-Path $installDirectory 'docker'
+          Remove-Item -LiteralPath (Join-Path $clientDirectory 'dockerd.exe') -Force -ErrorAction SilentlyContinue
+
+          Add-Content -Path $env:GITHUB_PATH -Value $clientDirectory
+          $env:PATH = "$clientDirectory$([System.IO.Path]::PathSeparator)$env:PATH"
+          docker --version
+
       - name: Forward Docker TCP Port from WSL2 to Windows
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
@@ -368,6 +400,32 @@ jobs:
           netsh interface portproxy show all
           Start-Sleep -Seconds 5
           docker info
+
+      - name: Verify Docker Exec Round-Trip From Windows
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # `kind create cluster` reads /kind/version out of the node container with a plain
+          # `docker exec`. When that stream comes back empty over the Windows -> WSL2 TCP hop, kind
+          # fails four minutes later with the opaque "file should only be one line, got 0 lines"
+          # (issue #5975). Probe the same round-trip here so a broken transport is reported in
+          # seconds, against the transport rather than against Solo.
+          $probeContainer = 'solo-docker-exec-probe'
+          docker rm --force $probeContainer 2>$null | Out-Null
+          docker run --detach --name $probeContainer busybox:1.36.1 sleep 120 | Out-Null
+
+          try {
+            $probeOutput = @(docker exec $probeContainer cat /etc/hostname)
+          } finally {
+            docker rm --force $probeContainer 2>$null | Out-Null
+            # The probe's verdict is $probeOutput, not whether the throwaway container cleaned up.
+            $global:LASTEXITCODE = 0
+          }
+
+          Write-Host "docker exec returned $($probeOutput.Count) line(s): $($probeOutput -join '|')"
+          if ($probeOutput.Count -ne 1 -or [string]::IsNullOrWhiteSpace($probeOutput[0])) {
+            throw "docker exec returned an empty stdout stream over $env:DOCKER_HOST. Kind cannot create a cluster through this transport."
+          }
 
       - name: Render Kind Config for WSL Docker Daemon
         shell: pwsh
@@ -410,13 +468,14 @@ jobs:
         run: |
           # Solo treats KIND_VERSION in version.ts as a floor, not a pin: any kind found on PATH that
           # is at least that version is used as-is. The runner image ships its own kind, so this job
-          # silently ran whatever version windows-latest happened to bundle, and a runner image bump
-          # from kind v0.32.0 to v0.33.0 broke `kind create cluster` against the WSL2 Docker daemon
-          # with "failed to get kubernetes version from node" (issue #5975).
+          # silently ran whatever version windows-latest happened to bundle — v0.32.0 or v0.33.0
+          # depending on the draw.
           #
-          # A fresh Windows machine has no preinstalled kind, so removing it both restores
-          # determinism and makes this compatibility gate exercise the path real users take:
-          # Solo downloads and runs its own pinned kind from $env:USERPROFILE\.solo\bin.
+          # Kind's version is not what broke issue #5975 (the failure reproduces on the pinned
+          # v0.29.0), but a fresh Windows machine has no preinstalled kind either. Removing it makes
+          # this compatibility gate exercise the path real users take — Solo downloads and runs its
+          # own pinned kind from $env:USERPROFILE\.solo\bin — and keeps the runner image from
+          # substituting an untested version behind our back.
           $preinstalledKind = @(
             Get-Command kind -All -CommandType Application -ErrorAction SilentlyContinue |
               Where-Object { $_.Source -notlike "*\.solo\bin\*" }
