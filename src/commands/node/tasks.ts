@@ -3156,7 +3156,7 @@ export class NodeCommandTasks {
                     cwd: process.cwd(),
                     maxBuffer: 1024 * 1024 * 10, // 10MB buffer
                     env: SubprocessEnvironment.forCommand(SubprocessCommandProfile.HELM, {
-                      PATH: `${container.resolve(InjectTokens.HelmInstallationDirectory)}${PathEx.delimiter}${process.env.PATH}`,
+                      PATH: `${container.resolve(InjectTokens.HelmInstallationDirectory)}${PathEx.delimiter}${SubprocessEnvironment.currentPath()}`,
                     }),
                   },
                 ).toString();

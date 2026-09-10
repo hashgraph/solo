@@ -71,6 +71,7 @@ interface BlockNodeCommandInternal {
   ) => Promise<{id: number; releaseName: string; isChartInstalled: boolean; isLegacyChartInstalled: boolean}>;
   prepareValuesArgForBlockNode: (configuration: Record<string, unknown>) => Promise<HelmChartValues>;
   getLivenessCheckPortNumber: (chartVersion: string, componentImage?: string) => number;
+  isLocalImageAvailableInDocker: (componentImage: string) => boolean;
 }
 
 describe('BlockNodeCommand unit tests', (): void => {
@@ -132,6 +133,22 @@ describe('BlockNodeCommand unit tests', (): void => {
 
     expect(blockNodeCommandInternal.getLivenessCheckPortNumber('0.38.0')).to.equal(constants.BLOCK_NODE_PORT);
     expect(blockNodeCommandInternal.getLivenessCheckPortNumber('0.39.0')).to.equal(constants.BLOCK_NODE_HEALTH_PORT);
+  });
+
+  it('should use a semver tag on a Kind-attached local registry image to pick the readiness port', (): void => {
+    const blockNodeCommandInternal: BlockNodeCommandInternal = blockNodeCommand as unknown as BlockNodeCommandInternal;
+
+    expect(
+      blockNodeCommandInternal.getLivenessCheckPortNumber('0.38.0', 'localhost:5001/block-node-server:0.40.0'),
+    ).to.equal(constants.BLOCK_NODE_HEALTH_PORT);
+  });
+
+  it('should ignore a tagless local registry ref (implicit latest) when picking the readiness port', (): void => {
+    const blockNodeCommandInternal: BlockNodeCommandInternal = blockNodeCommand as unknown as BlockNodeCommandInternal;
+
+    expect(blockNodeCommandInternal.getLivenessCheckPortNumber('0.38.0', 'localhost:5001/block-node-server')).to.equal(
+      constants.BLOCK_NODE_PORT,
+    );
   });
 
   it('should configure the RSA mirror bootstrap source for block-stream consensus versions', async (): Promise<void> => {
@@ -259,6 +276,64 @@ describe('BlockNodeCommand unit tests', (): void => {
     expect(valueArguments).to.not.include(
       'blockNode.config.ROSTER_BOOTSTRAP_RSA_MIRROR_NODE_BASE_URL=http://mirror-2-restjava:80',
     );
+  });
+
+  it('should configure a Kind-attached local registry image with a Never pull policy', async (): Promise<void> => {
+    const blockNodeCommandInternal: BlockNodeCommandInternal = blockNodeCommand as unknown as BlockNodeCommandInternal;
+    blockNodeCommandInternal.remoteConfig = {
+      getConsensusNodes: (): Array<{name: string}> => [],
+      configuration: {
+        clusters: [],
+        state: {
+          tssEnabled: false,
+          blockNodes: [],
+        },
+      },
+    };
+    sinon.stub(blockNodeCommandInternal, 'isLocalImageAvailableInDocker').returns(true);
+
+    const chartValues: HelmChartValues = await blockNodeCommandInternal.prepareValuesArgForBlockNode({
+      blockNodeTssOverlay: false,
+      componentImage: 'localhost:5001/block-node-server:0.38.0',
+      valuesFile: undefined,
+      releaseName: 'block-node-1',
+      namespace: NamespaceName.of('solo-ns'),
+    });
+
+    const valueArguments: string[] = chartValues.toArguments();
+    expect(valueArguments).to.include('image.registry=localhost:5001');
+    expect(valueArguments).to.include('image.repository=block-node-server');
+    expect(valueArguments).to.include('image.tag=0.38.0');
+    expect(valueArguments).to.include('image.pullPolicy=Never');
+  });
+
+  it('should preserve tagless local registry refs with implicit latest tags', async (): Promise<void> => {
+    const blockNodeCommandInternal: BlockNodeCommandInternal = blockNodeCommand as unknown as BlockNodeCommandInternal;
+    blockNodeCommandInternal.remoteConfig = {
+      getConsensusNodes: (): Array<{name: string}> => [],
+      configuration: {
+        clusters: [],
+        state: {
+          tssEnabled: false,
+          blockNodes: [],
+        },
+      },
+    };
+    sinon.stub(blockNodeCommandInternal, 'isLocalImageAvailableInDocker').returns(true);
+
+    const chartValues: HelmChartValues = await blockNodeCommandInternal.prepareValuesArgForBlockNode({
+      blockNodeTssOverlay: false,
+      componentImage: 'localhost:5001/block-node-server',
+      valuesFile: undefined,
+      releaseName: 'block-node-1',
+      namespace: NamespaceName.of('solo-ns'),
+    });
+
+    const valueArguments: string[] = chartValues.toArguments();
+    expect(valueArguments).to.include('image.registry=localhost:5001');
+    expect(valueArguments).to.include('image.repository=block-node-server');
+    expect(valueArguments).to.include('image.tag=latest');
+    expect(valueArguments).to.include('image.pullPolicy=Never');
   });
 
   it('should use the block node release name as the Helm instance label selector', (): void => {

@@ -64,19 +64,25 @@ jobs:
 
       - name: Set Inputs
         id: set-inputs
+        env:
+          # github.ref, github.ref_name and github.event_name are read below through the
+          # GITHUB_REF, GITHUB_REF_NAME and GITHUB_EVENT_NAME variables the runner already
+          # provides, so only the workflow inputs need binding here.
+          DOCS_BUILD_LABEL_INPUT: ${{ inputs.docs-build-label }}
+          DRY_RUN_ENABLED_INPUT: ${{ inputs.dry-run-enabled }}
         run: |
           set -eo pipefail
           echo "::group::Set Inputs"
           echo "Inputs:"
-          echo "docs-build-label=${{ inputs.docs-build-label }}"
-          echo "dry-run-enabled=${{ inputs.dry-run-enabled }}"
-          echo "github.ref=${{ github.ref }}"
-          echo "github.ref_name=${{ github.ref_name }}"
-          echo "github.event_name=${{ github.event_name }}"
+          echo "docs-build-label=${DOCS_BUILD_LABEL_INPUT}"
+          echo "dry-run-enabled=${DRY_RUN_ENABLED_INPUT}"
+          echo "github.ref=${GITHUB_REF}"
+          echo "github.ref_name=${GITHUB_REF_NAME}"
+          echo "github.event_name=${GITHUB_EVENT_NAME}"
           echo "::endgroup::"
-          
+
           echo "::group::Default Output Values"
-          DOCS_BUILD_LABEL="${{ inputs.docs-build-label }}"
+          DOCS_BUILD_LABEL="${DOCS_BUILD_LABEL_INPUT}"
           echo "defaulting: DOCS_BUILD_LABEL=${DOCS_BUILD_LABEL}"
           MAIN_REF="main"
           echo "defaulting: MAIN_REF=${MAIN_REF}"
@@ -92,8 +98,8 @@ jobs:
           fi
          
           # Only download artifacts and attach docs to a release if this is a workflow_dispatch running with a version tag
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            if [[ "${{ github.ref_name }}" != "main" || "${{ inputs.docs-build-label }}" != "main" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if [[ "${GITHUB_REF_NAME}" != "main" || "${DOCS_BUILD_LABEL_INPUT}" != "main" ]]; then
               echo "Running with a version tag and via workflow_dispatch, this is a versioned release."
               VERSIONED_RELEASE=true
               echo "setting: VERSIONED_RELEASE=${VERSIONED_RELEASE}"
@@ -110,9 +116,9 @@ jobs:
           
           # If the github.ref_name is `main`, then we will checkout github.ref, else checkout `main` for the 
           #  docs-build-label = `main`
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
             echo "Running on 'main' branch, setting MAIN_REF to github.ref."
-            MAIN_REF="${{ github.ref }}"
+            MAIN_REF="${GITHUB_REF}"
             echo "setting: MAIN_REF=${MAIN_REF}"
           else
             echo "Running on a branch or tag other than 'main', setting MAIN_REF to 'main'."

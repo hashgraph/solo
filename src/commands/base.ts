@@ -48,6 +48,7 @@ import {LoadDockerImageOptionsBuilder} from '../integration/kind/model/load-dock
 import {checkDockerImageExists} from '../core/helpers.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {OperatingSystem} from '../business/utils/operating-system.js';
+import {ImageReference, type ParsedImageReference} from '../business/utils/image-reference.js';
 import {getEnvironmentVariable} from '../core/constants.js';
 
 interface DockerDesktopContainerdCheckResult {
@@ -276,6 +277,10 @@ export abstract class BaseCommand extends ShellRunner {
   }
 
   protected isLocalImageReference(imageReference: string): boolean {
+    if (this.isLocalRegistryImageReference(imageReference)) {
+      return true;
+    }
+
     const withoutTag: string = imageReference.includes(':')
       ? imageReference.slice(0, imageReference.lastIndexOf(':'))
       : imageReference;
@@ -283,7 +288,19 @@ export abstract class BaseCommand extends ShellRunner {
     return !firstSegment.includes('.') && !firstSegment.includes(':') && firstSegment !== 'localhost';
   }
 
+  protected isLocalRegistryImageReference(imageReference: string): boolean {
+    return /^localhost:\d+\//.test(imageReference);
+  }
+
   protected splitImageNameTag(imageReference: string): {name: string; tag: string} {
+    if (this.isLocalRegistryImageReference(imageReference)) {
+      const parsedReference: ParsedImageReference = ImageReference.parseImageReference(imageReference);
+      return {
+        name: `${parsedReference.registry}/${parsedReference.repository}`,
+        tag: parsedReference.tag,
+      };
+    }
+
     const colonIndex: number = imageReference.lastIndexOf(':');
     if (colonIndex === -1) {
       throw new SoloErrors.validation.illegalArgument(
@@ -301,11 +318,56 @@ export abstract class BaseCommand extends ShellRunner {
     return checkDockerImageExists(name, tag);
   }
 
-  protected async kindLoadComponentImage(componentImage: string, clusterContext: string): Promise<void> {
-    const kindClusterName: string = this.kindClusterNameFromContext(clusterContext);
-    this.logger.debug(`Loading '${componentImage}' into Kind cluster '${kindClusterName}'`);
+  /** Loads a local component image into the required cluster context's Kind cluster, then best-effort into any additional Kind contexts. */
+  protected async kindLoadComponentImage(
+    componentImage: string,
+    clusterContext: string,
+    additionalContexts: Context[] = [],
+  ): Promise<void> {
+    if (!clusterContext.startsWith('kind-')) {
+      throw new SoloErrors.validation.illegalArgument(
+        `Component image '${componentImage}' requires Kind image loading, but target cluster context ` +
+          `'${clusterContext}' is not a Kind cluster. Push the image to a registry reachable ` +
+          'from the target cluster and pass that registry image reference to --component-image.',
+        componentImage,
+      );
+    }
+
     const kindExecutable: string = await this.depManager.getExecutable(constants.KIND);
     const kindClient: KindClient = await this.kindBuilder.executable(kindExecutable).build();
+
+    await this.loadImageIntoKindContext(kindClient, componentImage, clusterContext);
+
+    const extraContexts: Context[] = [...new Set<Context>(additionalContexts)].filter(
+      (context: Context): boolean => context !== clusterContext,
+    );
+    for (const targetContext of extraContexts) {
+      if (!targetContext.startsWith('kind-')) {
+        this.logger.warn(
+          `Skipping preload of component image '${componentImage}' into non-Kind cluster context ` +
+            `'${targetContext}'; components deployed there must pull the image from a registry.`,
+        );
+        continue;
+      }
+      try {
+        await this.loadImageIntoKindContext(kindClient, componentImage, targetContext);
+      } catch (error) {
+        // best-effort: a stale or unreachable additional Kind context must not fail the deploy to the required cluster
+        this.logger.warn(
+          `Failed to preload component image '${componentImage}' into Kind cluster context '${targetContext}'; continuing`,
+          error,
+        );
+      }
+    }
+  }
+
+  private async loadImageIntoKindContext(
+    kindClient: KindClient,
+    componentImage: string,
+    targetContext: Context,
+  ): Promise<void> {
+    const kindClusterName: string = this.kindClusterNameFromContext(targetContext);
+    this.logger.debug(`Loading '${componentImage}' into Kind cluster '${kindClusterName}'`);
     await kindClient.loadDockerImage(
       componentImage,
       LoadDockerImageOptionsBuilder.builder().name(kindClusterName).build(),

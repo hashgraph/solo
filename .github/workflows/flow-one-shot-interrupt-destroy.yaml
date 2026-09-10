@@ -68,6 +68,8 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -91,6 +93,14 @@ jobs:
       - name: Build Application
         run: task build:compile
 
+      - name: Restore Solo Bin Cache
+        id: solo-bin-cache
+        if: ${{ !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Restore Solo Image Cache
         id: solo-image-cache
         if: ${{ !cancelled() && !failure() }}
@@ -112,6 +122,13 @@ jobs:
           fi
           export INTERRUPT_SECONDS="${{ matrix.interrupt_seconds }}"
           node .github/workflows/script/one-shot-interrupt-destroy.mjs
+
+      - name: Save Solo Bin Cache
+        if: ${{ github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
 
       - name: Save Solo Image Cache
         if: ${{ github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}

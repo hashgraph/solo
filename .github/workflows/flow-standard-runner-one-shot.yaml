@@ -90,6 +90,8 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node
@@ -110,6 +112,16 @@ jobs:
         if: ${{ matrix.install-mode == 'source' }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: task build:compile
+
+      - name: Restore Solo Bin Cache
+        # source mode only: restoring into ~/.solo/bin for the global-package matrix entry would
+        # create ~/.solo before the "Assert Clean Environment" step runs, failing that assertion.
+        id: solo-bin-cache
+        if: ${{ matrix.install-mode == 'source' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
 
       - name: Restore Solo Image Cache
         # source mode only: restoring the image cache populates ~/.solo/cache/images, which would
@@ -216,6 +228,13 @@ jobs:
           done
           echo "ERROR: Mirror REST API did not become available after 5 minutes."
           exit 1
+
+      - name: Save Solo Bin Cache
+        if: ${{ matrix.install-mode == 'source' && github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
 
       - name: Collect Diagnostics on Failure
         if: ${{ failure() }}

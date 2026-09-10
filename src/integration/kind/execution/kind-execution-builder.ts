@@ -37,11 +37,6 @@ export class KindExecutionBuilder extends ExecutionBuilder {
   private readonly _optionsWithMultipleValues: Array<{key: string; value: string[]}> = [];
 
   /**
-   * The flags to be passed to the kind command.
-   */
-  private readonly _flags: string[] = [];
-
-  /**
    * The positional arguments to be passed to the kind command.
    */
   private readonly _positionals: string[] = [];
@@ -147,19 +142,6 @@ export class KindExecutionBuilder extends ExecutionBuilder {
       throw new Error(KindExecutionBuilder.VALUE_MUST_NOT_BE_NULL);
     }
     this._environmentVariables.set(name, value);
-    return this;
-  }
-
-  /**
-   * Adds a flag to the kind execution.
-   * @param flag the flag to be added
-   * @returns this builder
-   */
-  public flag(flag: string): KindExecutionBuilder {
-    if (!flag) {
-      throw new Error('flag must not be null');
-    }
-    this._flags.push(flag);
     return this;
   }
 
