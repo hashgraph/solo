@@ -32,6 +32,18 @@ import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {SoloErrors} from '../../../src/core/errors/solo-errors.js';
+import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
+
+/** Builds a K8Factory whose default kubeconfig resolves a context to the given cluster entry names. */
+function stubK8FactoryWithClusterEntries(clusterEntriesByContext: Record<string, string>): K8Factory {
+  return {
+    default: (): unknown => ({
+      contexts: (): unknown => ({
+        readClusterOfContext: (context: string): string => clusterEntriesByContext[context] ?? '',
+      }),
+    }),
+  } as unknown as K8Factory;
+}
 
 function makeConsensusNode(name: NodeAlias, nodeId: number): ConsensusNode {
   return new ConsensusNode(
@@ -514,6 +526,39 @@ describe('Helpers', (): void => {
       const unresolvedContext: string = undefined;
       expect(Helpers.isKindContext(unresolvedContext)).to.be.false;
       expect(Helpers.isKindContext('')).to.be.false;
+    });
+
+    it('recognizes a renamed context through its kubeconfig cluster entry', (): void => {
+      expect(Helpers.isKindContext('solo-renamed', stubK8FactoryWithClusterEntries({'solo-renamed': 'kind-solo'}))).to
+        .be.true;
+    });
+  });
+
+  describe('kindClusterNameForContext', (): void => {
+    it('resolves the cluster name from a context kind wrote', (): void => {
+      expect(Helpers.kindClusterNameForContext('kind-solo')).to.equal('solo');
+      expect(Helpers.kindClusterNameForContext('kind-solo-cluster')).to.equal('solo-cluster');
+    });
+
+    it('resolves the cluster name of a renamed context through its kubeconfig cluster entry', (): void => {
+      const k8Factory: K8Factory = stubK8FactoryWithClusterEntries({'solo-renamed': 'kind-solo'});
+      expect(Helpers.kindClusterNameForContext('solo-renamed', k8Factory)).to.equal('solo');
+    });
+
+    it('returns undefined when neither the context nor its cluster entry is Kind-named', (): void => {
+      const k8Factory: K8Factory = stubK8FactoryWithClusterEntries({'gke-prod': 'gke-prod-entry'});
+      expect(Helpers.kindClusterNameForContext('gke-prod', k8Factory)).to.be.undefined;
+      expect(Helpers.kindClusterNameForContext('gke-prod')).to.be.undefined;
+      expect(Helpers.kindClusterNameForContext(undefined, k8Factory)).to.be.undefined;
+    });
+
+    it('returns undefined when the kubeconfig cluster entry cannot be read', (): void => {
+      const k8Factory: K8Factory = {
+        default: (): never => {
+          throw new Error('kubeconfig unavailable');
+        },
+      } as unknown as K8Factory;
+      expect(Helpers.kindClusterNameForContext('solo-renamed', k8Factory)).to.be.undefined;
     });
   });
 

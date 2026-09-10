@@ -13,19 +13,57 @@ import {type SoloLogger} from './core/logging/solo-logger.js';
 import {Container} from './core/dependency-injection/container-init.js';
 import {InjectTokens} from './core/dependency-injection/inject-tokens.js';
 import {SoloErrors} from './core/errors/solo-errors.js';
-import {type SoloError} from './core/errors/solo-error.js';
+import {SoloError} from './core/errors/solo-error.js';
+import {FatalErrorReporter} from './core/fatal-error-reporter.js';
 import {SilentBreak} from './core/errors/silent-break.js';
 import {ArgumentProcessor} from './argument-processor.js';
 import {VersionUpdateNotifier} from './core/version-update-notifier.js';
 import {HomebrewDeprecationNotifier} from './core/homebrew-deprecation-notifier.js';
-import {getSoloVersion} from '../version.js';
+import {VersionBanner} from './core/version-banner.js';
 
 if (!process.stdout.isTTY) {
   chalk.level = 0;
 }
 
+/**
+ * The fatal-error handlers registered by the most recent {@link main} call.
+ *
+ * `main()` runs once per CLI invocation but many times per process in the end-to-end tests, and
+ * `process.on` appends. Left unchecked, the Nth call would fan a single `uncaughtException` out to N
+ * reports of the same error — the flood the report cap exists to prevent, arriving from the other
+ * direction. Only our own listeners are removed, never ones registered elsewhere.
+ */
+let fatalErrorHandlers: {rejection: (reason: unknown) => void; exception: (error: Error) => void} | undefined;
+
+function registerFatalErrorHandlers(logger: SoloLogger): void {
+  if (fatalErrorHandlers) {
+    process.off('unhandledRejection', fatalErrorHandlers.rejection);
+    process.off('uncaughtException', fatalErrorHandlers.exception);
+  }
+
+  fatalErrorHandlers = {
+    rejection: (reason: unknown): void => FatalErrorReporter.report(logger, 'unhandledRejection', reason),
+    exception: (error: Error): void => FatalErrorReporter.report(logger, 'uncaughtException', error),
+  };
+
+  process.on('unhandledRejection', fatalErrorHandlers.rejection);
+  process.on('uncaughtException', fatalErrorHandlers.exception);
+}
+
 // eslint-disable-next-line solo/no-exported-function
 export async function main(argv: string[], context?: {logger: SoloLogger}): Promise<any> {
+  // Latch escaped-error reporting per invocation, not per process: the CLI calls main() once, but the
+  // end-to-end tests call it many times in one process, and a latch left set would reduce every failure
+  // after the first to a bare stderr line.
+  FatalErrorReporter.reset();
+
+  // Answered before the container is built, so the version is readable whatever state the installation
+  // is in — an unwritable ~/.solo/logs included. Reading the version is what a user reaches for when
+  // Solo is already misbehaving, which is exactly the situation in #5370.
+  if (VersionBanner.writeIfRequested(argv)) {
+    throw new SilentBreak('displayed version information, exiting');
+  }
+
   try {
     // New files default to 0640 and new directories to 0750. No-op on Windows.
     process.umask(0o027);
@@ -35,15 +73,24 @@ export async function main(argv: string[], context?: {logger: SoloLogger}): Prom
     const soloLogLevel: string = developerMode || constants.SOLO_DEV_OUTPUT ? 'debug' : constants.SOLO_LOG_LEVEL;
     Container.getInstance().init(constants.SOLO_HOME_DIR, constants.SOLO_CACHE_DIR, soloLogLevel);
   } catch (incomingError) {
-    const error: SoloError = new SoloErrors.system.initSystemFilesFailed(
-      incomingError instanceof Error ? incomingError : new Error(String(incomingError)),
-    );
-    if (context.logger) {
+    // An already-coded failure (e.g. an unwritable log destination) carries the specific message and
+    // remediation; wrapping it would replace its code with the generic one in the rendered error box.
+    const error: SoloError =
+      incomingError instanceof SoloError
+        ? incomingError
+        : new SoloErrors.system.initSystemFilesFailed(
+            incomingError instanceof Error ? incomingError : new Error(String(incomingError)),
+          );
+    process.exitCode = 1;
+    if (context?.logger) {
       context.logger.showUserError(error);
     } else {
-      console.error(`Error initializing container: ${error?.message}`, error);
+      // Initialization builds the logger, so a failure here often means there is nothing to log through.
+      FatalErrorReporter.reportWithoutLogger(error);
     }
-    throw error;
+    // The failure is rendered above; a SilentBreak keeps the entrypoint from rendering it a second time.
+    // The coded error rides along as the cause so programmatic callers still reach its code and steps.
+    throw new SilentBreak(error.message, error);
   }
 
   const logger: SoloLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
@@ -52,69 +99,10 @@ export async function main(argv: string[], context?: {logger: SoloLogger}): Prom
     // save the logger so that solo.ts can use it to properly flush the logs and exit
     context.logger = logger;
   }
-  process.on('unhandledRejection', (reason: {error?: Error; target?: {url?: string}}, promise): void => {
-    logger.showUserError(
-      new SoloErrors.internal.commandReturnedFalse(
-        `Unhandled Rejection at: ${JSON.stringify(promise)}`,
-        `reason: ${JSON.stringify(reason)}`,
-      ),
-    );
-  });
-  process.on('uncaughtException', (error, origin): void => {
-    logger.showUserError(new SoloErrors.internal.commandReturnedFalse('uncaughtException', String(origin)));
-  });
+  registerFatalErrorHandlers(logger);
 
   logger.debug('Initializing Solo CLI');
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
-  if (argv.some((argument): boolean => ['-version', '--version', '-v', '--v'].includes(argument))) {
-    // Check for --output flag (K8s ecosystem standard)
-    const outputFlagIndex: number = argv.findIndex(
-      (argument): boolean => argument.startsWith('--output=') || argument === '--output' || argument === '-o',
-    );
-
-    let outputFormat: string = '';
-
-    if (outputFlagIndex !== -1) {
-      const outputArgument: string = argv[outputFlagIndex];
-
-      if (outputArgument.startsWith('--output=')) {
-        outputFormat = outputArgument.split('=', 2)[1] ?? '';
-      } else if (outputFlagIndex + 1 < argv.length) {
-        outputFormat = argv[outputFlagIndex + 1];
-      }
-    }
-
-    const version: string = getSoloVersion();
-
-    // Handle different output formats
-    switch (outputFormat) {
-      case 'json': {
-        logger.showUser(JSON.stringify({version}, undefined, 2));
-        break;
-      }
-      case 'yaml': {
-        logger.showUser(`version: ${version}`);
-        break;
-      }
-      case 'wide': {
-        logger.showUser(version);
-        break;
-      }
-      default: {
-        // Default: full formatted banner
-        logger.showUser(
-          chalk.cyan('\n******************************* Solo *********************************************'),
-        );
-        logger.showUser(chalk.cyan('Version\t\t\t:'), chalk.yellow(version));
-        logger.showUser(
-          chalk.cyan('**********************************************************************************'),
-        );
-        break;
-      }
-    }
-    throw new SilentBreak('displayed version information, exiting');
-  }
-
   const result: AnyObject = await ArgumentProcessor.process(argv);
   await VersionUpdateNotifier.notifyIfUpdateAvailable(logger);
   HomebrewDeprecationNotifier.notifyIfInstalledViaHomebrew(logger);

@@ -127,18 +127,25 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Generate Matrix
         id: set_matrix
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          # github.event_name and github.ref_name are read through the GITHUB_EVENT_NAME and
+          # GITHUB_REF_NAME variables the runner already provides.
+          EXAMPLE_DIRECTORY_INPUT: ${{ inputs.example-directory }}
+          USE_REDUCED_TEST_MATRIX_INPUT: ${{ inputs.use-reduced-test-matrix }}
         run: |
-          EXAMPLE_DIR="${{ inputs.example-directory }}"
+          EXAMPLE_DIR="${EXAMPLE_DIRECTORY_INPUT}"
           STANDARD_MATRIX_FILE=".github/workflows/support/examples-test-matrix.json"
           REDUCED_MATRIX_FILE=".github/workflows/support/examples-reduced-matrix.json"
-          EVENT_NAME="${{ github.event_name }}"
-          REF_NAME="${{ github.ref_name }}"
-          USE_REDUCED_TEST_MATRIX="${{ inputs.use-reduced-test-matrix }}"
+          EVENT_NAME="${GITHUB_EVENT_NAME}"
+          REF_NAME="${GITHUB_REF_NAME}"
+          USE_REDUCED_TEST_MATRIX="${USE_REDUCED_TEST_MATRIX_INPUT}"
 
           if [[ "${REF_NAME}" == trunk-merge/* || "${EVENT_NAME}" == "push" || "${EVENT_NAME}" == "pull_request" || "${USE_REDUCED_TEST_MATRIX}" == "true" ]]; then
             echo "Using reduced matrix (${EVENT_NAME}:${REF_NAME}, use-reduced-test-matrix=${USE_REDUCED_TEST_MATRIX})."
@@ -191,6 +198,8 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node
