@@ -33,6 +33,7 @@ import {type ContainerStatus} from '../../../resources/pod/container-status.js';
 import {type PodVolumeMount} from '../../../resources/pod/pod-volume-mount.js';
 import {ShellRunner} from '../../../../../core/shell-runner.js';
 import {SubprocessCommandProfile} from '../../../../../core/subprocess-command-profile.js';
+import {SubprocessEnvironment} from '../../../../../core/subprocess-environment.js';
 import chalk from 'chalk';
 import http from 'node:http';
 import os from 'node:os';
@@ -296,7 +297,7 @@ export class K8ClientPod implements Pod {
         detached: true,
         commandProfile: SubprocessCommandProfile.KUBECTL,
         environmentVariablesToAppend: {
-          PATH: `${this.kubectlInstallationDirectory}${path.delimiter}${process.env.PATH}`,
+          PATH: `${this.kubectlInstallationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
         },
         useShell: false,
       });

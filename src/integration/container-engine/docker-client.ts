@@ -18,6 +18,7 @@ import {Architecture} from '../../business/utils/architecture.js';
 import {type ContainerEngineCommand} from './container-engine-command.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {PodmanClient} from './podman-client.js';
+import {KindProviderResolver} from './kind-provider-resolver.js';
 import {ContainerEngineResourceInspector} from './container-engine-resource-inspector.js';
 import {ClusterNodeResumeOutcome} from './cluster-node-resume-outcome.js';
 import {type ContainerEngineResources} from './container-engine-resources.js';
@@ -184,7 +185,7 @@ export class DockerClient implements ContainerEngineClient {
       return cachedCommand;
     }
 
-    if (constants.getEnvironmentVariable('KIND_EXPERIMENTAL_PROVIDER') !== constants.PODMAN) {
+    if (KindProviderResolver.current() !== constants.PODMAN) {
       const dockerCommand: ContainerEngineCommand = DockerClient.dockerCommand();
       if (await this.containerExists(dockerCommand, nodeName)) {
         this.kindContainerCommands.set(nodeName, dockerCommand);
