@@ -78,8 +78,19 @@ describe('ConfigMapStorageBackend', (): void => {
       const buf: Buffer<ArrayBufferLike> = await backend.readBytes('foo');
       expect(buf.toString('utf8')).to.equal('bar');
     });
-    it('should throw if key not found', async (): Promise<void> => {
-      await expect(backend.readBytes('notfound')).to.be.rejectedWith(StorageBackendError);
+    it('should name the missing key instead of failing on the Buffer construction', async (): Promise<void> => {
+      await expect(backend.readBytes('notfound')).to.be.rejectedWith(
+        StorageBackendError,
+        'config map is missing key: notfound',
+      );
+    });
+    it('should name the missing key when the value is present but not a string', async (): Promise<void> => {
+      const nonStringBackend: ConfigMapStorageBackend = new ConfigMapStorageBackend({
+        data: {foo: undefined} as unknown as Record<string, string>,
+        name: '',
+        namespace: undefined,
+      });
+      await expect(nonStringBackend.readBytes('foo')).to.be.rejectedWith('config map is missing key: foo');
     });
     it('should throw if configMap.data is empty or undefined in readBytes', async (): Promise<void> => {
       const emptyBackend: ConfigMapStorageBackend = new ConfigMapStorageBackend({

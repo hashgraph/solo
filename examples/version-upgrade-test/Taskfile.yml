@@ -8,6 +8,12 @@ env:
       else
         echo "npm run solo --"
       fi
+  # Temporary workaround for block node live-stream importer instability during
+  # version-upgrade tests. Keep record streams enabled for mirror services while
+  # still exercising block node deploy/upgrade.
+  BLOCK_STREAM_STREAM_MODE: BOTH
+  BLOCK_STREAM_WRITER_MODE: FILE_AND_GRPC
+  DISABLE_IMPORTER_SPRING_PROFILES: "true"
 
 vars:
   NODE_IDENTIFIERS: "node1,node2"
@@ -31,8 +37,8 @@ vars:
     sh: sed -n "s/.*PREV_BLOCK_NODE_VERSION.*'\([^']*\)'.*/\1/p" "$(git rev-parse --show-toplevel)/version-test.ts"
 
   # Current versions to upgrade to
-  CURRENT_MIRROR_VERSION: "v0.152.0"
-
+  CURRENT_MIRROR_VERSION:
+    sh: sed -n "s/^export const MIRROR_NODE_VERSION.*'\([^']*\)'.*/\1/p" "$(git rev-parse --show-toplevel)/version.ts"
   # Local build path for network upgrade
   ROOT_DIR:
     sh: git rev-parse --show-toplevel
@@ -41,8 +47,6 @@ tasks:
   default:
     desc: Run full version upgrade test scenario
     cmds:
-      # Run solo init to install dependencies
-      - cmd: $SOLO_COMMAND init --dev
       - task: setup-cluster
       - task: deploy-old-versions
       - task: upgrade-components
@@ -73,9 +77,6 @@ tasks:
 
       # Set kubectl context
       - cmd: kubectl config set-context {{ .CONTEXT }}
-
-      # Solo init
-      - cmd: $SOLO_COMMAND init
 
       # Solo cluster-ref config setup
       - cmd: $SOLO_COMMAND cluster-ref config setup --quiet-mode --dev
@@ -137,10 +138,11 @@ tasks:
   upgrade-components:
     desc: Upgrade all components to current versions
     cmds:
-      # Upgrade mirror node
+      # Upgrade mirror node to solo's current default version so the target tracks version.ts instead of a stale pin
       - cmd: |
           $SOLO_COMMAND mirror node upgrade --deployment {{ .DEPLOYMENT }} \
-          --mirror-node-version {{ .CURRENT_MIRROR_VERSION }}
+          --mirror-node-version {{ .CURRENT_MIRROR_VERSION }} \
+          --pinger
       - cmd: $SOLO_COMMAND ledger account create --deployment {{ .DEPLOYMENT }} --hbar-amount 50
 
       # Upgrade network to main with local build path

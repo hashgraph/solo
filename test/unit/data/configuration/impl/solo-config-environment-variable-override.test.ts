@@ -23,6 +23,7 @@
  */
 
 import {expect} from 'chai';
+import {before} from 'mocha';
 import {EnvironmentStorageBackend} from '../../../../../src/data/backend/impl/environment-storage-backend.js';
 import {EnvironmentConfigSource} from '../../../../../src/data/configuration/impl/environment-config-source.js';
 import {ClassToObjectMapper} from '../../../../../src/data/mapper/impl/class-to-object-mapper.js';
@@ -30,8 +31,15 @@ import {ConfigKeyFormatter} from '../../../../../src/data/key/config-key-formatt
 import {SoloConfigSchema} from '../../../../../src/data/schema/model/solo/solo-config-schema.js';
 import {Prefix} from '../../../../../src/data/key/prefix.js';
 import {EnvironmentKeyFormatter} from '../../../../../src/data/key/environment-key-formatter.js';
+import {EnvironmentAliasRegistry} from '../../../../../src/data/schema/decorators/environment-alias-registry.js';
 
 const mapper: ClassToObjectMapper = new ClassToObjectMapper(ConfigKeyFormatter.instance());
+
+// These tests verify the naming CONVENTION (env var -> config key) with environment aliases disabled,
+// so an all-underscore alias registered elsewhere cannot influence the pure-convention assertions.
+before((): void => {
+  EnvironmentAliasRegistry.resetRootSchemas();
+});
 
 // ---------------------------------------------------------------------------
 // Helper: save / restore process.env around each test

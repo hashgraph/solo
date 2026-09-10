@@ -6,6 +6,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency-injection/container-helper.js';
 import {InjectTokens} from '../dependency-injection/inject-tokens.js';
 import {BaseDependencyManager} from './base-dependency-manager.js';
+import {SubprocessCommandProfile} from '../subprocess-command-profile.js';
 import {PackageDownloader} from '../package-downloader.js';
 import {format} from 'node:util';
 import {SoloErrors} from '../errors/solo-errors.js';
@@ -55,6 +56,7 @@ export class KubectlDependencyManager extends BaseDependencyManager {
       // server or credential-related operations.
       const nullDevice: string = OperatingSystem.isWin32() ? 'nul' : '/dev/null';
       const output: string[] = await this.run(executableWithPath, ['version', '--client'], {
+        commandProfile: SubprocessCommandProfile.KUBECTL,
         environmentVariablesToAppend: {KUBECONFIG: nullDevice},
         timeoutMs: 30_000,
       });

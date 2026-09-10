@@ -5,14 +5,14 @@ import {type PrivateKey} from '@hiero-ledger/sdk';
 import {type CheckedNodesConfigClass} from './checked-nodes-config-class.js';
 import {type NodeCommonConfigWithNodeAlias} from './node-common-config-with-node-alias.js';
 import {type Client} from '@hiero-ledger/sdk';
-import {type ClusterReferenceName} from '../../../types/index.js';
+import {type ClusterReferenceName, type EndpointPortMapping} from '../../../types/index.js';
 
 export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias, CheckedNodesConfigClass {
   app: string;
   cacheDir: string;
   chainId: string;
   chartDirectory: string;
-  devMode: boolean;
+  debugMode: boolean;
   debugNodeAlias: NodeAlias;
   endpointType: string;
   soloChartVersion: string;
@@ -33,7 +33,6 @@ export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias, Check
   nodeClient: Client;
   treasuryKey: PrivateKey;
   stagingDir: string;
-  stagingKeysDir: string;
   grpcTlsCertificatePath: string;
   grpcWebTlsCertificatePath: string;
   grpcTlsKeyPath: string;
@@ -43,5 +42,9 @@ export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias, Check
   clusterRef: ClusterReferenceName;
   domainNames: string;
   domainNamesMapping: Record<NodeAlias, string>;
+  gossipEndpointPort: string;
+  gossipEndpointPortMapping: EndpointPortMapping;
+  serviceEndpointPort: string;
+  serviceEndpointPortMapping: EndpointPortMapping;
   nodeAliasesUnparsed?: string;
 }

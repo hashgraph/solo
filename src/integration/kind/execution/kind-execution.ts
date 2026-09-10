@@ -44,7 +44,7 @@ export class KindExecution {
     const [executable, ...commandArguments]: string[] = command;
     this.process = spawn(executable, commandArguments, {
       shell: false,
-      env: {...process.env, ...environmentVariables},
+      env: environmentVariables,
     });
     // With shell:false a missing/invalid executable surfaces as an async 'error' event; capture it so it
     // is never an unhandled exception and can be surfaced by waitFor()/waitForTimeout().

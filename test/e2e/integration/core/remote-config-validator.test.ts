@@ -146,10 +146,9 @@ describe('RemoteConfigValidator', (): void => {
     state = componentsDataWrapper.state;
   });
 
-  after(async function (): Promise<void> {
-    this.timeout(Duration.ofMinutes(5).toMillis());
+  after(async (): Promise<void> => {
     await k8Factory.default().namespaces().delete(namespace);
-  });
+  }).timeout(Duration.ofMinutes(5).toMillis());
 
   async function createPod(name: string, labelsRaw: string[]): Promise<void> {
     const labels: Record<string, string> = {};

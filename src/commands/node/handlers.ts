@@ -17,13 +17,14 @@ import {type ComponentId, type Optional, type SoloListr, type SoloListrTask} fro
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {CommandHandler} from '../../core/command-handler.js';
-import {type NamespaceName} from '../../types/namespace/namespace-name.js';
+import {NamespaceName} from '../../types/namespace/namespace-name.js';
 import {type ConsensusNode} from '../../core/model/consensus-node.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type NodeDestroyContext} from './config-interfaces/node-destroy-context.js';
 import {type NodeAddContext} from './config-interfaces/node-add-context.js';
 import {type NodeUpdateContext} from './config-interfaces/node-update-context.js';
 import {type NodeUpgradeContext} from './config-interfaces/node-upgrade-context.js';
+import {type NodeFreezeContext} from './config-interfaces/node-freeze-context.js';
 import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
 import {DeploymentPhase} from '../../data/schema/model/remote/deployment-phase.js';
 import {Templates} from '../../core/templates.js';
@@ -76,7 +77,6 @@ export class NodeCommandHandlers extends CommandHandler {
   private static readonly DESTROY_CONTEXT_FILE: string = 'node-destroy.json';
   private static readonly UPDATE_CONTEXT_FILE: string = 'node-update.json';
   private static readonly UPGRADE_CONTEXT_FILE: string = 'node-upgrade.json';
-
   private resolveOutputDirectory(argv: ArgvStruct, fallback: string = ''): string {
     this.nodeConfigManager.update(argv);
     return this.nodeConfigManager.getFlag<string>(flags.outputDir) || fallback;
@@ -140,11 +140,12 @@ export class NodeCommandHandlers extends CommandHandler {
   }
 
   /**
-   * Collects the diagnostics that are available without a cluster connection
-   * (Solo logs and local configuration) and analyzes them. Used as a graceful
-   * fallback for the diagnostics commands when the Kubernetes cluster is not
-   * reachable — either no active context, or a stale context pointing at a
-   * cluster that has been torn down.
+   * Collects the diagnostics that are available without loading the remote
+   * configuration (Solo logs and local configuration) and analyzes them. Used as a
+   * graceful fallback for the diagnostics commands when full remote collection cannot
+   * proceed — either the Kubernetes cluster is not reachable (no active context, or a
+   * stale context pointing at a torn-down cluster), or the deployment's remote config
+   * is absent (for example after the deployment was destroyed, which deletes it).
    */
   private async collectLocalDiagnosticsOnly(argv: ArgvStruct, reason?: string): Promise<boolean> {
     const outputDirectory: string = this.resolveOutputDirectory(argv, constants.SOLO_LOGS_DIR);
@@ -152,9 +153,9 @@ export class NodeCommandHandlers extends CommandHandler {
     const reasonSuffix: string = reason ? ` (${reason})` : '';
     this.logger.showUser(
       chalk.yellow(
-        `\n⚠  No reachable Kubernetes cluster${reasonSuffix}. Collecting locally available\n` +
-          '   diagnostics only (Solo logs and local configuration). Remote consensus node\n' +
-          '   logs cannot be collected without a cluster connection.',
+        `\n⚠  Falling back to local diagnostics only${reasonSuffix}. Collecting the Solo logs\n` +
+          '   and local configuration. Remote consensus node logs and cluster state are not\n' +
+          '   being collected.',
       ),
     );
 
@@ -170,6 +171,74 @@ export class NodeCommandHandlers extends CommandHandler {
 
     this.logger.showUser(chalk.cyan(`\nLocal diagnostics collected to: ${outputDirectory}`));
     return true;
+  }
+
+  /**
+   * Shared preamble for the log-collecting diagnostics commands (`logs`, `all`). Ensures a
+   * deployment is selected in {@link argv} and decides whether full remote collection can run.
+   *
+   * Diagnostics must never hard-fail just because the cluster state is incomplete — they are
+   * most useful precisely when something is broken. Collection degrades to local-only when the
+   * cluster is unreachable, or when the selected deployment's `solo-remote-config` ConfigMap is
+   * absent (for example after the deployment was destroyed, which deletes it) — in either case
+   * loading the remote configuration would throw and abort the whole command.
+   *
+   * @returns the reason to fall back to local-only collection, or undefined to proceed with
+   *   full remote collection.
+   */
+  private async localDiagnosticsFallbackReason(argv: ArgvStruct): Promise<string | undefined> {
+    const reachability: ClusterReachability = await DiagnosticsCollector.isKubeClusterReachable(this.k8Factory);
+    if (!reachability.reachable) {
+      return reachability.reason ?? 'the Kubernetes cluster is not reachable';
+    }
+
+    if (!argv[flags.deployment.name]) {
+      argv[flags.deployment.name] = await this.resolveDeploymentForLogs(argv);
+    }
+
+    const deploymentName: string = String(argv[flags.deployment.name] ?? '');
+    if (deploymentName && !(await this.remoteConfigConfigMapExists(deploymentName))) {
+      return `the '${deploymentName}' deployment has no remote configuration — it may have been destroyed`;
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Best-effort, non-throwing check for whether a deployment's `solo-remote-config` ConfigMap is
+   * present. The namespace and context are resolved from local config only (a read-only lookup);
+   * when the deployment is not held locally it must have been discovered from a live remote scan,
+   * so its ConfigMap exists. Any inability to determine presence is reported as present so the
+   * normal collection path still runs and surfaces the real error rather than hiding it.
+   */
+  private async remoteConfigConfigMapExists(deploymentName: string): Promise<boolean> {
+    await this.localConfig.load();
+
+    let deployment: Deployment;
+    try {
+      deployment = this.localConfig.configuration.deploymentByName(deploymentName);
+    } catch {
+      // Not a locally-known deployment: it was resolved from a live remote-config scan, so it exists.
+      return true;
+    }
+
+    const clusterReference: string | undefined = deployment.clusters.get(0)?.toString();
+    const context: string | undefined = this.localConfig.configuration.clusterRefs.get(clusterReference)?.toString();
+    if (!context) {
+      // Cannot resolve a context for the deployment; let the normal path run and surface any error.
+      return true;
+    }
+
+    try {
+      return await this.k8Factory
+        .getK8(context)
+        .configMaps()
+        .exists(NamespaceName.of(deployment.namespace), constants.SOLO_REMOTE_CONFIGMAP_NAME);
+    } catch {
+      // Presence could not be determined (e.g. a transient API error); assume present so the real
+      // error surfaces through the normal collection path instead of being hidden by a fallback.
+      return true;
+    }
   }
 
   /** ******** Task Lists **********/
@@ -201,7 +270,6 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.prepareStagingDirectory('existingNodeAliases'),
       this.tasks.refreshNodeList(),
       this.tasks.copyNodeKeysToSecrets('refreshedConsensusNodes'),
-      this.tasks.getNodeLogsAndConfigs(),
       this.tasks.updateChartWithConfigMap(
         'Delete network node from chart and update configMaps',
         NodeSubcommandType.DESTROY,
@@ -256,8 +324,8 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.downloadNodeGeneratedFilesForDynamicAddressBook(),
       this.tasks.prepareStagingDirectory('allNodeAliases'),
       this.tasks.addNewConsensusNodeToRemoteConfig(),
-      this.tasks.copyNodeKeysToSecrets(),
-      this.tasks.getNodeLogsAndConfigs(),
+      // The new node is not part of the active proof roster immediately after node create.
+      this.tasks.copyNodeKeysToSecrets(undefined, false),
       this.tasks.updateChartWithConfigMap('Deploy new network node', NodeSubcommandType.ADD),
       this.tasks.stopNodes('existingNodeAliases'),
       this.tasks.killNodes(),
@@ -268,6 +336,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.uploadStateToNewNode(),
       this.tasks.setupNetworkNodes('allNodeAliases', false),
       this.tasks.updateBlockNodesJson(),
+      this.tasks.refreshBlockNodeRsaBootstrapStateTask(),
       this.tasks.addWrapsLib(),
       this.tasks.startNodes('allNodeAliases'),
       this.tasks.enablePortForwarding(),
@@ -279,6 +348,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.loadAdminKey(),
       this.tasks.setGrpcWebEndpoint('newNodeAliases', NodeSubcommandType.ADD),
       this.tasks.finalize(),
+      this.tasks.removeCachedKeys(),
     ];
   }
 
@@ -306,8 +376,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
       this.tasks.downloadNodeGeneratedFilesForDynamicAddressBook(),
       this.tasks.prepareStagingDirectory('allNodeAliases'),
-      this.tasks.copyNodeKeysToSecrets(),
-      this.tasks.getNodeLogsAndConfigs(),
+      this.tasks.copyNodeKeysToSecrets(undefined, false),
       this.tasks.updateChartWithConfigMap(
         'Update chart to use new configMap due to account number change',
         NodeSubcommandType.UPDATE,
@@ -317,6 +386,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
       this.tasks.setupNetworkNodes('allNodeAliases', false),
+      this.tasks.refreshBlockNodeRsaBootstrapStateTask(),
       this.tasks.addWrapsLib(),
       this.tasks.startNodes('allNodeAliases'),
       this.tasks.enablePortForwarding(),
@@ -324,7 +394,34 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.checkAllNodeProxiesAreActive(),
       this.tasks.triggerStakeWeightCalculate<NodeUpdateContext>(NodeSubcommandType.UPDATE),
       this.tasks.finalize(),
+      this.tasks.removeCachedKeys(),
     ];
+  }
+
+  private skipTaskWhenNodeStartSkipped(task: SoloListrTask<NodeUpgradeContext>): SoloListrTask<NodeUpgradeContext> {
+    return {
+      ...task,
+      skip: (context_: NodeUpgradeContext): boolean | string =>
+        context_.config.skipNodeStart ? 'Skipped by --skip-node-start' : false,
+    };
+  }
+
+  private markNodesConfiguredWhenNodeStartSkipped(): SoloListrTask<NodeUpgradeContext> {
+    const task: SoloListrTask<NodeUpgradeContext> = this.changeAllNodePhases(
+      DeploymentPhase.CONFIGURED,
+    ) as SoloListrTask<NodeUpgradeContext>;
+
+    return {
+      ...task,
+      title: 'Mark nodes CONFIGURED because node start was skipped',
+      skip: (context_: NodeUpgradeContext): boolean | string => {
+        if (!context_.config.skipNodeStart) {
+          return 'Node start was not skipped';
+        }
+
+        return !this.remoteConfig.isLoaded();
+      },
+    };
   }
 
   private upgradePrepareTasks(argv: ArgvStruct, lease: Lock): SoloListrTask<NodeUpgradeContext>[] {
@@ -348,17 +445,19 @@ export class NodeCommandHandlers extends CommandHandler {
   private upgradeExecuteTasks(): SoloListrTask<NodeUpgradeContext>[] {
     return [
       this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
+      this.tasks.drainBlockStreamAfterFreeze<NodeUpgradeContext>(),
       this.tasks.stopNodes('existingNodeAliases'),
       this.tasks.downloadNodeUpgradeFiles(),
-      this.tasks.getNodeLogsAndConfigs(),
       this.tasks.upgradeNodeConfigurationFilesWithChart(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
+      this.tasks.updateConsensusNodeVersionInRemoteConfig(),
       this.tasks.addWrapsLib(),
-      this.tasks.startNodes('allNodeAliases'),
-      this.tasks.enablePortForwarding(),
-      this.tasks.checkAllNodesAreActive('allNodeAliases'),
-      this.tasks.checkAllNodeProxiesAreActive(),
-      this.tasks.finalize(),
+      this.markNodesConfiguredWhenNodeStartSkipped(),
+      this.skipTaskWhenNodeStartSkipped(this.tasks.startNodes('allNodeAliases')),
+      this.skipTaskWhenNodeStartSkipped(this.tasks.enablePortForwarding()),
+      this.skipTaskWhenNodeStartSkipped(this.tasks.checkAllNodesAreActive('allNodeAliases')),
+      this.skipTaskWhenNodeStartSkipped(this.tasks.checkAllNodeProxiesAreActive()),
+      this.skipTaskWhenNodeStartSkipped(this.tasks.finalize()),
     ];
   }
 
@@ -528,7 +627,7 @@ export class NodeCommandHandlers extends CommandHandler {
 
   public async upgradeExecute(argv: ArgvStruct): Promise<boolean> {
     const leaseWrapper: LeaseWrapper = {lease: undefined};
-    argv = addFlagsToArgv(argv, NodeFlags.UPGRADE_FLAGS);
+    argv = addFlagsToArgv(argv, NodeFlags.UPGRADE_EXECUTE_FLAGS);
     await this.commandAction(
       argv,
       [
@@ -736,14 +835,11 @@ export class NodeCommandHandlers extends CommandHandler {
 
   public async logs(argv: ArgvStruct): Promise<boolean> {
     argv = addFlagsToArgv(argv, NodeFlags.LOGS_FLAGS);
+    const scopeToSelectedDeployment: boolean = Boolean(this.resolveDeploymentFlag(argv));
 
-    const reachability: ClusterReachability = await DiagnosticsCollector.isKubeClusterReachable(this.k8Factory);
-    if (!reachability.reachable) {
-      return await this.collectLocalDiagnosticsOnly(argv, reachability.reason);
-    }
-
-    if (!argv[flags.deployment.name]) {
-      argv[flags.deployment.name] = await this.resolveDeploymentForLogs(argv);
+    const fallbackReason: string | undefined = await this.localDiagnosticsFallbackReason(argv);
+    if (fallbackReason !== undefined) {
+      return await this.collectLocalDiagnosticsOnly(argv, fallbackReason);
     }
 
     const outputDirectory: string = this.resolveOutputDirectory(argv);
@@ -751,11 +847,11 @@ export class NodeCommandHandlers extends CommandHandler {
     await this.commandAction(
       argv,
       [
-        this.tasks.initialize(argv, this.configs.logsConfigBuilder.bind(this.configs), null, true, false),
+        this.tasks.initialize(argv, this.configs.logsConfigBuilder.bind(this.configs), undefined, true, false),
         this.tasks.getNodeLogsAndConfigs(undefined, outputDirectory),
-        this.tasks.getHelmChartValues(outputDirectory),
-        GetSoloRemoteConfigMapTask.getTask(this.k8Factory, this.logger, outputDirectory),
-        this.tasks.downloadHieroComponentLogs(outputDirectory),
+        this.tasks.getHelmChartValues(outputDirectory, scopeToSelectedDeployment),
+        GetSoloRemoteConfigMapTask.getTask(this.k8Factory, this.logger, outputDirectory, scopeToSelectedDeployment),
+        this.tasks.downloadHieroComponentLogs(outputDirectory, scopeToSelectedDeployment),
         this.tasks.analyzeCollectedDiagnostics(outputDirectory),
         this.tasks.reportActivePortForwards(),
       ],
@@ -823,7 +919,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.ensureInteractiveSelectionPrompt();
       const selectedFromRemote: string = (await selectPrompt({
         message: 'Select deployment for diagnostics logs:',
-        choices: remoteDeploymentNames.map((name: string) => ({name, value: name})),
+        choices: remoteDeploymentNames.map((name: string): {name: string; value: string} => ({name, value: name})),
       })) as string;
       this.logger.showUser(`Using selected deployment: ${selectedFromRemote}`);
       return selectedFromRemote;
@@ -836,7 +932,9 @@ export class NodeCommandHandlers extends CommandHandler {
     }
 
     if (this.resolveQuietFlag(argv)) {
-      const deploymentNames: string = validDeployments.map((deployment: Deployment) => deployment.name).join(', ');
+      const deploymentNames: string = validDeployments
+        .map((deployment: Deployment): string => deployment.name)
+        .join(', ');
       throw new SoloErrors.system.multipleDeploymentsFound('local', deploymentNames);
     }
 
@@ -854,24 +952,22 @@ export class NodeCommandHandlers extends CommandHandler {
 
   public async all(argv: ArgvStruct, excludeSensitiveData: boolean = false): Promise<boolean> {
     argv = addFlagsToArgv(argv, NodeFlags.DIAGNOSTICS_CONNECTIONS);
+    const scopeToSelectedDeployment: boolean = Boolean(this.resolveDeploymentFlag(argv));
 
-    const reachability: ClusterReachability = await DiagnosticsCollector.isKubeClusterReachable(this.k8Factory);
-    if (!reachability.reachable) {
-      return await this.collectLocalDiagnosticsOnly(argv, reachability.reason);
+    const fallbackReason: string | undefined = await this.localDiagnosticsFallbackReason(argv);
+    if (fallbackReason !== undefined) {
+      return await this.collectLocalDiagnosticsOnly(argv, fallbackReason);
     }
 
-    if (!argv[flags.deployment.name]) {
-      argv[flags.deployment.name] = await this.resolveDeploymentForLogs(argv);
-    }
     const outputDirectory: string = this.resolveOutputDirectory(argv);
     await this.commandAction(
       argv,
       [
-        this.tasks.initialize(argv, this.configs.logsConfigBuilder.bind(this.configs), null, true, false),
+        this.tasks.initialize(argv, this.configs.logsConfigBuilder.bind(this.configs), undefined, true, false),
         this.tasks.getNodeLogsAndConfigs(excludeSensitiveData, outputDirectory),
-        ...(excludeSensitiveData ? [] : [this.tasks.getHelmChartValues(outputDirectory)]),
-        GetSoloRemoteConfigMapTask.getTask(this.k8Factory, this.logger, outputDirectory),
-        this.tasks.downloadHieroComponentLogs(outputDirectory),
+        ...(excludeSensitiveData ? [] : [this.tasks.getHelmChartValues(outputDirectory, scopeToSelectedDeployment)]),
+        GetSoloRemoteConfigMapTask.getTask(this.k8Factory, this.logger, outputDirectory, scopeToSelectedDeployment),
+        this.tasks.downloadHieroComponentLogs(outputDirectory, scopeToSelectedDeployment),
         this.tasks.analyzeCollectedDiagnostics(outputDirectory),
         // do not call validateConnectionsTaskList since node could be stopped or not active but logs are still needed
       ],
@@ -1013,7 +1109,7 @@ export class NodeCommandHandlers extends CommandHandler {
         this.tasks.downloadLastState(),
         this.tasks.uploadStateToNewNode(),
         this.tasks.fetchPlatformSoftware('nodeAliases'),
-        this.tasks.setupNetworkNodes('nodeAliases', true),
+        this.tasks.setupNetworkNodes('nodeAliases', false),
         this.tasks.startNodes('nodeAliases'),
         this.tasks.checkNodesAndProxiesAreActive('nodeAliases'),
       ],
@@ -1088,13 +1184,16 @@ export class NodeCommandHandlers extends CommandHandler {
         this.tasks.identifyExistingNodes(),
         this.tasks.uploadStateFiles(({config}): boolean => config.stateFile.length === 0),
         this.tasks.startNodes('nodeAliases'),
-        this.tasks.enablePortForwarding(true),
+        // Must precede checkNodesAndProxiesAreActive: when --debug-node-alias is set the JVM starts
+        // with suspend=y and will never reach ACTIVE until a debugger connects via this port-forward.
+        this.tasks.enableDebuggerPortForwarding(),
         this.tasks.checkNodesAndProxiesAreActive('nodeAliases'),
+        this.tasks.enablePortForwarding(true),
+        this.tasks.emitNodeStartedEvent(),
         this.tasks.waitForTss(),
         this.tasks.setGrpcWebEndpoint('nodeAliases', NodeSubcommandType.START),
         this.changeAllNodePhases(DeploymentPhase.STARTED, LedgerPhase.INITIALIZED),
         this.tasks.addNodeStakes(),
-        this.tasks.emitNodeStartedEvent(),
         // TODO only show this if we are not running in one-shot mode
         // this.tasks.showUserMessages(),
       ],
@@ -1153,6 +1252,7 @@ export class NodeCommandHandlers extends CommandHandler {
         this.tasks.identifyExistingNodes(),
         this.tasks.sendFreezeTransaction(),
         this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
+        this.tasks.drainBlockStreamAfterFreeze<NodeFreezeContext>(),
         this.tasks.stopNodes('existingNodeAliases'),
         this.changeAllNodePhases(DeploymentPhase.FROZEN),
       ],
@@ -1249,21 +1349,19 @@ export class NodeCommandHandlers extends CommandHandler {
       task: (context_: Context, task): SoloListr<Context> => {
         const nodeAliases: NodeAliases = context_.config.nodeAliases;
 
-        const subTasks: SoloListrTask<Context>[] = nodeAliases.map(
-          (nodeAlias): SoloListrTask<AnyListrContext> => ({
-            title: `Validating state for node ${nodeAlias}`,
-            task: (_, task): void => {
-              const state: DeploymentPhase = this.validateNodeState(
-                nodeAlias,
-                this.remoteConfig.configuration.components,
-                acceptedPhases,
-                excludedPhases,
-              );
+        const subTasks: SoloListrTask<Context>[] = nodeAliases.map((nodeAlias): SoloListrTask<AnyListrContext> => ({
+          title: `Validating state for node ${nodeAlias}`,
+          task: (_, task): void => {
+            const state: DeploymentPhase = this.validateNodeState(
+              nodeAlias,
+              this.remoteConfig.configuration.components,
+              acceptedPhases,
+              excludedPhases,
+            );
 
-              task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
-            },
-          }),
-        );
+            task.title += ` - ${chalk.green('valid state')}: ${chalk.cyan(state)}`;
+          },
+        }));
 
         return task.newListr(subTasks, {
           concurrent: false,

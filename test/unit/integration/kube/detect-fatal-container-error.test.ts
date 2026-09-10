@@ -4,6 +4,7 @@ import {expect} from 'chai';
 import {before, describe, it} from 'mocha';
 import sinon, {type SinonStub} from 'sinon';
 import {KubePodCreationFailedError} from '../../../../src/integration/kube/errors/kube-pod-creation-failed-error.js';
+import {KubePodReadinessFailedError} from '../../../../src/integration/kube/errors/kube-pod-readiness-failed-error.js';
 import {type Pod} from '../../../../src/integration/kube/resources/pod/pod.js';
 import {type ContainerStatus} from '../../../../src/integration/kube/resources/pod/container-status.js';
 import {K8ClientPods} from '../../../../src/integration/kube/k8-client/resources/pod/k8-client-pods.js';
@@ -152,7 +153,7 @@ describe('detectFatalContainerError', (): void => {
     });
   });
 
-  for (const reason of ['InvalidImageName', 'RegistryUnavailable']) {
+  for (const reason of ['InvalidImageName', 'RegistryUnavailable', 'CrashLoopBackOff']) {
     it(`should detect fatal waiting reason: ${reason}`, (): void => {
       const pod: Pod = buildPod([buildWaiting('test-container', reason)]);
       const result: string | undefined = podsClient.detectFatalContainerError(pod);
@@ -270,6 +271,30 @@ describe('detectFatalContainerError', (): void => {
       } catch (error: Error | unknown) {
         expect(error).to.be.instanceOf(KubePodCreationFailedError);
         expect((error as KubePodCreationFailedError).result).to.include('containerd socket error');
+      }
+      expect(listNamespacedPodStub).to.have.callCount(5);
+    });
+
+    it('waitForReadyStatus wraps readiness context while preserving pod creation failures', async (): Promise<void> => {
+      const pod: RawPodFixture = buildRawPodWithContainerStatus(
+        buildWaitingRawContainerStatus('ImageInspectError', containerdSocketMessage),
+      );
+      pod.status.phase = 'Pending';
+
+      const listNamespacedPodStub: SinonStub = sinon.stub().resolves({items: [pod]});
+      const pods: K8ClientPods = new K8ClientPods({listNamespacedPod: listNamespacedPodStub} as never, {} as never, '');
+
+      try {
+        await pods.waitForReadyStatus(NamespaceName.of('test-namespace'), ['app=test'], 5, 0);
+        expect.fail('Expected waitForReadyStatus to reject');
+      } catch (error: Error | unknown) {
+        expect(error).to.be.instanceOf(KubePodReadinessFailedError);
+        expect((error as KubePodReadinessFailedError).message).to.include('test-namespace');
+        expect((error as KubePodReadinessFailedError).message).to.include('app=test');
+        expect((error as KubePodReadinessFailedError).cause).to.be.instanceOf(KubePodCreationFailedError);
+        expect(((error as KubePodReadinessFailedError).cause as KubePodCreationFailedError).result).to.include(
+          'containerd socket error',
+        );
       }
       expect(listNamespacedPodStub).to.have.callCount(5);
     });

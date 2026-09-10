@@ -14,7 +14,7 @@ import {type ConfigProvider} from '../data/configuration/api/config-provider.js'
 import {SoloConfigSchema} from '../data/schema/model/solo/solo-config-schema.js';
 import {SoloConfig} from '../business/runtime-state/config/solo/solo-config.js';
 
-type BlockNodeConnectionDataBase = {
+type BlockNodeConnectionDatabase = {
   messageSizeSoftLimitBytes?: number;
   messageSizeHardLimitBytes?: number;
 };
@@ -24,7 +24,7 @@ type BlockNodeConnectionData = {
   streamingPort: number;
   servicePort: number;
   priority: number;
-} & BlockNodeConnectionDataBase;
+} & BlockNodeConnectionDatabase;
 
 interface BlockNodesJsonStructure {
   nodes: BlockNodeConnectionData[];
@@ -63,7 +63,7 @@ export class BlockNodesJsonWrapper implements ToJSON {
    * TSS is enabled. A deployment-wide override persisted in remote config (set via the block node
    * `--block-node-message-size-*-limit-bytes` flags) takes precedence over the TSS config default.
    */
-  private resolveMessageSizeFields(): BlockNodeConnectionDataBase {
+  private resolveMessageSizeFields(): BlockNodeConnectionDatabase {
     if (!this.tssEnabled) {
       return {};
     }
@@ -100,7 +100,7 @@ export class BlockNodesJsonWrapper implements ToJSON {
 
       const port: number = constants.BLOCK_NODE_PORT;
 
-      const tssMessageSizeFields: BlockNodeConnectionDataBase = this.resolveMessageSizeFields();
+      const tssMessageSizeFields: BlockNodeConnectionDatabase = this.resolveMessageSizeFields();
 
       blockNodeConnectionData.push({
         address,
@@ -119,7 +119,7 @@ export class BlockNodesJsonWrapper implements ToJSON {
       const address: string = blockNodeComponent.address;
       const port: number = blockNodeComponent.port;
 
-      const tssMessageSizeFields: BlockNodeConnectionDataBase = this.resolveMessageSizeFields();
+      const tssMessageSizeFields: BlockNodeConnectionDatabase = this.resolveMessageSizeFields();
 
       blockNodeConnectionData.push({
         address,

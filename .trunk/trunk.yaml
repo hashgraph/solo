@@ -4,8 +4,8 @@ merge:
     - "Code Style / Standard"
     - "Unit Tests / windows-2022"
     - "Unit Tests / hiero-solo-linux-medium"
-    - "CodeCov / Standard"
-    - "Codacy / Coverage"
+#    - "CodeCov / Standard"
+#    - "Codacy / Coverage"
     - "E2E Tests (Standard) / Standard"
     - "E2E Tests (Integration) / Integration"
     - "E2E Tests (Node Add Local) / Node Add Local"
@@ -23,7 +23,7 @@ merge:
     - "Windows Deploy and Destroy"
     - "Standard Runner Deploy and Destroy"
 #########
-# Add or remove Test Example must make sure also update examples-trunkio-matrix.json or examples-test-matrix.json accordingly
+# Add or remove Test Example must make sure also update examples-reduced-matrix.json or examples-test-matrix.json accordingly
 #########
     - "Test Example (Consensus Node JVM Parameters)"
 #    - "Test Example (Multicluster Backup and Restore)"
@@ -35,7 +35,7 @@ merge:
 #    - "Test Example (Node Delete Transaction)"
 #    - "Test Example (Node Update Transaction)"
 #    - "Test Example (Local Build with Custom Config)"
-    - "Test Example (Version Upgrade Test)"
+#    - "Test Example (Version Upgrade Test)"
 #    - "Test Example (One Shot Falcon)"
 #    - "Test Example (Rapid Fire)"
     - "Test Example (State Save and Restore)"

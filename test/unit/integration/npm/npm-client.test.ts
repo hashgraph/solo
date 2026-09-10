@@ -8,6 +8,7 @@ import {expect} from 'chai';
 import {describe, it, beforeEach, afterEach} from 'mocha';
 import {NpmClient} from '../../../../src/integration/npm/npm-client.js';
 import {ShellRunner} from '../../../../src/core/shell-runner.js';
+import {OperatingSystem} from '../../../../src/business/utils/operating-system.js';
 
 describe('NpmClient', (): void => {
   let npmClient: NpmClient;
@@ -22,11 +23,38 @@ describe('NpmClient', (): void => {
 
   describe('listGlobal', (): void => {
     it('should call npm list with global and depth=0 flags', async (): Promise<void> => {
+      sinon.stub(OperatingSystem, 'isWin32').returns(false);
       shellRunnerRunStub.resolves([]);
 
       await npmClient.listGlobal();
 
       expect(shellRunnerRunStub).to.have.been.calledOnceWith('npm', ['list', '--global', '--depth=0']);
+    });
+
+    it('should spawn npm through a shell on Windows, where npm is a .cmd batch file', async (): Promise<void> => {
+      sinon.stub(OperatingSystem, 'isWin32').returns(true);
+      shellRunnerRunStub.resolves([]);
+
+      await npmClient.listGlobal();
+
+      expect(shellRunnerRunStub).to.have.been.calledOnceWith(
+        'npm',
+        ['list', '--global', '--depth=0'],
+        sinon.match.has('useShell', true),
+      );
+    });
+
+    it('should spawn npm without a shell on other platforms', async (): Promise<void> => {
+      sinon.stub(OperatingSystem, 'isWin32').returns(false);
+      shellRunnerRunStub.resolves([]);
+
+      await npmClient.listGlobal();
+
+      expect(shellRunnerRunStub).to.have.been.calledOnceWith(
+        'npm',
+        ['list', '--global', '--depth=0'],
+        sinon.match.has('useShell', false),
+      );
     });
 
     it('should return the lines from npm list output', async (): Promise<void> => {

@@ -3,6 +3,8 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import {ShellRunner} from '../shell-runner.js';
+import {SubprocessCommandProfile} from '../subprocess-command-profile.js';
+import {SubprocessEnvironment} from '../subprocess-environment.js';
 import {type PackageManager} from './package-manager.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {getEnvironmentVariable} from '../constants.js';
@@ -27,25 +29,25 @@ export class BrewPackageManager extends ShellRunner implements PackageManager {
   }
 
   public async installPackages(dependencies: string[]): Promise<void> {
-    await this.run('brew', ['install', ...dependencies]);
+    await this.run('brew', ['install', ...dependencies], {commandProfile: SubprocessCommandProfile.BREW});
   }
 
   public async uninstallPackages(dependencies: string[]): Promise<void> {
-    await this.run('brew', ['uninstall', ...dependencies]);
+    await this.run('brew', ['uninstall', ...dependencies], {commandProfile: SubprocessCommandProfile.BREW});
   }
 
   public async update(): Promise<void> {
-    await this.run('brew', ['update']);
+    await this.run('brew', ['update'], {commandProfile: SubprocessCommandProfile.BREW});
   }
 
   public async upgrade(dependencies: string[]): Promise<void> {
-    await this.run('brew', ['upgrade', ...dependencies]);
+    await this.run('brew', ['upgrade', ...dependencies], {commandProfile: SubprocessCommandProfile.BREW});
   }
 
   public async install(): Promise<boolean> {
     await this.runHomebrewScript(BrewPackageManager.INSTALL_SCRIPT_URL);
     await this.applyShellEnvironment();
-    process.env.PATH = `${process.env.PATH}${PathEx.delimiter}${BrewPackageManager.LINUXBREW_BIN}`;
+    SubprocessEnvironment.appendSessionPath(BrewPackageManager.LINUXBREW_BIN);
     return this.isAvailable();
   }
 
@@ -55,7 +57,7 @@ export class BrewPackageManager extends ShellRunner implements PackageManager {
 
   public async isAvailable(): Promise<boolean> {
     try {
-      await this.run('brew', ['--version']);
+      await this.run('brew', ['--version'], {commandProfile: SubprocessCommandProfile.BREW});
       return true;
     } catch {
       return false;
@@ -71,7 +73,11 @@ export class BrewPackageManager extends ShellRunner implements PackageManager {
     const scriptPath: string = PathEx.join(temporaryDirectory, 'homebrew.sh');
     try {
       await this.run('curl', ['-fsSL', scriptUrl, '-o', scriptPath]);
-      await this.run('bash', [scriptPath], {verbose: true, environmentVariablesToAppend: {NONINTERACTIVE: '1'}});
+      await this.run('bash', [scriptPath], {
+        verbose: true,
+        commandProfile: SubprocessCommandProfile.BREW,
+        environmentVariablesToAppend: {NONINTERACTIVE: '1'},
+      });
     } finally {
       // Remove the whole temp directory created by mkdtempSync, not just the script file.
       fs.rmSync(temporaryDirectory, {recursive: true, force: true});
@@ -81,17 +87,41 @@ export class BrewPackageManager extends ShellRunner implements PackageManager {
   /**
    * Applies the environment that `brew shellenv` would export, without a shell `eval`. Parses the
    * `export KEY="VALUE";` lines and expands the shell parameter references each value contains.
+   * The values are registered as session environment state for subsequent spawned commands
+   * instead of mutating the global `process.env`.
    */
   private async applyShellEnvironment(): Promise<void> {
-    const output: string[] = await this.run(`${BrewPackageManager.LINUXBREW_BIN}/brew`, ['shellenv']);
+    const output: string[] = await this.run(`${BrewPackageManager.LINUXBREW_BIN}/brew`, ['shellenv'], {
+      commandProfile: SubprocessCommandProfile.BREW,
+    });
     for (const line of output) {
       const match: RegExpMatchArray | null = line.match(/^export ([A-Za-z_]\w*)="(.*)";?$/);
       if (!match) {
         continue;
       }
       const [, key, rawValue]: string[] = match;
-      // eslint-disable-next-line no-restricted-syntax
-      process.env[key] = BrewPackageManager.expandShellValue(rawValue);
+      if (key === 'PATH') {
+        BrewPackageManager.registerPathAdditions(rawValue);
+      } else {
+        SubprocessEnvironment.setSessionVariable(key, BrewPackageManager.expandShellValue(rawValue));
+      }
+    }
+  }
+
+  /**
+   * Registers the new directories from a raw shellenv `PATH` value as session path prepends, preserving order.
+   * References to the existing PATH are dropped, never expanded and re-split on the `:` brew hardcodes.
+   */
+  private static registerPathAdditions(rawPathValue: string): void {
+    const literalValue: string = rawPathValue.replaceAll(/\$(\{PATH[^}]*\}|PATH\b)/g, '');
+    const currentSegments: Set<string> = new Set<string>(SubprocessEnvironment.currentPath().split(PathEx.delimiter));
+    const newSegments: string[] = BrewPackageManager.expandShellValue(literalValue)
+      .split(':')
+      .filter((segment: string): boolean => Boolean(segment) && !currentSegments.has(segment));
+    // prependSessionPath puts each directory in front, so iterate in reverse to preserve order.
+    newSegments.reverse();
+    for (const segment of newSegments) {
+      SubprocessEnvironment.prependSessionPath(segment);
     }
   }
 

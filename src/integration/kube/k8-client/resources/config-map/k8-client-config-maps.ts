@@ -20,6 +20,8 @@ import {type ConfigMap} from '../../../resources/config-map/config-map.js';
 import {K8ClientConfigMap} from './k8-client-config-map.js';
 import {InjectTokens} from '../../../../../core/dependency-injection/inject-tokens.js';
 import {KubeApiResponse} from '../../../kube-api-response.js';
+import {sleep} from '../../../../../core/helpers.js';
+import {Duration} from '../../../../../core/time/duration.js';
 
 export class K8ClientConfigMaps implements ConfigMaps {
   private readonly logger: SoloLogger;
@@ -168,7 +170,13 @@ export class K8ClientConfigMaps implements ConfigMaps {
     return results?.items?.map((v1ConfigMap): ConfigMap => K8ClientConfigMap.fromV1ConfigMap(v1ConfigMap)) || [];
   }
 
-  public async update(namespace: NamespaceName, name: string, data: Record<string, string>): Promise<void> {
+  public async update(
+    namespace: NamespaceName,
+    name: string,
+    data: Record<string, string>,
+    maxAttempts: number = 5,
+    delay: number = 2000,
+  ): Promise<void> {
     if (!(await this.exists(namespace, name))) {
       throw new ResourceNotFoundError(ResourceOperation.READ, ResourceType.CONFIG_MAP, namespace, name);
     }
@@ -178,18 +186,35 @@ export class K8ClientConfigMaps implements ConfigMaps {
     };
 
     let result: V1ConfigMap;
-    try {
-      result = await this.kubeClient.patchNamespacedConfigMap(
-        {
-          name,
-          namespace: namespace.name,
-          body: patch,
-        },
-        setHeaderOptions('Content-Type', PatchStrategy.MergePatch),
-      );
-      this.logger.info(`Patched ConfigMap ${name} in namespace ${namespace}`);
-    } catch (error) {
-      KubeApiResponse.throwError(error, ResourceOperation.UPDATE, ResourceType.CONFIG_MAP, namespace, name);
+    for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        result = await this.kubeClient.patchNamespacedConfigMap(
+          {
+            name,
+            namespace: namespace.name,
+            body: patch,
+            // Helm v4 uses SSA with fieldManager="helm". Setting the same manager here
+            // prevents "conflict with node-fetch" errors when helm upgrade re-applies
+            // ConfigMaps that Solo has written to via merge-patch.
+            fieldManager: 'helm',
+          },
+          setHeaderOptions('Content-Type', PatchStrategy.MergePatch),
+        );
+        this.logger.info(`Patched ConfigMap ${name} in namespace ${namespace}`);
+        break;
+      } catch (error) {
+        // merge-patch is idempotent, so transient API server failures (e.g. etcd request
+        // timeouts surfacing as HTTP 500 on resource-constrained clusters) are safe to retry
+        if (attempt < maxAttempts && KubeApiResponse.isTransientServerError(error)) {
+          this.logger.warn(
+            `transient error patching ConfigMap ${name} in namespace ${namespace}, ` +
+              `attempt ${attempt}/${maxAttempts}, retrying`,
+          );
+          await sleep(Duration.ofMillis(delay));
+          continue;
+        }
+        KubeApiResponse.throwError(error, ResourceOperation.UPDATE, ResourceType.CONFIG_MAP, namespace, name);
+      }
     }
 
     if (result) {

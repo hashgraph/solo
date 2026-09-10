@@ -12,7 +12,8 @@ updates:
         patterns:
           - '*'
   - package-ecosystem: "npm"
-    directory: "/"
+    directories:
+      - "**/*"
     schedule:
       interval: "daily"
     cooldown:

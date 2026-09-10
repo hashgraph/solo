@@ -67,20 +67,18 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           await container.resolve<LocalConfigRuntimeState>(InjectTokens.LocalConfigRuntimeState).load();
         });
 
-        after(async function (): Promise<void> {
+        after(async (): Promise<void> => {
           // @ts-expect-error: TS2339 - to restore
           SoloPinoLogger.prototype.showUser.restore();
           // @ts-expect-error: TS2339 - to restore
           SoloPinoLogger.prototype.showJSON.restore();
-
-          this.timeout(Duration.ofMinutes(3).toMillis());
 
           await preDestroy(endToEndTestSuite);
 
           await k8Factory.default().namespaces().delete(namespace);
 
           ClusterReferenceTest.setup(options);
-        });
+        }).timeout(Duration.ofMinutes(3).toMillis());
 
         // give a few ticks so that connections can close
         afterEach(async (): Promise<void> => await sleep(Duration.ofMillis(20)));
@@ -96,7 +94,7 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
         it('solo cluster setup should fail with invalid cluster name', async (): Promise<void> => {
           await expect(
             main(ClusterReferenceTest.soloClusterReferenceSetup(testName, clusterReferenceName, 'INVALID')),
-          ).to.be.rejectedWith("Namespace name 'INVALID' is invalid");
+          ).to.be.rejectedWith("Invalid value 'INVALID' for flag --cluster-setup-namespace");
         }).timeout(Duration.ofMinutes(1).toMillis());
 
         it('solo cluster setup should work with valid args', async (): Promise<void> => {
@@ -133,7 +131,7 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
         // helm list would return an empty list if given invalid namespace
         it('solo cluster reset should fail with invalid cluster name', async (): Promise<void> => {
           try {
-            await main(ClusterReferenceTest.soloClusterReferenceReset(testName, 'INVALID'));
+            await main(ClusterReferenceTest.soloClusterReferenceReset(testName, 'unknown-cluster-ref'));
             expect.fail();
           } catch (error) {
             expect(error.message).to.include('Cluster reset failed');

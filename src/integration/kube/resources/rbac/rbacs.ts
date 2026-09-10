@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {type ClusterRole} from './cluster-role.js';
+
 /**
  * Interface for RBAC operations
  */
@@ -26,6 +28,13 @@ export interface Rbacs {
    * @returns True if the cluster role exists, false otherwise
    */
   clusterRoleExists(name: string): Promise<boolean>;
+
+  /**
+   * Read a ClusterRole with its labels and rules
+   * @param name The name of the cluster role
+   * @returns The cluster role, or undefined when it does not exist
+   */
+  readClusterRole(name: string): Promise<ClusterRole | undefined>;
 
   /**
    * Delete a ClusterRole

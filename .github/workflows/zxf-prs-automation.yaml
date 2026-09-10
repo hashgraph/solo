@@ -1,0 +1,285 @@
+name: "ZXF: PR Automation"
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
+      - edited
+      - ready_for_review
+      - converted_to_draft
+  pull_request_review:
+    types:
+      - submitted
+      - dismissed
+  pull_request_review_comment:
+    types:
+      - created
+      - edited
+      - deleted
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 */4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  auto-assign-merge-queue:
+    name: "Auto-Assign Merge Queue PRs"
+    if: github.event_name == 'pull_request' && startsWith(github.base_ref, 'trunk-merge/')
+    runs-on: hiero-solo-linux-medium
+    permissions:
+      contents: read
+      pull-requests: write # auto-assign reviewers on merge queue pull requests
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Auto-Assign PRs to Merge Queue
+        uses: step-security/auto-assign-action@9bf0ed34ed655f58718443237d3d9a4fead49f00 # v2.0.2
+        with:
+          repo-token: ${{ secrets.GH_ACCESS_TOKEN }}
+          configuration-path: ".github/auto_assign.yaml"
+
+  pr-automation:
+    name: "PR Automation"
+    runs-on: hiero-solo-linux-medium
+    permissions:
+      contents: read
+      pull-requests: write # github-script converts pull requests to draft
+      issues: write # github-script adds and removes labels
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Automate PR Labels and Status
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ secrets.GH_ACCESS_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+
+            // Priority order: P0 is highest, P3 is lowest.
+            const PRIORITY_LABELS = ['P0-🔥', 'P1-💎', 'P2-⏭️💎', 'P3-⏭️⏭️💎'];
+
+            // Labels that Dependabot applies by default and should be replaced by our taxonomy.
+            const DEPENDABOT_DEFAULT_LABELS = ['dependencies', 'github_actions', 'javascript'];
+
+            async function addLabelIfMissing(prNumber, label, existingLabels) {
+              if (!existingLabels.includes(label)) {
+                await github.rest.issues.addLabels({ owner, repo, issue_number: prNumber, labels: [label] });
+                core.info(`Added "${label}" to PR #${prNumber}`);
+              }
+            }
+
+            async function removeLabelIfPresent(prNumber, label, existingLabels) {
+              if (existingLabels.includes(label)) {
+                try {
+                  await github.rest.issues.removeLabel({ owner, repo, issue_number: prNumber, name: label });
+                  core.info(`Removed "${label}" from PR #${prNumber}`);
+                } catch (error) {
+                  if (error.status !== 404) throw error;
+                }
+              }
+            }
+
+            async function convertToDraft(nodeId, prNumber) {
+              try {
+                await github.graphql(`
+                  mutation($id: ID!) {
+                    convertPullRequestToDraft(input: { pullRequestId: $id }) {
+                      pullRequest { isDraft }
+                    }
+                  }
+                `, { id: nodeId });
+                core.info(`Converted PR #${prNumber} to draft`);
+              } catch (error) {
+                core.warning(`Failed to convert PR #${prNumber} to draft: ${error.message}`);
+              }
+            }
+
+            async function checkUnresolvedThreads(prNumber) {
+              let cursor = null;
+              do {
+                const result = await github.graphql(`
+                  query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
+                    repository(owner: $owner, name: $repo) {
+                      pullRequest(number: $number) {
+                        reviewThreads(first: 100, after: $cursor) {
+                          nodes { isResolved isOutdated }
+                          pageInfo { hasNextPage endCursor }
+                        }
+                      }
+                    }
+                  }
+                `, { owner, repo, number: prNumber, cursor });
+                const { nodes, pageInfo } = result.repository.pullRequest.reviewThreads;
+                if (nodes.some(t => !t.isResolved && !t.isOutdated)) return true;
+                if (!pageInfo.hasNextPage) break;
+                cursor = pageInfo.endCursor;
+              } while (true);
+              return false;
+            }
+
+            async function getLinkedIssuePriority(prNumber, prBody) {
+              const result = await github.graphql(`
+                query($owner: String!, $repo: String!, $number: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    pullRequest(number: $number) {
+                      closingIssuesReferences(first: 25) {
+                        nodes {
+                          number
+                          labels(first: 10) { nodes { name } }
+                        }
+                      }
+                    }
+                  }
+                }
+              `, { owner, repo, number: prNumber });
+
+              const closingIssues = result.repository.pullRequest.closingIssuesReferences.nodes;
+              const closingNumbers = new Set(closingIssues.map(i => i.number));
+
+              // Parse body for "related to #N" patterns not already covered by closing references.
+              const relatedPattern = /(?:related\s+to|relates?\s+to|connect(?:ed)?\s+to|see\s+also)\s+#(\d+)/gi;
+              const relatedNumbers = new Set();
+              let bodyMatch;
+              while ((bodyMatch = relatedPattern.exec(prBody ?? '')) !== null) {
+                const issueNumber = parseInt(bodyMatch[1], 10);
+                if (!closingNumbers.has(issueNumber)) relatedNumbers.add(issueNumber);
+              }
+
+              const foundPriorities = new Set();
+
+              for (const issue of closingIssues) {
+                for (const label of issue.labels.nodes) {
+                  if (PRIORITY_LABELS.includes(label.name)) foundPriorities.add(label.name);
+                }
+              }
+
+              for (const issueNumber of relatedNumbers) {
+                try {
+                  const { data: issue } = await github.rest.issues.get({ owner, repo, issue_number: issueNumber });
+                  for (const label of issue.labels) {
+                    if (PRIORITY_LABELS.includes(label.name)) foundPriorities.add(label.name);
+                  }
+                } catch (error) {
+                  core.warning(`Could not fetch issue #${issueNumber}: ${error.message}`);
+                }
+              }
+
+              return PRIORITY_LABELS.find(p => foundPriorities.has(p)) ?? null;
+            }
+
+            async function processPR(prNumber) {
+              core.startGroup(`PR #${prNumber}`);
+              try {
+                const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+
+                if (pr.state === 'closed') {
+                  core.info('Closed, skipping');
+                  return;
+                }
+
+                const labels = pr.labels.map(l => l.name);
+                const isOpen = !pr.draft;
+                const isDependabot = pr.user.login === 'dependabot[bot]';
+
+                // Feature 1: Merge conflicts → add label and convert to draft.
+                // pr.mergeable is null when GitHub has not yet computed mergeability; skip in that case.
+                if (pr.mergeable === false) {
+                  await addLabelIfMissing(prNumber, 'PR: Merge Conflicts', labels);
+                  if (isOpen) await convertToDraft(pr.node_id, prNumber);
+                } else if (pr.mergeable === true) {
+                  await removeLabelIfPresent(prNumber, 'PR: Merge Conflicts', labels);
+                }
+
+                // Feature 2: Unresolved review threads → add or remove label.
+                const hasUnresolved = await checkUnresolvedThreads(prNumber);
+                if (hasUnresolved) {
+                  await addLabelIfMissing(prNumber, 'PR: Unresolved Comments', labels);
+                } else {
+                  await removeLabelIfPresent(prNumber, 'PR: Unresolved Comments', labels);
+                }
+
+                // Feature 3: Blocked label on an open PR → convert to draft.
+                if (labels.includes('Blocked') && isOpen) {
+                  await convertToDraft(pr.node_id, prNumber);
+                }
+
+                // Feature 4: Dependabot PRs → assign swirlds-automation, strip default labels, add P2.
+                if (isDependabot) {
+                  const assignees = pr.assignees.map(a => a.login);
+                  if (!assignees.includes('swirlds-automation')) {
+                    await github.rest.issues.addAssignees({
+                      owner, repo, issue_number: prNumber, assignees: ['swirlds-automation'],
+                    });
+                    core.info(`Assigned swirlds-automation to PR #${prNumber}`);
+                  }
+                  for (const label of DEPENDABOT_DEFAULT_LABELS) {
+                    await removeLabelIfPresent(prNumber, label, labels);
+                  }
+                  const hasPriorityLabel = labels.some(l => PRIORITY_LABELS.includes(l));
+                  if (!hasPriorityLabel) {
+                    await addLabelIfMissing(prNumber, 'P2-⏭️💎', labels);
+                  }
+                }
+
+                // Feature 5: Linked issues → propagate highest priority label when none is set.
+                // Skipped for Dependabot PRs since P2 is applied directly above.
+                if (!isDependabot) {
+                  const hasPriorityLabel = labels.some(l => PRIORITY_LABELS.includes(l));
+                  if (!hasPriorityLabel) {
+                    const highestPriority = await getLinkedIssuePriority(prNumber, pr.body);
+                    if (highestPriority) {
+                      await addLabelIfMissing(prNumber, highestPriority, labels);
+                    }
+                  }
+                }
+              } catch (error) {
+                core.error(`Error processing PR #${prNumber}: ${error.message}`);
+              } finally {
+                core.endGroup();
+              }
+            }
+
+            const prEventNames = ['pull_request', 'pull_request_review', 'pull_request_review_comment'];
+            if (prEventNames.includes(context.eventName)) {
+              const prNumber = context.payload.pull_request?.number;
+              if (prNumber) {
+                await processPR(prNumber);
+              } else {
+                core.warning('Could not determine PR number from event payload');
+              }
+            } else {
+              // push / schedule / workflow_dispatch — scan all open PRs.
+              let page = 1;
+              const openPRs = [];
+              while (true) {
+                const { data: batch } = await github.rest.pulls.list({
+                  owner, repo, state: 'open', per_page: 100, page,
+                });
+                openPRs.push(...batch);
+                if (batch.length < 100) break;
+                page++;
+              }
+              core.info(`Processing ${openPRs.length} open PRs`);
+              for (const pr of openPRs) {
+                await processPR(pr.number);
+              }
+            }

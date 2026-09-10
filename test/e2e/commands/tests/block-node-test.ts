@@ -39,6 +39,9 @@ export class BlockNodeTest extends BaseCommandTest {
       deployment,
       optionFromFlag(Flags.clusterRef),
       clusterReference,
+      // E2E tests add block nodes before network deploy persists tssEnabled.
+      // Force matching block-node limits for CN >= 0.74 block streaming.
+      optionFromFlag(Flags.blockNodeTssOverlay),
     );
 
     if (enableLocalBuildPathTesting) {
@@ -55,7 +58,7 @@ export class BlockNodeTest extends BaseCommandTest {
       argv.push(optionFromFlag(Flags.priorityMapping), stringBuilder.join(','));
     }
 
-    argvPushGlobalFlags(argv, testName, false, true);
+    argvPushGlobalFlags(argv, testName, true, true);
     return argv;
   }
 
@@ -113,7 +116,7 @@ export class BlockNodeTest extends BaseCommandTest {
       clusterReference,
       optionFromFlag(Flags.force),
       optionFromFlag(Flags.quiet),
-      optionFromFlag(Flags.devMode),
+      optionFromFlag(Flags.debugMode),
     );
 
     argvPushGlobalFlags(argv, testName, false, true);
@@ -139,7 +142,7 @@ export class BlockNodeTest extends BaseCommandTest {
       clusterReference,
       optionFromFlag(Flags.force),
       optionFromFlag(Flags.quiet),
-      optionFromFlag(Flags.devMode),
+      optionFromFlag(Flags.debugMode),
     );
 
     if (id !== undefined) {
@@ -186,23 +189,25 @@ export class BlockNodeTest extends BaseCommandTest {
   public static deleteExternal(options: BaseTestOptions, id?: number): void {
     const {testName, deployment, clusterReferenceNameArray} = options;
     const {soloBlockNodeDeleteExternalArgv} = BlockNodeTest;
+    const targetClusterReference: ClusterReferenceName = clusterReferenceNameArray[1] || clusterReferenceNameArray[0];
 
     it(`${testName}: block node delete-external`, async (): Promise<void> => {
-      await main(soloBlockNodeDeleteExternalArgv(testName, deployment, clusterReferenceNameArray[1], id));
+      await main(soloBlockNodeDeleteExternalArgv(testName, deployment, targetClusterReference, id));
     }).timeout(Duration.ofMinutes(5).toMillis());
   }
 
   public static destroy(options: BaseTestOptions): void {
     const {testName, deployment, clusterReferenceNameArray} = options;
     const {soloBlockNodeDestroyArgv} = BlockNodeTest;
+    const targetClusterReference: ClusterReferenceName = clusterReferenceNameArray[1] || clusterReferenceNameArray[0];
 
     it(`${testName}: block node destroy`, async (): Promise<void> => {
-      await main(soloBlockNodeDestroyArgv(testName, deployment, clusterReferenceNameArray[1]));
+      await main(soloBlockNodeDestroyArgv(testName, deployment, targetClusterReference));
     }).timeout(Duration.ofMinutes(5).toMillis());
   }
 
   public static testBlockNode(options: BaseTestOptions, blockNodeId: number = 1): void {
-    const {namespace, contexts, testName} = options;
+    const {namespace, contexts, testName, testLogger} = options;
 
     const execAsync: (
       command: string,
@@ -230,13 +235,35 @@ export class BlockNodeTest extends BaseCommandTest {
 
       // Execute script (use bash explicitly on Windows since .sh files have no default handler)
       const scriptCommand: string = OperatingSystem.isWin32() ? 'bash ./get-block.sh 1' : './get-block.sh 1';
-      const scriptStd: {stdout: string; stderr: string} = await execAsync(scriptCommand, commandOptions);
+      const maximumAttempts: number = 60;
+      let scriptStdout: string = '';
+      let scriptStderr: string = '';
+      let blockWasAvailable: boolean = false;
 
-      expect(scriptStd.stderr).to.equal('');
-      expect(scriptStd.stdout).to.include('"status": "SUCCESS"');
+      for (let attempt: number = 1; attempt <= maximumAttempts; attempt++) {
+        const scriptStd: {stdout: string; stderr: string} = await execAsync(scriptCommand, commandOptions);
+        scriptStdout = scriptStd.stdout;
+        scriptStderr = scriptStd.stderr;
+
+        if (scriptStderr === '' && scriptStdout.includes('"status": "SUCCESS"')) {
+          blockWasAvailable = true;
+          break;
+        }
+
+        if (attempt < maximumAttempts) {
+          testLogger.debug(
+            `Block node ${blockNodeId} has not returned block 1 yet; attempt ${attempt}/${maximumAttempts}`,
+          );
+          await sleep(Duration.ofSeconds(2));
+        }
+      }
+
+      expect(scriptStderr).to.equal('');
+      expect(blockWasAvailable, `expected block node ${blockNodeId} to return block 1; last output: ${scriptStdout}`).to
+        .be.true;
 
       await pod.stopPortForward(srv);
-    }).timeout(Duration.ofMinutes(2).toMillis());
+    }).timeout(Duration.ofMinutes(3).toMillis());
   }
 
   public static verifyBlockNodesJson(

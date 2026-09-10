@@ -39,20 +39,17 @@ endToEndTestSuite(namespace.name, argv, {startNodes: false}, ({opts}): void => {
     let zipPath: string;
     let checksumPath: string;
 
-    before(async function (): Promise<void> {
-      this.timeout(Duration.ofMinutes(5).toMillis());
+    before(async (): Promise<void> => {
       if (!fs.existsSync(testCacheDirectory)) {
         fs.mkdirSync(testCacheDirectory);
       }
       [zipPath, checksumPath] = await platformInstaller.getPlatformRelease(testCacheDirectory, packageVersion);
-    });
+    }).timeout(Duration.ofMinutes(5).toMillis());
 
-    after(async function (): Promise<void> {
-      this.timeout(Duration.ofMinutes(5).toMillis());
-
+    after(async (): Promise<void> => {
       await k8Factory.default().namespaces().delete(namespace);
       await accountManager.close();
-    });
+    }).timeout(Duration.ofMinutes(5).toMillis());
 
     it('should fail with invalid pod', async (): Promise<void> => {
       try {

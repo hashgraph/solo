@@ -9,6 +9,7 @@ import {type K8Factory} from '../../integration/kube/k8-factory.js';
 import {type K8} from '../../integration/kube/k8.js';
 import {type Contexts} from '../../integration/kube/resources/context/contexts.js';
 import {type ConfigMap} from '../../integration/kube/resources/config-map/config-map.js';
+import {type NamespaceName} from '../../types/namespace/namespace-name.js';
 
 export class RemoteConfigCollector {
   public constructor(
@@ -24,19 +25,31 @@ export class RemoteConfigCollector {
     return input.replaceAll(/[^A-Za-z0-9._-]/g, '_');
   }
 
-  public async collect(customOutputDirectory: string = ''): Promise<string> {
+  public async collect(
+    customOutputDirectory: string = '',
+    scopedContexts?: string[],
+    scopedNamespace?: NamespaceName,
+  ): Promise<string> {
     const outputDirectory: string = customOutputDirectory
       ? path.resolve(customOutputDirectory, 'remote-config')
       : PathEx.join(constants.SOLO_LOGS_DIR, 'remote-config');
     fs.mkdirSync(outputDirectory, {recursive: true});
 
     const contexts: Contexts = this.k8Factory.default().contexts();
-    for (const context of contexts.list()) {
+    const allowedContexts: ReadonlySet<string> | undefined = scopedContexts
+      ? new Set<string>(scopedContexts)
+      : undefined;
+    const contextList: string[] =
+      allowedContexts === undefined
+        ? contexts.list()
+        : contexts.list().filter((context): boolean => allowedContexts.has(context));
+    for (const context of contextList) {
       const k8: K8 = this.k8Factory.getK8(context);
       try {
-        const configMaps: ConfigMap[] = await k8
-          .configMaps()
-          .listForAllNamespaces([constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
+        const configMaps: ConfigMap[] =
+          scopedNamespace === undefined
+            ? await k8.configMaps().listForAllNamespaces([constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR])
+            : await k8.configMaps().list(scopedNamespace, [constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
 
         for (const configMap of configMaps) {
           const namespace: string = configMap.namespace.name;

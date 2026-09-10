@@ -3,7 +3,7 @@
 import {SoloErrors} from '../../../core/errors/solo-errors.js';
 import {type StorageBackend} from '../api/storage-backend.js';
 import {StorageOperation} from '../api/storage-operation.js';
-import {type Stats, statSync, lstatSync, readdirSync, writeFileSync, unlinkSync} from 'node:fs';
+import {type Stats, lstatSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync} from 'node:fs';
 import {StorageBackendError} from '../api/storage-backend-error.js';
 import {readFileSync} from 'node:fs';
 import {PathEx} from '../../../business/utils/path-ex.js';
@@ -91,11 +91,25 @@ export class FileStorageBackend implements StorageBackend {
     }
 
     const filePath: string = PathEx.join(this.basePath, key);
+    const temporaryFilePath: string = this.getTemporaryFilePath(filePath);
     try {
-      writeFileSync(filePath, data, {flag: 'w'});
+      writeFileSync(temporaryFilePath, data, {flag: 'wx'});
+      renameSync(temporaryFilePath, filePath);
     } catch (error) {
+      try {
+        unlinkSync(temporaryFilePath);
+      } catch {
+        // best-effort: the temporary file may not exist yet or may already be cleaned up
+      }
       throw new StorageBackendError(`error writing file: ${filePath}`, error);
     }
+  }
+
+  private getTemporaryFilePath(filePath: string): string {
+    const directoryPath: string = PathEx.dirname(filePath);
+    const fileName: string = PathEx.basename(filePath);
+    const uniqueSuffix: string = `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    return PathEx.join(directoryPath, `.${fileName}.solo-write-${uniqueSuffix}.tmp`);
   }
 
   public async delete(key: string): Promise<void> {

@@ -51,7 +51,7 @@ export class DestroyArgvBuilders {
       config.deployment,
       optionFromFlag(Flags.quiet),
       optionFromFlag(Flags.force),
-      optionFromFlag(Flags.devMode),
+      optionFromFlag(Flags.debugMode),
     );
     return argvPushGlobalFlags(argv);
   }

@@ -116,15 +116,14 @@ export class ComponentFactory implements ComponentFactoryApi {
     namespace: NamespaceName,
     portForwardConfigs?: PortForwardConfig[],
   ): ConsensusNodeStateSchema[] {
-    return nodeIds.map(
-      (nodeId: NodeId): ConsensusNodeStateSchema =>
-        this.createNewConsensusNodeComponent(
-          Templates.renderComponentIdFromNodeId(nodeId),
-          clusterReference,
-          namespace,
-          DeploymentPhase.REQUESTED,
-          portForwardConfigs,
-        ),
+    return nodeIds.map((nodeId: NodeId): ConsensusNodeStateSchema =>
+      this.createNewConsensusNodeComponent(
+        Templates.renderComponentIdFromNodeId(nodeId),
+        clusterReference,
+        namespace,
+        DeploymentPhase.REQUESTED,
+        portForwardConfigs,
+      ),
     );
   }
 

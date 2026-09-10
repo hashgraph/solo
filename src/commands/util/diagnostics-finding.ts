@@ -12,12 +12,7 @@
  *   6. app-error        — an ERROR line was found in a pod's raw container log.
  */
 export type DiagnosticsFindingCategory =
-  | 'image-pull'
-  | 'oom'
-  | 'pod-readiness'
-  | 'consensus-active'
-  | 'log-exception'
-  | 'app-error';
+  'image-pull' | 'oom' | 'pod-readiness' | 'consensus-active' | 'log-exception' | 'app-error';
 
 /** A single detected problem with its supporting evidence lines. */
 export interface DiagnosticsFinding {

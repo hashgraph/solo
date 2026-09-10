@@ -6,7 +6,7 @@
  *
  * Note: `enableDevChartMode` maps to the helm-chart `--dev` flag used by
  * `setup` and `blockNode` sections (enables local-build / debug paths).
- * It is intentionally **not** the same as `Flags.devMode`, which is a
+ * It is intentionally **not** the same as `Flags.debugMode`, which is a
  * logger verbosity toggle — see `SoloPinoLogger.setDevMode`.
  */
 export interface FalconPrepareConfig {

@@ -1,0 +1,586 @@
+##
+# Copyright (C) 2025 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+# Validates Solo's real Debian/Ubuntu container-runtime bootstrap: the Homebrew bootstrap plus
+# `brew install podman`, that the resulting podman runs a container rootfully (the mode Solo uses on
+# Linux), and that a kind cluster backed by that podman comes up and tears down with no residue.
+#
+# This job cannot live in the distribution-container matrix of flow-install-validation.yaml: podman
+# and kind need a VM-class runner, which a GitHub-hosted `ubuntu-latest` runner is.
+#
+# Tracked by hiero-ledger/solo#4888, closes hiero-ledger/solo#4910.
+name: 'Install Validation (Podman Runtime)'
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+env:
+  CLUSTER_NAME: solo-install-validation
+
+jobs:
+  podman-runtime-validation:
+    name: 'Install Validation (Podman Runtime)'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Task
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.49.1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Matching Podman Network Helpers
+        run: |
+          # netavark and aardvark-dns are the only podman helpers Homebrew does not package, so
+          # helper_binaries_dir otherwise falls through to the netavark that shipped with the runner's
+          # preinstalled podman 4.x — and podman 6 hands it a network-options payload in a shape that
+          # the old netavark cannot deserialize, failing the container's network setup with "netavark:
+          # failed to load network options: IO error: invalid type: sequence, expected a map". That is
+          # the same version skew as the system crun described in the next step, except there is no
+          # brew binary to point at, so a matching pair is fetched here instead.
+          #
+          # v2.0.0 is the only netavark release compatible with podman 6.x's network-options
+          # wire format. Podman 6.x changed the format from a map to a sequence; 1.17.x
+          # (and all earlier 1.x) rejected it with "invalid type: sequence, expected a map".
+          # Only 2.0.0 can parse the new format. However, 2.0.0 also dropped iptables
+          # support: containers with firewall_driver = "iptables" fail with "Must provide
+          # a valid firewall backend, got iptables". Podman 6.1.0 sends iptables regardless
+          # of containers.conf and podman network create --opt firewall_driver=nftables is
+          # rejected by netavark 2.0.0 as an "unsupported bridge network option". The wrapper
+          # below intercepts every netavark invocation and injects --firewall-driver nftables
+          # as a CLI flag, bypassing netavark 2.0.0's auto-detection (which selects iptables).
+          HELPER_VERSION='v2.0.0'
+          HELPER_DIRECTORY='/opt/podman-helpers'
+
+          # A dedicated directory: nothing is written into the brew prefix or the system podman
+          # directories, both of which belong to package managers that will overwrite them.
+          sudo mkdir -p "${HELPER_DIRECTORY}"
+
+          for HELPER in netavark aardvark-dns; do
+            RELEASE_URL="https://github.com/containers/${HELPER}/releases/download/${HELPER_VERSION}"
+            DOWNLOAD_DIRECTORY="$(mktemp -d)"
+
+            curl --fail --silent --show-error --location --output "${DOWNLOAD_DIRECTORY}/${HELPER}.gz" \
+              "${RELEASE_URL}/${HELPER}.gz"
+            curl --fail --silent --show-error --location --output "${DOWNLOAD_DIRECTORY}/sha256sum" \
+              "${RELEASE_URL}/sha256sum"
+
+            # The asset lists every file in the release, so --ignore-missing narrows the check to the
+            # one archive downloaded above; it still fails when that archive matches no listed entry.
+            if ! (cd "${DOWNLOAD_DIRECTORY}" && sha256sum --check --ignore-missing sha256sum); then
+              echo "::error::${HELPER}.gz does not match the checksum published for ${HELPER_VERSION}"
+              exit 1
+            fi
+
+            gunzip "${DOWNLOAD_DIRECTORY}/${HELPER}.gz"
+            sudo install --mode 0755 "${DOWNLOAD_DIRECTORY}/${HELPER}" "${HELPER_DIRECTORY}/${HELPER}"
+            "${HELPER_DIRECTORY}/${HELPER}" --version
+          done
+
+          # Wrap the real netavark binary to force nftables on every invocation.
+          # Netavark 2.0.0 ignores network_info.*.options.firewall_driver in its stdin JSON
+          # entirely — it auto-detects the firewall backend at startup and selects iptables,
+          # then fails its own "must not be iptables" validation since iptables support was
+          # removed in 2.0.0. The --firewall-driver global CLI flag is the correct API to
+          # override the auto-detection; the containers.conf firewall_driver = "nftables"
+          # setting is not honoured by podman 6.1.0 for auto-created or pre-created networks.
+          # Log file is pre-created with world-writable permissions so the wrapper can
+          # write regardless of which uid podman runs it as.
+          sudo touch /tmp/netavark-wrapper.log
+          sudo chmod 666 /tmp/netavark-wrapper.log
+          sudo mv "${HELPER_DIRECTORY}/netavark" "${HELPER_DIRECTORY}/netavark.real"
+          sudo tee "${HELPER_DIRECTORY}/netavark" > /dev/null << 'NETAVARK_WRAPPER'
+          #!/bin/bash
+          # SPDX-License-Identifier: Apache-2.0
+          # Force nftables via --firewall-driver flag; netavark 2.0.0 ignores stdin options.
+          LOG=/tmp/netavark-wrapper.log
+          echo "$(date -u +%H:%M:%S) uid=$(id -u) args: $*" >> "$LOG" 2>/dev/null || true
+          /opt/podman-helpers/netavark.real --firewall-driver nftables "$@"
+          EXIT_CODE=$?
+          echo "  exit=$EXIT_CODE" >> "$LOG" 2>/dev/null || true
+          exit $EXIT_CODE
+          NETAVARK_WRAPPER
+          sudo chmod 0755 "${HELPER_DIRECTORY}/netavark"
+          echo "=== netavark wrapper installed ==="
+          cat "${HELPER_DIRECTORY}/netavark"
+
+      - name: Normalize System Container Configuration
+        run: |
+          # The GitHub-hosted ubuntu-latest image preinstalls podman 4.x along with the whole system
+          # container stack it needs (/usr/bin/crun, /usr/libexec/podman/*) and a legacy v1
+          # /etc/containers/registries.conf. `brew install podman` gives us podman 6.x plus its own
+          # helper stack inside the brew prefix (conmon, crun, fuse-overlayfs, passt, ...), but two
+          # things still send it back to the preinstalled system stack:
+          #
+          #   * podman 5+ refuses to load a v1 registries.conf at all ("registries.conf must be in v2
+          #     format but is in v1 format").
+          #   * podman resolves its OCI runtime from the absolute paths in containers.conf
+          #     (/usr/bin/crun, /usr/sbin/crun, ...), never from PATH — so the brew podman runs the
+          #     4.x-era system crun, which cannot parse the OCI spec version podman 6 writes and fails
+          #     the container start with "OCI runtime error: crun: unknown version specified".
+          #
+          # Solo does not write either of these files: it installs podman through Homebrew and leaves
+          # the system container configuration untouched, so a user whose machine already carries an
+          # older system container stack hits exactly the same mismatch. This step is the CI
+          # environment standing in for that gap in the product, and it is worth its own issue.
+          #
+          # Rootful podman reads these system files whichever binary is invoked, so this one step
+          # covers both the rootful `podman run` in the validation harness below and the rootful `kind
+          # create cluster` later in this job — and that kind step passes a short image name
+          # (kindest/node:...), which only resolves via unqualified-search-registries.
+          #
+          # helper_binaries_dir is searched in order, so the netavark/aardvark-dns pair installed by
+          # the previous step comes first, then the brew prefix, then the system helper directories
+          # that still supply every other helper podman looks up. The brew binaries below do not exist
+          # yet — the brew bootstrap runs in the next step — which is why the diagnostics only report
+          # on them.
+          BREW_PREFIX='/home/linuxbrew/.linuxbrew'
+          HELPER_DIRECTORY='/opt/podman-helpers'
+
+          # Docker's iptables-nft backend creates kernel nftables tables (ip/ip6 nat, filter,
+          # security) with nft_compat flags. These tables persist in the kernel after Docker
+          # stops; stopping Docker alone does not remove them. Netavark v2.0.0 uses native
+          # nftables batch transactions and cannot atomically transact rules into tables that
+          # already carry nft_compat flags — the transaction stalls indefinitely. `nft flush
+          # ruleset` wipes all nftables state from the kernel so netavark gets a clean slate.
+          # This job uses the podman provider for kind and does not need Docker at all.
+          sudo systemctl stop docker.socket docker 2>/dev/null || true
+          sudo nft flush ruleset 2>/dev/null || true
+
+          # netavark v2.0.0 only supports nftables. Ensure the kernel module is loaded before any
+          # podman invocation so nftables is available when netavark initialises.
+          sudo modprobe nf_tables
+          # br_netfilter is required for bridge traffic to pass through netfilter hooks; without it
+          # sysctl net.bridge.bridge-nf-call-* are absent and container bridge routing may stall.
+          sudo modprobe br_netfilter
+          sudo sysctl -w net.ipv4.ip_forward=1
+          sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
+          sudo sysctl -w net.bridge.bridge-nf-call-ip6tables=1
+
+          # Two problems arise from the system podman 4.x writing to the shared rootful graph root
+          # (/var/lib/containers/storage) before brew podman 6.x ever runs:
+          #
+          #   1. The default "podman" network may be stored with firewall_driver = "iptables". Brew
+          #      podman 6.x shares the same graph root and picks up that definition, passing
+          #      "iptables" to netavark v2.0.0 — which no longer supports it — regardless of what
+          #      containers.conf says.
+          #
+          #   2. Any prior podman invocation (including `podman network rm`) initialises the libpod
+          #      state database (bolt_state.db). Brew podman 6.x opens the same database on its
+          #      first rootful invocation and tries to migrate the system podman's schema. On certain
+          #      runner images this migration hangs indefinitely, stalling `podman run` and kind.
+          #
+          # `podman system reset --force` solves both: it removes all networks (including the
+          # iptables-backed "podman" one) and wipes the libpod database so brew podman 6.x creates a
+          # fresh one with no migration. The explicit rm below is belt-and-suspenders: `system reset`
+          # can leave a schema-only database file that still triggers the migration path.
+          #
+          # SHM lock pre-cleanup: libpod uses a mmap'd file at /run/libpod/locks that stores a pool
+          # of POSIX semaphores protected by a global sem_t allocation mutex. If any previous podman
+          # process is SIGKILL'd while inside allocate_semaphore() (the C function that holds that
+          # mutex), the mutex stays permanently locked — it is a non-robust sem_t with no
+          # PTHREAD_MUTEX_ROBUST semantics, so it survives process death. Every subsequent podman run
+          # that tries to create a container blocks in _Cfunc_allocate_semaphore() forever. podman
+          # system reset does NOT recreate this file, so the corruption persists across CI runs.
+          # Deleting it here forces the next podman invocation to create a fresh file with an
+          # unlocked mutex. This must happen BEFORE system reset so that reset itself uses a clean SHM.
+          sudo rm -f /run/libpod/locks 2>/dev/null || true
+          sudo find /dev/shm -name 'libpod*' -delete 2>/dev/null || true
+          sudo podman system reset --force 2>/dev/null || true
+          # Delete the SHM lock file again: podman system reset creates a new /run/libpod/locks
+          # and may be SIGKILL'd while inside allocate_semaphore() holding the global sem_t
+          # mutex, leaving the new file's mutex permanently locked. The || true above swallows
+          # the kill signal exit code and execution continues with a corrupted new SHM. Deleting
+          # it here ensures the first real podman invocation (the probe / Step 8) creates a
+          # genuinely fresh, unlocked SHM. lock_type = "file" in containers.conf is the primary
+          # fix; this rm is belt-and-suspenders in case lock_type is not honoured.
+          sudo rm -f /run/libpod/locks 2>/dev/null || true
+          sudo find /dev/shm -name 'libpod*' -delete 2>/dev/null || true
+          sudo rm -rf /var/lib/containers/storage/libpod 2>/dev/null || true
+          # Delete the SQLite state DB that brew podman 6.x uses. podman system reset (run
+          # by system podman 4.x above) may have migrated the 4.x CNI-format network state into
+          # this DB; removing it prevents brew podman from replaying a stale schema migration.
+          # NOTE: deleting db.sql alone is NOT sufficient to fix the iptables issue — the
+          # authoritative network config lives in storage/networks/ (deleted below), not in db.sql.
+          sudo rm -f /var/lib/containers/storage/db.sql \
+                     /var/lib/containers/storage/db.sql-wal \
+                     /var/lib/containers/storage/db.sql-shm 2>/dev/null || true
+          # Delete CNI network config files: system podman 4.x writes CNI configs here after
+          # system reset; brew podman 6.x may read them during migration and import the
+          # iptables-backed "podman" network definition into db.sql before containers.conf
+          # can take effect.
+          sudo rm -rf /etc/cni/net.d/ 2>/dev/null || true
+          # Delete the persistent netavark network config directory. Each network is stored as
+          # a JSON file here (e.g. storage/networks/podman.json) with its driver settings,
+          # including firewall_driver. System podman 4.x initialises this directory with
+          # firewall_driver = "iptables"; brew podman 6.x reads the existing JSON files
+          # directly — even after db.sql is deleted — and re-uses the stored iptables setting.
+          # This is why deleting only db.sql was insufficient: same network ID (2f259bab93aa)
+          # appeared across runs because the same podman.json file was being read each time.
+          # Removing storage/networks/ forces brew podman to create a fresh default "podman"
+          # network whose firewall_driver is absent (netavark 2.0.0 defaults absent to nftables).
+          sudo rm -rf /var/lib/containers/storage/networks/ 2>/dev/null || true
+          # Delete the netavark runtime network configs written during any prior CI run.
+          # These live in tmpfs and survive process restarts within the same job; they are
+          # re-created from storage/networks/ on next podman invocation, so deleting both is safe.
+          sudo rm -rf /run/containers/networks/ 2>/dev/null || true
+
+          # The system podman 4.x writes /var/lib/containers/storage/overlay/.has-mount-program
+          # which signals to every subsequent podman invocation that the overlay storage was
+          # initialised with a fuse-overlayfs mount program. `podman system reset` clears
+          # containers/images/networks but does NOT remove the overlay storage directory, so
+          # the marker persists. When brew podman 6.x sees it, it picks up the system
+          # fuse-overlayfs (/usr/local/bin/fuse-overlayfs) which hangs indefinitely when
+          # mounting container rootfs layers — blocking every `podman run`, `podman info`, and
+          # `podman pull`. Rootful podman can use the kernel's native overlay without
+          # fuse-overlayfs (root has the necessary mount privileges), so wiping the overlay
+          # storage directory and writing a storage.conf with no mount_program gives it a
+          # clean slate that avoids fuse-overlayfs entirely.
+          sudo rm -rf /var/lib/containers/storage/overlay 2>/dev/null || true
+          sudo rm -rf /var/lib/containers/storage/overlay-layers 2>/dev/null || true
+
+          # Defensive cleanup: flush any PODMAN iptables chains that system podman may have left in
+          # the kernel. On ubuntu-latest the system podman already uses the nftables backend so
+          # these chains are typically absent, but flushing them is harmless and prevents a rare
+          # deadlock where netavark v2.0.0 stalls reconciling nftables state against orphaned chains.
+          for TABLE in filter nat mangle; do
+            for CHAIN in PODMAN "PODMAN-DN" "PODMAN-ISOLATION-1" "PODMAN-ISOLATION-2"; do
+              sudo iptables -t "${TABLE}" -F "${CHAIN}" 2>/dev/null || true
+              sudo iptables -t "${TABLE}" -X "${CHAIN}" 2>/dev/null || true
+            done
+          done
+
+          for BINARY in /usr/bin/crun "${BREW_PREFIX}/bin/crun" "${BREW_PREFIX}/bin/conmon"; do
+            if [[ -x "${BINARY}" ]]; then
+              echo "${BINARY}: $("${BINARY}" --version 2> /dev/null | head -n 1)"
+            else
+              echo "${BINARY}: not present"
+            fi
+          done
+
+          for CONFIGURATION in /etc/containers/registries.conf /etc/containers/containers.conf; do
+            if [[ -f "${CONFIGURATION}" ]]; then
+              echo "Existing ${CONFIGURATION}:"
+              cat "${CONFIGURATION}"
+            else
+              echo "No existing ${CONFIGURATION}"
+            fi
+          done
+
+          sudo mkdir -p /etc/containers
+          printf 'unqualified-search-registries = ["docker.io"]\n' |
+            sudo tee /etc/containers/registries.conf > /dev/null
+
+          # Write the same config to both the system path and root's user config. The user config
+          # ($HOME/.config/containers/containers.conf → /root/.config/containers/containers.conf)
+          # is the highest-priority source for rootful podman and is never touched by package
+          # managers. Writing only to /etc/containers/containers.conf is not enough: `brew install
+          # podman` overwrites that file during the next step, dropping our firewall_driver setting
+          # and causing netavark v2.0.0 to fall back to iptables — which it no longer supports —
+          # with "Must provide a valid firewall backend, got iptables".
+          # events_logger = "file" avoids the journald socket which is slow to initialise on
+          # GitHub-hosted runners and causes every podman invocation to stall for 60+ seconds.
+          # cgroup_manager = "cgroupfs" bypasses the systemd D-Bus call that crun makes when
+          # creating a transient cgroup scope for each container. On GitHub-hosted ubuntu-24.04
+          # runners the system D-Bus responds slowly or the runner cgroup hierarchy does not
+          # permit scope creation, causing every `podman run` (and `podman info`) to hang
+          # indefinitely waiting for the dbus reply. With "cgroupfs" crun writes cgroup files
+          # directly into /sys/fs/cgroup/ without any dbus interaction.
+          # apparmor_profile = "unconfined" in [containers]: Ubuntu 24.04 has AppArmor enabled.
+          # When seccomp is bypassed, podman applies an AppArmor profile to the container process
+          # during spec generation. On GitHub-hosted runners the AppArmor enforcement context or
+          # profile loading stalls, causing podman to hang before conmon is ever started. Setting
+          # this to "unconfined" skips AppArmor label application and unblocks the container start.
+          # conmon_path must explicitly point at brew conmon. Without it, podman 6.x walks its
+          # built-in search list first (/usr/local/lib/podman/conmon, /usr/lib/podman/conmon)
+          # and picks up the system-packaged conmon which is too old for brew podman 6.x.
+          # log_driver = "k8s-file" in [containers]: kind runs `podman logs -f` after starting
+          # the node container. With events_logger="file" (non-journald), using --follow on a
+          # journald-logged container fails: "using --follow with the journald --log-driver but
+          # without the journald --events-backend (file) is not supported". Forcing k8s-file
+          # (file-based container logging) makes podman logs -f work with any events backend.
+          # firewall_driver = "nftables" in [network]: kept for documentation/intent — in
+          # podman 6.1.0 this field is not applied to auto-created or explicitly-created
+          # networks (bug). The actual enforcement is the netavark wrapper installed in the
+          # previous step, which injects --firewall-driver nftables as a CLI flag on every
+          # netavark invocation, bypassing the auto-detection that selects iptables.
+          CONTAINERS_CONF_CONTENT=$(cat << EOF
+          [containers]
+          apparmor_profile = "unconfined"
+          log_driver = "k8s-file"
+
+          [engine]
+          runtime = "crun"
+          conmon_path = ["${BREW_PREFIX}/bin/conmon"]
+          helper_binaries_dir = ["${HELPER_DIRECTORY}", "${BREW_PREFIX}/bin", "/usr/libexec/podman", "/usr/lib/podman"]
+          events_logger = "file"
+          cgroup_manager = "cgroupfs"
+          lock_type = "file"
+
+          [engine.runtimes]
+          crun = ["${BREW_PREFIX}/bin/crun"]
+
+          [network]
+          firewall_driver = "nftables"
+          EOF
+          )
+          echo "${CONTAINERS_CONF_CONTENT}" | sudo tee /etc/containers/containers.conf > /dev/null
+          sudo mkdir -p /root/.config/containers
+          echo "${CONTAINERS_CONF_CONTENT}" | sudo tee /root/.config/containers/containers.conf > /dev/null
+
+          # storage.conf: force native kernel overlay by omitting mount_program. The user
+          # config (/root/.config/containers/storage.conf) takes highest precedence for rootful
+          # podman and is not touched by `brew install podman`, so writing both paths is
+          # belt-and-suspenders. Without this, podman reads the system default storage.conf
+          # (which points mount_program at /usr/local/bin/fuse-overlayfs) and hangs.
+          STORAGE_CONF_CONTENT=$(printf '[storage]\ndriver = "overlay"\n')
+          echo "${STORAGE_CONF_CONTENT}" | sudo tee /etc/containers/storage.conf > /dev/null
+          echo "${STORAGE_CONF_CONTENT}" | sudo tee /root/.config/containers/storage.conf > /dev/null
+
+          # Diagnostics: capture the iptables, nftables, and libpod state after cleanup so a future
+          # hang has enough context to determine whether residual rules or a stale database is the cause.
+          echo "=== iptables -t nat -L -n (post-cleanup) ==="
+          sudo iptables -t nat -L -n 2>&1 || true
+          echo "=== iptables -t filter -L -n (post-cleanup) ==="
+          sudo iptables -t filter -L -n 2>&1 || true
+          echo "=== nft list tables (post-cleanup) ==="
+          sudo nft list tables 2>&1 || true
+          echo "=== /var/lib/containers/storage/libpod (should be absent) ==="
+          ls -la /var/lib/containers/storage/libpod 2>&1 || echo "(directory absent — correct)"
+          echo "=== /var/lib/containers/storage/networks (should be absent) ==="
+          ls -la /var/lib/containers/storage/networks 2>&1 || echo "(directory absent — correct)"
+          echo "=== /run/libpod/locks (should be absent) ==="
+          ls -la /run/libpod/locks 2>&1 || echo "(absent — correct)"
+          echo "=== /dev/shm (libpod objects should be absent) ==="
+          ls -la /dev/shm/ 2>&1 | grep libpod || echo "(no libpod objects in /dev/shm — correct)"
+
+      - name: Validate Homebrew Podman Install
+        env:
+          SOLO_PODMAN_RUNTIME_VALIDATION: 'true'
+        run: task test-podman-runtime-validation
+
+      - name: Post-Test Diagnostics
+        if: always()
+        run: |
+          BREW_PODMAN='/home/linuxbrew/.linuxbrew/bin/podman'
+          echo "=== running processes (podman / netavark / conmon) ==="
+          ps aux | grep -E "podman|netavark|conmon|aardvark" | grep -v grep || echo "(none)"
+
+          echo "=== kernel modules (nf_tables / iptables) ==="
+          lsmod | grep -E "nf_tables|ip_tables|iptable_" | sort || echo "(no matching modules)"
+
+          echo "=== nftables tables (post-test) ==="
+          sudo nft list tables 2>&1 || echo "(nft unavailable)"
+
+          echo "=== iptables filter (post-test) ==="
+          sudo iptables -L -n 2>&1 || echo "(iptables unavailable)"
+
+          echo "=== iptables nat (post-test) ==="
+          sudo iptables -t nat -L -n 2>&1 || echo "(iptables nat unavailable)"
+
+          echo "=== /var/lib/containers/storage layout (post-test) ==="
+          sudo find /var/lib/containers/storage -maxdepth 3 -ls 2>&1 | head -60 || echo "(directory absent)"
+
+          echo "=== brew podman version (post-test) ==="
+          "${BREW_PODMAN}" --version 2>&1 || echo "(brew podman not found)"
+
+          echo "=== sudo podman info (post-test, 30 s timeout) ==="
+          sudo timeout 30 env "PATH=/home/linuxbrew/.linuxbrew/bin:${PATH}" podman info 2>&1 || echo "(podman info failed or timed out)"
+
+          echo "=== sudo podman network ls (post-test, 15 s timeout) ==="
+          sudo timeout 15 env "PATH=/home/linuxbrew/.linuxbrew/bin:${PATH}" podman network ls 2>&1 || echo "(podman network ls failed or timed out)"
+
+          echo "=== netavark wrapper log (args + stdin for each invocation) ==="
+          sudo cat /tmp/netavark-wrapper.log 2>/dev/null || echo "(no wrapper log — wrapper was not called or log absent)"
+
+          echo "=== /run/containers/networks (runtime configs at test end) ==="
+          sudo ls -la /run/containers/networks/ 2>/dev/null || echo "(directory absent)"
+          sudo find /run/containers/networks -name '*.json' -exec sh -c 'echo "--- $1 ---"; cat "$1"' _ {} \; 2>/dev/null || true
+
+      - name: Pre-create Kind Network for Cluster
+        run: |
+          # kind v0.29.0's podman provider calls ensureNetwork("kind") which is a no-op when
+          # the "kind" network already exists. Pre-creating it here avoids a race where kind
+          # creates the network at cluster-creation time before the netavark wrapper has had a
+          # chance to intercept. The wrapper's --firewall-driver nftables flag covers any
+          # netavark call regardless, so pre-creation is belt-and-suspenders.
+          BREW_PREFIX='/home/linuxbrew/.linuxbrew'
+          BREW_PODMAN="${BREW_PREFIX}/bin/podman"
+          BREW_ENV="PATH=${BREW_PREFIX}/bin:${PATH}"
+
+          sudo env "${BREW_ENV}" timeout 15 "${BREW_PODMAN}" network rm -f kind 2>/dev/null || true
+          sudo env "${BREW_ENV}" timeout 15 "${BREW_PODMAN}" network create \
+            --driver bridge \
+            --subnet 172.18.0.0/16 \
+            --gateway 172.18.0.1 \
+            kind 2>&1 || echo "(kind network pre-create failed — netavark wrapper covers it)"
+
+          echo "=== podman network ls ==="
+          sudo env "${BREW_ENV}" timeout 15 "${BREW_PODMAN}" network ls 2>&1 || true
+
+      - name: Resolve Pinned Versions and Podman Path
+        id: runtime
+        run: |
+          # kind's version and node image are read from the repo so this job cannot drift from the
+          # versions Solo actually pins.
+          source .github/workflows/script/helper.sh
+          echo "kind-version=$(extract_version KIND_VERSION version.ts)" >> "$GITHUB_OUTPUT"
+          echo "kind-node-image=$(extract_version KIND_NODE_IMAGE src/core/constants.ts)" >> "$GITHUB_OUTPUT"
+
+          # BrewPackageManager installs into this fixed prefix. Prefer it over any distribution
+          # podman, which is too old for kind; the PATH the previous step's brew bootstrap set lives
+          # in that test process only, not in this shell.
+          PODMAN_DIRECTORY="/home/linuxbrew/.linuxbrew/bin"
+          if [[ ! -x "${PODMAN_DIRECTORY}/podman" ]]; then
+            PODMAN_DIRECTORY="$(dirname "$(command -v podman)")"
+          fi
+          echo "podman-directory=${PODMAN_DIRECTORY}" >> "$GITHUB_OUTPUT"
+          "${PODMAN_DIRECTORY}/podman" --version
+
+      - name: Expose Podman as Docker Socket
+        run: |
+          # helm/kind-action's post-cleanup step probes unix:///var/run/docker.sock to delete
+          # any clusters it created.  We stopped the Docker daemon in the Normalize step so the
+          # socket is gone, causing the cleanup to fail and the job to turn red even though all
+          # real steps passed.  Expose the rootful Podman REST API on the same socket path so
+          # the action's cleanup can connect and exit cleanly (it will find no clusters to delete
+          # since our own Delete step already ran first).
+          BREW_PODMAN='/home/linuxbrew/.linuxbrew/bin/podman'
+          sudo "${BREW_PODMAN}" system service --time=0 unix:///var/run/docker.sock &
+          # Give the service a moment to bind the socket, then make it world-accessible.
+          # The kind-action cleanup runs as the non-root runner user and gets "permission denied"
+          # if the socket is owned by root with 0600 permissions (the podman default).
+          sleep 2
+          sudo chmod 666 /var/run/docker.sock
+          ls -la /var/run/docker.sock 2>/dev/null || echo "warning: docker socket not yet visible"
+
+      - name: Setup Kind
+        uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
+        with:
+          # install_only keeps this to the kind binary — the cluster below is created with the
+          # podman provider, not the runner's docker daemon.
+          install_only: true
+          version: ${{ steps.runtime.outputs.kind-version }}
+
+      - name: Create Kind Cluster With Podman
+        env:
+          PODMAN_DIRECTORY: ${{ steps.runtime.outputs.podman-directory }}
+          KIND_NODE_IMAGE: ${{ steps.runtime.outputs.kind-node-image }}
+        run: |
+          RUNTIME_PATH="${PODMAN_DIRECTORY}:$(dirname "$(command -v kind)"):${PATH}"
+
+          # Same invocation shape as ClusterTaskManager: kind runs rootfully (PodmanMode.ROOTFUL on
+          # Linux) and sudo resets the PATH, so podman and kind are passed through `sudo env`.
+          sudo env KIND_EXPERIMENTAL_PROVIDER=podman "PATH=${RUNTIME_PATH}" \
+            kind create cluster --name "${CLUSTER_NAME}" --image "${KIND_NODE_IMAGE}"
+
+          # Creation is asserted through podman and kubectl instead of `kind get clusters`, which cannot
+          # answer at all against podman 6:
+          #
+          #   ERROR: failed to list clusters: command "podman ps -a --filter
+          #   label=io.x-k8s.kind.cluster --format '{{index .Labels "io.x-k8s.kind.cluster"}}'" failed
+          #   Command Output: Error: template: ps:1:13: executing "ps" at
+          #   <index .Labels "io.x-k8s.kind.cluster">: error calling index: cannot index ...
+          #
+          # kind v0.29.0's podman provider lists clusters with exactly that Go template, and podman 6 no
+          # longer hands `--format` a .Labels value the `index` builtin can index, so every cluster
+          # listing errors out. Cluster creation is unaffected: it enumerates *nodes*
+          # (`podman ps --filter label=io.x-k8s.kind.cluster=<name> --format '{{.Names}}'`), which does
+          # not use the broken template. Solo pins kind v0.29.0 in version.ts while installing podman
+          # through Homebrew, which is now podman 6.x, so that pairing is what users get and
+          # KindClient.getClusters() (src/integration/kind/impl/default-kind-client.ts) hits the same
+          # break in the product, not only in this job. Tracked by hiero-ledger/solo#5354.
+          if ! sudo env "PATH=${RUNTIME_PATH}" podman ps --filter "name=${CLUSTER_NAME}-control-plane" \
+            --format '{{.Names}}' | grep -qx "${CLUSTER_NAME}-control-plane"; then
+            echo "::error::podman has no running node container for cluster ${CLUSTER_NAME}"
+            exit 1
+          fi
+
+          # kubectl is preinstalled on the runner. kind wrote its kubeconfig under sudo, so the same
+          # `sudo env` wrapper reads it back through the context kind just set.
+          if ! sudo env "PATH=${RUNTIME_PATH}" kubectl wait --for=condition=Ready node --all \
+            --timeout=90s --context "kind-${CLUSTER_NAME}"; then
+            echo "::error::cluster ${CLUSTER_NAME} never reported a Ready node through kubectl"
+            exit 1
+          fi
+
+      - name: Delete Kind Cluster And Assert No Residue
+        if: always()
+        env:
+          PODMAN_DIRECTORY: ${{ steps.runtime.outputs.podman-directory }}
+        run: |
+          KIND_PATH="$(command -v kind || true)"
+          if [[ -z "${PODMAN_DIRECTORY}" || -z "${KIND_PATH}" ]]; then
+            echo "Podman or kind was never resolved, so no cluster was created — nothing to clean up."
+            exit 0
+          fi
+          RUNTIME_PATH="${PODMAN_DIRECTORY}:$(dirname "${KIND_PATH}"):${PATH}"
+
+          # kind's delete path may hit the same podman 6 listing defect as `kind get clusters` (see the
+          # previous step and hiero-ledger/solo#5354) — we do not yet know, and this run is how we find
+          # out. Its exit status is captured rather than allowed to abort the step, so the podman-based
+          # residue assertion below runs and reports either way.
+          DELETE_STATUS=0
+          sudo env KIND_EXPERIMENTAL_PROVIDER=podman "PATH=${RUNTIME_PATH}" \
+            kind delete cluster --name "${CLUSTER_NAME}" || DELETE_STATUS=$?
+
+          if [[ "${DELETE_STATUS}" -eq 0 ]]; then
+            echo "kind delete cluster --name ${CLUSTER_NAME} succeeded."
+          else
+            echo "::warning::kind delete cluster exited ${DELETE_STATUS}; the residue check decides this step"
+          fi
+
+          # Residue is asserted through podman alone, for the same reason the creation step no longer
+          # calls `kind get clusters`.
+          RESIDUAL_CONTAINERS="$(sudo env "PATH=${RUNTIME_PATH}" podman ps -a \
+            --filter "name=${CLUSTER_NAME}" --format '{{.Names}}')"
+          if [[ -n "${RESIDUAL_CONTAINERS}" ]]; then
+            # Leave the runner clean first — the names are newline-separated, so the unquoted expansion
+            # splits them into arguments — then fail loudly rather than pass on a half-deleted cluster.
+            sudo env "PATH=${RUNTIME_PATH}" podman rm --force --volumes ${RESIDUAL_CONTAINERS} ||
+              echo "::warning::podman could not force-remove every leftover container"
+            RESIDUAL_LIST="$(echo "${RESIDUAL_CONTAINERS}" | tr '\n' ' ')"
+            echo "::error::kind delete cluster did not clean up; podman force-removed: ${RESIDUAL_LIST}"
+            exit 1
+          fi

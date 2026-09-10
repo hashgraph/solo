@@ -68,9 +68,9 @@ export class CommandHelpers {
   public static argvPushGlobalFlags(argv: string[], cacheDirectory: string = ''): string[] {
     const configManager: ConfigManager = container.resolve<ConfigManager>(InjectTokens.ConfigManager);
 
-    const developmentMode: boolean = configManager.getFlag<boolean>(flags.devMode);
+    const developmentMode: boolean = configManager.getFlag<boolean>(flags.debugMode);
     if (typeof developmentMode === 'boolean' && developmentMode) {
-      argv.push(CommandHelpers.optionFromFlag(flags.devMode));
+      argv.push(CommandHelpers.optionFromFlag(flags.debugMode));
     }
 
     const quiet: boolean = configManager.getFlag<boolean>(flags.quiet);

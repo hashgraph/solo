@@ -3,7 +3,6 @@
 import {SoloErrors} from './errors/solo-errors.js';
 import * as x509 from '@peculiar/x509';
 import fs from 'node:fs';
-import path from 'node:path';
 import * as constants from './constants.js';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {Templates} from './templates.js';
@@ -15,6 +14,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {FilePermissions} from '../business/utils/file-permissions.js';
 import {NamespaceName} from '../types/namespace/namespace-name.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
@@ -187,7 +187,8 @@ export class KeyManager {
       try {
         this.logger.debug(`Storing ${keyName} key for node: ${nodeAlias}`, {nodeKeyFiles});
 
-        fs.writeFileSync(nodeKeyFiles.privateKeyFile, keyPem);
+        fs.writeFileSync(nodeKeyFiles.privateKeyFile, keyPem, {mode: 0o600});
+        FilePermissions.restrictToOwner(nodeKeyFiles.privateKeyFile, false);
 
         // remove if the certificate file exists already as otherwise we'll keep appending to the last
         if (fs.existsSync(nodeKeyFiles.certificateFile)) {
@@ -247,20 +248,39 @@ export class KeyManager {
 
     this.logger.debug(`Loading ${keyName}-keys for node: ${nodeAlias}`, {nodeKeyFiles});
 
-    const keyBytes: Buffer = fs.readFileSync(nodeKeyFiles.privateKeyFile);
-    const keyPem: string = keyBytes.toString();
-    const key: CryptoKey = await this.convertPemToPrivateKey(keyPem, algo);
-
-    const certBytes: Buffer = fs.readFileSync(nodeKeyFiles.certificateFile);
-    const certPems: any = x509.PemConverter.decode(certBytes.toString());
-
-    const certs: x509.X509Certificate[] = [];
-    for (const certPem of certPems) {
-      const cert: x509.X509Certificate = new x509.X509Certificate(certPem);
-      certs.push(cert);
+    let key: CryptoKey;
+    try {
+      const keyBytes: Buffer = fs.readFileSync(nodeKeyFiles.privateKeyFile);
+      const keyPem: string = keyBytes.toString();
+      key = await this.convertPemToPrivateKey(keyPem, algo);
+    } catch (error) {
+      throw new SoloErrors.component.nodeKeyLoadFailed(keyName, nodeAlias, nodeKeyFiles.privateKeyFile, error as Error);
     }
 
-    const certChain: any = await new x509.X509ChainBuilder({certificates: certs.slice(1)}).build(certs[0]);
+    let certs: x509.X509Certificate[];
+    let certChain: any;
+    try {
+      const certBytes: Buffer = fs.readFileSync(nodeKeyFiles.certificateFile);
+      const certPems: any = x509.PemConverter.decode(certBytes.toString());
+      if (certPems.length === 0) {
+        throw new Error('no PEM certificate blocks found in file');
+      }
+
+      certs = [];
+      for (const certPem of certPems) {
+        const cert: x509.X509Certificate = new x509.X509Certificate(certPem);
+        certs.push(cert);
+      }
+
+      certChain = await new x509.X509ChainBuilder({certificates: certs.slice(1)}).build(certs[0]);
+    } catch (error) {
+      throw new SoloErrors.component.nodeKeyLoadFailed(
+        keyName,
+        nodeAlias,
+        nodeKeyFiles.certificateFile,
+        error as Error,
+      );
+    }
 
     this.logger.debug(`Loaded ${keyName}-key for node: ${nodeAlias}`, {
       nodeKeyFiles,
@@ -436,25 +456,6 @@ export class KeyManager {
     return this.loadNodeKey(nodeAlias, keysDirectory, KeyManager.TLSKeyAlgo, nodeKeyFiles, 'gRPC TLS');
   }
 
-  copyNodeKeysToStaging(nodeKey: PrivateKeyAndCertificateObject, destinationDirectory: string): void {
-    for (const keyFile of [nodeKey.privateKeyFile, nodeKey.certificateFile]) {
-      if (!fs.existsSync(keyFile)) {
-        throw new SoloErrors.component.platformKeyFileMissing(keyFile);
-      }
-
-      const fileName: string = path.basename(keyFile);
-      fs.cpSync(keyFile, PathEx.join(destinationDirectory, fileName));
-    }
-  }
-
-  copyGossipKeysToStaging(keysDirectory: string, stagingKeysDirectory: string, nodeAliases: NodeAliases): void {
-    // copy gossip keys to the staging
-    for (const nodeAlias of nodeAliases) {
-      const signingKeyFiles: PrivateKeyAndCertificateObject = this.prepareNodeKeyFilePaths(nodeAlias, keysDirectory);
-      this.copyNodeKeysToStaging(signingKeyFiles, stagingKeysDirectory);
-    }
-  }
-
   /**
    * Return a list of subtasks to generate gossip keys
    *
@@ -546,9 +547,19 @@ export class KeyManager {
    */
   getDerFromPemCertificate(pemCertFullPath: string): Uint8Array<ArrayBuffer> {
     const certPem: string = fs.readFileSync(pemCertFullPath).toString();
+    return this.getDerFromPem(certPem, pemCertFullPath);
+  }
+
+  /**
+   * Convert a PEM certificate (Base64 ASCII) into its DER (raw binary) bytes. Use this when the PEM is
+   * already in memory (e.g. read back from a Kubernetes secret) rather than on disk.
+   * @param certPem - the PEM certificate contents
+   * @param [source] - optional identifier of where the PEM came from, used in error messages
+   */
+  getDerFromPem(certPem: string, source: string = 'in-memory certificate'): Uint8Array<ArrayBuffer> {
     const decodedDers: any = x509.PemConverter.decode(certPem);
     if (!decodedDers || decodedDers.length === 0) {
-      throw new SoloErrors.component.platformKeyFileMissing(pemCertFullPath);
+      throw new SoloErrors.component.platformKeyFileMissing(source);
     }
     return new Uint8Array(decodedDers[0]);
   }
@@ -599,6 +610,16 @@ export class KeyManager {
     } catch (error: Error | any) {
       throw new SoloErrors.component.explorerTlsSecretCreationFailed(error);
     }
+
+    // The self-signed cert/key now live in the cluster secret, so remove the on-disk copies to avoid
+    // leaving the private key behind in the cache; they are regenerated on the next deploy when needed.
+    for (const generatedFilePath of [keyPath, certificatePath]) {
+      try {
+        fs.rmSync(generatedFilePath, {force: true});
+      } catch {
+        // best-effort: the secret is already created, so a failed cache cleanup must not fail the deploy
+      }
+    }
   }
 
   /**
@@ -634,7 +655,8 @@ export class KeyManager {
         },
       );
       fs.writeFileSync(certificatePath, pems.cert);
-      fs.writeFileSync(keyPath, pems.private);
+      fs.writeFileSync(keyPath, pems.private, {mode: 0o600});
+      FilePermissions.restrictToOwner(keyPath, false);
       return {
         certificatePath,
         keyPath,

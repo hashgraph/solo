@@ -113,6 +113,30 @@ describe('Address', (): void => {
       expect(address.ipAddressV4).to.be.undefined;
     });
 
+    it('should find service by node name when node id lookup misses', async (): Promise<void> => {
+      const listStub: sinon.SinonStub = sinon.stub();
+      listStub.onFirstCall().resolves([]);
+      listStub.onSecondCall().resolves([
+        {
+          metadata: {name: 'network-node0-svc'},
+          spec: {type: 'NodePort', clusterIP: '10.96.0.7'},
+          status: {loadBalancer: {}},
+        } as Service,
+      ]);
+      const servicesStub: Services = {
+        list: listStub,
+      } as unknown as Services;
+      const k8Stub: K8 = {services: (): Services => servicesStub} as unknown as K8;
+
+      const address: Address = await Address.getExternalAddress(mockConsensusNode, k8Stub, 50_111);
+
+      expect(address.ipAddressV4).to.equal('10.96.0.7');
+      expect(address.domainName).to.be.undefined;
+      expect(listStub.secondCall.args[1]).to.deep.equal([
+        'solo.hedera.com/node-name=node1,solo.hedera.com/type=network-node-svc',
+      ]);
+    });
+
     it('should fall back to FQDN when k8 service lookup throws', async (): Promise<void> => {
       const servicesStub: Services = {
         list: sinon.stub().rejects(new Error('k8s API error')),

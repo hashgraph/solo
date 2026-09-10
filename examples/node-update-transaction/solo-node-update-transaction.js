@@ -1,6 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {AccountId, Client, Logger, LogLevel, Long, NodeUpdateTransaction, PrivateKey} from '@hiero-ledger/sdk';
+import {
+  AccountId,
+  Client,
+  Hbar,
+  Logger,
+  LogLevel,
+  Long,
+  NodeUpdateTransaction,
+  PrivateKey,
+  TransferTransaction,
+} from '@hiero-ledger/sdk';
 import {readFileSync} from 'node:fs';
 
 const TREASURY_ACCOUNT_ID = '0.0.2';
@@ -35,6 +45,8 @@ async function main() {
   // console.log(`${logPrefix} ${JSON.stringify(prepareOutput)}`);
   const transformedPrepareOutput = prepareOutputParser(prepareOutput);
   try {
+    await fundNodeAccount(nodeClient, treasuryAccountId, transformedPrepareOutput.newAccountNumber);
+
     const nodeUpdateTx = new NodeUpdateTransaction()
       .setNodeId(new Long(nodeIdFromNodeAlias('node2')))
       .setAccountId(transformedPrepareOutput.newAccountNumber)
@@ -46,6 +58,16 @@ async function main() {
   } catch (error) {
     throw new Error(`${logPrefix} Error adding node to network: ${error.message}`, {cause: error});
   }
+}
+
+async function fundNodeAccount(nodeClient, treasuryAccountId, nodeAccountId) {
+  console.log(`${logPrefix} funding node account ${nodeAccountId}`);
+  const transferTransaction = await new TransferTransaction()
+    .addHbarTransfer(treasuryAccountId, Hbar.fromTinybars(-100_000_000))
+    .addHbarTransfer(nodeAccountId, Hbar.fromTinybars(100_000_000))
+    .execute(nodeClient);
+  const transferReceipt = await transferTransaction.getReceipt(nodeClient);
+  console.log(`${logPrefix} TransferReceipt: ${transferReceipt.toString()}`);
 }
 
 function prepareOutputParser(prepareOutput) {
@@ -76,6 +98,7 @@ main()
   .then()
   .catch(e => {
     console.log(`${logPrefix} failure`, e);
+    process.exitCode = 1;
   })
   .finally(() => {
     console.log(`${logPrefix} finally`);

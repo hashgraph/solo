@@ -118,6 +118,18 @@ describe('HelmChartValues', (): void => {
     });
   });
 
+  describe('userValueFilePaths()', (): void => {
+    it('returns only user-supplied values files in insertion order', (): void => {
+      const values: HelmChartValues = new HelmChartValues()
+        .file('/solo/defaults.yaml')
+        .userFile('/user/a.yaml')
+        .set('key', 'value')
+        .userFile('/user/b.yaml');
+
+      expect(values.userValueFilePaths()).to.deep.equal(['/user/a.yaml', '/user/b.yaml']);
+    });
+  });
+
   describe('addFileForCluster() / addUserFileForCluster()', (): void => {
     it('addFileForCluster routes to _arguments (Solo slot)', (): void => {
       const chartValuesMap: Record<string, HelmChartValues> = {};

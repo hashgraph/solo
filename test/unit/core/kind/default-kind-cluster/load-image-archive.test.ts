@@ -37,6 +37,7 @@ describe('DefaultKindClient.loadImageArchive', (): void => {
       ...commands: string[]
     ): KindExecutionBuilder {
       builderSubcommands.push(...commands);
+      // eslint-disable-next-line unicorn/no-this-outside-of-class
       return this;
     });
 
@@ -46,6 +47,7 @@ describe('DefaultKindClient.loadImageArchive', (): void => {
       value: string,
     ): KindExecutionBuilder {
       builderArguments.set(name, value);
+      // eslint-disable-next-line unicorn/no-this-outside-of-class
       return this;
     });
 
@@ -54,6 +56,7 @@ describe('DefaultKindClient.loadImageArchive', (): void => {
       value: string,
     ): KindExecutionBuilder {
       builderPositionals.push(value);
+      // eslint-disable-next-line unicorn/no-this-outside-of-class
       return this;
     });
   });

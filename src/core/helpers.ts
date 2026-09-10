@@ -1,11 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import crypto from 'node:crypto';
 import fs, {type Stats} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {format} from 'node:util';
 import {SoloErrors} from './errors/solo-errors.js';
 import {Templates} from './templates.js';
+import {SubprocessEnvironment} from './subprocess-environment.js';
+import {SubprocessCommandProfile} from './subprocess-command-profile.js';
 import * as constants from './constants.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {PrivateKey, ServiceEndpoint, type Long} from '@hiero-ledger/sdk';
@@ -15,7 +18,7 @@ import {type SoloLogger} from './logging/solo-logger.js';
 import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/config-interfaces/node-add-config-class.js';
 import {type ConsensusNode} from './model/consensus-node.js';
-import {type Optional, type ReleaseNameData} from '../types/index.js';
+import {type Optional} from '../types/index.js';
 import {NamespaceName} from '../types/namespace/namespace-name.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import chalk from 'chalk';
@@ -23,7 +26,6 @@ import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';
 import {type Realm, type Shard} from './../types/index.js';
 import {execFileSync} from 'node:child_process';
-import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import yaml from 'yaml';
 import {type ConfigMap} from '../integration/kube/resources/config-map/config-map.js';
 import {type K8} from '../integration/kube/k8.js';
@@ -57,24 +59,24 @@ type AddLoadContextData = {
 };
 
 export class Helpers {
+  public static readonly KIND_CONTEXT_PREFIX: string = 'kind-';
+
   public static getBlockStreamModeForConsensusVersion(
     consensusNodeVersion: SemanticVersion<string> | string | undefined,
     blockNodeIntegrationEnabled: boolean,
+    tssEnabled: boolean = true,
   ): string {
     const version: SemanticVersion<string> = new SemanticVersion<string>(
       consensusNodeVersion?.toString() || versions.HEDERA_PLATFORM_VERSION,
     );
 
     if (version.greaterThanOrEqual(versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS)) {
-      if (!blockNodeIntegrationEnabled) {
+      if (!blockNodeIntegrationEnabled || !tssEnabled) {
         return 'RECORDS';
       }
 
       // CN >= v0.74.0 defaults to BLOCKS (pure block-node streaming, no MinIO record streams).
-      // BLOCK_STREAM_STREAM_MODE env var overrides this default — used in performance tests as a
-      // workaround for SmartContractLoadTest returning INVALID_TRANSACTION_BODY in BLOCKS mode.
-      // TODO: remove the override from flow-performance-test.yaml once
-      //   https://github.com/hiero-ledger/hiero-consensus-node/issues/25883 is resolved.
+      // Keep BLOCK_STREAM_STREAM_MODE as a legacy override for explicit compatibility testing.
       return constants.getEnvironmentVariable('BLOCK_STREAM_STREAM_MODE') ?? 'BLOCKS';
     }
 
@@ -85,12 +87,21 @@ export class Helpers {
     existingStreamMode: string | undefined,
     consensusNodeVersion?: SemanticVersion<string> | string,
     blockNodeIntegrationEnabled: boolean = false,
+    streamWrappedRecordBlocksEnabled: boolean = false,
+    tssEnabled: boolean = true,
   ): string {
-    if (blockNodeIntegrationEnabled) {
-      // Preserve an already block-node-compatible setting during upgrades. This prevents
-      // networks created on older CN versions (for example 0.73 with BOTH) from being
-      // silently flipped to the newer 0.74+ default during later maintenance steps.
-      if (existingStreamMode === 'BOTH' || existingStreamMode === 'BLOCKS') {
+    const version: SemanticVersion<string> = new SemanticVersion<string>(
+      consensusNodeVersion?.toString() || versions.HEDERA_PLATFORM_VERSION,
+    );
+
+    if (blockNodeIntegrationEnabled && tssEnabled) {
+      // Preserve the current stream mode only when it is already the correct mode for the
+      // consensus version. CN 0.74+ with block nodes must use pure block streaming by default.
+      if (
+        existingStreamMode === 'BLOCKS' ||
+        (existingStreamMode === 'BOTH' &&
+          (version.lessThan(versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS) || streamWrappedRecordBlocksEnabled))
+      ) {
         return existingStreamMode;
       }
     } else if (existingStreamMode === 'BOTH' || existingStreamMode === 'RECORDS') {
@@ -99,7 +110,7 @@ export class Helpers {
       return existingStreamMode;
     }
 
-    return Helpers.getBlockStreamModeForConsensusVersion(consensusNodeVersion, blockNodeIntegrationEnabled);
+    return Helpers.getBlockStreamModeForConsensusVersion(consensusNodeVersion, blockNodeIntegrationEnabled, tssEnabled);
   }
 
   public static parseBlockStreamMode(applicationPropertiesText: string): string | undefined {
@@ -107,6 +118,55 @@ export class Helpers {
       /^\s*blockStream\.streamMode\s*=\s*(\S+)\s*$/m,
     );
     return match?.[1];
+  }
+
+  public static parseStreamWrappedRecordBlocks(applicationPropertiesText: string): boolean {
+    const match: RegExpMatchArray | null = applicationPropertiesText.match(
+      /^\s*blockStream\.streamWrappedRecordBlocks\s*=\s*(\S+)\s*$/m,
+    );
+    return match?.[1] === 'true';
+  }
+
+  public static updateBlockStreamPropertiesForMode(
+    lines: string[],
+    streamMode: string,
+    writerMode: string = constants.BLOCK_STREAM_WRITER_MODE,
+  ): void {
+    Helpers.upsertApplicationProperty(lines, 'blockStream.streamMode', streamMode);
+    Helpers.upsertApplicationProperty(lines, 'blockStream.writerMode', writerMode);
+
+    if (streamMode === 'BLOCKS') {
+      Helpers.upsertApplicationProperty(lines, 'blockStream.streamWrappedRecordBlocks', 'false');
+    }
+  }
+
+  public static upsertApplicationProperty(lines: string[], key: string, value: string): void {
+    const propertyPrefix: string = `${key}=`;
+    let propertyUpdated: boolean = false;
+
+    for (let index: number = 0; index < lines.length; index++) {
+      if (!lines[index].startsWith(propertyPrefix)) {
+        continue;
+      }
+
+      if (propertyUpdated) {
+        lines.splice(index, 1);
+        index--;
+      } else {
+        lines[index] = `${key}=${value}`;
+        propertyUpdated = true;
+      }
+    }
+
+    if (!propertyUpdated) {
+      lines.push(`${key}=${value}`);
+    }
+  }
+
+  public static ensureWrappedRecordBlocksDisabled(lines: string[], streamMode: string): void {
+    if (streamMode === 'BOTH') {
+      Helpers.upsertApplicationProperty(lines, 'blockStream.streamWrappedRecordBlocks', 'false');
+    }
   }
 
   public static sleep(duration: Duration): Promise<void> {
@@ -155,6 +215,17 @@ export class Helpers {
       return match[1].toLowerCase() === 'true';
     }
     return undefined;
+  }
+
+  public static parseNumericApplicationProperty(
+    applicationPropertiesText: string,
+    propertyKey: string,
+  ): number | undefined {
+    const escapedPropertyKey: string = propertyKey.replaceAll('.', String.raw`\.`);
+    const match: RegExpMatchArray | null = applicationPropertiesText.match(
+      new RegExp(String.raw`^\s*${escapedPropertyKey}\s*=\s*(\d+)\s*$`, 'm'),
+    );
+    return match ? Number(match[1]) : undefined;
   }
 
   public static readGossipFqdnRestrictedFromFile(filePath: string): boolean | undefined {
@@ -315,7 +386,7 @@ export class Helpers {
 
   public static getEnvironmentValue(environmentVariableArray: string[], name: string): string {
     const kvPair: string = environmentVariableArray.find((v): boolean => v.startsWith(`${name}=`));
-    return kvPair ? kvPair.split('=')[1] : undefined;
+    return kvPair ? kvPair.split('=', 2)[1] : undefined;
   }
 
   public static parseIpAddressToUint8Array(ipAddress: string): Uint8Array<ArrayBuffer> {
@@ -536,6 +607,68 @@ export class Helpers {
     return consensusNode ? consensusNode.context : undefined;
   }
 
+  /** Resolves the Kind cluster name a kubeconfig context targets, or undefined for a non-Kind context. */
+  public static kindClusterNameForContext(context: string | undefined, k8Factory?: K8Factory): string | undefined {
+    if (context?.startsWith(Helpers.KIND_CONTEXT_PREFIX)) {
+      return context.slice(Helpers.KIND_CONTEXT_PREFIX.length);
+    }
+    if (!context || !k8Factory) {
+      return undefined;
+    }
+    try {
+      // a renamed context still references the cluster entry kind wrote as `kind-<cluster-name>`
+      const clusterEntryName: string = k8Factory.default().contexts().readClusterOfContext(context);
+      if (clusterEntryName.startsWith(Helpers.KIND_CONTEXT_PREFIX)) {
+        return clusterEntryName.slice(Helpers.KIND_CONTEXT_PREFIX.length);
+      }
+    } catch {
+      // best-effort: when the kubeconfig entry cannot be read, detection falls back to the context name prefix alone
+    }
+    return undefined;
+  }
+
+  public static isKindContext(context: string | undefined, k8Factory?: K8Factory): boolean {
+    return Helpers.kindClusterNameForContext(context, k8Factory) !== undefined;
+  }
+
+  public static hasMultipleKubernetesContexts(consensusNodes: ConsensusNode[]): boolean {
+    const contexts: Set<string> = new Set(consensusNodes.map((node: ConsensusNode): string => node.context));
+    return contexts.size > 1;
+  }
+
+  public static requiresRsaBootstrap(consensusNodeVersion: string, streamMode: string): boolean {
+    const version: SemanticVersion<string> = new SemanticVersion<string>(consensusNodeVersion);
+    if (version.lessThan(versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS)) {
+      return false;
+    }
+    return streamMode === 'BLOCKS' || streamMode === 'BOTH';
+  }
+
+  public static buildRsaAddressBookJson(consensusNodes: ConsensusNode[], keysDirectory: string): Optional<string> {
+    const nodeAddresses: Array<{RSAPubKey: string; nodeId: number}> = [];
+    for (const consensusNode of consensusNodes) {
+      const publicKeyFile: string = PathEx.join(
+        keysDirectory,
+        Templates.renderGossipPemPublicKeyFile(consensusNode.name),
+      );
+      if (!fs.existsSync(publicKeyFile)) {
+        return undefined;
+      }
+      const certPem: string = fs.readFileSync(publicKeyFile, 'utf8');
+      const spkiDer: Buffer = new crypto.X509Certificate(certPem).publicKey.export({
+        format: 'der',
+        type: 'spki',
+      }) as Buffer;
+      nodeAddresses.push({
+        RSAPubKey: spkiDer.toString('hex'),
+        nodeId: Templates.nodeIdFromNodeAlias(consensusNode.name),
+      });
+    }
+    return JSON.stringify({
+      addressBooks: [{addressBook: {nodeAddress: nodeAddresses}, startBlock: '0', endBlock: '-1'}],
+    });
+  }
+
   /**
    * Check if the namespace exists in the context of given consensus nodes
    * @param consensusNodes
@@ -637,8 +770,10 @@ export class Helpers {
     const fullImageName: string = `${imageName}:${imageTag}`;
     try {
       const output: string = execFileSync('docker', ['images', '--format', '{{.Repository}}:{{.Tag}}'], {
+        shell: false,
         encoding: 'utf8',
         stdio: 'pipe',
+        env: SubprocessEnvironment.forCommand(SubprocessCommandProfile.CONTAINER_ENGINE),
       });
       return output
         .split(/\r?\n/)
@@ -663,24 +798,38 @@ export class Helpers {
     }
   }
 
-  public static async findMinioOperator(context: string, k8: K8Factory): Promise<ReleaseNameData> {
-    const minioTenantPod: Optional<Pod> = await k8
-      .getK8(context)
-      .pods()
-      .listForAllNamespaces(['app.kubernetes.io/name=operator', 'operator=leader'])
-      .then((pods: Pod[]): Optional<Pod> => pods[0]);
+  /**
+   * Best-effort extraction of the deployment names recorded in a remote-config ConfigMap.
+   * Tolerates both the current (array) and legacy (map keyed by cluster name) cluster layouts.
+   */
+  public static extractRemoteConfigDeploymentNames(remoteConfig: ConfigMap): string[] {
+    const deploymentNames: string[] = [];
+    try {
+      const remoteConfigData: unknown = yaml.parse(remoteConfig.data?.[constants.SOLO_REMOTE_CONFIGMAP_DATA_KEY]);
+      let clustersData: unknown = undefined;
+      if (typeof remoteConfigData === 'object' && remoteConfigData !== null && 'clusters' in remoteConfigData) {
+        clustersData = (remoteConfigData as Record<string, unknown>).clusters;
+      }
+      const clustersArray: unknown[] = [];
 
-    if (!minioTenantPod) {
-      return {
-        exists: false,
-        releaseName: undefined,
-      };
+      if (Array.isArray(clustersData)) {
+        clustersArray.push(...clustersData);
+      } else if (typeof clustersData === 'object' && clustersData !== null) {
+        clustersArray.push(...Object.values(clustersData));
+      }
+
+      for (const clusterData of clustersArray) {
+        if (typeof clusterData === 'object' && clusterData !== null && 'deployment' in clusterData) {
+          const deployment: unknown = (clusterData as Record<string, unknown>).deployment;
+          if (typeof deployment === 'string' && deployment.length > 0) {
+            deploymentNames.push(deployment);
+          }
+        }
+      }
+    } catch {
+      // best-effort: treat absent or unparseable remote-config data as containing no deployments
     }
-
-    return {
-      exists: true,
-      releaseName: minioTenantPod.labels?.['app.kubernetes.io/instance'],
-    };
+    return deploymentNames;
   }
 
   public static remoteConfigsToDeploymentsTable(remoteConfigs: ConfigMap[]): string[] {
@@ -688,26 +837,8 @@ export class Helpers {
     if (remoteConfigs.length > 0) {
       rows.push('Namespace : deployment');
       for (const remoteConfig of remoteConfigs) {
-        const remoteConfigData: unknown = yaml.parse(remoteConfig.data?.['remote-config-data']);
-        let clustersData: unknown = undefined;
-        if (typeof remoteConfigData === 'object' && remoteConfigData !== null && 'clusters' in remoteConfigData) {
-          clustersData = (remoteConfigData as Record<string, unknown>).clusters;
-        }
-        const clustersArray: unknown[] = [];
-
-        if (Array.isArray(clustersData)) {
-          clustersArray.push(...clustersData);
-        } else if (typeof clustersData === 'object' && clustersData !== null) {
-          clustersArray.push(...Object.values(clustersData));
-        }
-
-        for (const clusterData of clustersArray) {
-          if (typeof clusterData === 'object' && clusterData !== null && 'deployment' in clusterData) {
-            const deployment: unknown = (clusterData as Record<string, unknown>).deployment;
-            if (typeof deployment === 'string') {
-              rows.push(`${remoteConfig.namespace.name} : ${deployment}`);
-            }
-          }
+        for (const deployment of Helpers.extractRemoteConfigDeploymentNames(remoteConfig)) {
+          rows.push(`${remoteConfig.namespace.name} : ${deployment}`);
         }
       }
     }
@@ -725,6 +856,7 @@ export class Helpers {
     k8Factory: K8Factory,
     allowEmpty: boolean = false,
     consensusNodeVersion?: SemanticVersion<string> | string,
+    tssEnabled: boolean = true,
   ): Promise<void> {
     const {
       nodeId,
@@ -777,6 +909,11 @@ export class Helpers {
     await container.execContainer(
       `mv ${targetDirectory}/${sourceFilename} ${targetDirectory}/${constants.BLOCK_NODES_JSON_FILE}`,
     );
+    await container.execContainer([
+      'bash',
+      '-c',
+      `chown hedera:hedera ${targetDirectory}/${constants.BLOCK_NODES_JSON_FILE} 2>/dev/null || true`,
+    ]);
 
     const applicationPropertiesFilePath: string = `${constants.HEDERA_HAPI_PATH}/data/config/${constants.APPLICATION_PROPERTIES}`;
 
@@ -788,23 +925,16 @@ export class Helpers {
       Helpers.parseBlockStreamMode(applicationPropertiesData),
       consensusNodeVersion,
       true,
+      Helpers.parseStreamWrappedRecordBlocks(applicationPropertiesData),
+      tssEnabled,
     );
-    let streamModeUpdated: boolean = false;
-    for (const line of lines) {
-      if (line.startsWith('blockStream.streamMode=')) {
-        lines[lines.indexOf(line)] = `blockStream.streamMode=${blockStreamMode}`;
-        streamModeUpdated = true;
-        break;
-      }
-    }
+    Helpers.updateBlockStreamPropertiesForMode(lines, blockStreamMode);
 
-    if (!streamModeUpdated) {
-      lines.push(`blockStream.streamMode=${blockStreamMode}`);
-    }
-
-    if (!lines.some((line): boolean => line.startsWith('blockStream.writerMode='))) {
-      lines.push(`blockStream.writerMode=${constants.BLOCK_STREAM_WRITER_MODE}`);
-    }
+    // streamMode=BOTH (used by performance tests) produces both native block-stream blocks
+    // (BLOCK_HEADER) and Wrapped Record Blocks (ROUND_HEADER). The mirror importer rejects
+    // ROUND_HEADER; its rapid retries trigger the block node's HTTP/2 rapid-reset protection,
+    // cutting off block ingestion. Disable WRBs only when BOTH mode is active.
+    Helpers.ensureWrappedRecordBlocksDisabled(lines, blockStreamMode);
 
     const updatedApplicationPropertiesData: string = lines.join('\n');
     if (updatedApplicationPropertiesData !== applicationPropertiesData) {
@@ -830,6 +960,11 @@ export class Helpers {
     if (updatedApplicationPropertiesData !== applicationPropertiesData) {
       fs.writeFileSync(updatedApplicationPropertiesFilePath, updatedApplicationPropertiesData);
       await container.copyTo(updatedApplicationPropertiesFilePath, targetDirectory);
+      await container.execContainer([
+        'bash',
+        '-c',
+        `chown hedera:hedera ${targetDirectory}/${constants.APPLICATION_PROPERTIES} 2>/dev/null || true`,
+      ]);
     }
   }
 }
@@ -866,7 +1001,6 @@ export const entityId: typeof Helpers.entityId = Helpers.entityId;
 export const withTimeout: typeof Helpers.withTimeout = Helpers.withTimeout;
 export const checkDockerImageExists: typeof Helpers.checkDockerImageExists = Helpers.checkDockerImageExists;
 export const createDirectoryIfNotExists: typeof Helpers.createDirectoryIfNotExists = Helpers.createDirectoryIfNotExists;
-export const findMinioOperator: typeof Helpers.findMinioOperator = Helpers.findMinioOperator;
 export const remoteConfigsToDeploymentsTable: typeof Helpers.remoteConfigsToDeploymentsTable =
   Helpers.remoteConfigsToDeploymentsTable;
 export const createAndCopyBlockNodeJsonFileForConsensusNode: typeof Helpers.createAndCopyBlockNodeJsonFileForConsensusNode =

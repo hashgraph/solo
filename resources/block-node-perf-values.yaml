@@ -14,6 +14,21 @@ resources:
 
 blockNode:
   config:
+    # The block node's Helidon HTTP/2 server fires rapid-reset protection at 50 RST_STREAM per 10s.
+    # The mirror importer's default 100ms reconnect interval generates ~10 RST_STREAM/s during the
+    # 200ms window after a mid-block reconnect (a known block node subscriber bug, @todo(1673)).
+    # Raise the threshold so brief reconnect bursts don't trigger connection termination.
+    SERVER_HTTP2_MAX_RAPID_RESETS: "500"
+    # The @todo(1673) bug in BlockStreamSubscriberSession causes mirror to disconnect and
+    # reconnect frequently under high-TPS load.  In v0.36.0 each reconnect leaked a gating
+    # sequence in the Disruptor ring buffer, filling it in ~2.5 s and halting block storage
+    # (hiero-block-node #3150).  v0.37.0 made LiveBlockHandler a non-gating consumer
+    # (partial fix), but the reconnect storm can still saturate the ring buffer via other
+    # gating consumers added by the new plugin system in v0.37.1 — observed in solo CI as
+    # mirror importer lag ~477 s and NOT_AVAILABLE responses after ~34 min of load.
+    # 65536 entries delay saturation from seconds to hours, giving the test time to complete.
+    # TODO: remove once hiero-block-node @todo(1673) is fully fixed.
+    MESSAGING_BLOCK_ITEM_QUEUE_SIZE: "65536"
     JAVA_OPTS: >-
       -Xms256m
       -Xmx512m

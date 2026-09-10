@@ -7,6 +7,16 @@ export interface ContainerStatus {
   readonly name: string;
 
   /**
+   * Whether Kubernetes reports the container as ready.
+   */
+  readonly ready?: boolean;
+
+  /**
+   * Number of times Kubernetes has restarted the container.
+   */
+  readonly restartCount?: number;
+
+  /**
    * The reason the container is in a waiting state, if any (e.g. ImagePullBackOff).
    */
   readonly waitingReason?: string;

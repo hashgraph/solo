@@ -91,6 +91,7 @@ export class ImageCacheHandler implements CacheOperationHandler {
               task.title += ' - ' + chalk.red(`failed to SAVE image: ${image}`);
               this.logger.showUser(`Failed to save image archive: ${image}. ${message}`);
               this.logger.error('Failed to save image archive:', error);
+              this.recordFailure(`Failed to cache ${image}: ${message}`);
               return;
             }
           }
@@ -104,31 +105,49 @@ export class ImageCacheHandler implements CacheOperationHandler {
   }
 
   public async load(target: string): Promise<SoloListrTask<AnyListrContext>[]> {
-    const subTasks: SoloListrTask<AnyListrContext>[] = [];
     const items: readonly CachedItem[] = await this.resolveExpectedCachedItems();
-
-    for (const item of items) {
+    const loadedImages: ReadonlySet<string> = await this.resolveLoadedClusterImages(target);
+    return items.map((item): SoloListrTask<AnyListrContext> => {
       const name: string = `${item.target.name}:${item.target.version}`;
 
-      subTasks.push({
+      return {
         title: `Loading ${name} into ${target}`,
-        task: async (): Promise<void> => {
-          const exists: boolean = await this.inspector.exists(item.localPath);
+        task: async (_, task): Promise<void> => {
+          if (loadedImages.has(name)) {
+            task.title += ' - ' + chalk.green('already loaded, skipped');
+            return;
+          }
 
-          if (!exists) {
+          if (!(await this.inspector.exists(item.localPath))) {
+            // Not cached (surfaced by pull / `cache image status`); keep it visible but non-fatal.
+            task.title += ' - ' + chalk.yellow('archive not cached, skipped');
             return;
           }
 
           try {
             await this.engine.loadImageArchiveIntoCluster(item.localPath, target);
           } catch (error) {
-            this.logger.error(error);
+            // best-effort: skip archives that fail to load so the remaining images still load
+            const message: string = ImageCacheHandler.getErrorMessage(error);
+            task.title += ' - ' + chalk.red(`failed to load: ${name}`);
+            this.logger.showUser(`Failed to load image into cluster: ${name}. ${message}`);
+            this.logger.error('Failed to load image archive into cluster:', error);
+            this.recordFailure(`Failed to load into cluster: ${name}: ${message}`);
           }
         },
-      });
-    }
+      };
+    });
+  }
 
-    return subTasks;
+  private async resolveLoadedClusterImages(clusterName: string): Promise<ReadonlySet<string>> {
+    try {
+      const images: readonly string[] = await this.engine.listLoadedImagesInCluster(clusterName);
+      return new Set<string>(images);
+    } catch (error) {
+      const message: string = ImageCacheHandler.getErrorMessage(error);
+      this.logger.debug(`Unable to list images already loaded in cluster ${clusterName}: ${message}`);
+      return new Set<string>();
+    }
   }
 
   public async clear(): Promise<void> {
@@ -137,10 +156,6 @@ export class ImageCacheHandler implements CacheOperationHandler {
     for (const item of items) {
       await fs.rm(item.localPath, {force: true});
     }
-  }
-
-  public async prune(): Promise<void> {
-    await this.store.clear();
   }
 
   public async healthcheck(): Promise<readonly ArtifactHealthResult[]> {
@@ -203,7 +218,7 @@ export class ImageCacheHandler implements CacheOperationHandler {
 
     for (const imageCandidate of imageCandidates) {
       try {
-        await this.engine.saveImage(imageCandidate, archivePath);
+        await this.engine.saveImageArchive(imageCandidate, archivePath);
         if (imageCandidate !== image) {
           this.logger.info(`Saved image archive for ${image} using mirror image ${imageCandidate}`);
         }
@@ -340,6 +355,16 @@ export class ImageCacheHandler implements CacheOperationHandler {
     }
 
     return false;
+  }
+
+  // Records a failure into a shared message group so pull/load can present a single end-of-run
+  // summary of what did not make it into the cache or the cluster, without aborting the run.
+  private recordFailure(message: string): void {
+    const key: string = constants.CACHE_IMAGE_FAILURE_MESSAGE_GROUP;
+    if (!this.logger.getMessageGroupKeys().includes(key)) {
+      this.logger.addMessageGroup(key, 'Image cache failures');
+    }
+    this.logger.addMessageGroupMessage(key, message);
   }
 
   private static getErrorMessage(error: unknown): string {

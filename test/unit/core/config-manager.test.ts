@@ -6,7 +6,7 @@ import {describe, it} from 'mocha';
 import {ConfigManager} from '../../../src/core/config-manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {container} from 'tsyringe-neo';
-import {getTestLogger} from '../../test-utility.js';
+import {BASE_TEST_DIR, getTestLogger} from '../../test-utility.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {SoloPinoLogger} from '../../../src/core/logging/solo-pino-logger.js';
@@ -18,6 +18,10 @@ describe('ConfigManager', (): void => {
     container.clearInstances();
     container.register(InjectTokens.LogLevel, {useValue: 'debug'});
     container.register(InjectTokens.DevelopmentMode, {useValue: true});
+    // clearInstances() drops value registrations, so the home directory has to be re-registered
+    // before constructing a logger; otherwise it falls back to the real Solo home and writes into
+    // the user's own ~/.solo/logs.
+    container.register(InjectTokens.HomeDirectory, {useValue: BASE_TEST_DIR});
     container.register(InjectTokens.SoloLogger, {useValue: new SoloPinoLogger()});
     container.registerInstance(InjectTokens.SoloLogger, getTestLogger());
     container.register(InjectTokens.ConfigManager, {useClass: ConfigManager});
@@ -61,56 +65,56 @@ describe('ConfigManager', (): void => {
 
       // boolean values should work
       const argv: Argv = Argv.initializeEmpty();
-      argv.setArg(flags.devMode, true);
+      argv.setArg(flags.debugMode, true);
       cm.update(argv.build());
-      expect(cm.getFlag(flags.devMode)).to.equal(argv.getArg<boolean>(flags.devMode));
+      expect(cm.getFlag(flags.debugMode)).to.equal(argv.getArg<boolean>(flags.debugMode));
 
       // ensure string "false" is converted to boolean
       cm.reset();
-      argv.setArg(flags.devMode, 'false');
+      argv.setArg(flags.debugMode, 'false');
       cm.update(argv.build());
-      expect(cm.getFlag(flags.devMode)).not.to.equal(argv.getArg<boolean>(flags.devMode));
-      expect(cm.getFlag(flags.devMode)).to.equal(false);
+      expect(cm.getFlag(flags.debugMode)).not.to.equal(argv.getArg<boolean>(flags.debugMode));
+      expect(cm.getFlag(flags.debugMode)).to.equal(false);
 
       // ensure string "true" is converted to boolean
       cm.reset();
-      argv.setArg(flags.devMode, 'true');
+      argv.setArg(flags.debugMode, 'true');
       cm.update(argv.build());
-      expect(cm.getFlag(flags.devMode)).not.to.equal(argv.getArg<boolean>(flags.devMode));
-      expect(cm.getFlag(flags.devMode)).to.equal(true);
+      expect(cm.getFlag(flags.debugMode)).not.to.equal(argv.getArg<boolean>(flags.debugMode));
+      expect(cm.getFlag(flags.debugMode)).to.equal(true);
     });
   });
 
   describe('should apply precedence', (): void => {
     const aliases: Record<string, string[]> = {
-      [flags.devMode.name]: [flags.devMode.name, flags.devMode.definition.alias as string],
+      [flags.debugMode.name]: [flags.debugMode.name, flags.debugMode.definition.alias as string],
     }; // mock
 
     it('should take user input as the first preference', (): void => {
       // Given: config has value, argv has a different value
       // Expected:  argv should retain the value
       const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-      cm.setFlag(flags.devMode, false);
-      expect(cm.getFlag(flags.devMode)).not.to.be.ok;
+      cm.setFlag(flags.debugMode, false);
+      expect(cm.getFlag(flags.debugMode)).not.to.be.ok;
 
       const argv: Argv = Argv.initializeEmpty();
-      argv.setArg(flags.devMode, true); // devMode flag is set in argv but cached config has it
+      argv.setArg(flags.debugMode, true); // debugMode flag is set in argv but cached config has it
 
       const argv2: yargs.Argv<AnyYargs> = cm.applyPrecedence(argv.build() as unknown as yargs.Argv<AnyYargs>, aliases);
-      expect(cm.getFlag(flags.devMode)).to.not.be.ok; // shouldn't have changed the config yet
-      expect(argv2[flags.devMode.name]).to.be.ok; // retain the value
+      expect(cm.getFlag(flags.debugMode)).to.not.be.ok; // shouldn't have changed the config yet
+      expect(argv2[flags.debugMode.name]).to.be.ok; // retain the value
     });
 
     it('should take default as the last preference', (): void => {
       // Given: neither config nor argv has the flag value set
       // Expected:  argv should inherit the default flag value
       const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-      expect(cm.hasFlag(flags.devMode)).not.to.be.ok; // shouldn't have set
+      expect(cm.hasFlag(flags.debugMode)).not.to.be.ok; // shouldn't have set
 
-      const argv: Argv = Argv.initializeEmpty(); // devMode flag is not set in argv and cached config doesn't have it either
+      const argv: Argv = Argv.initializeEmpty(); // debugMode flag is not set in argv and cached config doesn't have it either
       const argv2: yargs.Argv<AnyYargs> = cm.applyPrecedence(argv.build() as unknown as yargs.Argv<AnyYargs>, aliases);
-      expect(cm.hasFlag(flags.devMode)).to.not.be.ok; // shouldn't have set
-      expect(argv2[flags.devMode.name]).to.not.be.ok; // should have set from the default
+      expect(cm.hasFlag(flags.debugMode)).to.not.be.ok; // shouldn't have set
+      expect(argv2[flags.debugMode.name]).to.not.be.ok; // should have set from the default
     });
   });
 
@@ -181,6 +185,52 @@ describe('ConfigManager', (): void => {
         relayReleaseTag: string;
       };
       expect(config.relayReleaseTag).to.equal('0.77.0');
+    });
+  });
+
+  describe('recordUserSuppliedFlags / wasFlagProvidedByUser', (): void => {
+    it('should report a flag as user-supplied when present and not defaulted', (): void => {
+      const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
+      const argv: Argv = Argv.initializeEmpty();
+      argv.setArg(flags.explorerVersion, '26.2.0');
+
+      cm.recordUserSuppliedFlags(argv.build(), {});
+
+      expect(cm.wasFlagProvidedByUser(flags.explorerVersion)).to.be.true;
+    });
+
+    it('should report a flag as NOT user-supplied when it was populated from its default', (): void => {
+      const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
+      const argv: Argv = Argv.initializeEmpty();
+      argv.setArg(flags.explorerVersion, '26.1.0');
+
+      cm.recordUserSuppliedFlags(argv.build(), {[flags.explorerVersion.name]: true});
+
+      expect(cm.wasFlagProvidedByUser(flags.explorerVersion)).to.be.false;
+    });
+
+    it('should treat a flag defaulted under its camelCase constName as NOT user-supplied', (): void => {
+      const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
+      const argv: Argv = Argv.initializeEmpty();
+      argv.setArg(flags.explorerVersion, '26.1.0');
+
+      cm.recordUserSuppliedFlags(argv.build(), {[flags.explorerVersion.constName]: true});
+
+      expect(cm.wasFlagProvidedByUser(flags.explorerVersion)).to.be.false;
+    });
+
+    it('should report a flag as NOT user-supplied when absent from argv', (): void => {
+      const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
+
+      cm.recordUserSuppliedFlags(Argv.initializeEmpty().build(), {});
+
+      expect(cm.wasFlagProvidedByUser(flags.explorerVersion)).to.be.false;
+    });
+
+    it('should default to not-supplied before recordUserSuppliedFlags has run', (): void => {
+      const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
+
+      expect(cm.wasFlagProvidedByUser(flags.explorerVersion)).to.be.false;
     });
   });
 });

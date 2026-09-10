@@ -13,6 +13,18 @@ import {
   type PerNodeIdentity,
 } from '../types/helm-values.js';
 import yaml from 'yaml';
+import {ValuesFileParser} from './util/values-file-parser.js';
+
+type ExtractedExtraEnvironmentAnalysis = {
+  environmentVariablesByNode: Record<NodeAlias, EnvironmentVariable[]>;
+  overwrittenVariableNamesByNode: Record<NodeAlias, Set<string>>;
+  ignoredEntryCount: number;
+};
+
+type ExtractedExtraEnvironmentArray = {
+  environmentVariables: EnvironmentVariable[];
+  ignoredEntryCount: number;
+};
 
 export class HelmValuesHelper {
   public constructor() {}
@@ -24,9 +36,9 @@ export class HelmValuesHelper {
     const hedera: PerNodeExtraEnvironmentValues['hedera'] = {nodes: []};
 
     for (const [nodeIndex, consensusNode] of consensusNodes.entries()) {
-      const extraEnvironmentVariables: EnvironmentVariable[] = [
-        ...(options.baseExtraEnvironmentVariables?.[consensusNode.name] ?? []),
-      ];
+      const extraEnvironmentVariables: EnvironmentVariable[] = (
+        options.baseExtraEnvironmentVariables?.[consensusNode.name] ?? []
+      ).map((environmentVariable): EnvironmentVariable => ({...environmentVariable}));
 
       if (options.useJavaMainClass) {
         this.setExtraEnvironmentVariable(extraEnvironmentVariables, 'JAVA_MAIN_CLASS', 'com.swirlds.platform.Browser');
@@ -124,15 +136,12 @@ export class HelmValuesHelper {
     try {
       content = fs.readFileSync(filePath, 'utf8');
     } catch {
+      // best-effort: values files are optional inputs, so an absent or unreadable path simply contributes nothing.
+      // Content that is present but unparseable is a different matter and is reported by ValuesFileParser below.
       return undefined;
     }
 
-    let parsedValues: unknown;
-    try {
-      parsedValues = yaml.parse(content);
-    } catch {
-      return undefined;
-    }
+    const parsedValues: unknown = ValuesFileParser.parse(filePath, content);
 
     if (!parsedValues || typeof parsedValues !== 'object') {
       return undefined;
@@ -164,50 +173,79 @@ export class HelmValuesHelper {
     filePaths: string[],
     consensusNodes: ConsensusNode[],
   ): Record<NodeAlias, EnvironmentVariable[]> {
-    const result: Record<NodeAlias, EnvironmentVariable[]> = {};
+    return this.extractExtraEnvironmentAnalysisFromValuesFiles(filePaths, consensusNodes).environmentVariablesByNode;
+  }
 
-    for (const filePath of filePaths) {
-      const parsedRecord: Record<string, unknown> | undefined = this.parseValuesFile(filePath);
-      if (!parsedRecord) {
-        continue;
+  public describeUserProvidedExtraEnvironmentWarnings(
+    filePaths: string[],
+    consensusNodes: ConsensusNode[],
+    options: PerNodeExtraEnvironmentOptions = {},
+  ): string[] {
+    if (filePaths.length === 0) {
+      return [];
+    }
+
+    const extractedAnalysis: ExtractedExtraEnvironmentAnalysis = this.extractExtraEnvironmentAnalysisFromValuesFiles(
+      filePaths,
+      consensusNodes,
+    );
+    const warnings: string[] = [];
+
+    if (extractedAnalysis.ignoredEntryCount > 0) {
+      const noun: string = extractedAnalysis.ignoredEntryCount === 1 ? 'entry' : 'entries';
+      warnings.push(
+        `Warning: Ignored ${extractedAnalysis.ignoredEntryCount} invalid extraEnv ${noun} from --values-file input because each entry must contain string name and value fields.`,
+      );
+    }
+
+    for (const consensusNode of consensusNodes) {
+      const overwrittenVariableNames: string[] = [
+        ...(extractedAnalysis.overwrittenVariableNamesByNode[consensusNode.name] ?? []),
+      ];
+      for (const variableName of overwrittenVariableNames) {
+        warnings.push(
+          `Warning: User-provided extraEnv ${variableName} for ${consensusNode.name} is defined multiple times across --values-file inputs; the last value wins.`,
+        );
       }
+    }
 
-      const defaultsSection: unknown = parsedRecord.defaults;
-      if (defaultsSection && typeof defaultsSection === 'object') {
-        const defaultsRootSection: unknown = (defaultsSection as Record<string, unknown>).root;
-        const defaultsEnvironmentVariables: EnvironmentVariable[] =
-          this.extractExtraEnvironmentArray(defaultsRootSection);
-        if (defaultsEnvironmentVariables.length > 0) {
-          for (const consensusNode of consensusNodes) {
-            this.mergeIntoResult(result, consensusNode.name, defaultsEnvironmentVariables);
-          }
-        }
-      }
+    const generatedValues: PerNodeExtraEnvironmentValues = this.buildPerNodeExtraEnvironmentValuesStructure(
+      consensusNodes,
+      {
+        ...options,
+        baseExtraEnvironmentVariables: extractedAnalysis.environmentVariablesByNode,
+      },
+    );
 
-      const hederaSection: unknown = parsedRecord.hedera;
-      if (!hederaSection || typeof hederaSection !== 'object') {
-        continue;
-      }
+    for (const [nodeIndex, consensusNode] of consensusNodes.entries()) {
+      const mergedEnvironmentVariables: EnvironmentVariable[] =
+        generatedValues.hedera.nodes[nodeIndex].root?.extraEnv ?? [];
+      const mergedValueByName: Map<string, string> = new Map(
+        mergedEnvironmentVariables.map((environmentVariable): [string, string] => [
+          environmentVariable.name,
+          environmentVariable.value,
+        ]),
+      );
 
-      const nodesArray: unknown = (hederaSection as Record<string, unknown>).nodes;
-      if (!Array.isArray(nodesArray)) {
-        continue;
-      }
+      for (const userEnvironmentVariable of extractedAnalysis.environmentVariablesByNode[consensusNode.name] ?? []) {
+        const mergedValue: string | undefined = mergedValueByName.get(userEnvironmentVariable.name);
 
-      for (const [helmNodeIndex, consensusNode] of consensusNodes.entries()) {
-        const nodeEntry: unknown = nodesArray[helmNodeIndex];
-        if (!nodeEntry || typeof nodeEntry !== 'object') {
+        if (mergedValue === undefined) {
+          warnings.push(
+            `Warning: User-provided extraEnv ${userEnvironmentVariable.name} for ${consensusNode.name} was filtered out during Solo's generated extraEnv merge.`,
+          );
           continue;
         }
-        const nodeRootSection: unknown = (nodeEntry as Record<string, unknown>).root;
-        const nodeEnvironmentVariables: EnvironmentVariable[] = this.extractExtraEnvironmentArray(nodeRootSection);
-        if (nodeEnvironmentVariables.length > 0) {
-          this.mergeIntoResult(result, consensusNode.name, nodeEnvironmentVariables);
+
+        if (mergedValue !== userEnvironmentVariable.value) {
+          warnings.push(
+            `Warning: User-provided extraEnv ${userEnvironmentVariable.name} for ${consensusNode.name} was overwritten during Solo's generated extraEnv merge. Final value: ${mergedValue}`,
+          );
         }
       }
     }
 
-    return result;
+    return warnings;
   }
 
   public extractPerNodeBlockNodesJsonFromValuesFile(
@@ -296,47 +334,124 @@ export class HelmValuesHelper {
     }
   }
 
-  private mergeIntoResult(
+  private extractExtraEnvironmentAnalysisFromValuesFiles(
+    filePaths: string[],
+    consensusNodes: ConsensusNode[],
+  ): ExtractedExtraEnvironmentAnalysis {
+    const environmentVariablesByNode: Record<NodeAlias, EnvironmentVariable[]> = {};
+    const overwrittenVariableNamesByNode: Record<NodeAlias, Set<string>> = {};
+    let ignoredEntryCount: number = 0;
+
+    for (const filePath of filePaths) {
+      const parsedRecord: Record<string, unknown> | undefined = this.parseValuesFile(filePath);
+      if (!parsedRecord) {
+        continue;
+      }
+
+      const defaultsSection: unknown = parsedRecord.defaults;
+      if (defaultsSection && typeof defaultsSection === 'object') {
+        const defaultsRootSection: unknown = (defaultsSection as Record<string, unknown>).root;
+        const defaultsExtraction: ExtractedExtraEnvironmentArray =
+          this.extractExtraEnvironmentArray(defaultsRootSection);
+        ignoredEntryCount += defaultsExtraction.ignoredEntryCount;
+        if (defaultsExtraction.environmentVariables.length > 0) {
+          for (const consensusNode of consensusNodes) {
+            this.mergeIntoAnalysis(
+              environmentVariablesByNode,
+              overwrittenVariableNamesByNode,
+              consensusNode.name,
+              defaultsExtraction.environmentVariables,
+            );
+          }
+        }
+      }
+
+      const hederaSection: unknown = parsedRecord.hedera;
+      if (!hederaSection || typeof hederaSection !== 'object') {
+        continue;
+      }
+
+      const nodesArray: unknown = (hederaSection as Record<string, unknown>).nodes;
+      if (!Array.isArray(nodesArray)) {
+        continue;
+      }
+
+      for (const [helmNodeIndex, consensusNode] of consensusNodes.entries()) {
+        const nodeEntry: unknown = nodesArray[helmNodeIndex];
+        if (!nodeEntry || typeof nodeEntry !== 'object') {
+          continue;
+        }
+        const nodeRootSection: unknown = (nodeEntry as Record<string, unknown>).root;
+        const nodeExtraction: ExtractedExtraEnvironmentArray = this.extractExtraEnvironmentArray(nodeRootSection);
+        ignoredEntryCount += nodeExtraction.ignoredEntryCount;
+        if (nodeExtraction.environmentVariables.length > 0) {
+          this.mergeIntoAnalysis(
+            environmentVariablesByNode,
+            overwrittenVariableNamesByNode,
+            consensusNode.name,
+            nodeExtraction.environmentVariables,
+          );
+        }
+      }
+    }
+
+    return {
+      environmentVariablesByNode,
+      overwrittenVariableNamesByNode,
+      ignoredEntryCount,
+    };
+  }
+
+  private mergeIntoAnalysis(
     result: Record<NodeAlias, EnvironmentVariable[]>,
+    overwrittenVariableNamesByNode: Record<NodeAlias, Set<string>>,
     nodeAlias: NodeAlias,
     environmentVariables: EnvironmentVariable[],
   ): void {
     if (!result[nodeAlias]) {
       result[nodeAlias] = [];
     }
+
+    overwrittenVariableNamesByNode[nodeAlias] ??= new Set<string>();
+
     for (const environmentVariable of environmentVariables) {
       const existingIndex: number = result[nodeAlias].findIndex(
         (variable): boolean => variable.name === environmentVariable.name,
       );
       const environmentVariableClone: EnvironmentVariable = {...environmentVariable};
+
       if (existingIndex === -1) {
         result[nodeAlias].push(environmentVariableClone);
       } else {
+        overwrittenVariableNamesByNode[nodeAlias].add(environmentVariable.name);
         result[nodeAlias][existingIndex] = environmentVariableClone;
       }
     }
   }
 
-  private extractExtraEnvironmentArray(rootSection: unknown): EnvironmentVariable[] {
+  private extractExtraEnvironmentArray(rootSection: unknown): ExtractedExtraEnvironmentArray {
     if (!rootSection || typeof rootSection !== 'object') {
-      return [];
+      return {environmentVariables: [], ignoredEntryCount: 0};
     }
     const extraEnvironmentArray: unknown = (rootSection as Record<string, unknown>).extraEnv;
     if (!Array.isArray(extraEnvironmentArray)) {
-      return [];
+      return {environmentVariables: [], ignoredEntryCount: 0};
     }
     const environmentVariables: EnvironmentVariable[] = [];
+    let ignoredEntryCount: number = 0;
     for (const entry of extraEnvironmentArray) {
       if (!entry || typeof entry !== 'object') {
+        ignoredEntryCount += 1;
         continue;
       }
       const entryRecord: Record<string, unknown> = entry;
       if (typeof entryRecord.name !== 'string' || typeof entryRecord.value !== 'string') {
+        ignoredEntryCount += 1;
         continue;
       }
       environmentVariables.push({name: entryRecord.name, value: entryRecord.value});
     }
-    return environmentVariables;
+    return {environmentVariables, ignoredEntryCount};
   }
 }
 

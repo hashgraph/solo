@@ -4,7 +4,7 @@ import {type NodeCommonConfigWithNodeAliases} from './node-common-config-with-no
 
 export interface NodeKeysConfigClass extends NodeCommonConfigWithNodeAliases {
   cacheDir: string;
-  devMode: boolean;
+  debugMode: boolean;
   generateGossipKeys: boolean;
   generateTlsKeys: boolean;
   curDate: Date;

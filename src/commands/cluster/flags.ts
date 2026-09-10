@@ -5,12 +5,12 @@ import {type CommandFlags} from '../../types/flag-types.js';
 
 export const NO_FLAGS: CommandFlags = {
   required: [],
-  optional: [flags.devMode, flags.quiet],
+  optional: [flags.debugMode, flags.quiet],
 };
 
 export const DEFAULT_FLAGS: CommandFlags = {
   required: [flags.clusterRef],
-  optional: [flags.devMode, flags.quiet],
+  optional: [flags.debugMode, flags.quiet],
 };
 
 export const SETUP_FLAGS: CommandFlags = {
@@ -34,5 +34,5 @@ export const RESET_FLAGS: CommandFlags = {
 
 export const CONNECT_FLAGS: CommandFlags = {
   required: [flags.clusterRef, flags.context],
-  optional: [flags.devMode, flags.quiet],
+  optional: [flags.debugMode, flags.quiet],
 };

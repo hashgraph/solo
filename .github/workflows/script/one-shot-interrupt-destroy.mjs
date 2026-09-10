@@ -35,7 +35,7 @@ Options:
 Examples:
   node .github/workflows/script/one-shot-interrupt-destroy.mjs 60
   node .github/workflows/script/one-shot-interrupt-destroy.mjs -d my-deploy -j 15
-  SOLO_COMMAND="npx @hashgraph/solo" node .github/workflows/script/one-shot-interrupt-destroy.mjs
+  SOLO_COMMAND="npx @hiero-ledger/solo" node .github/workflows/script/one-shot-interrupt-destroy.mjs
 `);
 }
 
@@ -51,7 +51,7 @@ function logBanner(title) {
 }
 
 function sleep(seconds) {
-  return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+  return new Promise(resolve => setTimeout(resolve, seconds * 1000));
 }
 
 function parseInteger(name, value) {
@@ -68,9 +68,18 @@ function parseArgs() {
     deployment: process.env.SOLO_DEPLOYMENT || DEFAULTS.deployment,
     interruptSeconds: parseInteger('INTERRUPT_SECONDS', process.env.INTERRUPT_SECONDS || DEFAULTS.interruptSeconds),
     jitterSeconds: parseInteger('JITTER_SECONDS', process.env.JITTER_SECONDS || DEFAULTS.jitterSeconds),
-    maxDestroyAttempts: parseInteger('MAX_DESTROY_ATTEMPTS', process.env.MAX_DESTROY_ATTEMPTS || DEFAULTS.maxDestroyAttempts),
-    destroySleepSeconds: parseInteger('DESTROY_SLEEP_SECS', process.env.DESTROY_SLEEP_SECS || DEFAULTS.destroySleepSeconds),
-    destroyTimeoutSeconds: parseInteger('DESTROY_TIMEOUT_SECS', process.env.DESTROY_TIMEOUT_SECS || DEFAULTS.destroyTimeoutSeconds),
+    maxDestroyAttempts: parseInteger(
+      'MAX_DESTROY_ATTEMPTS',
+      process.env.MAX_DESTROY_ATTEMPTS || DEFAULTS.maxDestroyAttempts,
+    ),
+    destroySleepSeconds: parseInteger(
+      'DESTROY_SLEEP_SECS',
+      process.env.DESTROY_SLEEP_SECS || DEFAULTS.destroySleepSeconds,
+    ),
+    destroyTimeoutSeconds: parseInteger(
+      'DESTROY_TIMEOUT_SECS',
+      process.env.DESTROY_TIMEOUT_SECS || DEFAULTS.destroyTimeoutSeconds,
+    ),
   };
 
   const positional = [];
@@ -119,7 +128,7 @@ function parseArgs() {
 }
 
 async function runCommandWithTimeout(label, timeoutSeconds, command) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const outputChunks = [];
     let timedOut = false;
 
@@ -139,7 +148,7 @@ async function runCommandWithTimeout(label, timeoutSeconds, command) {
       }, 3000);
     }, timeoutSeconds * 1000);
 
-    const onData = (chunk) => {
+    const onData = chunk => {
       const text = chunk.toString();
       outputChunks.push(text);
       process.stdout.write(text);
@@ -148,7 +157,7 @@ async function runCommandWithTimeout(label, timeoutSeconds, command) {
     child.stdout.on('data', onData);
     child.stderr.on('data', onData);
 
-    child.on('close', (code) => {
+    child.on('close', code => {
       clearTimeout(timer);
       state.lastCommandOutput = outputChunks.join('');
       if (timedOut) {
@@ -159,7 +168,7 @@ async function runCommandWithTimeout(label, timeoutSeconds, command) {
       resolve(code ?? 1);
     });
 
-    child.on('error', (error) => {
+    child.on('error', error => {
       clearTimeout(timer);
       state.lastCommandOutput = `${state.lastCommandOutput}\n${String(error)}`;
       resolve(1);
@@ -206,7 +215,7 @@ async function deleteCluster() {
     if (listCode === 0) {
       const clusters = state.lastCommandOutput
         .split(/\r?\n/)
-        .map((line) => line.trim())
+        .map(line => line.trim())
         .filter(Boolean);
 
       for (const cluster of clusters) {
@@ -219,7 +228,7 @@ async function deleteCluster() {
   const soloHome = path.join(os.homedir(), '.solo');
   try {
     const entries = await fs.readdir(soloHome);
-    await Promise.all(entries.map((entry) => fs.rm(path.join(soloHome, entry), {recursive: true, force: true})));
+    await Promise.all(entries.map(entry => fs.rm(path.join(soloHome, entry), {recursive: true, force: true})));
     log(`Removed ${soloHome}/*`);
   } catch {
     // ignore missing home directory
@@ -281,7 +290,7 @@ async function main() {
   await runWithInterrupt(config);
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 });

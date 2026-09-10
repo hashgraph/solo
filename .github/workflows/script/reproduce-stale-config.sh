@@ -102,8 +102,8 @@ echo "Repository root: ${REPO_ROOT}"
 (
   cd "${REPO_ROOT}"
   if [[ ! -f node_modules/.bin/tsc ]]; then
-    echo "TypeScript compiler not found. Running npm install…"
-    npm install
+    echo "TypeScript compiler not found. Running npm ci…"
+    npm ci
   fi
   echo "Compiling TypeScript…"
   rm -rf dist

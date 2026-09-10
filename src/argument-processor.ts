@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {SoloErrors} from './core/errors/solo-errors.js';
 import {SilentBreak} from './core/errors/silent-break.js';
 import {Flags as flags} from './commands/flags.js';
 import {type Middlewares} from './core/middlewares.js';
@@ -35,7 +34,9 @@ export class ArgumentProcessor {
       [
         middlewares.detectLocalSoloPackages(),
         middlewares.printCustomHelp(rootCmd),
-        middlewares.setLoggerDevFlag(),
+        middlewares.warnDeprecatedFlags(),
+        middlewares.warnDeprecatedCommands(),
+        middlewares.setLoggerDebugFlag(),
         // @ts-expect-error - TS2322: To assign middlewares
         middlewares.processArgumentsAndDisplayHeader(),
         middlewares.initSystemFiles(),
@@ -59,42 +60,33 @@ export class ArgumentProcessor {
           throw new SilentBreak('Help displayed');
         }
 
-        if (
-          message.includes('Unknown argument') ||
-          message.includes('Missing required argument') ||
-          message.toLowerCase().includes('select')
-        ) {
-          if (message.toLowerCase().includes('select')) {
-            // Show what subcommands are available then exit normally
-            rootCmd.showHelp((output): void => {
-              helpRenderer.render(rootCmd, output);
-            });
-            // Use SilentBreak to exit cleanly without error display
-            throw new SilentBreak('No subcommand provided, help displayed');
-          }
-
-          // For unknown/missing arguments, show message and help
-          logger.showUser(message);
+        if (message.toLowerCase().includes('select')) {
+          // Show what subcommands are available then exit normally
           rootCmd.showHelp((output): void => {
             helpRenderer.render(rootCmd, output);
           });
+          // Use SilentBreak to exit cleanly without error display
+          throw new SilentBreak('No subcommand provided, help displayed');
+        }
 
-          // Throw error to propagate through async call chains if given unknown argument
-          if (!rootCmd.parsed.argv.help) {
-            // Set exit code but don't exit immediately - allows I/O buffers to flush
-            process.exitCode = 1;
-            throw new SoloErrors.internal.commandReturnedFalse('argument-processor', message);
-          }
-        } else {
-          logger.showUserError(new SoloErrors.internal.commandReturnedFalse('argument-processor', message));
-          throw new SoloErrors.internal.commandReturnedFalse('argument-processor', message);
+        // Any other yargs failure is a CLI usage error: show it with the usage help, without an internal error report
+        logger.showUser(message);
+        rootCmd.showHelp((output): void => {
+          helpRenderer.render(rootCmd, output);
+        });
+
+        // Throw to propagate through async call chains when given an invalid argument
+        if (!rootCmd.parsed.argv.help) {
+          // Set exit code but don't exit immediately - allows I/O buffers to flush
+          process.exitCode = 1;
+          throw new SilentBreak(message);
         }
       }
     });
 
     logger.debug('Setting up flags');
     // set root level flags
-    flags.setOptionalCommandFlags(rootCmd, flags.devMode, flags.forcePortForward);
+    flags.setOptionalCommandFlags(rootCmd, [flags.debugMode, flags.forcePortForward]);
     logger.debug('Parsing root command (executing the commands)');
     return await rootCmd.parseAsync();
   }

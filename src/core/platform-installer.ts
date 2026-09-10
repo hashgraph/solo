@@ -21,6 +21,8 @@ import {type PodReference} from '../integration/kube/resources/pod/pod-reference
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import {type ContainerName} from '../integration/kube/resources/container/container-name.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
+import {type Secret} from '../integration/kube/resources/secret/secret.js';
+import {ResourceNotFoundError} from '../integration/kube/errors/resource-operation-errors.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from './model/consensus-node.js';
 import {PathEx} from '../business/utils/path-ex.js';
@@ -117,13 +119,8 @@ export class PlatformInstaller {
     }
     const zipPath: string = await this.packageDownloader.fetchPlatform(tag, buildDirectory);
 
-    // Ensure the checksum file is also present (fetchPlatform returns early on cache hit without re-downloading it)
+    // fetchPlatform ensures the checksum file is present, downloading it only when it is missing or unusable
     const checksumPath: string = PathEx.join(buildDirectory, `build-${tag}.sha384`);
-    if (!fs.existsSync(checksumPath)) {
-      const releaseDirectory: string = Templates.prepareReleasePrefix(tag);
-      const checksumURL: string = `${constants.HEDERA_BUILDS_URL}/node/software/${releaseDirectory}/build-${tag}.sha384`;
-      await this.packageDownloader.fetchFile(checksumURL, checksumPath);
-    }
 
     return [zipPath, checksumPath];
   }
@@ -236,46 +233,51 @@ export class PlatformInstaller {
 
   public async copyGossipKeys(
     consensusNode: ConsensusNode,
-    stagingDirectory: string,
+    keysDirectory: string,
     consensusNodes: ConsensusNode[],
   ): Promise<void> {
     if (!consensusNode) {
       throw new SoloErrors.validation.missingArgument('consensusNode is required');
     }
-    if (!stagingDirectory) {
-      throw new SoloErrors.validation.missingArgument('stagingDirectory is required');
+    if (!keysDirectory) {
+      throw new SoloErrors.validation.missingArgument('keysDirectory is required');
     }
     if (!consensusNodes || consensusNodes.length <= 0) {
       throw new SoloErrors.validation.missingArgument('consensusNodes cannot be empty');
     }
 
     try {
-      // copy private keys for the node
-      const sourceFiles: string[] = [
-        PathEx.joinWithRealPath(
-          stagingDirectory,
-          'keys',
-          Templates.renderGossipPemPrivateKeyFile(consensusNode.name as NodeAlias),
-        ),
-      ];
-
-      // copy all public keys for all nodes
-      for (const consensusNode of consensusNodes) {
-        sourceFiles.push(
-          PathEx.joinWithRealPath(
-            stagingDirectory,
-            'keys',
-            Templates.renderGossipPemPublicKeyFile(consensusNode.name as NodeAlias),
-          ),
-        );
-      }
+      const gossipSecretDataByNode: Map<string, Record<string, string>> = new Map();
+      const readGossipSecretData: (node: ConsensusNode) => Promise<Record<string, string>> = async (
+        node: ConsensusNode,
+      ): Promise<Record<string, string>> => {
+        if (!gossipSecretDataByNode.has(node.name)) {
+          gossipSecretDataByNode.set(
+            node.name,
+            await this.readSecretData(
+              node.context,
+              NamespaceName.of(node.namespace),
+              Templates.renderGossipKeySecretName(node.name as NodeAlias),
+            ),
+          );
+        }
+        return gossipSecretDataByNode.get(node.name);
+      };
 
       const data: Record<string, string> = {};
-      for (const sourceFile of sourceFiles) {
-        const fileContents: Buffer = fs.readFileSync(sourceFile);
-        const fileName: string = path.basename(sourceFile);
-        // @ts-expect-error - Dynamic key assignment is intentional
-        data[fileName] = Base64.encode(fileContents);
+      const privateKeyFile: string = Templates.renderGossipPemPrivateKeyFile(consensusNode.name as NodeAlias);
+      data[privateKeyFile] = await this.resolveKeyFileBase64(
+        keysDirectory,
+        privateKeyFile,
+        (): Promise<Record<string, string>> => readGossipSecretData(consensusNode),
+      );
+      for (const node of consensusNodes) {
+        const publicKeyFile: string = Templates.renderGossipPemPublicKeyFile(node.name as NodeAlias);
+        data[publicKeyFile] = await this.resolveKeyFileBase64(
+          keysDirectory,
+          publicKeyFile,
+          (): Promise<Record<string, string>> => readGossipSecretData(node),
+        );
       }
 
       const secretCreated: boolean = await this.k8Factory
@@ -301,40 +303,37 @@ export class PlatformInstaller {
     }
   }
 
-  public async copyTLSKeys(
-    consensusNodes: ConsensusNode[],
-    stagingDirectory: string,
-    contexts: string[],
-  ): Promise<void> {
+  public async copyTLSKeys(consensusNodes: ConsensusNode[], keysDirectory: string, contexts: string[]): Promise<void> {
     if (!consensusNodes || consensusNodes.length <= 0) {
       throw new SoloErrors.validation.missingArgument('consensusNodes cannot be empty');
     }
-    if (!stagingDirectory) {
-      throw new SoloErrors.validation.missingArgument('stagingDirectory is required');
+    if (!keysDirectory) {
+      throw new SoloErrors.validation.missingArgument('keysDirectory is required');
     }
 
     try {
+      let sharedTlsSecretData: Record<string, string> | undefined;
+      const readSharedTlsSecretData: () => Promise<Record<string, string>> = async (): Promise<
+        Record<string, string>
+      > => {
+        if (!sharedTlsSecretData) {
+          sharedTlsSecretData = await this.readSecretData(
+            contexts[0],
+            this._getNamespace(),
+            'network-node-hapi-app-secrets',
+          );
+        }
+        return sharedTlsSecretData;
+      };
+
       const data: Record<string, string> = {};
-
       for (const consensusNode of consensusNodes) {
-        const sourceFiles: string[] = [
-          PathEx.joinWithRealPath(
-            stagingDirectory,
-            'keys',
-            Templates.renderTLSPemPrivateKeyFile(consensusNode.name as NodeAlias),
-          ),
-          PathEx.joinWithRealPath(
-            stagingDirectory,
-            'keys',
-            Templates.renderTLSPemPublicKeyFile(consensusNode.name as NodeAlias),
-          ),
+        const keyFiles: string[] = [
+          Templates.renderTLSPemPrivateKeyFile(consensusNode.name as NodeAlias),
+          Templates.renderTLSPemPublicKeyFile(consensusNode.name as NodeAlias),
         ];
-
-        for (const sourceFile of sourceFiles) {
-          const fileContents: Buffer = fs.readFileSync(sourceFile);
-          const fileName: string = path.basename(sourceFile);
-          // @ts-expect-error - Dynamic key assignment is intentional
-          data[fileName] = Base64.encode(fileContents);
+        for (const fileName of keyFiles) {
+          data[fileName] = await this.resolveKeyFileBase64(keysDirectory, fileName, readSharedTlsSecretData);
         }
       }
 
@@ -482,11 +481,11 @@ export class PlatformInstaller {
    * @param consensusNodes list of consensus nodes
    * @param contexts list of k8s contexts
    */
-  public copyNodeKeys(stagingDirectory: string, consensusNodes: ConsensusNode[], contexts: string[]): any[] {
+  public copyNodeKeys(keysDirectory: string, consensusNodes: ConsensusNode[], contexts: string[]): any[] {
     const subTasks: any[] = [
       {
         title: 'Copy TLS keys',
-        task: async (): Promise<void> => await this.copyTLSKeys(consensusNodes, stagingDirectory, contexts),
+        task: async (): Promise<void> => await this.copyTLSKeys(consensusNodes, keysDirectory, contexts),
       },
     ];
 
@@ -498,7 +497,7 @@ export class PlatformInstaller {
             [
               {
                 title: 'Copy Gossip keys',
-                task: async () => await this.copyGossipKeys(consensusNode, stagingDirectory, consensusNodes),
+                task: async () => await this.copyGossipKeys(consensusNode, keysDirectory, consensusNodes),
               },
             ],
             {
@@ -511,5 +510,48 @@ export class PlatformInstaller {
       });
     }
     return subTasks;
+  }
+
+  /**
+   * Read a secret's data map, returning an empty map when the secret does not exist yet. This lets the
+   * key-file resolver fall through to a clear "key file missing" error (rather than a confusing
+   * "failed to read Secret") on a fresh deploy where the keys must come from disk.
+   * @param context - the k8s context to read from
+   * @param namespace - the secret's namespace
+   * @param secretName - the secret name
+   */
+  private async readSecretData(
+    context: string,
+    namespace: NamespaceName,
+    secretName: string,
+  ): Promise<Record<string, string>> {
+    try {
+      const secret: Secret = await this.k8Factory.getK8(context).secrets().read(namespace, secretName);
+      return secret?.data ?? {};
+    } catch (error) {
+      if (error instanceof ResourceNotFoundError) {
+        return {};
+      }
+      throw error;
+    }
+  }
+
+  private async resolveKeyFileBase64(
+    keysDirectory: string,
+    fileName: string,
+    readSecretData: () => Promise<Record<string, string>>,
+  ): Promise<string> {
+    const keyFilePath: string = PathEx.join(keysDirectory, fileName);
+    if (fs.existsSync(keyFilePath)) {
+      // Key files are ASCII PEM, so reading as utf8 preserves the previous base64 encoding of the bytes.
+      return Base64.encode(fs.readFileSync(keyFilePath, 'utf8'));
+    }
+
+    const secretData: Record<string, string> = await readSecretData();
+    const encodedContents: string | undefined = secretData[fileName];
+    if (!encodedContents) {
+      throw new SoloErrors.component.platformKeyFileMissing(fileName);
+    }
+    return encodedContents;
   }
 }

@@ -5,7 +5,7 @@ import {type UserIdentitySchema} from '../../../data/schema/model/common/user-id
 
 export interface ClusterReferenceConnectConfigClass {
   cacheDir: string;
-  devMode: boolean;
+  debugMode: boolean;
   quiet: boolean;
   userIdentity: UserIdentitySchema;
   clusterRef: ClusterReferenceName;

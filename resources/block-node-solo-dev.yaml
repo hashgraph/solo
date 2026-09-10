@@ -1,9 +1,0 @@
-# SPDX-License-Identifier: Apache-2.0
-
-# Override variables for using the solo-dev image
-image:
-  repository: ghcr.io/hiero-ledger/hiero-block-node-solo-dev
-
-# solo-dev has all the plugins included in the image
-plugins:
-  names:

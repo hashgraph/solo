@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {Exclude, Expose} from 'class-transformer';
+import {EnvironmentAliasRegistry} from '../../decorators/environment-alias-registry.js';
 
 @Exclude()
 export class WrapsSchema {
@@ -16,6 +17,7 @@ export class WrapsSchema {
   // IMPORTANT: libraryDownloadUrl must be kept consistent with directoryName.
   // If directoryName is updated, update libraryDownloadUrl to match.
   @Expose()
+  @EnvironmentAliasRegistry.alias('SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL')
   public libraryDownloadUrl: string;
 
   public constructor(

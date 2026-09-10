@@ -37,6 +37,16 @@ export class CacheCommandDefinition extends BaseCommandDefinition {
 
   public static readonly IMAGE_LOAD_COMMAND: string = `${CacheCommandDefinition.COMMAND_NAME} ${CacheCommandDefinition.IMAGE_SUBCOMMAND_NAME} ${CacheCommandDefinition.IMAGE_LOAD}`;
 
+  public static readonly CHART_SUBCOMMAND_NAME: string = 'chart';
+
+  public static readonly CHART_PULL: string = 'pull';
+  public static readonly CHART_LIST: string = 'list';
+  public static readonly CHART_CLEAR: string = 'clear';
+  public static readonly CHART_STATUS: string = 'status';
+  public static readonly CHART_PRUNE: string = 'prune';
+
+  public static readonly CHART_PULL_COMMAND: string = `${CacheCommandDefinition.COMMAND_NAME} ${CacheCommandDefinition.CHART_SUBCOMMAND_NAME} ${CacheCommandDefinition.CHART_PULL}`;
+
   public getCommandDefinition(): CommandDefinition {
     return new CommandBuilder(CacheCommandDefinition.COMMAND_NAME, CacheCommandDefinition.DESCRIPTION, this.logger)
       .addCommandGroup(
@@ -98,6 +108,59 @@ export class CacheCommandDefinition extends BaseCommandDefinition {
               this.cacheCommand,
               this.cacheCommand.status,
               CacheCommand.STATUS_FLAGS_LIST,
+              [],
+            ),
+          ),
+      )
+      .addCommandGroup(
+        new CommandGroup(CacheCommandDefinition.CHART_SUBCOMMAND_NAME, 'Manage helm chart archives used by solo.')
+          .addSubcommand(
+            new Subcommand(
+              CacheCommandDefinition.CHART_PULL,
+              'Pulls and caches the helm charts used by solo so deploys can install them from the local cache.',
+              this.cacheCommand,
+              this.cacheCommand.chartPull,
+              CacheCommand.CHART_PULL_FLAGS_LIST,
+              [constants.HELM],
+            ),
+          )
+          .addSubcommand(
+            new Subcommand(
+              CacheCommandDefinition.CHART_LIST,
+              'Lists all cached helm chart archives.',
+              this.cacheCommand,
+              this.cacheCommand.chartList,
+              CacheCommand.CHART_LIST_FLAGS_LIST,
+              [],
+            ),
+          )
+          .addSubcommand(
+            new Subcommand(
+              CacheCommandDefinition.CHART_CLEAR,
+              'Clears the cached helm chart archives.',
+              this.cacheCommand,
+              this.cacheCommand.chartClear,
+              CacheCommand.CHART_CLEAR_FLAGS_LIST,
+              [],
+            ),
+          )
+          .addSubcommand(
+            new Subcommand(
+              CacheCommandDefinition.CHART_PRUNE,
+              'Prunes the cached helm chart archives.',
+              this.cacheCommand,
+              this.cacheCommand.chartPrune,
+              CacheCommand.CHART_PRUNE_FLAGS_LIST,
+              [],
+            ),
+          )
+          .addSubcommand(
+            new Subcommand(
+              CacheCommandDefinition.CHART_STATUS,
+              'Lists all cached helm charts, their total size, and any missing chart archives.',
+              this.cacheCommand,
+              this.cacheCommand.chartStatus,
+              CacheCommand.CHART_STATUS_FLAGS_LIST,
               [],
             ),
           ),

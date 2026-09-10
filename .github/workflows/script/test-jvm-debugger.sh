@@ -171,7 +171,6 @@ if [[ "$SKIP_BOOTSTRAP" == false ]]; then
 
   kind create cluster --name "$SOLO_CLUSTER_NAME" --image kindest/node:v1.34.0 --wait 5m --config .github/workflows/script/kind-config.yaml
 
-  npm run solo-test -- init
   npm run solo-test -- cluster-ref config connect --cluster-ref "$SOLO_CLUSTER_NAME" --context "kind-$SOLO_CLUSTER_NAME"
   npm run solo-test -- deployment config create --namespace "$SOLO_NAMESPACE" --deployment "$SOLO_DEPLOYMENT"
   npm run solo-test -- deployment cluster attach --deployment "$SOLO_DEPLOYMENT" --cluster-ref "$SOLO_CLUSTER_NAME" --num-consensus-nodes 2

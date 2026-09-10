@@ -9,7 +9,11 @@ import {type ClusterReferences} from '../../../../types/index.js';
 
 @Exclude()
 export class LocalConfigSchema {
-  public static readonly SCHEMA_VERSION: SemanticVersion<number> = new SemanticVersion(1);
+  /**
+   * The current version of the local configuration schema. This must always match the version produced by the newest
+   * migration registered in LocalConfigSchemaDefinition.
+   */
+  public static readonly SCHEMA_VERSION: SemanticVersion<number> = new SemanticVersion(2);
   public static readonly EMPTY: LocalConfigSchema = new LocalConfigSchema(
     LocalConfigSchema.SCHEMA_VERSION.major,
     new ApplicationVersionsSchema(),

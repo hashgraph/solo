@@ -13,7 +13,7 @@ export class GitHubApiClient {
 
   /**
    * Builds standard GitHub API request headers, adding an Authorization header
-   * when GITHUB_TOKEN is present in the environment.  The token raises the
+   * when GITHUB_TOKEN or GH_TOKEN is present in the environment.  The token raises the
    * unauthenticated rate-limit from 60 req/hour to 5 000 req/hour and
    * eliminates the shared-IP rate-limit problem on GitHub-hosted runners.
    */
@@ -22,8 +22,9 @@ export class GitHubApiClient {
       'User-Agent': constants.SOLO_USER_AGENT_HEADER,
       Accept: 'application/vnd.github.v3+json',
     };
-    if (process.env.GITHUB_TOKEN) {
-      headers['Authorization'] = `Bearer ${process.env.GITHUB_TOKEN}`;
+    const token: string | undefined = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
     }
     return headers;
   }

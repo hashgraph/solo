@@ -31,12 +31,10 @@ export class CacheImageTargetTemplateRenderer {
     this.validateTemplates(templates);
 
     const rendered: ImageTargetsTemplateFile = {
-      images: (parsed.images ?? []).map(
-        (image: ImageTargetTemplateEntry): ImageTargetTemplateEntry => ({
-          ...image,
-          version: this.resolveVersion(image.version, templates),
-        }),
-      ),
+      images: (parsed.images ?? []).map((image: ImageTargetTemplateEntry): ImageTargetTemplateEntry => ({
+        ...image,
+        version: this.resolveVersion(image.version, templates),
+      })),
     };
 
     await fs.mkdir(outputDirectory, {recursive: true});

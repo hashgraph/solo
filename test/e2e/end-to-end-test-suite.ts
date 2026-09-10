@@ -35,6 +35,7 @@ export class EndToEndTestSuite extends Suite {
     public readonly clusterCount: number,
     public readonly consensusNodesCount: number,
     public readonly loadBalancerEnabled: boolean,
+    public readonly tssEnabled: boolean,
     public readonly wrapsEnabled: boolean,
     public readonly pinger: boolean,
     public readonly realm: number = 0,
@@ -103,6 +104,7 @@ export class EndToEndTestSuite extends Suite {
       createdAccountIds: this.createdAccountIds,
       consensusNodesCount: this.consensusNodesCount,
       loadBalancerEnabled: this.loadBalancerEnabled,
+      tssEnabled: this.tssEnabled,
       wrapsEnabled: this.wrapsEnabled,
       pinger: this.pinger,
       realm: this.realm,
@@ -124,6 +126,7 @@ export class EndToEndTestSuite extends Suite {
   public runTestSuite(): void {
     const endToEndTestSuiteInstance: EndToEndTestSuite = this.endToEndTestSuiteInstance;
     describe(endToEndTestSuiteInstance.testSuiteName, function endToEndTestSuiteCallback(): void {
+      // eslint-disable-next-line unicorn/no-this-outside-of-class
       this.bail(true);
 
       endToEndTestSuiteInstance.testSuiteCallback(endToEndTestSuiteInstance.options, EndToEndTestSuite.preDestroy);

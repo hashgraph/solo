@@ -245,6 +245,44 @@ export class ConfigManager {
   }
 
   /**
+   * Record which flags the user explicitly supplied on the command line.
+   *
+   * A flag whose value comes from its default is indistinguishable from an explicitly supplied one
+   * once {@link applyPrecedence} and {@link update} have run, because yargs backfills defaults and
+   * rewrites legacy aliases. Capturing the raw parse here lets later resolution (e.g. upgrade
+   * version precedence, see {@link wasFlagProvidedByUser}) tell the two apart.
+   *
+   * Must be called against the raw parsed argv, before {@link applyPrecedence}.
+   *
+   * @param argv - the raw parsed argv straight from yargs
+   * @param defaulted - yargs' `parsed.defaulted` map: keys populated from their default value
+   */
+  public recordUserSuppliedFlags(argv: ArgvStruct, defaulted: Record<string, boolean>): void {
+    const activeConfig: AnyObject = this.getActiveConfig();
+    const suppliedFlags: Set<string> = new Set<string>();
+    const defaultedKeys: Record<string, boolean> = defaulted ?? {};
+
+    for (const flag of flags.allFlags) {
+      const wasDefaulted: boolean = defaultedKeys[flag.name] === true || defaultedKeys[flag.constName] === true;
+      if (!wasDefaulted && argv[flag.name] !== undefined) {
+        suppliedFlags.add(flag.name);
+      }
+    }
+
+    activeConfig.userSuppliedFlags = suppliedFlags;
+  }
+
+  /**
+   * Whether the user explicitly supplied the given flag on the command line, as opposed to it being
+   * populated from its default value. Relies on {@link recordUserSuppliedFlags} having run for the
+   * current invocation.
+   */
+  public wasFlagProvidedByUser(flag: CommandFlag): boolean {
+    const suppliedFlags: Optional<Set<string>> = this.getActiveConfig().userSuppliedFlags;
+    return suppliedFlags?.has(flag.name) ?? false;
+  }
+
+  /**
    * Return the value of the given flag
    * @returns value of the flag or undefined if flag value is not available
    */
@@ -328,10 +366,13 @@ export class ConfigManager {
             this[`_${flag.constName}`] = constNameValue;
             Object.defineProperty(this, flag.constName, {
               get(): unknown {
+                // eslint-disable-next-line unicorn/no-this-outside-of-class
                 this.usedConfigs.set(flag.constName, this.usedConfigs.get(flag.constName) + 1 || 1);
+                // eslint-disable-next-line unicorn/no-this-outside-of-class
                 return this[`_${flag.constName}`];
               },
               set(value: unknown): void {
+                // eslint-disable-next-line unicorn/no-this-outside-of-class
                 this[`_${flag.constName}`] = value;
               },
             });
@@ -347,10 +388,13 @@ export class ConfigManager {
             this[`_${name}`] = '';
             Object.defineProperty(this, name, {
               get(): unknown {
+                // eslint-disable-next-line unicorn/no-this-outside-of-class
                 this.usedConfigs.set(name, this.usedConfigs.get(name) + 1 || 1);
+                // eslint-disable-next-line unicorn/no-this-outside-of-class
                 return this[`_${name}`];
               },
               set(value: unknown): void {
+                // eslint-disable-next-line unicorn/no-this-outside-of-class
                 this[`_${name}`] = value;
               },
             });

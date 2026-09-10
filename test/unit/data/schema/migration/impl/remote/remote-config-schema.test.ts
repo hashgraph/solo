@@ -41,4 +41,9 @@ describe('RemoteConfigSchema', (): void => {
     expect(migrations.length).equal(8);
     expect(migrations[0]).instanceOf(RemoteConfigV1Migration);
   });
+
+  it('should report the highest migration target as the latest supported version', (): void => {
+    const schema: RemoteConfigSchemaDefinition = new RemoteConfigSchemaDefinition(objectMapper);
+    expect(schema.latestSupportedVersion.major).equal(8);
+  });
 });

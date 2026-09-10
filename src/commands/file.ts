@@ -54,13 +54,13 @@ export class FileCommand extends BaseCommand {
   }
 
   public static CREATE_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment, flags.filePath],
-    optional: [],
+    required: [flags.filePath],
+    optional: [flags.deployment],
   };
 
   public static UPDATE_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment, flags.fileId, flags.filePath],
-    optional: [],
+    required: [flags.fileId, flags.filePath],
+    optional: [flags.deployment],
   };
 
   public async close(): Promise<void> {

@@ -13,6 +13,7 @@ import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tok
 import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {SoloError} from '../../../../src/core/errors/solo-error.js';
+import {PipelineCancelledSoloError} from '../../../../src/core/errors/classes/internal/pipeline-cancelled-solo-error.js';
 
 describe('SoloEventBus', (): void => {
   let bus: SoloEventBus;
@@ -281,6 +282,66 @@ describe('SoloEventBus', (): void => {
 
     it('should be a no-op when called with no argument on an empty bus', (): void => {
       expect((): void => bus.clearHistory()).not.to.throw();
+    });
+  });
+
+  describe('abort()', (): void => {
+    it('should reject a pending waitFor() immediately with a PipelineCancelledSoloError wrapping the reason', async (): Promise<void> => {
+      const reason: SoloError = new SoloError('consensus node deploy failed');
+      // A long timeout ensures the rejection comes from abort(), not the timer.
+      const promise: Promise<NetworkDeployedEvent> = bus.waitFor<NetworkDeployedEvent>(
+        SoloEventType.NetworkDeployed,
+        undefined,
+        Duration.ofMinutes(10),
+      );
+      bus.abort(reason);
+      const error: PipelineCancelledSoloError = await expect(promise).to.be.rejectedWith(PipelineCancelledSoloError);
+      expect(error.cause).to.equal(reason);
+    });
+
+    it('should reject a subsequent waitFor() immediately once aborted', async (): Promise<void> => {
+      const reason: SoloError = new SoloError('root cause');
+      bus.abort(reason);
+      const error: PipelineCancelledSoloError = await expect(
+        bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed, undefined, Duration.ofMinutes(10)),
+      ).to.be.rejectedWith(PipelineCancelledSoloError);
+      expect(error.cause).to.equal(reason);
+    });
+
+    it('abortReason() should return the first reason and later aborts should not overwrite it', (): void => {
+      const first: SoloError = new SoloError('first failure');
+      const second: SoloError = new SoloError('second failure');
+      expect(bus.abortReason()).to.be.undefined;
+      bus.abort(first);
+      bus.abort(second);
+      expect(bus.abortReason()).to.equal(first);
+    });
+
+    it('reset() should clear the aborted state so a fresh waitFor() blocks again', async (): Promise<void> => {
+      bus.abort(new SoloError('failure'));
+      expect(bus.abortReason()).to.not.be.undefined;
+
+      bus.reset();
+      expect(bus.abortReason()).to.be.undefined;
+
+      let resolved: boolean = false;
+      bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
+        resolved = true;
+      });
+      await Promise.resolve();
+      expect(resolved).to.be.false;
+    });
+
+    it('reset() should clear recorded history', async (): Promise<void> => {
+      bus.emit(networkEvent);
+      bus.reset();
+
+      let resolved: boolean = false;
+      bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
+        resolved = true;
+      });
+      await Promise.resolve();
+      expect(resolved).to.be.false;
     });
   });
 });

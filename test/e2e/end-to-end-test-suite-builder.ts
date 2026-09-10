@@ -12,6 +12,7 @@ export class EndToEndTestSuiteBuilder {
   private clusterCount: number;
   private consensusNodesCount: number;
   private loadBalancerEnabled: boolean;
+  private tssEnabled: boolean = true;
   private wrapsEnabled: boolean;
   private pinger: boolean;
   private realm: number;
@@ -66,6 +67,11 @@ export class EndToEndTestSuiteBuilder {
 
   public withLoadBalancerEnabled(loadBalancerEnabled: boolean): this {
     this.loadBalancerEnabled = loadBalancerEnabled;
+    return this;
+  }
+
+  public withTssEnabled(tssEnabled: boolean): this {
+    this.tssEnabled = tssEnabled;
     return this;
   }
 
@@ -171,6 +177,7 @@ export class EndToEndTestSuiteBuilder {
       this.clusterCount || 1, // Default to 1 if not specified
       this.consensusNodesCount || 1,
       this.loadBalancerEnabled || false,
+      this.tssEnabled,
       this.wrapsEnabled || false,
       this.pinger || false,
       this.realm || 0,

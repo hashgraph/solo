@@ -142,7 +142,7 @@ export class SemanticVersion<T extends string | number> {
       if (versionParts.length > 1) {
         this.minor = Number.parseInt(versionParts[1], 10);
         if (versionParts.length > 2) {
-          this.patch = Number.parseInt(versionParts[2].split('-')[0].split('+')[0], 10);
+          this.patch = Number.parseInt(versionParts[2].split('-', 1)[0].split('+', 1)[0], 10);
         }
       }
 

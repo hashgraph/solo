@@ -7,6 +7,7 @@ import {EnvironmentStorageBackend} from '../../backend/impl/environment-storage-
 import {type Refreshable} from '../spi/refreshable.js';
 import {ConfigurationError} from '../api/configuration-error.js';
 import {Forest} from '../../key/lexer/forest.js';
+import {EnvironmentAliasRegistry} from '../../schema/decorators/environment-alias-registry.js';
 
 /**
  * A {@link ConfigSource} that reads configuration data from the environment.
@@ -23,8 +24,13 @@ export class EnvironmentConfigSource extends LayeredConfigSource implements Conf
    */
   private readonly data: Map<string, string>;
 
+  /** Typed reference to the backend for reading fixed/legacy env var aliases verbatim. */
+  private readonly environmentBackend: EnvironmentStorageBackend;
+
   public constructor(mapper: ObjectMapper, prefix?: string) {
-    super(new EnvironmentStorageBackend(prefix), mapper, prefix);
+    const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend(prefix);
+    super(backend, mapper, prefix);
+    this.environmentBackend = backend;
     this.data = new Map<string, string>();
   }
 
@@ -54,6 +60,34 @@ export class EnvironmentConfigSource extends LayeredConfigSource implements Conf
       }
     }
 
+    this.applyAliases();
+
     this.forest = Forest.from(this.data);
+  }
+
+  /**
+   * Applies fixed/legacy environment variable aliases.
+   * The generated `SOLO_*` name always wins,
+   * so an alias is only used when its canonical key
+   * was not already set from a generated name.
+   */
+  private applyAliases(): void {
+    for (const [legacyName, canonicalKey] of EnvironmentAliasRegistry.aliasMap()) {
+      if (this.data.has(canonicalKey)) {
+        continue;
+      }
+
+      const value: string | undefined = this.environmentBackend.readRawValue(legacyName);
+      if (value === undefined) {
+        continue;
+      }
+
+      this.data.set(canonicalKey, value);
+
+      console.warn(
+        `Using environment variable alias '${legacyName}' for config key '${canonicalKey}'; ` +
+          'the generated SOLO_* name takes precedence when both are set.',
+      );
+    }
   }
 }

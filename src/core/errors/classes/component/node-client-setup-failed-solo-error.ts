@@ -22,7 +22,7 @@ export class NodeClientSetupFailedSoloError extends SoloError {
         troubleshootingSteps:
           'Check solo logs: tail -n 100 ~/.solo/logs/solo.log\n' +
           'Verify consensus node pods are running: kubectl get pods -n <namespace>\n' +
-          'Check port-forward status: solo deployment refresh port-forwards\n' +
+          'Check port-forward status: solo deployment port-forwards refresh\n' +
           'Inspect node logs: kubectl logs <node-pod> -n <namespace>',
       },
       cause,

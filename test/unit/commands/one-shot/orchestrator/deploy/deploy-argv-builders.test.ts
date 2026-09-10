@@ -3,6 +3,7 @@
 import {describe, it, afterEach} from 'mocha';
 import {expect} from 'chai';
 import sinon from 'sinon';
+import fs from 'node:fs';
 import {ConsensusCommandDefinition} from '../../../../../../src/commands/command-definitions/consensus-command-definition.js';
 import {MirrorCommandDefinition} from '../../../../../../src/commands/command-definitions/mirror-command-definition.js';
 import * as constants from '../../../../../../src/core/constants.js';
@@ -20,6 +21,8 @@ import {type AnyObject, type ArgvStruct} from '../../../../../../src/types/alias
 
 afterEach((): void => {
   delete process.env.ONE_SHOT_WITH_BLOCK_NODE;
+  delete process.env.BLOCK_STREAM_STREAM_MODE;
+  delete process.env.ONE_SHOT_BLOCK_NODE_PERF;
 });
 
 function makeConfig(overrides: Partial<OneShotSingleDeployConfigClass> = {}): OneShotSingleDeployConfigClass {
@@ -43,6 +46,7 @@ function makeConfig(overrides: Partial<OneShotSingleDeployConfigClass> = {}): On
     setupConfiguration: {},
     consensusNodeConfiguration: {},
     cacheDir: '/tmp/cache',
+    clusterHasOneShotPortMappings: true,
     ...overrides,
   } as OneShotSingleDeployConfigClass;
 }
@@ -54,7 +58,7 @@ describe('buildBlockNodeArgv', (): void => {
     expect(argv).to.include('test-deployment');
   });
 
-  it('sets values file to BLOCK_NODE_SOLO_DEV_FILE when no existing values file', (): void => {
+  it('sets values file to BLOCK_NODE_SOLO_DEV_FILE when no existing values file is provided', (): void => {
     const argv: string[] = DeployArgvBuilders.buildBlockNodeArgv(makeConfig({blockNodeConfiguration: {}}));
     const valueIndex: number = argv.indexOf(optionFromFlag(Flags.valuesFile));
     expect(valueIndex).to.be.greaterThan(-1);
@@ -62,14 +66,44 @@ describe('buildBlockNodeArgv', (): void => {
   });
 
   it('appends BLOCK_NODE_SOLO_DEV_FILE to an existing values file', (): void => {
-    const existingFile: string = '/some/path/values.yaml';
+    const existingFile: string = '/path/to/custom.yaml';
     const valuesFileFlagName: string = optionFromFlag(Flags.valuesFile);
-    const blockNodeConfiguration: AnyObject = {[valuesFileFlagName]: existingFile};
-
+    const blockNodeConfiguration: Record<string, string> = {[valuesFileFlagName]: existingFile};
     const argv: string[] = DeployArgvBuilders.buildBlockNodeArgv(makeConfig({blockNodeConfiguration}));
     const valueIndex: number = argv.indexOf(optionFromFlag(Flags.valuesFile));
     expect(valueIndex).to.be.greaterThan(-1);
     expect(argv[valueIndex + 1]).to.equal(`${existingFile},${constants.BLOCK_NODE_SOLO_DEV_FILE}`);
+  });
+
+  it('injects RSA bootstrap values for one-shot block node WRB/RSA deploys outside perf mode', (): void => {
+    process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
+    process.env.BLOCK_STREAM_STREAM_MODE = 'BOTH';
+    process.env.ONE_SHOT_BLOCK_NODE_PERF = 'false';
+
+    const argv: string[] = DeployArgvBuilders.buildBlockNodeArgv(
+      makeConfig({
+        cacheDir: 'test/data/pem',
+        numberOfConsensusNodes: 1,
+        versions: {
+          explorer: '2.5.0',
+          soloChart: '0.0.0',
+          consensus: 'v0.75.0',
+          mirror: '0.0.0',
+          relay: '0.0.0',
+          blockNode: '0.37.1',
+        },
+      }),
+    );
+
+    const valueIndex: number = argv.indexOf(optionFromFlag(Flags.valuesFile));
+    expect(valueIndex).to.be.greaterThan(-1);
+    const valuesFiles: string[] = argv[valueIndex + 1].split(',');
+    expect(valuesFiles).to.have.length(2);
+    expect(valuesFiles[1]).to.equal(constants.BLOCK_NODE_SOLO_DEV_FILE);
+
+    const rsaBootstrapValues: string = fs.readFileSync(valuesFiles[0], 'utf8');
+    expect(rsaBootstrapValues).to.contain('rsa-bootstrap-roster.json');
+    expect(rsaBootstrapValues).to.contain('ROSTER_BOOTSTRAP_RSA_MIRROR_NODE_BASE_URL');
   });
 
   it('does not mutate blockNodeConfiguration', (): void => {
@@ -124,6 +158,21 @@ describe('buildMirrorNodeArgv', (): void => {
     expect(argv).to.include('true');
   });
 
+  it('exposes the mirror ingress via NodePort and disables port-forward', (): void => {
+    const argv: string[] = DeployArgvBuilders.buildMirrorNodeArgv(makeConfig());
+    expect(argv).to.include(optionFromFlag(Flags.enableIngress));
+    expect(argv).to.include(negatedOptionFromFlag(Flags.forcePortForward));
+    const valueIndex: number = argv.indexOf(optionFromFlag(Flags.ingressControllerValueFile));
+    expect(valueIndex).to.be.greaterThan(-1);
+    expect(argv[valueIndex + 1]).to.equal(constants.ONE_SHOT_MIRROR_INGRESS_NODEPORT_VALUES_FILE);
+  });
+
+  it('keeps the legacy port-forward when the cluster lacks the one-shot port mappings', (): void => {
+    const argv: string[] = DeployArgvBuilders.buildMirrorNodeArgv(makeConfig({clusterHasOneShotPortMappings: false}));
+    expect(argv).to.not.include(negatedOptionFromFlag(Flags.forcePortForward));
+    expect(argv).to.not.include(optionFromFlag(Flags.ingressControllerValueFile));
+  });
+
   it('sets values file to MIRROR_NODE_HIKARI_LIMITS_FILE when no existing values file', (): void => {
     const argv: string[] = DeployArgvBuilders.buildMirrorNodeArgv(makeConfig({mirrorNodeConfiguration: {}}));
     const valueIndex: number = argv.indexOf(optionFromFlag(Flags.valuesFile));
@@ -173,6 +222,22 @@ describe('buildMirrorNodePingerUpgradeArgv', (): void => {
     expect(valueIndex).to.be.greaterThan(-1);
     expect(argv[valueIndex + 1]).to.equal(`${existingFile},${constants.MIRROR_NODE_HIKARI_LIMITS_FILE}`);
   });
+
+  it('keeps the mirror ingress on its NodePort and disables port-forward on upgrade', (): void => {
+    const argv: string[] = DeployArgvBuilders.buildMirrorNodePingerUpgradeArgv(makeConfig());
+    expect(argv).to.include(negatedOptionFromFlag(Flags.forcePortForward));
+    const valueIndex: number = argv.indexOf(optionFromFlag(Flags.ingressControllerValueFile));
+    expect(valueIndex).to.be.greaterThan(-1);
+    expect(argv[valueIndex + 1]).to.equal(constants.ONE_SHOT_MIRROR_INGRESS_NODEPORT_VALUES_FILE);
+  });
+
+  it('keeps the legacy port-forward on upgrade when the cluster lacks the one-shot port mappings', (): void => {
+    const argv: string[] = DeployArgvBuilders.buildMirrorNodePingerUpgradeArgv(
+      makeConfig({clusterHasOneShotPortMappings: false}),
+    );
+    expect(argv).to.not.include(negatedOptionFromFlag(Flags.forcePortForward));
+    expect(argv).to.not.include(optionFromFlag(Flags.ingressControllerValueFile));
+  });
 });
 
 describe('buildExplorerArgv', (): void => {
@@ -204,6 +269,16 @@ describe('buildExplorerArgv', (): void => {
     const versionIndex: number = argv.indexOf(optionFromFlag(Flags.explorerVersion));
     expect(argv[versionIndex + 1]).to.equal('2.5.0');
   });
+
+  it('disables port-forward in favor of the one-shot NodePort service', (): void => {
+    const argv: string[] = DeployArgvBuilders.buildExplorerArgv(makeConfig());
+    expect(argv).to.include(negatedOptionFromFlag(Flags.forcePortForward));
+  });
+
+  it('keeps the legacy port-forward when the cluster lacks the one-shot port mappings', (): void => {
+    const argv: string[] = DeployArgvBuilders.buildExplorerArgv(makeConfig({clusterHasOneShotPortMappings: false}));
+    expect(argv).to.not.include(negatedOptionFromFlag(Flags.forcePortForward));
+  });
 });
 
 describe('buildRelayArgv', (): void => {
@@ -229,6 +304,16 @@ describe('buildRelayArgv', (): void => {
     expect(argv).to.include(optionFromFlag(Flags.mirrorNamespace));
     const namespaceIndex: number = argv.indexOf(optionFromFlag(Flags.mirrorNamespace));
     expect(argv[namespaceIndex + 1]).to.equal('test-ns');
+  });
+
+  it('disables port-forward in favor of the one-shot NodePort service', (): void => {
+    const argv: string[] = DeployArgvBuilders.buildRelayArgv(makeConfig());
+    expect(argv).to.include(negatedOptionFromFlag(Flags.forcePortForward));
+  });
+
+  it('keeps the legacy port-forward when the cluster lacks the one-shot port mappings', (): void => {
+    const argv: string[] = DeployArgvBuilders.buildRelayArgv(makeConfig({clusterHasOneShotPortMappings: false}));
+    expect(argv).to.not.include(negatedOptionFromFlag(Flags.forcePortForward));
   });
 });
 
@@ -262,6 +347,18 @@ describe('buildConsensusStartArgv', (): void => {
     }
     expect(argv).to.include(optionFromFlag(Flags.deployment));
     expect(argv).to.include('test-deployment');
+  });
+
+  it('disables port-forward in favor of the one-shot NodePort service', (): void => {
+    const argv: string[] = DeployArgvBuilders.buildConsensusStartArgv(makeConfig());
+    expect(argv).to.include(negatedOptionFromFlag(Flags.forcePortForward));
+  });
+
+  it('keeps the legacy port-forward when the cluster lacks the one-shot port mappings', (): void => {
+    const argv: string[] = DeployArgvBuilders.buildConsensusStartArgv(
+      makeConfig({clusterHasOneShotPortMappings: false}),
+    );
+    expect(argv).to.not.include(negatedOptionFromFlag(Flags.forcePortForward));
   });
 });
 
@@ -336,6 +433,25 @@ describe('buildClusterSetupArgv', (): void => {
     );
 
     expect(argv).to.include(negatedOptionFromFlag(Flags.deployMinio));
+  });
+
+  it('does not add --no-minio when block node one-shot uses BOTH stream mode', (): void => {
+    process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
+    process.env.BLOCK_STREAM_STREAM_MODE = 'BOTH';
+    const argv: string[] = DeployArgvBuilders.buildClusterSetupArgv(
+      makeConfig({
+        versions: {
+          explorer: '2.5.0',
+          soloChart: '0.0.0',
+          consensus: 'v0.74.0',
+          mirror: '0.0.0',
+          relay: '0.0.0',
+          blockNode: '0.0.0',
+        },
+      }),
+    );
+
+    expect(argv).to.not.include(negatedOptionFromFlag(Flags.deployMinio));
   });
 
   it('does not add --no-minio when ONE_SHOT_WITH_BLOCK_NODE is disabled', (): void => {

@@ -59,6 +59,11 @@ export class HelmChartValues {
     return [...this._arguments, ...this._userArguments];
   }
 
+  /** Returns only the user-supplied values file paths, in the order they were added. */
+  public userValueFilePaths(): string[] {
+    return this.extractValueFilePaths(this._userArguments);
+  }
+
   public isEmpty(): boolean {
     return this._arguments.length === 0 && this._userArguments.length === 0;
   }
@@ -128,5 +133,17 @@ export class HelmChartValues {
     }
 
     return this;
+  }
+
+  private extractValueFilePaths(arguments_: string[]): string[] {
+    const filePaths: string[] = [];
+
+    for (let argumentIndex: number = 0; argumentIndex < arguments_.length; argumentIndex += 2) {
+      if (arguments_[argumentIndex] === '--values' && arguments_[argumentIndex + 1]) {
+        filePaths.push(arguments_[argumentIndex + 1]);
+      }
+    }
+
+    return filePaths;
   }
 }

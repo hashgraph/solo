@@ -1,20 +1,76 @@
-mirror:
+# Options file for restore-network.
+# Called after restore-db has populated the external database, so mirror, relay,
+# and explorer can be deployed in the same pass as consensus and block — they will
+# start with a fully populated database.
+#
+# ${VAR} references are substituted from the process environment at runtime
+# (see the env: block in the Taskfile restore-network task).
+block:
   - --deployment
-  - external-database-test-deployment
-  - --cluster-ref
-  - solo-e2e-c2
-  - --enable-ingress
-  - --pinger
+  - ${DEPLOYMENT}
   - --dev
   - --quiet-mode
+  - --values-file
+  - block-node-values.yaml
+mirror:
+  - --deployment
+  - ${DEPLOYMENT}
+  - --cluster-ref
+  - solo-e2e-c2
   - --use-external-database
+  - --enable-ingress
   - --external-database-host
-  - my-postgresql.database.svc.cluster.local
+  - ${POSTGRES_HOST_FQDN}
   - --external-database-owner-username
-  - postgres
+  - ${POSTGRES_USERNAME}
   - --external-database-owner-password
-  - XXXXXXX
+  - ${POSTGRES_PASSWORD}
   - --external-database-read-username
-  - readonlyuser
+  - ${POSTGRES_READONLY_USERNAME}
   - --external-database-read-password
-  - XXXXXXXX
+  - ${POSTGRES_READONLY_PASSWORD}
+  - --pinger
+  - -q
+  - --dev
+  - --values-file
+  - mirror-node-values-dual-cluster-minimal.yaml
+explorer:
+  - --deployment
+  - ${DEPLOYMENT}
+  - --cluster-ref
+  - solo-e2e-c2
+  - --mirrorNamespace
+  - ${NAMESPACE}
+  - --enable-explorer-tls
+  - --tls-cluster-issuer-type
+  - acme-staging
+  - --enable-ingress
+  - -q
+  - --dev
+relay:
+  - --deployment
+  - ${DEPLOYMENT}
+  - --cluster-ref
+  - solo-e2e-c2
+  - --node-aliases
+  - ${RELAY_NODE_ALIASES}
+  - --quiet-mode
+  - --dev
+  - --values-file
+  - relay-node-values-dual-cluster-minimal.yaml
+# Re-applied at restore time so service.spec.loadBalancerIP is rendered into the
+# chart with the same values as the original deploy. MetalLB honors loadBalancerIP,
+# so the new cluster comes up with the same LB IPs the saved roster expects.
+consensus:
+  - --deployment
+  - external-database-test-deployment
+  - --quiet-mode
+  - --dev
+  - --load-balancer
+  - --pvcs
+  - --haproxy-ips
+  - node1=172.19.1.0,node2=172.19.2.1
+  - --envoy-ips
+  - node1=172.19.1.2,node2=172.19.2.2
+  - --network-node-ips
+  - node1=172.19.1.1,node2=172.19.2.0

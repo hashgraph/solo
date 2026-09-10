@@ -19,6 +19,11 @@ describe('DefaultGitClient', (): void => {
     await git.init();
     await git.addConfig('user.email', 'test@example.com');
     await git.addConfig('user.name', 'Test User');
+
+    // fix failing tests due to local configuration
+    await git.addConfig('commit.gpgSign', 'false');
+    await git.addConfig('tag.gpgSign', 'false');
+    await git.addConfig('tag.forceSignAnnotated', 'false');
     const testFile: string = path.join(temporaryDirectory, 'test.txt');
     fs.writeFileSync(testFile, 'test content');
     await git.add('.');

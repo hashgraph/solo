@@ -9,6 +9,7 @@ import {SilentBreak} from './errors/silent-break.js';
 import {KubeErrorTranslator} from './errors/kube-error-translator.js';
 import {CacheErrorTranslator} from './errors/cache-error-translator.js';
 import {HelmErrorTranslator} from './errors/helm-error-translator.js';
+import {SdkErrorTranslator} from './errors/sdk-error-translator.js';
 
 @injectable()
 export class ErrorHandler {
@@ -41,6 +42,7 @@ export class ErrorHandler {
       KubeErrorTranslator.tryTranslate(error) ??
       CacheErrorTranslator.tryTranslate(error) ??
       HelmErrorTranslator.tryTranslate(error) ??
+      SdkErrorTranslator.tryTranslate(error) ??
       error;
     this.logger.showUserError(translated);
     this.logger.showUser(

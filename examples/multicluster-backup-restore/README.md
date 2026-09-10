@@ -62,6 +62,8 @@ This will:
 * ✅ Backup the entire network (ConfigMaps, Secrets, Logs, State, Database)
 * ✅ Destroy both clusters completely
 * ✅ Recreate clusters and restore all components from backup
+* ✅ Verify static consensus node LoadBalancer IP mapping after restore
+* ✅ Verify loaded roster gossip endpoints match live node service IPs
 * ✅ Verify the network is operational with new transactions
 
 ### Clean Up
@@ -85,6 +87,7 @@ task destroy
 | `task restore-clusters` | Recreate Kind clusters from backup |
 | `task restore-network` | Restore network components from backup |
 | `task restore-config` | Restore ConfigMaps, Secrets, Logs, State, and database |
+| `task restart` | Start consensus nodes and run post-start IP/roster checks |
 | `task verify` | Verify restored network functionality |
 | `task destroy` | Remove clusters and backup files |
 
@@ -179,6 +182,7 @@ This will:
 * Deploy PostgreSQL database on cluster 2
 * Initialize cluster configurations
 * Deploy all network components (consensus, block, mirror, explorer, relay)
+* Verify consensus node service LoadBalancer IPs match `expected-lb-ips.env`
 
 ### 7. Restore Configuration and State
 
@@ -191,9 +195,21 @@ This will:
 * Freeze the network
 * Restore ConfigMaps, Secrets, Logs, and State files using `solo config ops restore-config`
 * Restore PostgreSQL database from SQL dump
-* Start consensus nodes
+* Re-upload state after pod restarts to preserve restored height
 
-### 8. Verify Restored Network
+### 8. Restart Consensus Nodes and Validate Roster/IP Consistency
+
+```bash
+task restart
+```
+
+This will:
+
+* Start consensus nodes
+* Verify static node service LoadBalancer IPs (`scripts/verify-lb-ips.sh`)
+* Verify loaded roster gossip IPs match live node service IPs (`scripts/verify-roster-vs-lb.sh`)
+
+### 9. Verify Restored Network
 
 ```bash
 task verify
@@ -244,6 +260,15 @@ The MetalLB configurations in `metallb-cluster-1.yaml` and `metallb-cluster-2.ya
 * **IP address ranges** for load balancer services
 * **Load balancer type** (Layer 2 mode)
 * **Address allocation** per cluster
+
+### Static Node Service IP Mapping
+
+`expected-lb-ips.env` defines the required static LB IPs for:
+
+* `kind-solo-e2e-c1/network-node1-svc`
+* `kind-solo-e2e-c2/network-node2-svc`
+
+`task restore-network` verifies these IPs after services are created. If they differ, the workflow fails fast.
 
 ## What Gets Backed Up?
 
@@ -408,6 +433,9 @@ task restore-network
 # Restore configuration and state
 task restore-config
 
+# Restart consensus and run roster/IP checks
+task restart
+
 # Verify
 task verify
 ```
@@ -518,6 +546,9 @@ This example demonstrates the following Solo commands:
 
 * `Taskfile.yml` - Main automation tasks and configuration
 * `command.yaml` - Component deployment options for restore
+* `expected-lb-ips.env` - Static LB IP mapping for consensus node services
+* `scripts/verify-lb-ips.sh` - Verifies static LB IP mapping post-restore/start
+* `scripts/verify-roster-vs-lb.sh` - Verifies loaded roster gossip endpoints match live LB IPs
 * `scripts/init.sh` - PostgreSQL database initialization script
 * `kind-cluster-1.yaml` - Kind cluster 1 configuration
 * `kind-cluster-2.yaml` - Kind cluster 2 configuration

@@ -11,6 +11,7 @@ import {type IngressClass} from '../integration/kube/resources/ingress-class/ing
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ConfigMap} from '../integration/kube/resources/config-map/config-map.js';
 import {Context} from '../types/index.js';
+import {SoloError} from './errors/solo-error.js';
 
 /**
  * Class to check if certain components are installed in the cluster.
@@ -87,9 +88,10 @@ export class ClusterChecks {
 
       return configmaps.length > 0;
     } catch (error) {
-      this.logger.error('Failed to find remote config:', error);
-
-      return false;
+      throw new SoloError(
+        `Failed to determine if cluster is shared (lookup failed): ${(error as Error).message}`,
+        error as Error,
+      );
     }
   }
 
@@ -97,12 +99,12 @@ export class ClusterChecks {
    * Searches specific namespace for remote config's config map
    *
    * @param namespace - namespace where to search
+   * @param context - the cluster to search in; defaults to the default cluster when omitted
    * @returns true if found else false
    */
-  public async isRemoteConfigPresentInNamespace(namespace: NamespaceName): Promise<boolean> {
+  public async isRemoteConfigPresentInNamespace(namespace: NamespaceName, context?: Context): Promise<boolean> {
     try {
-      const configmaps: ConfigMap[] = await this.k8Factory
-        .default()
+      const configmaps: ConfigMap[] = await (context ? this.k8Factory.getK8(context) : this.k8Factory.default())
         .configMaps()
         .list(namespace, [constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
 

@@ -6,6 +6,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency-injection/container-helper.js';
 import {InjectTokens} from '../dependency-injection/inject-tokens.js';
 import {BaseDependencyManager} from './base-dependency-manager.js';
+import {SubprocessCommandProfile} from '../subprocess-command-profile.js';
 import {Zippy} from '../zippy.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {PackageDownloader} from '../package-downloader.js';
@@ -100,6 +101,7 @@ export class HelmDependencyManager extends BaseDependencyManager {
       // plugins (e.g., Teleport exec credentials) which can hang in non-interactive environments.
       const nullDevice: string = OperatingSystem.isWin32() ? 'nul' : '/dev/null';
       const output: string[] = await this.run(executableWithPath, ['version', '--short'], {
+        commandProfile: SubprocessCommandProfile.HELM,
         environmentVariablesToAppend: {KUBECONFIG: nullDevice},
         timeoutMs: 30_000,
       });

@@ -41,7 +41,7 @@ export class LoadDockerImageOptionsBuilder {
   }
 
   /**
-   * Build the ExportLogsOptions instance.
+   * Build the LoadDockerImageOptions instance.
    */
   public build(): LoadDockerImageOptions {
     return new LoadDockerImageOptions(this._imageName, this._name, this._nodes);

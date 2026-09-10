@@ -61,7 +61,7 @@ export class RelayTest extends BaseCommandTest {
       optionFromFlag(Flags.nodeAliasesUnparsed),
       nodeAliasesUnparsed,
       optionFromFlag(Flags.quiet),
-      optionFromFlag(Flags.devMode),
+      optionFromFlag(Flags.debugMode),
     );
     argvPushGlobalFlags(argv, testName, false, true);
     return argv;

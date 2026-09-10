@@ -1,10 +1,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import 'reflect-metadata';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {runCapture} from './utilities.js';
 import chalk from 'chalk';
+import {container} from 'tsyringe-neo';
+import * as constants from '../../src/core/constants.js';
+import {Container} from '../../src/core/dependency-injection/container-init.js';
+import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
+import {type DeprecationRegistry} from '../../src/core/deprecation-registry.js';
+import {Deprecations} from '../../src/core/deprecations.js';
+import {type RegisteredDeprecation} from '../../src/types/registered-deprecation.js';
+import {type AnyObject} from '../../src/types/aliases.js';
 
 const __dirname: string = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot: string = path.resolve(__dirname, '../../');
@@ -62,7 +71,7 @@ async function getTopLevelCommands(): Promise<SoloCommand> {
           return accumulator;
         }
         if (accumulator.inCommands && line.trim()) {
-          accumulator.commands.push(line.trim().split(/\s+/)[0]);
+          accumulator.commands.push(line.trim().split(/\s+/, 1)[0]);
         }
         return accumulator;
       },
@@ -90,7 +99,7 @@ async function getSecondLevelCommands(topLevelCommand: TopLevelCommand): Promise
     const commands: string[] = topLevelCommand.output
       .split('\n')
       .filter((l): boolean => l.trim().startsWith(topLevelCommand.topCommand + ' '))
-      .map((l): string => l.trim().split(/\s+/)[1]);
+      .map((l): string => l.trim().split(/\s+/, 2)[1]);
 
     for (const secondLevelCommand of commands) {
       topLevelCommand.secondLevelCommands.push({
@@ -119,7 +128,7 @@ async function getThirdLevelCommands(secondLevelCommand: SecondLevelCommand): Pr
     const commands: string[] = secondLevelCommand.output
       .split('\n')
       .filter((l): boolean => l.trim().startsWith(`${topCommand} ${secondCommand} `))
-      .map((l): string => l.trim().split(/\s+/)[2]);
+      .map((l): string => l.trim().split(/\s+/, 3)[2]);
 
     for (const thirdLevelCommand of commands) {
       secondLevelCommand.thirdLevelCommands.push({
@@ -157,6 +166,57 @@ async function getOutputForThirdLevelCommand(thirdLevelCommand: ThirdLevelComman
   }
 }
 
+function collectDeprecations(): RegisteredDeprecation[] {
+  Container.getInstance().init(constants.SOLO_HOME_DIR, constants.SOLO_CACHE_DIR, constants.SOLO_LOG_LEVEL);
+  const commands: AnyObject = container.resolve(InjectTokens.Commands);
+  // Building the command definitions registers every deprecated command/subcommand into the registry.
+  commands.getCommandDefinitions();
+  const registry: DeprecationRegistry = container.resolve<DeprecationRegistry>(InjectTokens.DeprecationRegistry);
+  return registry.list();
+}
+
+function renderDeprecatedFeaturesSection(): string {
+  let deprecations: RegisteredDeprecation[];
+  try {
+    deprecations = collectDeprecations();
+  } catch (error) {
+    // best-effort: deprecations are also marked inline in the help output below, so a failure here is not fatal.
+    console.log(
+      chalk.yellow(
+        `⚠ Could not build the deprecated-features table: ${error instanceof Error ? error.message : String(error)}`,
+      ),
+    );
+    return '';
+  }
+
+  if (deprecations.length === 0) {
+    return '## Deprecated Features\n\nThere are no deprecated features in the current version.\n\n';
+  }
+
+  const rows: string = deprecations
+    .map((entry: RegisteredDeprecation): string => {
+      const removeBy: string = Deprecations.resolveRemoveBy(entry.deprecation);
+      const replacement: string = entry.deprecation.replacement ? `\`${entry.deprecation.replacement}\`` : '—';
+      const scope: string[] | undefined = Deprecations.commandScope(entry.deprecation);
+      // A flag deprecated only for certain commands stays supported everywhere else — say so in the table.
+      const feature: string = scope
+        ? `\`${entry.feature}\` (only for ${scope.map((command: string): string => `\`${command}\``).join(', ')})`
+        : `\`${entry.feature}\``;
+      return `| ${feature} | ${entry.kind} | v${entry.deprecation.since} | v${removeBy} | ${replacement} |`;
+    })
+    .join('\n');
+
+  return `## Deprecated Features
+
+Deprecated flags are also marked inline in the help output below as \`[deprecated]\`, and deprecated commands as \`[DEPRECATED: ...]\`. The version window and replacement for each are listed in the table.
+
+| Feature | Type | Deprecated since | Planned removal | Replacement |
+| ------- | ---- | ---------------- | --------------- | ----------- |
+${rows}
+
+`;
+}
+
 function generateMarkdown(soloCommand: SoloCommand): string {
   let markdown: string = `## Overview
 
@@ -190,7 +250,7 @@ Global flags shown in root help:
 - \`--force-port-forward\`: force port forwarding for network services.
 - \`-v\`, \`--version\`: print Solo version.
 
-## Command and Flag Reference
+${renderDeprecatedFeaturesSection()}## Command and Flag Reference
 
 The sections below are generated from Solo CLI help output using the implementation on \`hiero-ledger/solo\`.
 

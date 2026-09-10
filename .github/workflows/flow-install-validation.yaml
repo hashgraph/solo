@@ -1,0 +1,158 @@
+##
+# Copyright (C) 2025 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+# Validates Solo's real per-distribution system-dependency install (git, iptables) inside a
+# disposable distribution container, one job per supported distribution: Ubuntu and Debian
+# (apt-get), Fedora, Rocky, AlmaLinux and Oracle Linux (dnf), openSUSE Leap (zypper), Arch
+# (pacman) and Alpine (apk).
+# Tracked by hiero-ledger/solo#4888.
+name: 'Install Validation'
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  install-validation:
+    name: 'Install Validation (${{ matrix.distro }})'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # One row per supported distribution. `bootstrap` installs the tooling the base image lacks,
+        # `use_setup_node` is false only where actions/setup-node cannot serve a usable runtime, and
+        # `podman_probe` is set only where podman lives outside the default repositories.
+        # Image pins must be bumped as releases reach end of life; an EOL image loses its mirrors and
+        # the row fails on the package-index refresh rather than on Solo's install path.
+        include:
+          - distro: ubuntu
+            image: ubuntu:24.04
+            bootstrap: 'apt-get update && apt-get install -y git curl sudo ca-certificates'
+            use_setup_node: true
+          - distro: debian
+            image: debian:12
+            bootstrap: 'apt-get update && apt-get install -y git curl sudo ca-certificates'
+            use_setup_node: true
+          # The dnf rows also cover DnfPackageManager's iptables -> iptables-nft mapping, which is
+          # the only package name Solo rewrites per distribution.
+          - distro: fedora
+            image: fedora:44
+            bootstrap: 'dnf install -y --allowerasing git curl sudo ca-certificates tar gzip'
+            use_setup_node: true
+          - distro: rocky
+            image: quay.io/rockylinux/rockylinux:9
+            bootstrap: 'dnf install -y --allowerasing git curl sudo ca-certificates tar gzip'
+            use_setup_node: true
+          - distro: alma
+            image: almalinux:9
+            bootstrap: 'dnf install -y --allowerasing git curl sudo ca-certificates tar gzip'
+            use_setup_node: true
+          # Oracle Linux stands in for the CentOS 7 row hiero-ledger/solo#4909 originally asked for:
+          # CentOS 7 is EOL with its mirrors moved to vault, and its glibc 2.17 cannot run Node >= 22
+          # (required by package.json engines), so the Node-based harness cannot start in that
+          # container at all. Note that Oracle Linux reports ID_LIKE=fedora, so OsPackageManager
+          # resolves it to dnf; no released distribution currently routes to YumPackageManager.
+          - distro: oraclelinux
+            image: oraclelinux:9
+            bootstrap: 'dnf install -y --allowerasing git curl sudo ca-certificates tar gzip'
+            use_setup_node: true
+            podman_probe: 'dnf info podman'
+          - distro: opensuse
+            image: opensuse/leap:16.0
+            bootstrap: 'zypper --non-interactive install git curl sudo ca-certificates tar gzip'
+            use_setup_node: true
+          # Arch is rolling, so the tag cannot be pinned to a release; -Syu keeps the freshly
+          # refreshed package index and the installed system from drifting apart.
+          - distro: arch
+            image: archlinux:latest
+            bootstrap: 'pacman -Syu --noconfirm --needed git curl sudo ca-certificates'
+            use_setup_node: true
+          # Alpine is musl, so the glibc runtime actions/setup-node downloads cannot execute; the
+          # apk-provided Node (22.x in 3.21) is used instead. GNU tar is required because busybox
+          # tar cannot serve the actions that unpack .tar.gz downloads. bash is absent from the base
+          # image (busybox provides only /bin/sh) and is required by every step after the bootstrap,
+          # which run under the workflow's default bash shell.
+          - distro: alpine
+            image: alpine:3.21
+            bootstrap: 'apk update && apk add bash git curl sudo ca-certificates tar nodejs npm'
+            use_setup_node: false
+            podman_probe: 'apk search -x podman | grep -q podman'
+    container:
+      image: ${{ matrix.image }}
+      # Images that declare no PATH in their OCI config (quay.io/rockylinux/rockylinux:9 ships
+      # Env: ["container=oci"], opensuse/leap:16.0 ships Env: null) lose it entirely once an action
+      # prepends to GITHUB_PATH: the runner rebuilds the exec PATH from the container's declared
+      # PATH, so /usr/bin drops out and even bash stops resolving. Declaring the standard search
+      # path here gives every row something to prepend onto; all distributions in the matrix use
+      # these directories.
+      env:
+        PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      # The base distribution images ship none of git/curl/sudo. git and curl are needed for
+      # checkout and the Node setup; sudo is needed because Solo elevates package installs via sudo.
+      # This is the only step that cannot use the workflow's default bash shell: on Alpine bash is
+      # one of the packages this very step installs, so requiring it here would be circular. Every
+      # distribution in the matrix ships /bin/sh, and every bootstrap command is plain POSIX sh.
+      - name: Bootstrap Container
+        shell: sh
+        run: ${{ matrix.bootstrap }}
+
+      # Podman itself is installed through the Homebrew-on-Linux bootstrap (tracked separately by
+      # hiero-ledger/solo#4910). This step only asserts that the repository carrying podman is
+      # enabled on the distributions where it is not in the default channel, so it queries the
+      # package index and never installs.
+      - name: Probe Podman Repository Availability
+        if: matrix.podman_probe != ''
+        run: ${{ matrix.podman_probe }}
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        if: matrix.use_setup_node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Install Task
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.49.1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate System-Dependency Install
+        env:
+          SOLO_OS_INSTALL_VALIDATION: 'true'
+        run: task test-install-validation

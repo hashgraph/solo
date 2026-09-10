@@ -18,7 +18,11 @@ restjava:
       datasource:
         hikari:
           minimumIdle: 1
-          maximumPoolSize: 2
+          # REST Java handles concurrent one-shot startup/smoke-test traffic such as pinger,
+          # relay contract checks, and RSA/address-book bootstrap queries. Keep this small to
+          # limit shared Postgres pressure, but above grpc/web3 so those REST calls do not
+          # starve on a two-connection pool during CN 0.75/block-stream deployments.
+          maximumPoolSize: 4
 web3:
   config:
     spring:

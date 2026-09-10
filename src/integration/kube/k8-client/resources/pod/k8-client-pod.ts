@@ -4,6 +4,7 @@ import {type Pod} from '../../../resources/pod/pod.js';
 import {PortUtilities} from '../../../../../business/utils/port-utilities.js';
 import {PodReference} from '../../../resources/pod/pod-reference.js';
 import {KubeContainerOperationFailedError} from '../../../errors/kube-container-operation-failed-error.js';
+import {KubeApiResponse} from '../../../kube-api-response.js';
 import {sleep} from '../../../../../core/helpers.js';
 import {Duration} from '../../../../../core/time/duration.js';
 import {StatusCodes} from 'http-status-codes';
@@ -30,6 +31,8 @@ import {type PodCondition} from '../../../resources/pod/pod-condition.js';
 import {K8ClientContainerStatus} from './k8-client-container-status.js';
 import {type ContainerStatus} from '../../../resources/pod/container-status.js';
 import {ShellRunner} from '../../../../../core/shell-runner.js';
+import {SubprocessCommandProfile} from '../../../../../core/subprocess-command-profile.js';
+import {SubprocessEnvironment} from '../../../../../core/subprocess-environment.js';
 import chalk from 'chalk';
 import http from 'node:http';
 import os from 'node:os';
@@ -84,7 +87,13 @@ export class K8ClientPod implements Pod {
     } catch (error) {
       const errorMessage: string = `Failed to delete pod ${this.podReference.name.name} in namespace ${this.podReference.namespace}: ${error.message}`;
 
-      if (error.body?.code === StatusCodes.NOT_FOUND || error.response?.body?.code === StatusCodes.NOT_FOUND) {
+      // ApiException reports the HTTP status on error.code with an unparsed string body,
+      // so the body-based checks alone miss it and a pod that is already gone fails the kill.
+      if (
+        KubeApiResponse.isNotFound(error) ||
+        error.body?.code === StatusCodes.NOT_FOUND ||
+        error.response?.body?.code === StatusCodes.NOT_FOUND
+      ) {
         this.logger.info(`Pod not found: ${errorMessage}`, error);
         return;
       }
@@ -254,7 +263,7 @@ export class K8ClientPod implements Pod {
         // WSL2 has issues with kubectl port-forward when binding to localhost, binding to all interfaces will trigger
         // a permission prompt which if hidden behind the terminal can cause the port-forward command to fail.
         if (!isWindows) {
-          cmdArguments.push(localBindAddress, '&');
+          cmdArguments.push(localBindAddress);
         }
       } else {
         cmd = constants.KUBECTL;
@@ -280,16 +289,15 @@ export class K8ClientPod implements Pod {
         }
       }
 
-      // Don't use shell on Windows when doing persist mode to avoid argument parsing issues
-      const useShell: boolean = isWindows && persist ? false : true;
-
+      // shell:false to eliminate shell-injection; ShellRunner's detached spawn handles backgrounding.
       await new ShellRunner().run(cmd, cmdArguments, {
         verbose: true,
         detached: true,
+        commandProfile: SubprocessCommandProfile.KUBECTL,
         environmentVariablesToAppend: {
-          PATH: `${this.kubectlInstallationDirectory}${path.delimiter}${process.env.PATH}`,
+          PATH: `${this.kubectlInstallationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
         },
-        useShell,
+        useShell: false,
       });
 
       return availablePort;

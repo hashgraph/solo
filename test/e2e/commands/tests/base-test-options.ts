@@ -19,6 +19,7 @@ export interface BaseTestOptions {
   readonly createdAccountIds: string[];
   readonly consensusNodesCount: number;
   readonly loadBalancerEnabled: boolean;
+  readonly tssEnabled: boolean;
   readonly wrapsEnabled: boolean;
   readonly pinger: boolean;
   readonly realm: number;

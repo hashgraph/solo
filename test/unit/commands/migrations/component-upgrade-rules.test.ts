@@ -140,6 +140,35 @@ describe('ComponentUpgradeMigrationRules.planUpgradeMigrationPath', (): void => 
     });
   });
 
+  describe('upgrade crossing the 0.37.0 boundary', (): void => {
+    it('returns a recreate step when upgrading from below to 0.37.0', (): void => {
+      const steps: ComponentUpgradeMigrationStep[] = ComponentUpgradeMigrationRules.planUpgradeMigrationPath(
+        'block-node',
+        '0.36.0',
+        '0.37.0',
+      );
+
+      expect(steps).to.have.length(1);
+      expect(steps[0].strategy).to.equal('recreate');
+      expect(steps[0].fromVersion).to.equal('0.36.0');
+      expect(steps[0].toVersion).to.equal('0.37.0');
+      expect(steps[0].reason).to.include('volumeClaimTemplates');
+    });
+
+    it('uses the default in-place strategy after the 0.37.0 boundary is already reached', (): void => {
+      const steps: ComponentUpgradeMigrationStep[] = ComponentUpgradeMigrationRules.planUpgradeMigrationPath(
+        'block-node',
+        '0.37.0',
+        '0.37.1',
+      );
+
+      expect(steps).to.have.length(1);
+      expect(steps[0].strategy).to.equal('in-place');
+      expect(steps[0].fromVersion).to.equal('0.37.0');
+      expect(steps[0].toVersion).to.equal('0.37.1');
+    });
+  });
+
   describe('upgrade crossing a custom boundary', (): void => {
     it('returns a single recreate step when upgrading across a custom recreate boundary', (): void => {
       const customConfig: ComponentUpgradeMigrationConfigFile = {

@@ -18,6 +18,7 @@ import {type ClusterCreateResponse} from '../../../../../src/integration/kind/mo
 import {type ClusterDeleteResponse} from '../../../../../src/integration/kind/model/delete-cluster/cluster-delete-response.js';
 import {resetForTest} from '../../../../test-container.js';
 import {Duration} from '../../../../../src/core/time/duration.js';
+import {sleep} from '../../../../../src/core/helpers.js';
 import {exec} from 'node:child_process';
 import {promisify} from 'node:util';
 import {PathEx} from '../../../../../src/business/utils/path-ex.js';
@@ -29,7 +30,10 @@ import {type SemanticVersion} from '../../../../../src/business/utils/semantic-v
 const execAsync: (command: string, options?: Parameters<typeof exec>[1]) => Promise<{stdout: string; stderr: string}> =
   promisify(exec);
 
-describe('KindClient Integration Tests', function (): void {
+describe('KindClient Integration Tests', function (this: Mocha.Suite): void {
+  // Must be set here rather than chained onto the closing `});`: since mocha 11.7.6 a suite-level
+  // `.timeout()` propagates to already-registered tests and would clobber their own timeouts.
+  // eslint-disable-next-line unicorn/no-this-outside-of-class
   this.timeout(Duration.ofMinutes(1).toMillis());
 
   let kindClient: KindClient;
@@ -125,15 +129,12 @@ describe('KindClient Integration Tests', function (): void {
   it('should create a cluster', async (): Promise<void> => {
     // after the Kubernetes upgrade in CI, kind commands sometimes fail initially due to a timeout when creating clusters
     const maxRetries: number = 3;
+    const retryBackoff: Duration = Duration.ofSeconds(5);
     let attempt: number = 0;
     let lastError: unknown;
 
     while (attempt < maxRetries) {
       try {
-        const controller: AbortController = new AbortController();
-        const onTimeoutCallback: NodeJS.Timeout = setTimeout((): void => {
-          controller.abort();
-        }, Duration.ofSeconds(20).toMillis());
         console.log(`deleting cluster if it exists before creation attempt ${attempt + 1}`);
         await kindClient.deleteCluster(testClusterName);
         const options: ClusterCreateOptions = ClusterCreateOptionsBuilder.builder().build();
@@ -142,7 +143,6 @@ describe('KindClient Integration Tests', function (): void {
         const response: ClusterCreateResponse = await kindClient.createCluster(testClusterName, options);
         expect(response).to.not.be.undefined;
         expect(response.name).to.equal(testClusterName);
-        clearTimeout(onTimeoutCallback);
         return;
       } catch (error) {
         lastError = error;
@@ -150,13 +150,14 @@ describe('KindClient Integration Tests', function (): void {
         attempt++;
         if (attempt < maxRetries) {
           console.log('Retrying cluster creation...');
+          await sleep(retryBackoff);
         } else {
           console.error('Max retries reached. Failing test.');
           throw lastError;
         }
       }
     }
-  }).timeout(Duration.ofMinutes(4).toMillis());
+  }).timeout(Duration.ofMinutes(5).toMillis());
 
   it('should list clusters', async (): Promise<void> => {
     const clusters: KindCluster[] = await kindClient.getClusters();
@@ -217,4 +218,4 @@ describe('KindClient Integration Tests', function (): void {
     const deletedCluster: KindCluster = clusters.find((c: KindCluster): boolean => c.name === testClusterName);
     expect(deletedCluster).to.be.undefined;
   });
-});
+}).timeout(Duration.ofMinutes(5).toMillis());

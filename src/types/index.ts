@@ -13,7 +13,6 @@ export type {PrivateKeyAndCertificateObject} from './private-key-and-certificate
 export type {ExtendedNetServer} from './extended-net-server.js';
 export type {LocalContextObject} from './local-context-object.js';
 export type {AccountIdWithKeyPairObject} from './account-id-with-key-pair-object.js';
-export type {Validate} from './validate.js';
 export type {ToObject} from './to-object.js';
 export type {ToJSON} from './to-json.js';
 export type {ServiceEndpoint} from './service-endpoint.js';
@@ -57,11 +56,6 @@ export type ComponentData = {
 
 export type InitDependenciesOptions = {deps: string[]; createCluster: boolean; useSmallMemoryCluster?: boolean};
 
-export type ReleaseNameData = {
-  releaseName: Optional<string>;
-  exists: boolean;
-};
-
 export type Version = string;
 /// TODO - see if we can use NamespaceName and use some annotations and overrides to covert to strings
 export type NamespaceNameAsString = string;
@@ -74,3 +68,8 @@ export type ClusterReferenceName = string;
 export type ClusterReferences = Map<ClusterReferenceName, Context>;
 export type PriorityMapping = [blockNodeId: ComponentId, priority: number];
 export type NodeAliasToAddressMapping = Record<NodeAlias, {address: string; port: number}>;
+/**
+ * A port override for a consensus node endpoint. `defaultPort` applies to every consensus node that has no entry in
+ * `nodeAliasToPort`; both are undefined/empty when the user did not supply an override.
+ */
+export type EndpointPortMapping = {defaultPort?: number; nodeAliasToPort: Record<NodeAlias, number>};

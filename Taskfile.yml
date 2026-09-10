@@ -100,6 +100,14 @@ tasks:
     cmds:
       - task: "build:compile"
       - task: "build:lint"
+      - task: "check:deprecations"
+
+  check:deprecations:
+    desc: "Warn (without failing) about deprecated features that have reached their removal target version"
+    deps: [build:compile]
+    cmds:
+      # Non-blocking reminder: the script always exits 0 so it never breaks the build.
+      - npx tsx scripts/check-deprecations.ts
 
   build:compile:
     desc: "Compile the TypeScript code and run post-build script"

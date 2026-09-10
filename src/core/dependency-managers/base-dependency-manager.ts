@@ -10,6 +10,7 @@ import {PathEx} from '../../business/utils/path-ex.js';
 import {OperatingSystem} from '../../business/utils/operating-system.js';
 import path from 'node:path';
 import {SemanticVersion} from '../../business/utils/semantic-version.js';
+import {SubprocessEnvironment} from '../subprocess-environment.js';
 
 /**
  * Base class for dependency managers that download and manage CLI tools
@@ -122,7 +123,7 @@ export abstract class BaseDependencyManager extends ShellRunner {
       ? [`${this.executableName}.exe`, `${this.executableName}.cmd`, this.executableName]
       : [this.executableName];
 
-    const pathDirectories: string[] = (process.env.PATH ?? '').split(path.delimiter).filter(Boolean);
+    const pathDirectories: string[] = SubprocessEnvironment.currentPath().split(path.delimiter).filter(Boolean);
     this.logger.debug(`Searching PATH for ${this.executableName}: [${pathDirectories.join(', ')}]`);
 
     for (const directory of pathDirectories) {
@@ -246,6 +247,16 @@ export abstract class BaseDependencyManager extends ShellRunner {
   }
 
   /**
+   * Whether an installation discovered on PATH may satisfy this dependency. Tools that an external
+   * process resolves from a fixed directory rather than from PATH override this to false, so the
+   * binary is always placed in the managed installation directory instead of being left wherever
+   * PATH happened to find it.
+   */
+  protected allowGlobalInstallation(): boolean {
+    return true;
+  }
+
+  /**
    * Install the tool
    */
   public async install(temporaryDirectory: string = Helpers.getTemporaryDirectory()): Promise<boolean> {
@@ -267,7 +278,7 @@ export abstract class BaseDependencyManager extends ShellRunner {
     }
 
     // If it is installed globally and meets requirements, use the global installation
-    if (await this.isInstalledGloballyAndMeetsRequirements()) {
+    if (this.allowGlobalInstallation() && (await this.isInstalledGloballyAndMeetsRequirements())) {
       const globalVersion: string = await this.getVersion(this.globalExecutablePath).catch((): string =>
         this.getRequiredVersion(),
       );
@@ -304,7 +315,7 @@ export abstract class BaseDependencyManager extends ShellRunner {
         const fileName: string = path.basename(processedFile);
         const localExecutable: string = PathEx.join(this.installationDirectory, fileName);
         fs.cpSync(processedFile, localExecutable);
-        fs.chmodSync(localExecutable, 0o755);
+        fs.chmodSync(localExecutable, 0o750);
       }
     } catch (error) {
       throw new SoloErrors.system.dependencyInstallFailed(this.executableName, error);

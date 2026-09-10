@@ -50,8 +50,7 @@ describe('HelmClient Tests', (): void => {
 
   let helmClient: HelmClient;
 
-  before(async function (): Promise<void> {
-    this.timeout(Duration.ofMinutes(3).toMillis());
+  before(async (): Promise<void> => {
     resetForTest();
     const helmDependencyManager: HelmDependencyManager = container.resolve(InjectTokens.HelmDependencyManager);
     const kubectlDependencyManager: KubectlDependencyManager = container.resolve(InjectTokens.KubectlDependencyManager);
@@ -76,11 +75,9 @@ describe('HelmClient Tests', (): void => {
       console.error('Error during setup:', error);
       throw error;
     }
-  });
+  }).timeout(Duration.ofMinutes(3).toMillis());
 
-  after(async function (): Promise<void> {
-    this.timeout(Duration.ofMinutes(2).toMillis()); // 2 minutes timeout for cleanup
-
+  after(async (): Promise<void> => {
     try {
       console.log(`Deleting namespace ${NAMESPACE}...`);
       await exec(`kubectl delete namespace ${NAMESPACE}`, {
@@ -91,7 +88,7 @@ describe('HelmClient Tests', (): void => {
       console.error('Error during cleanup:', error);
       // Don't throw the error during cleanup to not mask test failures
     }
-  });
+  }).timeout(Duration.ofMinutes(2).toMillis());
 
   const removeRepoIfPresent: (client: HelmClient, repo: Repository) => Promise<void> = async (
     client: HelmClient,
@@ -182,8 +179,7 @@ describe('HelmClient Tests', (): void => {
       .that.contain(expectedMessage);
   });
 
-  it('Install Chart Executes Successfully', async function (): Promise<void> {
-    this.timeout(INSTALL_TIMEOUT * 1000);
+  it('Install Chart Executes Successfully', async (): Promise<void> => {
     await addRepoIfMissing(helmClient, HAPROXYTECH_REPOSITORY);
 
     try {
@@ -235,7 +231,7 @@ describe('HelmClient Tests', (): void => {
         // Suppress uninstall errors
       }
     }
-  });
+  }).timeout(INSTALL_TIMEOUT * 1000);
 
   it('List Releases with Kube Context', async (): Promise<void> => {
     await addRepoIfMissing(helmClient, HAPROXYTECH_REPOSITORY);
@@ -499,14 +495,12 @@ describe('HelmClient Tests', (): void => {
       ];
     };
 
-  describe('Parameterized Chart Installation with Options Executes Successfully', function (): void {
-    this.timeout(INSTALL_TIMEOUT * 1000);
-
+  describe('Parameterized Chart Installation with Options Executes Successfully', (): void => {
     for (const parameters of getChartInstallOptionsTestParameters()) {
       it(parameters.name, async (): Promise<void> => {
         await addRepoIfMissing(helmClient, HAPROXYTECH_REPOSITORY);
         await testChartInstallWithCleanup(parameters.options);
       });
     }
-  });
+  }).timeout(INSTALL_TIMEOUT * 1000);
 });

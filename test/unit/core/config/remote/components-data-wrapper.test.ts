@@ -232,8 +232,8 @@ describe('ComponentsDataWrapper', (): void => {
     const notFoundComponentId: ComponentId = 9;
     const type: ComponentTypes = ComponentTypes.MirrorNode;
 
-    expect(
-      (): MirrorNodeStateSchema => componentsDataWrapper.getComponent<MirrorNodeStateSchema>(type, notFoundComponentId),
+    expect((): MirrorNodeStateSchema =>
+      componentsDataWrapper.getComponent<MirrorNodeStateSchema>(type, notFoundComponentId),
     ).to.throw('not found');
   });
 });

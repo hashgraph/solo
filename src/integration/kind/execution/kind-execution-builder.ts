@@ -5,6 +5,8 @@ import {InjectTokens} from '../../../core/dependency-injection/inject-tokens.js'
 import {patchInject} from '../../../core/dependency-injection/container-helper.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {ExecutionBuilder} from '../../execution-builder.js';
+import {SubprocessEnvironment} from '../../../core/subprocess-environment.js';
+import {SubprocessCommandProfile} from '../../../core/subprocess-command-profile.js';
 
 /**
  * A builder for creating a kind command execution.
@@ -33,11 +35,6 @@ export class KindExecutionBuilder extends ExecutionBuilder {
    * The list of options and a list of their one or more values.
    */
   private readonly _optionsWithMultipleValues: Array<{key: string; value: string[]}> = [];
-
-  /**
-   * The flags to be passed to the kind command.
-   */
-  private readonly _flags: string[] = [];
 
   /**
    * The positional arguments to be passed to the kind command.
@@ -149,25 +146,12 @@ export class KindExecutionBuilder extends ExecutionBuilder {
   }
 
   /**
-   * Adds a flag to the kind execution.
-   * @param flag the flag to be added
-   * @returns this builder
-   */
-  public flag(flag: string): KindExecutionBuilder {
-    if (!flag) {
-      throw new Error('flag must not be null');
-    }
-    this._flags.push(flag);
-    return this;
-  }
-
-  /**
    * Builds the KindExecution instance.
    * @returns the KindExecution instance
    */
   public build(): KindExecution {
     const command: string[] = this.buildCommand();
-    const environment: Record<string, string> = {...process.env};
+    const environment: Record<string, string> = SubprocessEnvironment.forCommand(SubprocessCommandProfile.KIND);
     for (const [key, value] of this._environmentVariables.entries()) {
       environment[key] = value;
     }

@@ -107,7 +107,7 @@ on:
         description: "NodeJS Version:"
         type: string
         required: false
-        default: "22"
+        default: "24"
       dual-cluster-node-count:
         description: "Dual Cluster Node Count (SOLO_DUAL_CLUSTER_NODE_COUNT):"
         type: number
@@ -204,7 +204,7 @@ on:
         description: "NodeJS Version:"
         type: string
         required: false
-        default: "22"
+        default: "24"
       dual-cluster-node-count:
         description: "Dual Cluster Node Count (SOLO_DUAL_CLUSTER_NODE_COUNT):"
         type: number
@@ -221,12 +221,7 @@ defaults:
     shell: bash
 
 permissions:
-  id-token: write
   contents: read
-  actions: read
-  pull-requests: write
-  checks: write
-  statuses: write
 
 env:
   #CG_EXEC: export R_UID=$(id -u); CGROUP_LOGLEVEL=DEBUG cgexec -g cpu,memory:user.slice/user-${R_UID}.slice/user@${R_UID}.service/e2e-${{ github.run_id }} --sticky ionice -c 2 -n 2 nice -n 19
@@ -241,27 +236,32 @@ jobs:
     runs-on: ${{ inputs.runner || 'hiero-solo-linux-large' }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
 
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Posix Dependencies
         id: set-posix-dependencies
         if: ${{ inputs.runner != 'windows-latest' && !cancelled() && !failure() }}
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: |
-          # Configure APT to use main Ubuntu archive (disable mirror rotation)
-          sudo sed -i 's|http://[a-z.]*.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list
-          # Install jq (a lightweight and flexible command-line JSON processor)
-          sudo apt-get update && sudo apt-get install -y jq
+        uses: step-security/retry@38808b4332b98bb36ca031abff0c100231608288 # v4.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: ${{ env.STEP_TIMEOUT_MINUTES }}
+          command: |
+            # Configure APT to use main Ubuntu archive (disable mirror rotation)
+            sudo sed -i 's|http://[a-z.]*.ubuntu.com|http://archive.ubuntu.com|g' /etc/apt/sources.list
+            # Install jq (a lightweight and flexible command-line JSON processor)
+            sudo apt-get update && sudo apt-get install -y jq
 
       - name: Setup Node
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: ${{ inputs.node-version }}
@@ -292,7 +292,7 @@ jobs:
 
       - name: Setup Kind
         if: ${{ inputs.install-dependencies == true && inputs.kind-install == true && !cancelled() && !failure() }}
-        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+        uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           install_only: true
@@ -319,14 +319,14 @@ jobs:
             npm ci
 
       - name: Install Task
-        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           version: 3.49.1
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           go-version: '1.22.3'
@@ -334,25 +334,43 @@ jobs:
       - name: Install grpcurl
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
-          go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+          go install github.com/fullstorydev/grpcurl/cmd/grpcurl@d00c28104be4b06f4dd887196ccfc57b054aa069 # v1.9.3
 
       - name: Compile Project
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: task build:compile
+
+      - name: Restore Solo Bin Cache
+        id: solo-bin-cache
+        if: ${{ inputs.runner != 'windows-latest' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
+      - name: Restore Solo Image Cache
+        id: solo-image-cache
+        if: ${{ inputs.runner != 'windows-latest' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-image-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
 
       - name: Resolve consensus node version and Java version
         id: resolve-consensus-java
         if: ${{ runner.os == 'linux' && inputs.local-java-build && !cancelled() && !failure() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         shell: bash
+        env:
+          CONSENSUS_NODE_VERSION_INPUT: ${{ inputs.consensus-node-version }}
         run: |
           set -euo pipefail
           source .github/workflows/script/helper.sh
 
-          if [ -z "${{ inputs.consensus-node-version }}" ]; then
+          if [ -z "${CONSENSUS_NODE_VERSION_INPUT}" ]; then
             consensus_node_version="$(extract_version HEDERA_PLATFORM_VERSION version.ts)"
           else
-            consensus_node_version="${{ inputs.consensus-node-version }}"
+            consensus_node_version="${CONSENSUS_NODE_VERSION_INPUT}"
           fi
 
           normalized_version="$(echo "${consensus_node_version}" | sed -E 's/^v//; s/-.*$//')"
@@ -367,7 +385,7 @@ jobs:
 
       - name: Setup Java
         if: ${{ runner.os == 'linux' && inputs.local-java-build && !cancelled() && !failure() }}
-        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           distribution: temurin
@@ -375,7 +393,7 @@ jobs:
 
       - name: Setup Gradle
         if: ${{ runner.os == 'linux' && inputs.local-java-build && !cancelled() && !failure() }}
-        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6.2.0
+        uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           cache-read-only: false
@@ -429,27 +447,35 @@ jobs:
         id: run-e2e-tests
         if: ${{ inputs.runner != 'windows-latest' && !cancelled() && !failure() }}
         timeout-minutes: ${{ fromJSON(inputs.test-timeout-minutes) }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CONSENSUS_NODE_VERSION_INPUT: ${{ inputs.consensus-node-version }}
+          LOCAL_JAVA_BUILD_INPUT: ${{ inputs.local-java-build }}
+          TEST_SCRIPT_INPUT: ${{ inputs.test-script }}
+          CLUSTER_NAME_INPUT: ${{ inputs.cluster-name }}
+          DUAL_CLUSTER_NODE_COUNT_INPUT: ${{ inputs.dual-cluster-node-count || 3 }}
+          CUSTOM_JOB_LABEL_INPUT: ${{ inputs.custom-job-label }}
         run: |
           export PATH=~/.solo/bin:${PATH}
           echo "PATH: $PATH"
           source .github/workflows/script/helper.sh
-          if [[ -z "${{ inputs.consensus-node-version }}" ]]; then
-              if [[ "${{ inputs.local-java-build }}" != "true" ]]; then
+          if [[ -z "${CONSENSUS_NODE_VERSION_INPUT}" ]]; then
+              if [[ "${LOCAL_JAVA_BUILD_INPUT}" != "true" ]]; then
                   echo "No consensus node version provided, using default from version-test.ts"
               else
-                  if [[ "${{ inputs.test-script }}" == "test-e2e-block-node" ]]; then
+                  if [[ "${TEST_SCRIPT_INPUT}" == "test-e2e-block-node" ]]; then
                     echo "Use default from version.ts for block node test"
                   else
                     export CONSENSUS_NODE_VERSION=$(extract_version HEDERA_PLATFORM_VERSION version.ts)
                   fi
               fi
           else
-              export CONSENSUS_NODE_VERSION=${{ inputs.consensus-node-version }}
+              export CONSENSUS_NODE_VERSION="${CONSENSUS_NODE_VERSION_INPUT}"
           fi
-          echo SOLO_TEST_CLUSTER=${{ inputs.cluster-name }}-c1 > .env
-          echo SOLO_DUAL_CLUSTER_NODE_COUNT=${{ inputs.dual-cluster-node-count || 3 }} >> .env
+          echo "SOLO_TEST_CLUSTER=${CLUSTER_NAME_INPUT}-c1" > .env
+          echo "SOLO_DUAL_CLUSTER_NODE_COUNT=${DUAL_CLUSTER_NODE_COUNT_INPUT}" >> .env
 
-          if [[ "${{ inputs.custom-job-label }}" != "One Shot Single - using Podman" ]]; then
+          if [[ "${CUSTOM_JOB_LABEL_INPUT}" != "One Shot Single - using Podman" ]]; then
             # Verify cluster connectivity before running tests
             echo "Verifying cluster connectivity..."
             kubectl cluster-info || {
@@ -462,13 +488,13 @@ jobs:
             echo "SOLO_ONE_SHOT_MINIMAL_SETUP=true" >> .env
             echo "FORCE_PODMAN=true" >> .env
           fi
-          
-          if [[ "${{ inputs.custom-job-label }}" == "One Shot Single" ]]; then
+
+          if [[ "${CUSTOM_JOB_LABEL_INPUT}" == "One Shot Single" ]]; then
             echo "ENABLE_IMAGE_CACHE=true" >> .env
           fi
-          
+
           cat .env
-          
+
           # Start resource monitoring in background
           ./.github/workflows/script/monitor-resources.sh start
 
@@ -499,7 +525,7 @@ jobs:
           }
           trap cleanup SIGTERM SIGINT
 
-          TASK_COMMAND="${{ env.CG_EXEC }} task ${{ inputs.test-script }}"
+          TASK_COMMAND="${CG_EXEC} task ${TEST_SCRIPT_INPUT}"
           if command -v setsid >/dev/null 2>&1; then
             setsid bash -lc "${TASK_COMMAND}" &
           else
@@ -517,6 +543,20 @@ jobs:
 
           exit $TEST_EXIT_CODE
 
+      - name: Save Solo Bin Cache
+        if: ${{ inputs.runner != 'windows-latest' && github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
+
+      - name: Save Solo Image Cache
+        if: ${{ inputs.runner != 'windows-latest' && github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-image-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
+
       - name: Log Metrics
         id: log-metrics
         if: ${{ !cancelled() }}
@@ -529,7 +569,7 @@ jobs:
            
           # Ensure logs directory exists
           mkdir -p ~/.solo/logs
-          
+
           # Check if any JSON files exist
           shopt -s nullglob
           json_files=(~/.solo/logs/*.json)
@@ -550,7 +590,7 @@ jobs:
               echo "::endgroup::"
             done
           fi
-          
+
           echo "solo_log_dir=$(cd ~/.solo/logs && pwd)" >> $GITHUB_OUTPUT
 
       - name: Generate ASCII Resource Chart
@@ -560,7 +600,7 @@ jobs:
           echo "json_log=${{ steps.log-metrics.outputs.json_log }}"
           METRICS_FILE="$HOME/.solo/logs/runner-metrics.jsonl"
           CHART_FILE="$HOME/.solo/logs/runner-metrics-ascii.txt"
-          
+
           DATA_POINTS=$(wc -l < "$METRICS_FILE" 2>/dev/null | tr -d ' ' || echo "0")
           if [[ -f "$METRICS_FILE" && "$DATA_POINTS" -gt 0 ]]; then
             echo "Generating ASCII chart from ${DATA_POINTS} data points..."
@@ -586,10 +626,11 @@ jobs:
         env:
           LOG_FILE: "${{ steps.log-metrics.outputs.solo_log_dir }}/log_file.md"
           JSON_INPUT: "${{ toJSON(fromJSON(steps.log-metrics.outputs.json_log)) }}"
+          CUSTOM_JOB_LABEL_INPUT: ${{ inputs.custom-job-label }}
         run: |
-          echo "## Log Metrics - ${{ inputs.custom-job-label }}" >> $LOG_FILE
+          echo "## Log Metrics - ${CUSTOM_JOB_LABEL_INPUT}" >> $LOG_FILE
           echo "" >> $LOG_FILE
-          
+
           # Add ASCII resource chart if available
           if [[ "${{ steps.generate-chart.outputs.chart_generated }}" == "true" ]]; then
             CHART_FILE="${{ steps.generate-chart.outputs.chart_file }}"
@@ -605,7 +646,7 @@ jobs:
               echo "" >> $LOG_FILE
             fi
           fi
-          
+
           # Add JSON log details if there's actual data
           if [[ -n "$JSON_INPUT" && "$JSON_INPUT" != "{}" ]]; then
             echo "<details>" >> $LOG_FILE
@@ -617,7 +658,7 @@ jobs:
             echo "</code></pre>" >> $LOG_FILE
             echo "</details>" >> $LOG_FILE
           fi
-          
+
           echo "log_file=$LOG_FILE" >> $GITHUB_OUTPUT
 
       - name: Write Log Metrics to Workflow Summary
@@ -661,6 +702,8 @@ jobs:
       - name: Cleanup Kind Clusters
         if: ${{ always() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          CLUSTER_NAME_INPUT: ${{ inputs.cluster-name }}
         run: |
           export PATH=~/.solo/bin:${PATH}
 
@@ -679,8 +722,8 @@ jobs:
             } >&2
           }
 
-          for i in $(seq 1 ${{ env.SOLO_CLUSTER_DUALITY }}); do
-            timeout 60 kind delete cluster -n "${{ inputs.cluster-name }}-c${i}" || true
+          for i in $(seq 1 "${SOLO_CLUSTER_DUALITY}"); do
+            timeout 60 kind delete cluster -n "${CLUSTER_NAME_INPUT}-c${i}" || true
           done
           exit_code=0
           timeout 30 docker network rm -f kind || exit_code=$?

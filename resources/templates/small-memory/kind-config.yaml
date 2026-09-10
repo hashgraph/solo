@@ -8,6 +8,52 @@ nodes:
         apiServer:
           extraArgs:
             watch-cache: "false"
+        etcd:
+          local:
+            extraArgs:
+              # Increase heartbeat and election timeouts to tolerate slow disk I/O on
+              # constrained environments (e.g. Windows WSL2 virtual disk), where the
+              # default 100 ms heartbeat interval is too short and causes the leader to
+              # step down mid-write, surfacing as "etcdserver: request timed out".
+              heartbeat-interval: "300"
+              election-timeout: "3000"
+    # One-shot only: publish fixed NodePorts on the host so every one-shot endpoint is reachable via
+    # a stable Docker port mapping instead of a flaky kubectl port-forward tunnel. Each hostPort keeps
+    # the URL identical to the legacy port-forward port, so existing consumers keep working.
+    # containerPort values are NodePorts (range 30000-32767): 30003/30004 must match
+    # resources/one-shot/mirror-ingress-controller-nodeport-values.yaml; 30005-30007 must match the
+    # ONE_SHOT_*_NODE_PORT constants in src/core/constants.ts (services created by the one-shot
+    # deploy orchestrator).
+    #   30003 mirror http (host 38081), 30004 mirror https
+    #   30005 explorer (host 38080), 30006 JSON RPC relay (host 37546), 30007 consensus gRPC node1 (host 35211)
+    # listenAddress pins every mapping to loopback (kind defaults to 0.0.0.0). All host ports except
+    # 30004 fall inside the Linux ephemeral port range (net.ipv4.ip_local_port_range, 32768-60999 by
+    # default), so any outbound connection on the machine can transiently own one as its source port.
+    # A 0.0.0.0 bind collides with such a socket (the wildcard overlaps every local address) and
+    # aborts the whole `kind create cluster` with "bind: address already in use"; a 127.0.0.1 bind
+    # does not, because outbound connections are bound to the routable interface address instead.
+    # Loopback is also the only address solo advertises for these endpoints (constants.LOCAL_HOST).
+    extraPortMappings:
+      - containerPort: 30003
+        hostPort: 38081
+        listenAddress: 127.0.0.1
+        protocol: TCP
+      - containerPort: 30004
+        hostPort: 30004
+        listenAddress: 127.0.0.1
+        protocol: TCP
+      - containerPort: 30005
+        hostPort: 38080
+        listenAddress: 127.0.0.1
+        protocol: TCP
+      - containerPort: 30006
+        hostPort: 37546
+        listenAddress: 127.0.0.1
+        protocol: TCP
+      - containerPort: 30007
+        hostPort: 35211
+        listenAddress: 127.0.0.1
+        protocol: TCP
     extraMounts:
       - hostPath: ./resources/templates/small-memory/patches
         containerPath: /patches

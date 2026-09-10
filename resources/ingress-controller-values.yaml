@@ -1,3 +1,17 @@
 controller:
   config:
     path-type-order: exact,regex,prefix,begin
+    # The chart default of 2000 makes haproxy require ~4200 file descriptors; on runners
+    # whose soft nofile limit is 1024 (e.g. ARC-based GitHub runners) raising the limit
+    # fails and haproxy exits on reload ("Cannot raise FD limit"), leaving the ingress
+    # controller permanently unready. 256 connections (~700 FDs) stays under the limit.
+    max-connections: "256"
+    # haproxy 2.4 enables strict-limits by default, turning ANY failed setrlimit into
+    # exit(1). On runners where containerd grants RLIMIT_NOFILE=2^30 (> fs.nr_open),
+    # every setrlimit fails with EPERM regardless of the target value, so the
+    # max-connections cap above cannot help there and haproxy dies on reload
+    # ("Cannot raise FD limit to 709, limit is 1073741816"). no strict-limits downgrades
+    # the failure to a warning: haproxy keeps the inherited FD limit, which always
+    # covers the ~700 FDs the capped maxconn needs.
+    config-global: |
+      no strict-limits

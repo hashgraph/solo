@@ -22,7 +22,16 @@
     "skipLibCheck": true,
     "noImplicitOverride": true
   },
-  "include": ["src", "version.ts", "version-test.ts", "solo.ts", "test", "lint-formatter.ts", "scripts/docs/*.ts"],
+  "include": [
+    "src",
+    "version.ts",
+    "version-test.ts",
+    "solo.ts",
+    "test",
+    "lint-formatter.ts",
+    "scripts/docs/*.ts",
+    "scripts/*.ts"
+  ],
   "ts-node": {
     "esm": true,
     "experimentalResolver": true,

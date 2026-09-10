@@ -21,7 +21,7 @@ export class PortForwardRefreshFailedError extends SoloError {
         troubleshootingSteps:
           'Check the all pods exist and are running: kubectl get pods -n <namespace>\n' +
           'Check the port-forwards of your deployment: solo deployment config ports --deployment <deployment-name>\n' +
-          'Restart the port-forward: solo deployment refresh port-forwards --deployment <deployment-name>',
+          'Restart the port-forward: solo deployment port-forwards refresh --deployment <deployment-name>',
       },
       cause,
     );

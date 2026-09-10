@@ -19,6 +19,10 @@ import {type ServiceReference} from '../../../resources/service/service-referenc
 import {KubeApiResponse} from '../../../kube-api-response.js';
 import {ResourceOperation} from '../../../resources/resource-operation.js';
 import {ResourceType} from '../../../resources/resource-type.js';
+import {KubeServiceLoadBalancerTimeoutError} from '../../../errors/kube-service-load-balancer-timeout-error.js';
+import {type LoadBalancerIngress} from '../../../resources/load-balancer-ingress.js';
+import {Duration} from '../../../../../core/time/duration.js';
+import {sleep} from '../../../../../core/helpers.js';
 
 export class K8ClientServices extends K8ClientBase implements Services {
   public constructor(private readonly kubeClient: CoreV1Api) {
@@ -39,6 +43,42 @@ export class K8ClientServices extends K8ClientBase implements Services {
     return serviceList.items.map((svc: V1Service): Service => {
       return this.wrapService(namespace, svc);
     });
+  }
+
+  public async waitForLoadBalancerAddress(
+    namespace: NamespaceName,
+    labels: string[],
+    maxAttempts: number,
+    delay: number,
+  ): Promise<Service[]> {
+    for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
+      const services: Service[] = await this.list(namespace, labels);
+      const loadBalancerServices: Service[] = services.filter(
+        (service: Service): boolean => service.spec?.type === 'LoadBalancer',
+      );
+
+      if (
+        loadBalancerServices.length > 0 &&
+        loadBalancerServices.every((service: Service): boolean => K8ClientServices.hasLoadBalancerAddress(service))
+      ) {
+        return loadBalancerServices;
+      }
+
+      if (attempt < maxAttempts) {
+        await sleep(Duration.ofMillis(delay));
+      }
+    }
+
+    throw new KubeServiceLoadBalancerTimeoutError(namespace.name, labels);
+  }
+
+  private static hasLoadBalancerAddress(service: Service): boolean {
+    const ingresses: LoadBalancerIngress[] = service.status?.loadBalancer?.ingress ?? [];
+
+    return (
+      ingresses.length > 0 &&
+      ingresses.every((ingress: LoadBalancerIngress): boolean => Boolean(ingress.ip || ingress.hostname))
+    );
   }
 
   public async read(namespace: NamespaceName, name: string): Promise<Service> {
@@ -70,6 +110,8 @@ export class K8ClientServices extends K8ClientBase implements Services {
     labels: Record<string, string>,
     servicePort: number,
     podTargetPort: number,
+    selector?: Record<string, string>,
+    nodePort?: number,
   ): Promise<Service> {
     const v1SvcMetadata: V1ObjectMeta = new V1ObjectMeta();
     v1SvcMetadata.name = serviceReference.name.toString();
@@ -79,9 +121,18 @@ export class K8ClientServices extends K8ClientBase implements Services {
     const v1SvcPort: V1ServicePort = new V1ServicePort();
     v1SvcPort.port = servicePort;
     v1SvcPort.targetPort = podTargetPort;
+    if (nodePort) {
+      v1SvcPort.nodePort = nodePort;
+    }
 
     const v1SvcSpec: V1ServiceSpec = new V1ServiceSpec();
     v1SvcSpec.ports = [v1SvcPort];
+    if (selector) {
+      v1SvcSpec.selector = selector;
+    }
+    if (nodePort) {
+      v1SvcSpec.type = 'NodePort';
+    }
 
     const v1Svc: V1Service = new V1Service();
     v1Svc.metadata = v1SvcMetadata;

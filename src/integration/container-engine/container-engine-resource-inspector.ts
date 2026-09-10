@@ -4,6 +4,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {ShellRunner} from '../../core/shell-runner.js';
+import {SubprocessCommandProfile} from '../../core/subprocess-command-profile.js';
 import {type SoloLogger} from '../../core/logging/solo-logger.js';
 import {type ContainerEngineResources} from './container-engine-resources.js';
 
@@ -57,7 +58,10 @@ export class ContainerEngineResourceInspector {
     try {
       // run() defaults useShell to false so format arguments such as '{{json .}}' are not split on their
       // spaces by the shell.
-      const output: string[] = await this.shellRunner.run(engine, commandArguments);
+      const output: string[] = await this.shellRunner.run(engine, commandArguments, {
+        commandProfile: SubprocessCommandProfile.CONTAINER_ENGINE,
+        bestEffort: true,
+      });
       return JSON.parse(output.join('').trim()) as T;
     } catch (error) {
       this.logger.debug(`Unable to read ${engine} engine resources`, error);

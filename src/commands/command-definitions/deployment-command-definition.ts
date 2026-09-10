@@ -43,8 +43,15 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
     'View the actual state of the deployment on the Kubernetes clusters or ' +
     'teardown/destroy all remote and local configuration for a given deployment.';
 
+  public static readonly PORT_FORWARDS_SUBCOMMAND_NAME: string = 'port-forwards';
+  private static readonly PORT_FORWARDS_SUBCOMMAND_DESCRIPTION: string =
+    'Manage the port-forward processes for all components in the deployment.';
+
+  // Deprecated: the 'refresh port-forwards' path is superseded by 'port-forwards refresh'. It is kept as a hidden
+  // alias for backward compatibility and emits a deprecation notice when invoked.
   public static readonly REFRESH_SUBCOMMAND_NAME: string = 'refresh';
   private static readonly REFRESH_SUBCOMMAND_DESCRIPTION: string =
+    "[DEPRECATED] Use 'solo deployment port-forwards refresh' instead. " +
     'Refresh port-forward processes for all components in the deployment.';
 
   public static readonly DIAGNOSTICS_SUBCOMMAND_NAME: string = 'diagnostics';
@@ -58,6 +65,7 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
   public static readonly CONFIG_DELETE: string = 'delete';
   public static readonly CONFIG_INFO: string = 'info';
   public static readonly CONFIG_PORTS: string = 'ports';
+  public static readonly CONFIG_IMPORT: string = 'import';
 
   public static readonly DIAGNOSTICS_ALL: string = 'all';
   public static readonly DIAGNOSTICS_ANALYZE: string = 'analyze';
@@ -66,6 +74,8 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
   public static readonly DIAGNOSTICS_CONNECTIONS: string = 'connections';
   public static readonly DIAGNOSTICS_REPORT: string = 'report';
   public static readonly REFRESH_PORT_FORWARDS: string = 'port-forwards';
+  public static readonly PORT_FORWARDS_REFRESH: string = 'refresh';
+  public static readonly PORT_FORWARDS_STOP: string = 'stop';
 
   public static readonly STATE_IMAGES: string = 'images';
 
@@ -81,8 +91,15 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
   public static readonly CONNECTIONS_COMMAND: string =
     `${DeploymentCommandDefinition.COMMAND_NAME} ${DeploymentCommandDefinition.DIAGNOSTICS_SUBCOMMAND_NAME} ${DeploymentCommandDefinition.DIAGNOSTICS_CONNECTIONS}` as const;
 
+  // Deprecated alias, superseded by REFRESH_PORT_FORWARDS_COMMAND.
   public static readonly REFRESH_COMMAND: string =
     `${DeploymentCommandDefinition.COMMAND_NAME} ${DeploymentCommandDefinition.REFRESH_SUBCOMMAND_NAME} ${DeploymentCommandDefinition.REFRESH_PORT_FORWARDS}` as const;
+
+  public static readonly REFRESH_PORT_FORWARDS_COMMAND: string =
+    `${DeploymentCommandDefinition.COMMAND_NAME} ${DeploymentCommandDefinition.PORT_FORWARDS_SUBCOMMAND_NAME} ${DeploymentCommandDefinition.PORT_FORWARDS_REFRESH}` as const;
+
+  public static readonly STOP_PORT_FORWARDS_COMMAND: string =
+    `${DeploymentCommandDefinition.COMMAND_NAME} ${DeploymentCommandDefinition.PORT_FORWARDS_SUBCOMMAND_NAME} ${DeploymentCommandDefinition.PORT_FORWARDS_STOP}` as const;
 
   public static readonly INFO_COMMAND: string =
     `${DeploymentCommandDefinition.COMMAND_NAME} ${DeploymentCommandDefinition.CONFIG_SUBCOMMAND_NAME} ${DeploymentCommandDefinition.CONFIG_INFO}` as const;
@@ -171,6 +188,16 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
               DeploymentCommand.PORTS_FLAGS_LIST,
               [],
             ),
+          )
+          .addSubcommand(
+            new Subcommand(
+              DeploymentCommandDefinition.CONFIG_IMPORT,
+              "Imports a deployment into the local configuration from an existing cluster's remote config.",
+              this.deploymentCommand,
+              this.deploymentCommand.importConfig,
+              DeploymentCommand.IMPORT_FLAGS_LIST,
+              [],
+            ),
           ),
       )
       .addCommandGroup(
@@ -195,14 +222,41 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
           DeploymentCommandDefinition.REFRESH_SUBCOMMAND_DESCRIPTION,
         ).addSubcommand(
           new Subcommand(
-            'port-forwards',
-            'Refresh and restore killed port-forward processes.',
+            DeploymentCommandDefinition.REFRESH_PORT_FORWARDS,
+            "[DEPRECATED] Use 'solo deployment port-forwards refresh' instead. " +
+              'Refresh and restore killed port-forward processes.',
             this.deploymentCommand,
-            this.deploymentCommand.refresh,
+            this.deploymentCommand.refreshDeprecated,
             DeploymentCommand.REFRESH_FLAGS_LIST,
             [constants.KUBECTL],
           ),
         ),
+      )
+      .addCommandGroup(
+        new CommandGroup(
+          DeploymentCommandDefinition.PORT_FORWARDS_SUBCOMMAND_NAME,
+          DeploymentCommandDefinition.PORT_FORWARDS_SUBCOMMAND_DESCRIPTION,
+        )
+          .addSubcommand(
+            new Subcommand(
+              DeploymentCommandDefinition.PORT_FORWARDS_REFRESH,
+              'Refresh and restore killed port-forward processes.',
+              this.deploymentCommand,
+              this.deploymentCommand.refresh,
+              DeploymentCommand.REFRESH_FLAGS_LIST,
+              [constants.KUBECTL],
+            ),
+          )
+          .addSubcommand(
+            new Subcommand(
+              DeploymentCommandDefinition.PORT_FORWARDS_STOP,
+              'Stop (close down) all port-forwards for a deployment and remove them from the remote config.',
+              this.deploymentCommand,
+              this.deploymentCommand.stopPortForwards,
+              DeploymentCommand.STOP_PORT_FORWARDS_FLAGS_LIST,
+              [constants.KUBECTL],
+            ),
+          ),
       )
       .addCommandGroup(
         new CommandGroup(
@@ -212,7 +266,7 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
           .addSubcommand(
             new Subcommand(
               DeploymentCommandDefinition.DIAGNOSTICS_ALL,
-              'Captures logs, configs, and diagnostic artifacts from all consensus nodes and test connections.',
+              'Captures logs, configs, and diagnostics artifacts for all deployments by default, or only the selected deployment when --deployment is provided.',
               this.nodeCommand.handlers,
               this.nodeCommand.handlers.all,
               NodeFlags.DIAGNOSTICS_CONNECTIONS,
@@ -221,7 +275,7 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
           .addSubcommand(
             new Subcommand(
               DeploymentCommandDefinition.DIAGNOSTICS_DEBUG,
-              'Similar to diagnostics all subcommand, but creates a zip archive for easy sharing.',
+              'Same scope as diagnostics all, but creates a zip archive for easy sharing.',
               this.nodeCommand.handlers,
               this.nodeCommand.handlers.debug,
               NodeFlags.LOGS_FLAGS,
@@ -230,7 +284,7 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
           .addSubcommand(
             new Subcommand(
               DeploymentCommandDefinition.DIAGNOSTICS_CONNECTIONS,
-              'Tests connections to Consensus, Relay, Explorer, Mirror and Block nodes.',
+              'Tests connections to Consensus, Relay, Explorer, Mirror and Block nodes for all deployments by default, or only the selected deployment when --deployment is provided.',
               this.nodeCommand.handlers,
               this.nodeCommand.handlers.connections,
               NodeFlags.DIAGNOSTICS_CONNECTIONS,
@@ -239,7 +293,7 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
           .addSubcommand(
             new Subcommand(
               DeploymentCommandDefinition.DIAGNOSTICS_LOGS,
-              'Get logs and configuration files from consensus node/nodes.',
+              'Gets logs and configuration files for all deployments by default, or only the selected deployment when --deployment is provided.',
               this.nodeCommand.handlers,
               this.nodeCommand.handlers.logs,
               NodeFlags.LOGS_FLAGS,
@@ -257,7 +311,7 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
           .addSubcommand(
             new Subcommand(
               DeploymentCommandDefinition.DIAGNOSTICS_REPORT,
-              'Collect diagnostic logs and create a GitHub issue using the gh CLI.',
+              'Collects diagnostics (scoped by --deployment when provided) and creates a GitHub issue using the gh CLI.',
               this.nodeCommand.handlers,
               this.nodeCommand.handlers.report,
               NodeFlags.REPORT_FLAGS,

@@ -14,7 +14,7 @@
 # limitations under the License.
 ##
 
-name: "Windows One-Shot Deploy and Destroy"
+name: 'Windows One-Shot Deploy and Destroy'
 # Compatibility gate: verifies that Solo one-shot deploy continues to work on native Windows.
 # Solo runs natively in PowerShell on a standard GitHub-hosted Windows runner.
 # Docker runs inside WSL2 (replicating how Docker Desktop works for Windows users) and is
@@ -43,6 +43,12 @@ concurrency:
 env:
   STEP_TIMEOUT_MINUTES: '5'
   DOCKER_HOST: tcp://localhost:2375
+  ACTIONS_STEP_DEBUG: 'true'
+  ACTIONS_RUNNER_DEBUG: 'true'
+  WSL_UBUNTU_VERSION: '24.4.4'
+  WSL_UBUNTU_INSTALLER_FILE: 'ubuntu-24.04.4-wsl-amd64.wsl'
+  WSL_UBUNTU_INSTALLER_URL: 'https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-wsl-amd64.wsl'
+  WSL_UBUNTU_INSTALLER_SHA256: '9b2f7730dc68227dd04a9f3e5eab86ad85caf556b8606ad94f1f29ff5c4fd3f5'
 
 jobs:
   standard-runner-one-shot-windows:
@@ -50,11 +56,6 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
-        with:
-          egress-policy: audit
-
       - name: Windows Diagnostics
         shell: pwsh
         timeout-minutes: 5
@@ -101,17 +102,19 @@ jobs:
           Set-Content -Path "$env:USERPROFILE\.wslconfig" -Value $wslconfig
 
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
-      - name: Setup Node.js 22
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      - name: Setup Node.js 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
-          node-version: '22'
+          node-version: '24'
 
       - name: Install Task
-        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           version: 3.49.1
@@ -119,26 +122,190 @@ jobs:
 
       - name: Build Project
         shell: pwsh
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        # npm ci can consume most of the normal five-minute step limit on a
+        # slow hosted runner, leaving no time for compilation.
+        timeout-minutes: 10
         run: |
           task build:compile
 
+      - name: Restore verified Ubuntu WSL installer cache
+        id: restore_ubuntu_wsl_installer
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ${{ runner.tool_cache }}\Ubuntu\${{ env.WSL_UBUNTU_VERSION }}\x64
+          key: ubuntu-wsl-installer-v1-${{ env.WSL_UBUNTU_VERSION }}-${{ env.WSL_UBUNTU_INSTALLER_SHA256 }}
+
+      - name: Validate restored Ubuntu WSL installer cache
+        id: validate_ubuntu_wsl_installer
+        shell: pwsh
+        timeout-minutes: 1
+        run: |
+          $cacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE "Ubuntu\$env:WSL_UBUNTU_VERSION\x64"
+          $installerPath = Join-Path $cacheDirectory $env:WSL_UBUNTU_INSTALLER_FILE
+          $cacheHit = '${{ steps.restore_ubuntu_wsl_installer.outputs.cache-hit }}'
+          $valid = $false
+          $validationResult = 'cache miss'
+
+          if (Test-Path -LiteralPath $installerPath) {
+            $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualHash -eq $env:WSL_UBUNTU_INSTALLER_SHA256) {
+              $valid = $true
+              $validationResult = 'valid SHA-256'
+              Write-Host "Verified Ubuntu WSL installer cache: $installerPath"
+            } else {
+              $validationResult = "invalid SHA-256: $actualHash"
+            }
+          } elseif (Test-Path -LiteralPath $cacheDirectory) {
+            $validationResult = 'installer is missing'
+          }
+
+          if (-not $valid -and (Test-Path -LiteralPath $cacheDirectory)) {
+            Write-Warning "Discarding invalid Ubuntu WSL installer cache: $validationResult"
+            Remove-Item -LiteralPath $cacheDirectory -Recurse -Force
+          }
+
+          $completeMarkerPath = "$cacheDirectory.complete"
+          if ($valid) {
+            # setup-wsl's tool-cache.find() requires this sibling marker. Create
+            # it only after the installer hash has been verified so setup-wsl
+            # uses these bytes instead of removing them and restoring again.
+            New-Item -ItemType File -Path $completeMarkerPath -Force | Out-Null
+          } elseif (Test-Path -LiteralPath $completeMarkerPath) {
+            Remove-Item -LiteralPath $completeMarkerPath -Force
+          }
+
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=$($valid.ToString().ToLowerInvariant())"
+          @"
+          ## Ubuntu WSL installer cache
+
+          - GitHub Actions cache hit: $cacheHit
+          - Validation: $validationResult
+          "@ | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
+      - name: Seed verified Ubuntu WSL installer cache
+        id: seed_ubuntu_wsl_installer
+        if: ${{ success() && steps.validate_ubuntu_wsl_installer.outputs.valid != 'true' }}
+        shell: pwsh
+        timeout-minutes: 10
+        run: |
+          $cacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE "Ubuntu\$env:WSL_UBUNTU_VERSION\x64"
+          $installerPath = Join-Path $cacheDirectory $env:WSL_UBUNTU_INSTALLER_FILE
+          $completeMarkerPath = "$cacheDirectory.complete"
+          New-Item -ItemType Directory -Path $cacheDirectory -Force | Out-Null
+          Remove-Item -LiteralPath $installerPath,$completeMarkerPath -Force -ErrorAction SilentlyContinue
+
+          Invoke-WebRequest -Uri $env:WSL_UBUNTU_INSTALLER_URL -OutFile $installerPath
+          $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualHash -ne $env:WSL_UBUNTU_INSTALLER_SHA256) {
+            Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
+            throw "Seeded Ubuntu WSL installer failed SHA-256 validation: $actualHash"
+          }
+
+          New-Item -ItemType File -Path $completeMarkerPath -Force | Out-Null
+          Add-Content -Path $env:GITHUB_OUTPUT -Value 'valid=true'
+          Write-Host "Seeded verified Ubuntu WSL installer cache: $installerPath"
+
+      - name: Save seeded Ubuntu WSL installer cache
+        if: ${{ success() && github.ref == 'refs/heads/main' && steps.seed_ubuntu_wsl_installer.outputs.valid == 'true' }}
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ${{ runner.tool_cache }}\Ubuntu\${{ env.WSL_UBUNTU_VERSION }}\x64
+          key: ubuntu-wsl-installer-v1-${{ env.WSL_UBUNTU_VERSION }}-${{ env.WSL_UBUNTU_INSTALLER_SHA256 }}
+
       - name: Setup WSL2
+        id: setup_wsl2
         # Kind requires Linux containers. GitHub's windows-latest runner has Docker in Windows
         # container mode with no Docker Desktop to switch it. WSL2 + Docker inside it replicates
         # what Docker Desktop does for Windows users, exposing a Linux daemon via TCP.
+        # The verified restore above creates setup-wsl's .complete marker so find()
+        # returns the installer before the action reaches its cache or download path.
         uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
-        timeout-minutes: 10
+        # A healthy setup completes in about one minute. Bound a stalled action so a
+        # distribution problem is reported promptly instead of consuming ten minutes.
+        timeout-minutes: 3
         with:
           distribution: Ubuntu-24.04
           wsl-version: 2
           use-cache: false
           set-as-default: true
-          additional-packages:
+          additional-packages: |
             apt-transport-https
             ca-certificates
             curl
             software-properties-common
+
+      - name: Capture WSL2 diagnostics after setup failure
+        if: ${{ !cancelled() && steps.setup_wsl2.outcome == 'failure' }}
+        shell: pwsh
+        continue-on-error: true
+        timeout-minutes: 1
+        run: |
+          $diagnosticsDirectory = Join-Path $env:RUNNER_TEMP 'wsl-diagnostics'
+          New-Item -ItemType Directory -Path $diagnosticsDirectory -Force | Out-Null
+
+          Write-Host '::group::WSL processes'
+          Get-Process -Name wsl,wslhost,vmmemWSL -ErrorAction SilentlyContinue |
+            Select-Object Id,ProcessName,StartTime,CPU,Responding |
+            Tee-Object -FilePath (Join-Path $diagnosticsDirectory 'processes.txt')
+          Write-Host '::endgroup::'
+
+          Write-Host '::group::WSL services'
+          Get-Service -Name WslService,LxssManager -ErrorAction SilentlyContinue |
+            Select-Object Name,Status,StartType |
+            Tee-Object -FilePath (Join-Path $diagnosticsDirectory 'services.txt')
+          Write-Host '::endgroup::'
+
+          Write-Host '::group::Ubuntu installer cache'
+          $installerCacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE 'Ubuntu\24.4.4\x64'
+          $installerPath = Join-Path $installerCacheDirectory 'ubuntu-24.04.4-wsl-amd64.wsl'
+          if (Test-Path -LiteralPath $installerPath) {
+            Get-Item -LiteralPath $installerPath |
+              Select-Object FullName,Length,LastWriteTime |
+              Tee-Object -FilePath (Join-Path $diagnosticsDirectory 'installer-cache.txt')
+          } else {
+            Write-Warning "Ubuntu installer is missing: $installerPath"
+            "Missing: $installerPath" | Set-Content -Path (Join-Path $diagnosticsDirectory 'installer-cache.txt')
+          }
+          Write-Host '::endgroup::'
+
+          function Invoke-WslDiagnostic {
+            param(
+              [string]$Name,
+              [string[]]$Arguments
+            )
+
+            $outputPath = Join-Path $diagnosticsDirectory "$Name.txt"
+            $errorPath = Join-Path $diagnosticsDirectory "$Name.error.txt"
+            $wslProcess = Start-Process -FilePath "$env:SystemRoot\System32\wsl.exe" -ArgumentList $Arguments `
+              -NoNewWindow -PassThru -RedirectStandardOutput $outputPath -RedirectStandardError $errorPath
+            if (-not $wslProcess.WaitForExit(10000)) {
+              Write-Warning "wsl.exe $Name did not exit within 10 seconds; terminating it."
+              Stop-Process -Id $wslProcess.Id -Force -ErrorAction SilentlyContinue
+            }
+            Write-Host "::group::wsl.exe $Name"
+            Get-Content -Path $outputPath,$errorPath -ErrorAction SilentlyContinue
+            Write-Host '::endgroup::'
+          }
+
+          Invoke-WslDiagnostic -Name 'status' -Arguments @('--status')
+          Invoke-WslDiagnostic -Name 'version' -Arguments @('--version')
+          Invoke-WslDiagnostic -Name 'list' -Arguments @('--list','--all','--verbose')
+
+          Write-Host '::group::Recent WSL-related system events'
+          Get-WinEvent -FilterHashtable @{
+            LogName = 'System'
+            StartTime = (Get-Date).AddMinutes(-15)
+          } -ErrorAction SilentlyContinue |
+            Where-Object ProviderName -Match 'Lxss|Wsl|Hyper-V' |
+            Select-Object TimeCreated,ProviderName,Id,LevelDisplayName,Message |
+            Tee-Object -FilePath (Join-Path $diagnosticsDirectory 'system-events.txt') |
+            Format-List
+          Write-Host '::endgroup::'
+
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
 
       - name: Restart WSL
         run: wsl --shutdown
@@ -237,13 +404,6 @@ jobs:
           Write-Host "Linux patches hostPath: $linuxPatchesPath"
           "SOLO_KIND_CLUSTER_CONFIG_FILE=$renderedConfig" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Solo Init
-        shell: pwsh
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: |
-          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- init --dev
-
       - name: One-Shot Single Deploy
         shell: pwsh
         timeout-minutes: 70
@@ -276,12 +436,28 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- one-shot single destroy --quiet-mode --dev; $true
 
+      - name: Stage logs for upload
+        if: always()
+        shell: pwsh
+        timeout-minutes: 1
+        run: |
+          $stagingDirectory = Join-Path $env:RUNNER_TEMP 'solo-logs'
+          New-Item -ItemType Directory -Path $stagingDirectory -Force | Out-Null
+          $soloLogsDirectory = Join-Path $stagingDirectory 'solo'
+          if (Test-Path -LiteralPath 'C:\Users\runneradmin\.solo\logs') {
+            Copy-Item -Path 'C:\Users\runneradmin\.solo\logs' -Destination $soloLogsDirectory -Recurse -Force
+          }
+          $wslDiagnosticsDirectory = Join-Path $env:RUNNER_TEMP 'wsl-diagnostics'
+          if (Test-Path -LiteralPath $wslDiagnosticsDirectory) {
+            Copy-Item -Path $wslDiagnosticsDirectory -Destination (Join-Path $stagingDirectory 'wsl-diagnostics') -Recurse -Force
+          }
+
       - name: Upload Logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: standard-runner-one-shot-windows-logs
-          path: C:\Users\runneradmin\.solo\logs # bug in actions/upload-artifact on Windows prevents using %USERPROFILE% or ~, must hardcode full path
+          path: ${{ runner.temp }}\solo-logs
           overwrite: true
           if-no-files-found: warn

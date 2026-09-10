@@ -23,6 +23,7 @@ import {IntervalLockRenewalService} from '../lock/interval-lock-renewal.js';
 import {LockManager} from '../lock/lock-manager.js';
 import {OneShotState} from '../one-shot-state.js';
 import {CertificateManager} from '../certificate-manager.js';
+import {mkdirSync} from 'node:fs';
 import os from 'node:os';
 import * as version from '../../../version.js';
 import {NetworkNodes} from '../network-nodes.js';
@@ -46,7 +47,6 @@ import {AccountCommand} from '../../commands/account.js';
 import {FileCommand} from '../../commands/file.js';
 import {DeploymentCommand} from '../../commands/deployment.js';
 import {ExplorerCommand} from '../../commands/explorer.js';
-import {InitCommand} from '../../commands/init/init.js';
 import {MirrorNodeCommand} from '../../commands/mirror-node.js';
 import {RelayCommand} from '../../commands/relay.js';
 import {NetworkCommand} from '../../commands/network.js';
@@ -56,6 +56,7 @@ import {Middlewares} from '../middlewares.js';
 import {NpmClient} from '../../integration/npm/npm-client.js';
 import {SoloPinoLogger} from '../logging/solo-pino-logger.js';
 import {DefaultSoloEventBus} from '../events/default-solo-event-bus.js';
+import {DeprecationRegistry} from '../deprecation-registry.js';
 import {SingletonContainer} from './singleton-container.js';
 import {ValueContainer} from './value-container.js';
 import {BlockNodeCommand} from '../../commands/block-node.js';
@@ -66,7 +67,8 @@ import {ComponentFactory} from '../config/remote/component-factory.js';
 import {RemoteConfigValidator} from '../config/remote/remote-config-validator.js';
 import {type ConfigProvider} from '../../data/configuration/api/config-provider.js';
 import {DefaultConfigSource} from '../../data/configuration/impl/default-config-source.js';
-import {type SoloConfigSchema} from '../../data/schema/model/solo/solo-config-schema.js';
+import {SoloConfigSchema} from '../../data/schema/model/solo/solo-config-schema.js';
+import {EnvironmentAliasRegistry} from '../../data/schema/decorators/environment-alias-registry.js';
 import {SoloConfigSchemaDefinition} from '../../data/schema/migration/impl/solo/solo-config-schema-definition.js';
 import {BeanFactorySupplier} from './bean-factory-supplier.js';
 import {DefaultOneShotCommand} from '../../commands/one-shot/default-one-shot.js';
@@ -89,6 +91,8 @@ import {DefaultGitClient} from '../../integration/git/impl/default-git-client.js
 import {MetricsServerImpl} from '../../business/runtime-state/services/metrics-server-impl.js';
 import {VfkitDependencyManager} from '../dependency-managers/vfkit-dependency-manager.js';
 import {GvproxyDependencyManager} from '../dependency-managers/gvproxy-dependency-manager.js';
+import {NetavarkDependencyManager} from '../dependency-managers/netavark-dependency-manager.js';
+import {AardvarkDnsDependencyManager} from '../dependency-managers/aardvark-dns-dependency-manager.js';
 import {RapidFireCommand} from '../../commands/rapid-fire.js';
 import {RapidFireCommandDefinition} from '../../commands/command-definitions/rapid-fire-command-definition.js';
 import {BackupRestoreCommand} from '../../commands/backup-restore.js';
@@ -99,6 +103,7 @@ import {PostgresSharedResource} from '../shared-resources/postgres.js';
 import {SharedResourceManager} from '../shared-resources/shared-resource-manager.js';
 import {ROOT_DIR} from '../constants.js';
 import {CacheCommandDefinition} from '../../commands/command-definitions/cache-command-definition.js';
+import {InitCommandDefinition} from '../../commands/init/init-command-definition.js';
 import {CacheCommand} from '../../commands/cache.js';
 import {ImageCacheHandlerBuilder} from '../../integration/cache/impl/image-cache-handler-builder.js';
 import {DockerClient} from '../../integration/container-engine/docker-client.js';
@@ -133,6 +138,7 @@ export class Container {
   private static singletonContainers(): SingletonContainer[] {
     return [
       new SingletonContainer(InjectTokens.SoloEventBus, DefaultSoloEventBus),
+      new SingletonContainer(InjectTokens.DeprecationRegistry, DeprecationRegistry),
       new SingletonContainer(InjectTokens.SoloLogger, SoloPinoLogger),
       new SingletonContainer(InjectTokens.LockRenewalService, IntervalLockRenewalService),
       new SingletonContainer(InjectTokens.LockManager, LockManager),
@@ -150,6 +156,8 @@ export class Container {
       new SingletonContainer(InjectTokens.PodmanDependencyManager, PodmanDependencyManager),
       new SingletonContainer(InjectTokens.VfkitDependencyManager, VfkitDependencyManager),
       new SingletonContainer(InjectTokens.GvproxyDependencyManager, GvproxyDependencyManager),
+      new SingletonContainer(InjectTokens.NetavarkDependencyManager, NetavarkDependencyManager),
+      new SingletonContainer(InjectTokens.AardvarkDnsDependencyManager, AardvarkDnsDependencyManager),
       new SingletonContainer(InjectTokens.CraneDependencyManager, CraneDependencyManager),
       new SingletonContainer(InjectTokens.ChartManager, ChartManager),
       new SingletonContainer(InjectTokens.ConfigManager, ConfigManager),
@@ -173,7 +181,6 @@ export class Container {
       new SingletonContainer(InjectTokens.NodeCommand, NodeCommand),
       new SingletonContainer(InjectTokens.DeploymentCommand, DeploymentCommand),
       new SingletonContainer(InjectTokens.ExplorerCommand, ExplorerCommand),
-      new SingletonContainer(InjectTokens.InitCommand, InitCommand),
       new SingletonContainer(InjectTokens.MirrorNodeCommand, MirrorNodeCommand),
       new SingletonContainer(InjectTokens.NetworkCommand, NetworkCommand),
       new SingletonContainer(InjectTokens.RelayCommand, RelayCommand),
@@ -213,6 +220,7 @@ export class Container {
 
       // Command Definitions
       new SingletonContainer(InjectTokens.BackupRestoreCommandDefinition, BackupRestoreCommandDefinition),
+      new SingletonContainer(InjectTokens.InitCommandDefinition, InitCommandDefinition),
       new SingletonContainer(InjectTokens.BlockCommandDefinition, BlockCommandDefinition),
       new SingletonContainer(InjectTokens.ClusterReferenceCommandDefinition, ClusterReferenceCommandDefinition),
       new SingletonContainer(InjectTokens.ConsensusCommandDefinition, ConsensusCommandDefinition),
@@ -259,6 +267,8 @@ export class Container {
       new ValueContainer(InjectTokens.PodmanVersion, version.PODMAN_VERSION),
       new ValueContainer(InjectTokens.VfkitVersion, version.VFKIT_VERSION),
       new ValueContainer(InjectTokens.GvproxyVersion, version.GVPROXY_VERSION),
+      new ValueContainer(InjectTokens.NetavarkVersion, version.NETAVARK_VERSION),
+      new ValueContainer(InjectTokens.AardvarkDnsVersion, version.AARDVARK_DNS_VERSION),
       new ValueContainer(InjectTokens.CraneVersion, version.CRANE_VERSION),
       new ValueContainer(InjectTokens.SystemAccounts, constants.SYSTEM_ACCOUNTS),
       new ValueContainer(InjectTokens.CacheDir, cacheDirectory),
@@ -274,6 +284,10 @@ export class Container {
         InjectTokens.ConfigProvider,
         (container: DependencyContainer): ConfigProvider => {
           const objectMapper: ClassToObjectMapper = container.resolve<ClassToObjectMapper>(InjectTokens.ObjectMapper);
+
+          // Register the root schema so environment variable aliases
+          // can be resolved by the EnvironmentConfigSource.
+          EnvironmentAliasRegistry.registerRootSchema(SoloConfigSchema);
 
           const helmChartConfigSource: DefaultConfigSource<SoloConfigSchema> =
             new DefaultConfigSource<SoloConfigSchema>(
@@ -322,6 +336,9 @@ export class Container {
       container.resolve<SoloLogger>(InjectTokens.SoloLogger).debug('Container already initialized');
       return;
     }
+
+    // Services such as the local config storage backend require the home directory to exist at construction time.
+    mkdirSync(homeDirectory, {recursive: true});
 
     const singletonContainers: SingletonContainer[] = Container.singletonContainers();
 

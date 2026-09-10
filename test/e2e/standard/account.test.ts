@@ -102,13 +102,11 @@ endToEndTestSuite(testName, argv, {containerOverrides: overrides}, (bootstrapRes
       testLogger = getTestLogger();
     });
 
-    after(async function (): Promise<void> {
-      this.timeout(Duration.ofMinutes(3).toMillis());
-
+    after(async (): Promise<void> => {
       await k8Factory.default().namespaces().delete(namespace);
       await accountManager.close();
       await nodeCmd.close();
-    });
+    }).timeout(Duration.ofMinutes(3).toMillis());
 
     describe('node proxies should be UP', (): void => {
       for (const nodeAlias of argv.getArg<string>(flags.nodeAliasesUnparsed).split(',')) {
@@ -142,21 +140,18 @@ endToEndTestSuite(testName, argv, {containerOverrides: overrides}, (bootstrapRes
         const realm: Realm = argv.getArg(flags.realm);
         const shard: Shard = argv.getArg(flags.shard);
 
-        before(async function (): Promise<void> {
-          this.timeout(Duration.ofSeconds(20).toMillis());
-
+        before(async (): Promise<void> => {
           await accountManager.loadNodeClient(
             namespace,
             remoteConfig.getClusterRefs(),
             argv.getArg<DeploymentName>(flags.deployment),
             argv.getArg<boolean>(flags.forcePortForward),
           );
-        });
+        }).timeout(Duration.ofSeconds(20).toMillis());
 
-        after(async function (): Promise<void> {
-          this.timeout(Duration.ofSeconds(20).toMillis());
+        after(async (): Promise<void> => {
           await accountManager.close();
-        });
+        }).timeout(Duration.ofSeconds(20).toMillis());
 
         it('Node admin key should have been updated, not equal to genesis key', async (): Promise<void> => {
           const nodeAliases: NodeAliases = Helpers.parseNodeAliases(
@@ -446,34 +441,58 @@ endToEndTestSuite(testName, argv, {containerOverrides: overrides}, (bootstrapRes
       }).timeout(Duration.ofMinutes(2).toMillis());
 
       it('Create client from network config and submit topic/message should succeed', async (): Promise<void> => {
-        try {
-          // Setup network configuration
-          const networkConfig: Record<string, AccountId> = {
-            ['127.0.0.1:30212']: AccountId.fromString('0.0.3'),
-            ['127.0.0.1:30213']: AccountId.fromString('0.0.4'),
-          };
+        const maxSubmitAttempts: number = 3;
+        let submitReceipt: TransactionReceipt | undefined;
+        let lastError: unknown;
 
-          // Instantiate SDK client
-          const sdkClient: Client = Client.fromConfig({network: networkConfig, scheduleNetworkUpdate: false});
-          sdkClient.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
-          sdkClient.setLogger(new Logger(LogLevel.Trace, 'hashgraph-sdk.log'));
+        for (let attempt: number = 1; attempt <= maxSubmitAttempts && !submitReceipt; attempt++) {
+          let sdkClient: Client | undefined;
+          try {
+            await accountManager.refreshNodeClient(
+              namespace,
+              remoteConfig.getClusterRefs(),
+              argv.getArg<DeploymentName>(flags.deployment),
+              argv.getArg<boolean>(flags.forcePortForward),
+            );
+            const clientNetwork: Record<string, string | AccountId> = accountManager._nodeClient.network;
+            const networkConfig: Record<string, AccountId> = {};
+            for (const endpoint of Object.keys(clientNetwork)) {
+              networkConfig[endpoint] = AccountId.fromString(clientNetwork[endpoint].toString());
+            }
 
-          // Create a new public topic and submit a message
-          const txResponse: TransactionResponse = await new TopicCreateTransaction().execute(sdkClient);
-          const receipt: TransactionReceipt = await txResponse.getReceipt(sdkClient);
+            // Instantiate SDK client
+            sdkClient = Client.fromConfig({network: networkConfig, scheduleNetworkUpdate: false});
+            sdkClient.setOperator(MY_ACCOUNT_ID, MY_PRIVATE_KEY);
+            sdkClient.setLogger(new Logger(LogLevel.Trace, 'hashgraph-sdk.log'));
+            sdkClient.setMaxAttempts(constants.NODE_CLIENT_MAX_ATTEMPTS);
+            sdkClient.setMinBackoff(constants.NODE_CLIENT_MIN_BACKOFF);
+            sdkClient.setMaxBackoff(constants.NODE_CLIENT_MAX_BACKOFF);
+            sdkClient.setRequestTimeout(Duration.ofMinutes(1).toMillis());
 
-          const submitResponse: TransactionResponse = await new TopicMessageSubmitTransaction({
-            topicId: receipt.topicId,
-            message: 'Hello, Hedera!',
-          }).execute(sdkClient);
+            // Create a new public topic and submit a message
+            const txResponse: TransactionResponse = await new TopicCreateTransaction().execute(sdkClient);
+            const receipt: TransactionReceipt = await txResponse.getReceipt(sdkClient);
 
-          const submitReceipt: TransactionReceipt = await submitResponse.getReceipt(sdkClient);
+            const submitResponse: TransactionResponse = await new TopicMessageSubmitTransaction({
+              topicId: receipt.topicId,
+              message: 'Hello, Hedera!',
+            }).execute(sdkClient);
 
-          expect(submitReceipt.status).to.deep.equal(Status.Success);
-        } catch (error) {
-          testLogger.showUserError(error);
+            submitReceipt = await submitResponse.getReceipt(sdkClient);
+          } catch (error) {
+            lastError = error;
+            testLogger.showUserError(error);
+          } finally {
+            sdkClient?.close();
+          }
         }
-      }).timeout(Duration.ofMinutes(2).toMillis());
+
+        if (!submitReceipt) {
+          testLogger.showUserError(lastError);
+          expect.fail(`topic message submit failed after ${maxSubmitAttempts} attempts`);
+        }
+        expect(submitReceipt.status).to.deep.equal(Status.Success);
+      }).timeout(Duration.ofMinutes(5).toMillis());
 
       it('Enable Envoy proxy port forwarding and create client from network config should succeed', async (): Promise<void> => {
         try {

@@ -5,13 +5,14 @@ import {type PrivateKey} from '@hiero-ledger/sdk';
 import {type CheckedNodesConfigClass} from './checked-nodes-config-class.js';
 import {type NodeCommonConfigWithNodeAlias} from './node-common-config-with-node-alias.js';
 import {type Client} from '@hiero-ledger/sdk';
+import {type EndpointPortMapping} from '../../../types/index.js';
 
 export interface NodeUpdateConfigClass extends NodeCommonConfigWithNodeAlias, CheckedNodesConfigClass {
   app: string;
   cacheDir: string;
   chartDirectory: string;
   nodeAliases: NodeAliases;
-  devMode: boolean;
+  debugMode: boolean;
   debugNodeAlias: NodeAlias;
   endpointType: string;
   soloChartVersion: string;
@@ -32,9 +33,12 @@ export interface NodeUpdateConfigClass extends NodeCommonConfigWithNodeAlias, Ch
   keysDir: string;
   nodeClient: Client;
   stagingDir: string;
-  stagingKeysDir: string;
   treasuryKey: PrivateKey;
   curDate: Date;
   domainNames: string;
   domainNamesMapping: Record<NodeAlias, string>;
+  gossipEndpointPort: string;
+  gossipEndpointPortMapping: EndpointPortMapping;
+  serviceEndpointPort: string;
+  serviceEndpointPortMapping: EndpointPortMapping;
 }

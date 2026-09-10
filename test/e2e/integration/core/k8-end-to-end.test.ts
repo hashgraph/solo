@@ -66,8 +66,7 @@ describe('K8', (): void => {
   const podLabelValue: string = `test-${uuid4()}`;
   const serviceName: string = `test-service-${uuid4()}`;
 
-  before(async function (): Promise<void> {
-    this.timeout(defaultTimeout);
+  before(async (): Promise<void> => {
     try {
       argv.setArg(flags.namespace, testNamespace.name);
       configManager.update(argv.build());
@@ -84,10 +83,9 @@ describe('K8', (): void => {
       console.log(`${error}, ${error.stack}`);
       throw error;
     }
-  });
+  }).timeout(defaultTimeout);
 
-  after(async function (): Promise<void> {
-    this.timeout(defaultTimeout);
+  after(async (): Promise<void> => {
     try {
       await k8Factory.default().pods().readByReference(PodReference.of(testNamespace, podName)).killPod();
       argv.setArg(flags.namespace, constants.SOLO_SETUP_NAMESPACE.name);
@@ -96,7 +94,7 @@ describe('K8', (): void => {
       console.log(error);
       throw error;
     }
-  });
+  }).timeout(defaultTimeout);
 
   it('should be able to list clusters', async (): Promise<void> => {
     const clusters: string[] = k8Factory.default().clusters().list();

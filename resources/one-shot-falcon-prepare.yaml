@@ -1,0 +1,125 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Internal configuration for `solo one-shot falcon prepare`.
+#
+# It declares, for each section of the generated falcon-values.yaml: which command flag-list to
+# enumerate (`flagsFrom`), the default override values, and extra keys to force-add regardless of
+# the flag-list (`extraKeys`). It also declares the interactive prompt workflow (`prompts`).
+#
+# This file is data only: editing it changes the generated defaults and the wizard without
+# touching TypeScript.
+#
+# Override value grammar:
+#   ${config.<key>}  -> a value collected by the prepare wizard (a FalconPrepareConfig field)
+#   ${default}       -> the overridden flag's own default value
+#   <literal>        -> used as-is (string / number / true / false / null)
+#
+# Keys under `overrides`/`extraKeys` and entries under `blockedFlags`/`promptFlags` are flag
+# names (CommandFlag.name), not `--option` strings.
+
+# Flags excluded from every generated section (deployment-scoping / global flags).
+blockedFlags:
+  - deployment
+  - context
+  - cluster-ref
+  - namespace
+  - values-file
+  - force
+  - quiet-mode
+
+sections:
+  # Network-wide configuration for consensus network deployment.
+  - name: network
+    flagsFrom: network.deploy
+    overrides:
+      solo-chart-version: ${config.soloChartVersion}
+      debug-node-alias: ${config.debugNodeAlias}
+      load-balancer: ${config.loadBalancerEnabled}
+      pvcs: ${default}
+      release-tag: ${config.releaseTag}
+      service-monitor: ${default}
+      pod-log: ${default}
+    # Legacy key kept for backward compatibility when release-tag is not in the flag-list.
+    extraKeys:
+      release-tag: ${config.releaseTag}
+
+  # Setup configuration for consensus nodes.
+  - name: setup
+    flagsFrom: node.setup
+    overrides:
+      release-tag: ${config.releaseTag}
+      local-build-path: ${config.localBuildPath}
+      debug: ${config.enableDevChartMode}
+    extraKeys:
+      release-tag: ${config.releaseTag}
+
+  # Consensus node start configuration.
+  - name: consensusNode
+    flagsFrom: node.start
+    overrides:
+      debug-node-alias: ${config.debugNodeAlias}
+      force-port-forward: ${config.forcePortForward}
+
+  # Mirror node deployment configuration.
+  - name: mirrorNode
+    flagsFrom: mirror.deploy
+    overrides:
+      mirror-node-version: ${config.mirrorNodeVersion}
+      enable-ingress: ${config.enableMirrorIngress}
+      force-port-forward: ${config.forcePortForward}
+      pinger: true
+      use-external-database: ${default}
+
+  # Relay node deployment configuration.
+  - name: relayNode
+    flagsFrom: relay.deploy
+    overrides:
+      relay-release: ${config.relayReleaseTag}
+      replica-count: ${default}
+      force-port-forward: ${config.forcePortForward}
+      mirror-node-id: null
+    extraKeys:
+      relay-release: ${config.relayReleaseTag}
+
+  # Block node deployment configuration.
+  - name: blockNode
+    flagsFrom: block.add
+    overrides:
+      chart-version: ${config.chartVersion}
+      enable-ingress: ${default}
+      debug: ${config.enableDevChartMode}
+    extraKeys:
+      chart-version: ${config.chartVersion}
+
+  # Explorer deployment configuration.
+  - name: explorerNode
+    flagsFrom: explorer.deploy
+    overrides:
+      solo-chart-version: ${config.soloChartVersion}
+      explorer-version: ${config.explorerVersion}
+      enable-ingress: true
+      enable-explorer-tls: ${default}
+      explorer-tls-host-name: ${default}
+      tls-cluster-issuer-type: ${default}
+      force-port-forward: ${config.forcePortForward}
+      mirror-node-id: null
+
+# Interactive steps run after the base flag prompts. Each step writes its answer into the config
+# under `configKey`; a `confirm` step may run follow-up flag prompts when answered true.
+prompts:
+  - type: confirm
+    configKey: enableDevChartMode
+    message: Enable development chart mode (use local platform build)?
+    default: false
+    # Non-interactive runs cannot prompt; use this value instead.
+    skipWhenQuiet: true
+    quietValue: false
+    onTrue:
+      promptFlags:
+        - local-build-path
+        - debug-node-alias
+      setConfig:
+        - configKey: localBuildPath
+          flag: local-build-path
+        - configKey: debugNodeAlias
+          flag: debug-node-alias

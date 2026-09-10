@@ -16,7 +16,7 @@ export class RapidFireLoadStopFailedSoloError extends SoloError {
   public constructor(cause: Error) {
     super(
       {
-        message: `Error running rapid-fire stop: ${cause.message}`,
+        message: `Error running solo rapid-fire load stop: ${cause.message}`,
         code: ErrorCodeRegistry.RAPID_FIRE_LOAD_STOP_FAILED,
         troubleshootingSteps:
           'Check solo logs for the root cause: tail -n 100 ~/.solo/logs/solo.log\n' +

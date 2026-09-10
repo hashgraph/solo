@@ -2,3 +2,4 @@
                                           #          MerkleDb         #
                                           #############################
 merkleDb.useDiskIndices,                       true
+merkleDb.maxNumOfKeys,                         250000

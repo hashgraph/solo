@@ -14,10 +14,31 @@
 # limitations under the License.
 ##
 
-name: "Standard Runner One-Shot Deploy and Destroy"
+name: 'Standard Runner One-Shot Deploy and Destroy'
 # The purpose of this workflow is to verify that Solo can successfully deploy a network
 # using the one-shot single deploy command on a standard GitHub-hosted ubuntu runner.
 # This acts as a compatibility gate: if Solo stops working on standard runners, this job fails.
+#
+# It runs two install modes as a matrix:
+#
+#   1. source — build from source in the checkout and run `npm run solo --` from the repo root,
+#      matching the developer workflow. Runs on ubuntu-latest (standard GitHub-hosted runner).
+#   2. global-package — reproduce a first-time user experience with the published package.
+#      Runs on hiero-solo-linux-large:
+#      - Faithful package: the tarball is built with the same release packaging code that produces
+#        the published artifact, so
+#        `npm install -g` installs `@hiero-ledger/solo` under its real published name, exercising
+#        the path a first-time user hits (packaging, bin, postinstall).
+#      - Separate directory: every `solo` command runs from a directory outside the checkout,
+#        surfacing any code that resolves bundled resources relative to the current working
+#        directory instead of the package.
+#      - No cached images: SOLO_NO_CACHE skips the postinstall image-cache pull and
+#        ENABLE_IMAGE_CACHE forces the deploy to pull images fresh.
+#      The ephemeral GitHub-hosted runner guarantees no prior Solo install and no ~/.solo state;
+#      an assertion step proves it before installing.
+#
+# Note: postinstall only pre-pulls container images; the ~/.solo/bin toolchain (helm/kind/kubectl)
+# is downloaded lazily at runtime on first use.
 
 on:
   workflow_dispatch:
@@ -37,6 +58,7 @@ defaults:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -47,50 +69,149 @@ env:
 
 jobs:
   standard-runner-one-shot:
-    name: Standard Runner Deploy and Destroy
-    runs-on: ubuntu-latest
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - install-mode: source
+            name: Standard Runner Deploy and Destroy
+            runner: ubuntu-latest
+          - install-mode: global-package
+            name: Clean Environment Deploy and Destroy
+            runner: hiero-solo-linux-large
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - name: Install Task
-        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           version: 3.49.1
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compile Project
+        if: ${{ matrix.install-mode == 'source' }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: task build:compile
+
+      - name: Restore Solo Bin Cache
+        # source mode only: restoring into ~/.solo/bin for the global-package matrix entry would
+        # create ~/.solo before the "Assert Clean Environment" step runs, failing that assertion.
+        id: solo-bin-cache
+        if: ${{ matrix.install-mode == 'source' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
+      - name: Restore Solo Image Cache
+        # source mode only: restoring the image cache populates ~/.solo/cache/images, which would
+        # both create ~/.solo (failing the global-package "Assert Clean Environment" step) and
+        # defeat that mode's no-cached-images purpose.
+        id: solo-image-cache
+        if: ${{ matrix.install-mode == 'source' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-image-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
+
+      - name: Assert Clean Environment
+        # Demonstrable proof that no Solo-managed state exists before we install. Only Solo state is
+        # asserted: the GitHub runner image ships helm/kind/kubectl preinstalled, which is realistic
+        # for a first-time user and irrelevant since Solo installs its own copies into ~/.solo/bin.
+        if: ${{ matrix.install-mode == 'global-package' }}
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          status=0
+          if command -v solo >/dev/null 2>&1; then
+            echo "NOT CLEAN: 'solo' is present on PATH at $(command -v solo)"
+            status=1
+          else
+            echo "clean: 'solo' is absent from PATH"
+          fi
+
+          if [ -e ~/.solo ]; then
+            echo "NOT CLEAN: ~/.solo exists (residual toolchain, cache, or state)"
+            status=1
+          else
+            echo "clean: ~/.solo does not exist"
+          fi
+
+          if [ "${status}" -ne 0 ]; then
+            echo "ERROR: environment is not clean; see the failures above."
+            exit 1
+          fi
+          echo "Environment is clean."
+
+      - name: Pack Solo as the Published Package
+        # Use the same release packaging code that produces the primary published artifact so
+        # `npm install -g` emulates a real user install of `@hiero-ledger/solo`.
+        if: ${{ matrix.install-mode == 'global-package' }}
+        timeout-minutes: 10
+        run: |
+          task -t scripts/Taskfile.release.yml dual-publish:pack OUTPUT_DIR=output/hl
+
+      - name: Globally Install Solo
+        # SOLO_NO_CACHE skips the postinstall image-cache population so no images are cached before deploy.
+        if: ${{ matrix.install-mode == 'global-package' }}
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          SOLO_NO_CACHE: 'true'
+        run: |
+          npm install -g ./output/hl/hiero-ledger-solo-*.tgz
+          echo "Installed Solo version:"
+          solo --version
+
+      - name: Set Solo Command
+        # global-package mode runs the globally installed `solo` from a directory outside the
+        # checkout to surface any code that resolves bundled resources relative to the current
+        # working directory; source mode runs `npm run solo --` from the repo root.
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          if [ "${{ matrix.install-mode }}" = "global-package" ]; then
+            run_directory="${{ runner.temp }}/solo-clean-run"
+            mkdir -p "${run_directory}"
+            echo "SOLO_COMMAND=solo" >> "$GITHUB_ENV"
+            echo "SOLO_RUN_DIR=${run_directory}" >> "$GITHUB_ENV"
+          else
+            echo "SOLO_COMMAND=npm run solo --" >> "$GITHUB_ENV"
+            echo "SOLO_RUN_DIR=${{ github.workspace }}" >> "$GITHUB_ENV"
+          fi
 
       - name: One-Shot Single Deploy
         timeout-minutes: 70
         env:
           ENABLE_IMAGE_CACHE: 'false'
         run: |
+          cd "${SOLO_RUN_DIR}"
           export PATH=~/.solo/bin:${PATH}
-          npm run solo -- one-shot single deploy --dev
+          ${SOLO_COMMAND} one-shot single deploy --dev
 
       - name: Check Port Forwarding Still Works After Deploy
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
+          cd "${SOLO_RUN_DIR}"
           export PATH=~/.solo/bin:${PATH}
-          npm run solo -- deployment diagnostics connections -d one-shot --check
+          ${SOLO_COMMAND} deployment diagnostics connections -d one-shot --check
 
       - name: Verify Mirror REST API
         timeout-minutes: 10
@@ -108,26 +229,35 @@ jobs:
           echo "ERROR: Mirror REST API did not become available after 5 minutes."
           exit 1
 
+      - name: Save Solo Bin Cache
+        if: ${{ matrix.install-mode == 'source' && github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Collect Diagnostics on Failure
         if: ${{ failure() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
+          cd "${SOLO_RUN_DIR}"
           export PATH=~/.solo/bin:${PATH}
-          npm run solo -- deployment diagnostics logs -q --dev || true
+          ${SOLO_COMMAND} deployment diagnostics logs -q --dev || true
 
       - name: One-Shot Single Destroy
         if: always()
         timeout-minutes: 15
         run: |
+          cd "${SOLO_RUN_DIR}"
           export PATH=~/.solo/bin:${PATH}
-          npm run solo -- one-shot single destroy --quiet-mode --dev || true
+          ${SOLO_COMMAND} one-shot single destroy --quiet-mode --dev || true
 
       - name: Upload Logs
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
-          name: standard-runner-one-shot-logs
+          name: standard-runner-one-shot-logs-${{ matrix.install-mode }}
           path: ~/.solo/logs/*
           overwrite: true
           if-no-files-found: warn

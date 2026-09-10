@@ -91,7 +91,8 @@ export async function runCapture(cmd: string, options: object = {}, returnBase64
         const filteredOutput: string = filterOutputNoise(output);
         resolve(returnBase64 ? Base64.encode(filteredOutput) : filteredOutput);
       } else {
-        reject(new Error(`runCapture: Command failed: ${cmd} (exit code ${code})`));
+        const tail: string = output.trim() ? `\n--- command output ---\n${output.trim()}\n----------------------` : '';
+        reject(new Error(`runCapture: Command failed: ${cmd} (exit code ${code})${tail}`));
       }
     });
   });

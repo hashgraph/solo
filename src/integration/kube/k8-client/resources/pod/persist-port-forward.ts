@@ -10,6 +10,8 @@
 import {spawn, type ChildProcess} from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
+import {SubprocessEnvironment} from '../../../../../core/subprocess-environment.js';
+import {SubprocessCommandProfile} from '../../../../../core/subprocess-command-profile.js';
 
 // eslint-disable-next-line unicorn/no-unreadable-array-destructuring
 const [, , NAMESPACE, POD, CONTEXT, PORT_MAP, KUBECTL_EXECUTABLE, KUBECTL_INSTALLATION_DIRECTORY, EXTERNAL_ADDRESS] =
@@ -188,7 +190,11 @@ async function executeKubectl(
     const kubectlCommand: string = KUBECTL_EXECUTABLE || 'kubectl';
 
     const kubectlProcess: ChildProcess = spawn(kubectlCommand, commandArguments, {
-      env: {...process.env, PATH: `${kubectlInstallationDirectory}${path.delimiter}${process.env.PATH}`},
+      shell: false,
+      // The parent baked its session PATH and variables into this worker's environment at spawn.
+      env: SubprocessEnvironment.forCommand(SubprocessCommandProfile.KUBECTL, {
+        PATH: `${kubectlInstallationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
+      }),
       stdio: options.captureOutput ? ['ignore', 'pipe', 'pipe'] : 'inherit',
       windowsHide: os.platform() === 'win32',
     });

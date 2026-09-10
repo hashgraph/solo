@@ -21,6 +21,7 @@ describe('Phase', (): void => {
   let asListrTaskStub: SinonStub;
   let eventBusStub: SoloEventBus;
   let waitForStub: SinonStub;
+  let abortStub: SinonStub;
   const config: SimpleConfig = {deployment: 'test-deployment'};
 
   beforeEach((): void => {
@@ -28,7 +29,8 @@ describe('Phase', (): void => {
     asListrTaskStub = sinon.stub().returns(stepTaskStub);
     stepStub = {asListrTask: asListrTaskStub};
     waitForStub = sinon.stub().resolves({deployment: 'test-deployment'});
-    eventBusStub = {waitFor: waitForStub} as unknown as SoloEventBus;
+    abortStub = sinon.stub();
+    eventBusStub = {waitFor: waitForStub, abort: abortStub} as unknown as SoloEventBus;
   });
 
   afterEach((): void => {
@@ -49,7 +51,7 @@ describe('Phase', (): void => {
   });
 
   describe('asListrTask (no wait conditions)', (): void => {
-    it('returns the step task directly without wrapping', (): void => {
+    it('returns the same step task object (abort wrapping is applied in place)', (): void => {
       const phase: OrchestratorPipelinePhase<SimpleConfig, SimpleContext> = new OrchestratorPipelinePhase(
         'test phase',
         stepStub,
@@ -68,6 +70,44 @@ describe('Phase', (): void => {
       );
       phase.asListrTask((): SimpleConfig => config, eventBusStub);
       expect(waitForStub.called).to.be.false;
+    });
+  });
+
+  describe('abort on leaf failure', (): void => {
+    it('aborts the event bus with the thrown error and re-throws when the leaf task fails', async (): Promise<void> => {
+      const failure: Error = new Error('leaf task failed');
+      stepTaskStub = {
+        title: 'stub-step-task',
+        task: sinon.stub().rejects(failure),
+      } as unknown as SoloListrTask<SimpleContext>;
+      asListrTaskStub.returns(stepTaskStub);
+      const phase: OrchestratorPipelinePhase<SimpleConfig, SimpleContext> = new OrchestratorPipelinePhase(
+        'test phase',
+        stepStub,
+      );
+      const task: SoloListrTask<SimpleContext> = phase.asListrTask((): SimpleConfig => config, eventBusStub);
+      const taskFunction: (context: SimpleContext, wrapper: SoloListrTaskWrapper<SimpleContext>) => Promise<unknown> =
+        task.task as (context: SimpleContext, wrapper: SoloListrTaskWrapper<SimpleContext>) => Promise<unknown>;
+      await expect(taskFunction({}, {} as SoloListrTaskWrapper<SimpleContext>)).to.be.rejectedWith(failure);
+      expect(abortStub.calledOnceWithExactly(failure)).to.be.true;
+    });
+
+    it('does not abort the event bus when the leaf task succeeds', async (): Promise<void> => {
+      stepTaskStub = {
+        title: 'stub-step-task',
+        task: sinon.stub().resolves('ok'),
+      } as unknown as SoloListrTask<SimpleContext>;
+      asListrTaskStub.returns(stepTaskStub);
+      const phase: OrchestratorPipelinePhase<SimpleConfig, SimpleContext> = new OrchestratorPipelinePhase(
+        'test phase',
+        stepStub,
+      );
+      const task: SoloListrTask<SimpleContext> = phase.asListrTask((): SimpleConfig => config, eventBusStub);
+      const taskFunction: (context: SimpleContext, wrapper: SoloListrTaskWrapper<SimpleContext>) => Promise<unknown> =
+        task.task as (context: SimpleContext, wrapper: SoloListrTaskWrapper<SimpleContext>) => Promise<unknown>;
+      const result: unknown = await taskFunction({}, {} as SoloListrTaskWrapper<SimpleContext>);
+      expect(result).to.equal('ok');
+      expect(abortStub.called).to.be.false;
     });
   });
 
@@ -247,10 +287,11 @@ describe('Phase', (): void => {
       const taskFunction: (context: SimpleContext, wrapper: SoloListrTaskWrapper<SimpleContext>) => unknown =
         task.task as (context: SimpleContext, wrapper: SoloListrTaskWrapper<SimpleContext>) => unknown;
       taskFunction({}, {newListr: newListrStub} as unknown as SoloListrTaskWrapper<SimpleContext>);
-      const childTasks: unknown[] = newListrStub.firstCall.args[0] as unknown[];
+      const childTasks: SoloListrTask<SimpleContext>[] = newListrStub.firstCall
+        .args[0] as SoloListrTask<SimpleContext>[];
       expect(childTasks).to.have.length(2);
-      expect(childTasks[0]).to.deep.equal({title: 'child-a'});
-      expect(childTasks[1]).to.deep.equal({title: 'child-b'});
+      expect(childTasks[0]).to.have.property('title', 'child-a');
+      expect(childTasks[1]).to.have.property('title', 'child-b');
     });
 
     it('defaults to sequential execution mode when not specified', (): void => {
@@ -357,7 +398,7 @@ describe('Phase', (): void => {
         expect(subTasks[0]).to.equal(stepTaskStub);
       });
 
-      it('failure check task throws InjectedFailureSoloError with phase title when executed', (): void => {
+      it('failure check task rejects with InjectedFailureSoloError and aborts the event bus when executed', async (): Promise<void> => {
         process.env.SOLO_FAIL_AFTER_STEP = 'test phase';
         const phase: OrchestratorPipelinePhase<SimpleConfig, SimpleContext> = new OrchestratorPipelinePhase(
           'test phase',
@@ -371,9 +412,19 @@ describe('Phase', (): void => {
         const subTasks: SoloListrTask<SimpleContext>[] = newListrStub.firstCall
           .args[0] as SoloListrTask<SimpleContext>[];
         const failureTask: SoloListrTask<SimpleContext> = subTasks[1];
-        expect((): void => {
-          (failureTask.task as () => void)();
-        }).to.throw(InjectedFailureSoloError, "[TEST] Injected failure after step 'test phase'");
+        const failureTaskFunction: (
+          context: SimpleContext,
+          wrapper: SoloListrTaskWrapper<SimpleContext>,
+        ) => Promise<unknown> = failureTask.task as (
+          context: SimpleContext,
+          wrapper: SoloListrTaskWrapper<SimpleContext>,
+        ) => Promise<unknown>;
+        await expect(failureTaskFunction({}, {} as SoloListrTaskWrapper<SimpleContext>)).to.be.rejectedWith(
+          InjectedFailureSoloError,
+          "[TEST] Injected failure after step 'test phase'",
+        );
+        expect(abortStub.calledOnce).to.be.true;
+        expect(abortStub.firstCall.args[0]).to.be.instanceOf(InjectedFailureSoloError);
       });
     });
 
@@ -435,8 +486,8 @@ describe('Phase', (): void => {
         const subTasks: SoloListrTask<SimpleContext>[] = newListrStub.firstCall
           .args[0] as SoloListrTask<SimpleContext>[];
         expect(subTasks).to.have.length(3);
-        expect(subTasks[0]).to.deep.equal({title: 'child-a'});
-        expect(subTasks[1]).to.deep.equal({title: 'child-b'});
+        expect(subTasks[0]).to.have.property('title', 'child-a');
+        expect(subTasks[1]).to.have.property('title', 'child-b');
         expect(subTasks[2]).to.have.property('title', "[test] fail after 'parent'");
         expect((): void => {
           (subTasks[2].task as () => void)();

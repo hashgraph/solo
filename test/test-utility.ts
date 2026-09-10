@@ -10,16 +10,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import {Flags as flags} from '../src/commands/flags.js';
 import {type ClusterCommand} from '../src/commands/cluster/index.js';
-import {type InitCommand} from '../src/commands/init/init.js';
 import {type NetworkCommand} from '../src/commands/network.js';
 import {type NodeCommand} from '../src/commands/node/index.js';
 import {type DependencyManager} from '../src/core/dependency-managers/index.js';
 import {sleep} from '../src/core/helpers.js';
 import {
-  type AccountBalance,
-  AccountBalanceQuery,
   AccountCreateTransaction,
   type AccountId,
+  type AccountInfo,
+  AccountInfoQuery,
   Hbar,
   HbarUnit,
   PrivateKey,
@@ -69,8 +68,6 @@ import {ClusterReferenceTest} from './e2e/commands/tests/cluster-reference-test.
 import {ConsensusNodeTest} from './e2e/commands/tests/consensus-node-test.js';
 import {DeploymentTest} from './e2e/commands/tests/deployment-test.js';
 import {type ComponentFactoryApi} from '../src/core/config/remote/api/component-factory-api.js';
-import {InitTest} from './e2e/commands/tests/init-test.js';
-import {type BaseTestOptions} from './e2e/commands/tests/base-test-options.js';
 import {SemanticVersion} from '../src/business/utils/semantic-version.js';
 
 export const BASE_TEST_DIR: string = PathEx.join('test', 'data', 'tmp');
@@ -171,7 +168,6 @@ export interface BootstrapResponse {
     accountManager: AccountManager;
   };
   cmd: {
-    initCmd: InitCommand;
     clusterCmd: ClusterCommand;
     networkCmd: NetworkCommand;
     nodeCmd: NodeCommand;
@@ -182,7 +178,6 @@ export interface BootstrapResponse {
 
 interface Cmd {
   k8FactoryArg?: K8Factory;
-  initCmdArg?: InitCommand;
   clusterCmdArg?: ClusterCommand;
   networkCmdArg?: NetworkCommand;
   nodeCmdArg?: NodeCommand;
@@ -201,7 +196,7 @@ let shouldReset: boolean = true;
 export function bootstrapTestVariables(
   testName: string,
   argv: Argv,
-  {k8FactoryArg, initCmdArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg, deploymentCmdArg}: Cmd,
+  {k8FactoryArg, clusterCmdArg, networkCmdArg, nodeCmdArg, accountCmdArg, deploymentCmdArg}: Cmd,
 ): BootstrapResponse {
   const namespace: NamespaceName = getTestNamespace(argv);
 
@@ -265,7 +260,6 @@ export function bootstrapTestVariables(
       accountManager,
     },
     cmd: {
-      initCmd: initCmdArg || container.resolve(InjectTokens.InitCommand),
       clusterCmd: clusterCmdArg || container.resolve(InjectTokens.ClusterCommand),
       networkCmd: networkCmdArg || container.resolve(InjectTokens.NetworkCommand),
       nodeCmd: nodeCmdArg || container.resolve(InjectTokens.NodeCommand),
@@ -281,7 +275,6 @@ export function endToEndTestSuite(
   argv: Argv,
   {
     k8FactoryArg,
-    initCmdArg,
     clusterCmdArg,
     networkCmdArg,
     nodeCmdArg,
@@ -290,7 +283,7 @@ export function endToEndTestSuite(
     containerOverrides,
     deployNetwork,
   }: Cmd & {startNodes?: boolean; deployNetwork?: boolean},
-  testsCallBack: (bootstrapResp: BootstrapResponse) => void = (): void => {},
+  testsCallback: (bootstrapResp: BootstrapResponse) => void = (): void => {},
 ): void {
   const testLogger: SoloLogger = getTestLogger();
   const testNamespace: NamespaceName = getTestNamespace(argv);
@@ -304,7 +297,6 @@ export function endToEndTestSuite(
 
   const bootstrapResp: BootstrapResponse = bootstrapTestVariables(testName, argv, {
     k8FactoryArg,
-    initCmdArg,
     clusterCmdArg,
     networkCmdArg,
     nodeCmdArg,
@@ -322,25 +314,23 @@ export function endToEndTestSuite(
       await localConfig.load();
     });
 
+    // eslint-disable-next-line unicorn/no-this-outside-of-class
     this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
 
     describe(`Bootstrap network for test [release ${argv.getArg(flags.releaseTag)}]`, (): void => {
       before(async (): Promise<void> => {
         testLogger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`);
-        InitTest.init({} as BaseTestOptions);
       });
 
       // TODO: add rest of prerequisites for setup
 
-      after(async function (): Promise<void> {
-        this.timeout(Duration.ofMinutes(5).toMillis());
-
+      after(async (): Promise<void> => {
         // Use shared diagnostic log collection helper
         const deployment: string = argv.getArg(flags.deployment) as string;
         await BaseCommandTest.collectDiagnosticLogs(testName, testLogger, deployment);
 
         testLogger.showUser(`------------------------- END: bootstrap (${testName}) ----------------------------`);
-      });
+      }).timeout(Duration.ofMinutes(5).toMillis());
 
       it('should cleanup previous deployment', async (): Promise<void> => {
         if (await k8Factory.default().namespaces().has(namespace)) {
@@ -406,7 +396,7 @@ export function endToEndTestSuite(
     });
 
     describe(testName, (): void => {
-      testsCallBack(bootstrapResp);
+      testsCallback(bootstrapResp);
     });
   });
 }
@@ -430,11 +420,11 @@ export async function queryBalance(
   );
   expect(accountManager._nodeClient).to.not.be.undefined;
 
-  const balance: AccountBalance = await new AccountBalanceQuery()
+  const accountInfo: AccountInfo = await new AccountInfoQuery()
     .setAccountId(accountManager._nodeClient.getOperator().accountId)
     .execute(accountManager._nodeClient);
 
-  expect(balance.hbars).to.not.be.null;
+  expect(accountInfo.balance).to.not.be.null;
   await sleep(Duration.ofSeconds(1));
 }
 

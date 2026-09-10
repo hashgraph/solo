@@ -75,7 +75,7 @@ export class HelmExecution {
 
     this.process = spawn(invocation.commandPathOrName, invocation.commandArguments, {
       shell: false,
-      env: {...process.env, ...invocation.environmentVariables},
+      env: invocation.environmentVariables,
       cwd: invocation.workingDirectory,
     });
   }

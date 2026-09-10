@@ -2,27 +2,27 @@ version: '3'
 # This Taskfile handles dual-namespace publishing tasks for the release process.
 # It can be used in CI/CD pipelines or run locally.
 # Example usage:
-# task -t scripts/Taskfile.release.yml dual-publish:rename
-# task -t scripts/Taskfile.release.yml dual-publish:pack DRY_RUN=true OUTPUT_DIR=output/hl
+# task -t scripts/Taskfile.release.yml dual-publish:rename SOURCE_PKG_NAME=@hiero-ledger/solo TARGET_PKG_NAME=@hashgraph/solo
+# task -t scripts/Taskfile.release.yml dual-publish:pack DRY_RUN=true OUTPUT_DIR=output/hg
 # task -t scripts/Taskfile.release.yml dual-publish:restore
 
 tasks:
   dual-publish:rename:
-    desc: Rename package references from Hashgraph namespace to Hiero namespace
+    desc: Rename package references between the primary and secondary Solo namespaces
     dir: '{{.TASKFILE_DIR}}/..'
     vars:
-      HASHGRAPH_PKG_NAME: '{{.HASHGRAPH_PKG_NAME | default "@hashgraph/solo"}}'
-      HIERO_PKG_NAME: '{{.HIERO_PKG_NAME | default "@hiero-ledger/solo"}}'
+      SOURCE_PKG_NAME: '{{.SOURCE_PKG_NAME | default "@hashgraph/solo"}}'
+      TARGET_PKG_NAME: '{{.TARGET_PKG_NAME | default "@hiero-ledger/solo"}}'
       IGNORE_LIST_FILE: '{{.IGNORE_LIST_FILE | default ".github/workflows/support/.ignore-deploy-release"}}'
     cmds:
       - |
         cp package.json package.json.tmp
-        jq --arg to "{{.HIERO_PKG_NAME}}" '.name = $to' package.json.tmp > package.json
+        jq --arg to "{{.TARGET_PKG_NAME}}" '.name = $to' package.json.tmp > package.json
         rm package.json.tmp
       - |
-        tracked_files=$(git grep -rl --text "{{.HASHGRAPH_PKG_NAME}}" || true)
+        tracked_files=$(git grep -rl --text "{{.SOURCE_PKG_NAME}}" || true)
         if [[ -z "${tracked_files}" ]]; then
-          echo "No files found containing '{{.HASHGRAPH_PKG_NAME}}'; skipping."
+          echo "No files found containing '{{.SOURCE_PKG_NAME}}'; skipping."
           exit 0
         fi
 
@@ -40,10 +40,10 @@ tasks:
 
         if [[ "{{OS}}" == "darwin" ]]; then
           echo "${filtered_files}" | tr '\n' '\0' | \
-            xargs -0 sed -i '' 's/@hashgraph\/solo/@hiero-ledger\/solo/g'
+            xargs -0 sed -i '' 's|{{.SOURCE_PKG_NAME}}|{{.TARGET_PKG_NAME}}|g'
         else
           echo "${filtered_files}" | tr '\n' '\0' | \
-            xargs -0 sed -i 's/\b@hashgraph\/solo\b/@hiero-ledger\/solo/g'
+            xargs -0 sed -i 's|{{.SOURCE_PKG_NAME}}|{{.TARGET_PKG_NAME}}|g'
         fi
         echo "Updated $(echo "${filtered_files}" | wc -l | tr -d ' ') files."
 
@@ -54,7 +54,8 @@ tasks:
       OUTPUT_DIR: '{{.OUTPUT_DIR | default "output/hl"}}'
       DRY_RUN: '{{.DRY_RUN | default "false"}}'
     cmds:
-      - npm install
+      - npm ci
+      - npx eslint . --fix
       - task build
       - mkdir -p "{{.OUTPUT_DIR}}"
       - |

@@ -6,16 +6,18 @@ import * as constants from '../../core/constants.js';
 import chalk from 'chalk';
 import {ListrLock} from '../../core/lock/listr-lock.js';
 import {SoloErrors} from '../../core/errors/solo-errors.js';
-import {UserBreak} from '../../core/errors/user-break.js';
+
 import {type K8Factory} from '../../integration/kube/k8-factory.js';
-import {type Context, type ReleaseNameData, type SoloListr, type SoloListrTask} from '../../types/index.js';
-import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
-import {confirm as confirmPrompt} from '@inquirer/prompts';
-import {type NamespaceName} from '../../types/namespace/namespace-name.js';
+import {type Context, type SoloListr, type SoloListrTask} from '../../types/index.js';
+import {NamespaceName} from '../../types/namespace/namespace-name.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {type SoloLogger} from '../../core/logging/solo-logger.js';
 import {type ChartManager} from '../../core/chart-manager.js';
+import {SharedClusterResourceReport} from '../../core/shared-cluster-resource-report.js';
+import {ClusterCrdProbe} from '../../core/cluster-crd-probe.js';
+import {type ReleaseItem} from '../../integration/helm/model/release/release-item.js';
+import {type ClusterRole} from '../../integration/kube/resources/rbac/cluster-role.js';
 import {type LockManager} from '../../core/lock/lock-manager.js';
 import {type ClusterChecks} from '../../core/cluster-checks.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
@@ -33,7 +35,6 @@ import {Lock} from '../../core/lock/lock.js';
 import {RemoteConfigRuntimeState} from '../../business/runtime-state/config/remote/remote-config-runtime-state.js';
 import {type OneShotState} from '../../core/one-shot-state.js';
 import * as versions from '../../../version.js';
-import {findMinioOperator} from '../../core/helpers.js';
 import {K8} from '../../integration/kube/k8.js';
 import {HelmChartValues} from '../../integration/helm/model/values.js';
 import {Flags} from '../flags.js';
@@ -60,16 +61,43 @@ export class ClusterCommandTasks {
     this.oneShotState = patchInject(oneShotState, InjectTokens.OneShotState, this.constructor.name);
   }
 
-  public findMinioOperator(context: Context): Promise<ReleaseNameData> {
-    return findMinioOperator(context, this.k8Factory);
-  }
-
   public async installMinioOperatorChart(clusterSetupNamespace: NamespaceName, context: Context): Promise<void> {
-    const {exists: isMinioInstalled}: ReleaseNameData = await this.findMinioOperator(context);
+    // The operator's CRDs are cluster-scoped, so they are what a second install collides with — and they
+    // remain after the operator's pods and namespace are gone. Their presence therefore says that some
+    // release once owned them, not that an operator is running now; the release is what says that.
+    const existingCrds: Map<string, Record<string, string>> = await ClusterCrdProbe.probe(
+      this.k8Factory,
+      context,
+      constants.MINIO_OPERATOR_CRDS,
+    );
+    const owningRelease: ReleaseItem | undefined = await this.chartManager.getInstalledRelease(
+      undefined,
+      constants.MINIO_OPERATOR_RELEASE_NAME,
+      context,
+    );
 
-    if (isMinioInstalled) {
-      this.logger.showUserUnlessOneShot(`⏭️  MinIO Operator chart already installed in context ${context}, skipping`);
+    if (owningRelease) {
+      const foundVersions: Set<string> = new Set(
+        [...existingCrds.values()].map((labels: Record<string, string>): string =>
+          SharedClusterResourceReport.versionFromLabels(labels),
+        ),
+      );
+      SharedClusterResourceReport.show(
+        this.logger,
+        'MinIO Operator',
+        context,
+        `release '${owningRelease.name}' (${owningRelease.chart}) in namespace ${owningRelease.namespace}` +
+          (foundVersions.size > 0 ? ` with CRDs ${[...foundVersions].join(', ')}` : ''),
+        `version ${versions.MINIO_OPERATOR_VERSION} as release '${constants.MINIO_OPERATOR_RELEASE_NAME}'`,
+      );
       return;
+    }
+
+    if (existingCrds.size > 0) {
+      // Orphaned: the CRDs outlived their release. Installing over them fails because Helm will not adopt
+      // resources it does not own, and skipping the install would leave the Tenant created later with no
+      // operator to reconcile it — a silent hang far from this cause. Say so here instead.
+      throw new SoloErrors.system.minioOperatorCrdsOrphaned([...existingCrds.keys()], context);
     }
 
     try {
@@ -265,14 +293,20 @@ export class ClusterCommandTasks {
       task: async (context_): Promise<void> => {
         const clusterSetupNamespace: NamespaceName = context_.config.clusterSetupNamespace;
 
-        const isPrometheusInstalled: boolean = await this.chartManager.isChartInstalled(
+        const installedPrometheus: ReleaseItem | undefined = await this.chartManager.getInstalledRelease(
           clusterSetupNamespace,
           constants.PROMETHEUS_RELEASE_NAME,
           context_.config.context,
         );
 
-        if (isPrometheusInstalled) {
-          this.logger.showUserUnlessOneShot('⏭️  Prometheus Stack chart already installed, skipping');
+        if (installedPrometheus) {
+          SharedClusterResourceReport.show(
+            this.logger,
+            `Prometheus Stack Helm release '${constants.PROMETHEUS_RELEASE_NAME}'`,
+            context_.config.context,
+            `chart ${installedPrometheus.chart} in namespace '${installedPrometheus.namespace}'`,
+            `chart version ${versions.PROMETHEUS_STACK_VERSION}`,
+          );
         } else {
           try {
             await this.chartManager.install(
@@ -281,7 +315,7 @@ export class ClusterCommandTasks {
               constants.PROMETHEUS_STACK_CHART,
               constants.PROMETHEUS_STACK_CHART,
               versions.PROMETHEUS_STACK_VERSION,
-              new HelmChartValues(),
+              new HelmChartValues().file(constants.PROMETHEUS_STACK_VALUES_FILE),
               context_.config.context,
             );
             this.logger.showUserUnlessOneShot('✅ Prometheus Stack chart installed successfully');
@@ -308,14 +342,20 @@ export class ClusterCommandTasks {
     return {
       title: 'Install metrics-server chart',
       task: async ({config: {context}}): Promise<void> => {
-        const isMetricsServerInstalled: boolean = await this.chartManager.isChartInstalled(
+        const installedMetricsServer: ReleaseItem | undefined = await this.chartManager.getInstalledRelease(
           constants.METRICS_SERVER_NAMESPACE,
           constants.METRICS_SERVER_RELEASE_NAME,
           context,
         );
 
-        if (isMetricsServerInstalled) {
-          this.logger.showUserUnlessOneShot('⏭️  metrics-server chart already installed, skipping');
+        if (installedMetricsServer) {
+          SharedClusterResourceReport.show(
+            this.logger,
+            `metrics-server Helm release '${constants.METRICS_SERVER_RELEASE_NAME}'`,
+            context,
+            `chart ${installedMetricsServer.chart} in namespace '${installedMetricsServer.namespace}'`,
+            versions.METRICS_SERVER_VERSION ? `chart version ${versions.METRICS_SERVER_VERSION}` : undefined,
+          );
           return;
         }
 
@@ -355,15 +395,24 @@ export class ClusterCommandTasks {
         const k8: K8 = this.k8Factory.getK8(context_.config.context);
 
         // Check if ClusterRole already exists using Kubernetes JavaScript API
-        let podMonitorRoleExists: boolean = false;
+        let existingPodMonitorRole: ClusterRole | undefined;
         try {
-          podMonitorRoleExists = await k8.rbac().clusterRoleExists(constants.POD_MONITOR_ROLE);
+          existingPodMonitorRole = await k8.rbac().readClusterRole(constants.POD_MONITOR_ROLE);
         } catch (error) {
           throw new SoloErrors.system.clusterRoleCheckFailed(constants.POD_MONITOR_ROLE, error as Error);
         }
-        if (podMonitorRoleExists) {
-          this.logger.showUserUnlessOneShot(
-            `⏭️  ClusterRole pod-monitor-role already exists in context ${context_.config.context}, skipping`,
+        if (existingPodMonitorRole) {
+          const ownership: string = Object.entries(constants.SOLO_CLUSTER_ROLE_LABELS).every(
+            ([labelKey, labelValue]: [string, string]): boolean =>
+              existingPodMonitorRole.labels?.[labelKey] === labelValue,
+          )
+            ? 'a ClusterRole carrying the Solo ownership label'
+            : 'a ClusterRole without the Solo ownership label (created outside Solo)';
+          SharedClusterResourceReport.show(
+            this.logger,
+            `ClusterRole '${constants.POD_MONITOR_ROLE}'`,
+            context_.config.context,
+            ownership,
           );
           return;
         }
@@ -384,7 +433,7 @@ export class ClusterCommandTasks {
                 verbs: ['create'],
               },
             ],
-            {'solo.hedera.com/type': 'cluster-role'},
+            constants.SOLO_CLUSTER_ROLE_LABELS,
           );
           this.logger.showUserUnlessOneShot(
             `✅ ClusterRole pod-monitor-role installed successfully in context ${context_.config.context}`,
@@ -401,14 +450,22 @@ export class ClusterCommandTasks {
     return {
       title: 'Uninstall pod-monitor-role ClusterRole',
       task: async ({config: {context}}): Promise<void> => {
+        let podMonitorRoleExists: boolean = false;
         try {
           // Check if ClusterRole exists using Kubernetes JavaScript API
-          await this.k8Factory.getK8(context).rbac().clusterRoleExists(constants.POD_MONITOR_ROLE);
+          podMonitorRoleExists = await this.k8Factory
+            .getK8(context)
+            .rbac()
+            .clusterRoleExists(constants.POD_MONITOR_ROLE);
+        } catch (error) {
+          throw new SoloErrors.system.clusterRoleCheckFailed(constants.POD_MONITOR_ROLE, error as Error);
+        }
 
+        if (podMonitorRoleExists) {
           // ClusterRole exists, delete it
           await this.k8Factory.getK8(context).rbac().deleteClusterRole(constants.POD_MONITOR_ROLE);
           this.logger.showUserUnlessOneShot('✅ ClusterRole pod-monitor-role uninstalled successfully');
-        } catch {
+        } else {
           // ClusterRole doesn't exist, skip
           this.logger.showUserUnlessOneShot('⏭️  ClusterRole pod-monitor-role not found, skipping');
         }
@@ -441,7 +498,7 @@ export class ClusterCommandTasks {
 
         const result: SoloListr<ClusterReferenceSetupContext> = await task.newListr(subtasks, {concurrent: false});
 
-        if (argv.dev) {
+        if (argv.debug) {
           await this.showInstalledChartList(context_.config.clusterSetupNamespace, context_.config.context);
         }
         return result;
@@ -462,19 +519,64 @@ export class ClusterCommandTasks {
     };
   }
 
+  /**
+   * Decides whether a MinIO Operator release is one solo installed, and so one reset may remove.
+   *
+   * Two signals, both required. The chart identifies what was installed — solo always installs the
+   * `operator` chart from `MINIO_OPERATOR_CHART_URL`, so a release running a different chart under the
+   * same release name is somebody else's. The namespace identifies who installed it: the cluster-setup
+   * namespace is where solo puts it, and any namespace holding a solo remote config belongs to a solo
+   * deployment. Anything outside both is left alone.
+   */
+  private async isSoloInstalledMinioOperator(
+    release: ReleaseItem,
+    clusterSetupNamespace: NamespaceName,
+    context: Context,
+  ): Promise<boolean> {
+    // ReleaseItem.chart is `<name>-<version>`, e.g. `operator-7.1.1`.
+    if (!release.chart?.startsWith(`${constants.MINIO_OPERATOR_CHART}-`)) {
+      return false;
+    }
+
+    if (release.namespace === clusterSetupNamespace.name) {
+      return true;
+    }
+
+    // Context-scoped: a multi-cluster reset targets one cluster, and the default one need not be it.
+    return this.clusterChecks.isRemoteConfigPresentInNamespace(NamespaceName.of(release.namespace), context);
+  }
+
   public uninstallMinioOperator(): SoloListrTask<ClusterReferenceResetContext> {
     return {
       title: 'Uninstall MinIO Operator chart',
-      task: async ({config: {clusterSetupNamespace: namespace, context}}): Promise<void> => {
-        const {exists: isMinioInstalled, releaseName}: ReleaseNameData = await this.findMinioOperator(context);
+      task: async ({config: {clusterSetupNamespace, context}}): Promise<void> => {
+        // Looked up across all namespaces: solo does not always install the operator into the namespace
+        // this reset was invoked with, and uninstalling the wrong one is what left the CRDs behind.
+        const release: ReleaseItem | undefined = await this.chartManager.getInstalledRelease(
+          undefined,
+          constants.MINIO_OPERATOR_RELEASE_NAME,
+          context,
+        );
 
-        if (isMinioInstalled) {
-          await this.chartManager.uninstall(namespace, releaseName, context);
-
-          this.logger.showUserUnlessOneShot('✅ MinIO Operator chart uninstalled successfully');
-        } else {
+        if (!release) {
           this.logger.showUserUnlessOneShot('⏭️  MinIO Operator chart not installed, skipping');
+          return;
         }
+
+        // `operator` is also the release name in MinIO's own documented install, so a name match alone
+        // would let reset uninstall a user's unrelated operator in some other namespace. Only remove one
+        // that looks like solo's: solo's chart, in a namespace solo manages.
+        if (!(await this.isSoloInstalledMinioOperator(release, clusterSetupNamespace, context))) {
+          this.logger.showUserUnlessOneShot(
+            `⏭️  Leaving MinIO Operator release '${release.name}' (${release.chart}) in namespace ` +
+              `${release.namespace} alone: it was not installed by solo`,
+          );
+          return;
+        }
+
+        await this.chartManager.uninstall(NamespaceName.of(release.namespace), release.name, context);
+
+        this.logger.showUserUnlessOneShot('✅ MinIO Operator chart uninstalled successfully');
       },
     };
   }
@@ -530,20 +632,20 @@ export class ClusterCommandTasks {
         {config: {clusterSetupNamespace, context}},
         task,
       ): Promise<SoloListr<ClusterReferenceResetContext>> => {
-        if (!argv.force && (await this.clusterChecks.isRemoteConfigPresentInAnyNamespace(context))) {
-          const confirm: boolean = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, {
-            default: false,
-            message:
-              'There is remote config for one of the deployments' +
-              'Are you sure you would like to uninstall the cluster?',
-          });
-
-          if (!confirm) {
-            throw new UserBreak('Aborted application by user prompt');
-          }
+        const isShared: boolean =
+          !argv.force && (await this.clusterChecks.isRemoteConfigPresentInAnyNamespace(context));
+        if (isShared) {
+          // Document Design Assumption:
+          // Today, Cluster reset contains only cluster-scoped cleanup (Prometheus, Minio, etc.).
+          // Skipping the phase is therefore safe because these shared resources should persist
+          // for the other remaining deployments.
+          this.logger.showUserUnlessOneShot(
+            'Cluster is shared with other deployments. Skipping cluster reset to preserve shared resources.',
+          );
+          return task.newListr([], {concurrent: false});
         }
 
-        if (argv.dev) {
+        if (argv.debug) {
           await this.showInstalledChartList(clusterSetupNamespace);
         }
 

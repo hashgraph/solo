@@ -155,9 +155,9 @@ export class Lexer {
       this.addOrReplaceValue(this.formatter.join(normalizedKey, index.toString()), null);
     }
 
-    const valueType = typeof value;
+    const valueType: string = typeof value;
 
-    if (valueType === 'string' || valueType === 'number' || valueType === 'boolean' || valueType === 'bigint') {
+    if (['string', 'number', 'boolean', 'bigint'].includes(valueType)) {
       this.addOrReplaceValue(this.formatter.join(normalizedKey, index.toString()), value.toString());
     } else {
       const flatMap: Map<string, string> = this.flatMapper.flatten(value as object);

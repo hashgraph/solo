@@ -10,7 +10,8 @@ import {type AccountManager} from '../core/account-manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {resolveNamespaceFromDeployment} from '../core/resolvers.js';
-import {entityId, showVersionBanner} from '../core/helpers.js';
+import {entityId, showVersionBanner, sleep} from '../core/helpers.js';
+import {Duration} from '../core/time/duration.js';
 import {type AnyListrContext, type ArgvStruct} from '../types/aliases.js';
 import {type Rbacs} from '../integration/kube/resources/rbac/rbacs.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
@@ -52,6 +53,7 @@ import {Lock} from '../core/lock/lock.js';
 import {Base64} from 'js-base64';
 import {SemanticVersion} from '../business/utils/semantic-version.js';
 import {assertUpgradeVersionNotOlder} from '../core/upgrade-version-guard.js';
+import {UpgradeVersionResolver} from '../core/upgrade-version-resolver.js';
 import {IngressClass} from '../integration/kube/resources/ingress-class/ingress-class.js';
 import {Secret} from '../integration/kube/resources/secret/secret.js';
 import {BlockNodeStateSchema} from '../data/schema/model/remote/state/block-node-state-schema.js';
@@ -253,8 +255,9 @@ export class MirrorNodeCommand extends BaseCommand {
   private static readonly NO_JFR_MARKER: string = 'SOLO_NO_JFR_RECORDING';
 
   public static readonly DEPLOY_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment],
+    required: [],
     optional: [
+      flags.deployment,
       flags.cacheDir,
       flags.chartDirectory,
       flags.mirrorNodeChartDirectory,
@@ -292,8 +295,9 @@ export class MirrorNodeCommand extends BaseCommand {
   };
 
   public static readonly UPGRADE_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment],
+    required: [],
     optional: [
+      flags.deployment,
       flags.clusterRef,
       flags.cacheDir,
       flags.chartDirectory,
@@ -331,13 +335,21 @@ export class MirrorNodeCommand extends BaseCommand {
   };
 
   public static readonly DESTROY_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment],
-    optional: [flags.chartDirectory, flags.clusterRef, flags.force, flags.quiet, flags.devMode, flags.id],
+    required: [],
+    optional: [
+      flags.deployment,
+      flags.chartDirectory,
+      flags.clusterRef,
+      flags.force,
+      flags.quiet,
+      flags.debugMode,
+      flags.id,
+    ],
   };
 
   public static readonly COLLECT_JFR_FLAGS_LIST: CommandFlags = {
     required: [flags.deployment],
-    optional: [flags.clusterRef, flags.devMode, flags.quiet, flags.id],
+    optional: [flags.clusterRef, flags.debugMode, flags.quiet, flags.id],
   };
 
   private prepareBlockNodeIntegrationValues(
@@ -361,26 +373,38 @@ export class MirrorNodeCommand extends BaseCommand {
       return new HelmChartValues();
     }
 
-    let shouldConfigureMirrorNodeToPullFromBlockNode: boolean;
-
-    if (config.forceBlockNodeIntegration) {
-      // Bypass following checks
-      this.logger.warn('Force flag enabled, bypassing version checks for block node integration');
-      shouldConfigureMirrorNodeToPullFromBlockNode = true;
-    } else {
-      // Block node integration requires a consensus node new enough to support TSS. The block node chart
-      // and mirror node are always recent enough within the supported version window.
-      shouldConfigureMirrorNodeToPullFromBlockNode =
-        this.remoteConfig.configuration.versions.consensusNode.greaterThanOrEqual(
-          versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS,
-        );
-    }
-
-    if (!shouldConfigureMirrorNodeToPullFromBlockNode) {
+    if (!config.forceBlockNodeIntegration && configuration.state?.tssEnabled === false) {
       this.logger.info(
-        'Mirror node will remain configured to pull from consensus node because version requirements were not met',
+        `Mirror node will remain configured to pull from consensus node; TSS is disabled in deployment ${config.deployment}`,
       );
       return new HelmChartValues();
+    }
+
+    const hasSupportedConsensusNodeVersion: boolean =
+      this.remoteConfig.configuration.versions.consensusNode.greaterThanOrEqual(
+        versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS,
+      );
+
+    if (!config.forceBlockNodeIntegration && !hasSupportedConsensusNodeVersion) {
+      this.logger.info(
+        `Mirror node will remain configured to pull from consensus node; consensus node version must be at least ${versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS} or use ${optionFromFlag(flags.forceBlockNodeIntegration)} to enable block node integration`,
+      );
+      return new HelmChartValues();
+    }
+
+    if (config.forceBlockNodeIntegration && !hasSupportedConsensusNodeVersion) {
+      this.logger.warn('Force flag enabled, bypassing version checks for block node integration');
+    }
+
+    if (!config.forceBlockNodeIntegration && constants.DISABLE_IMPORTER_SPRING_PROFILES) {
+      this.logger.info(
+        'Mirror node will remain configured to pull from consensus node; DISABLE_IMPORTER_SPRING_PROFILES=true disables automatic block node integration',
+      );
+      return new HelmChartValues();
+    } else if (constants.DISABLE_IMPORTER_SPRING_PROFILES) {
+      this.logger.showUser(
+        `DISABLE_IMPORTER_SPRING_PROFILES=true is set, but ${optionFromFlag(flags.forceBlockNodeIntegration)} overrides it; injecting SPRING_PROFILES_ACTIVE for block node integration`,
+      );
     }
 
     const clusterSchemas: ReadonlyArray<Readonly<ClusterSchema>> = configuration.clusters;
@@ -571,7 +595,7 @@ export class MirrorNodeCommand extends BaseCommand {
           .setLiteral('web3.image.pullPolicy', 'Never')
           .setLiteral('monitor.image.pullPolicy', 'Never');
       }
-    } else {
+    } else if (this.shouldApplyMirrorNodeImageTagOverrides(config.mirrorNodeChartDirectory)) {
       this.addMirrorNodeImageTagOverrides(chartValues, config.mirrorNodeVersion);
     }
 
@@ -684,6 +708,16 @@ export class MirrorNodeCommand extends BaseCommand {
     return chartValues;
   }
 
+  /**
+   * A local/custom chart directory (`--mirror-node-chart-dir`) may carry its own SNAPSHOT image
+   * tags (e.g. for testing a locally built mirror node image). Forcing the tag to the resolved
+   * `mirrorNodeVersion` in that case would clobber the chart's own default, so the override is
+   * skipped unless the user explicitly requested a version. See issue #5892.
+   */
+  private shouldApplyMirrorNodeImageTagOverrides(mirrorNodeChartDirectory: string): boolean {
+    return !mirrorNodeChartDirectory || this.configManager.wasFlagProvidedByUser(flags.mirrorNodeVersion);
+  }
+
   private addMirrorNodeImageTagOverrides(chartValues: HelmChartValues, mirrorNodeVersion: string): void {
     const imageTag: string = mirrorNodeVersion.replace(/^v/, '');
     chartValues
@@ -734,6 +768,53 @@ export class MirrorNodeCommand extends BaseCommand {
     return true;
   }
 
+  /** Upgrades the mirror node chart with bounded retries to ride out transient API server outages. */
+  private async upgradeMirrorNodeChart(
+    config: MirrorNodeDeployConfigClass | MirrorNodeUpgradeConfigClass,
+    shouldReuseValues: boolean,
+  ): Promise<void> {
+    for (let attempt: number = 1; attempt <= constants.MIRROR_NODE_CHART_UPGRADE_MAX_ATTEMPTS; attempt++) {
+      try {
+        await this.chartManager.upgrade(
+          config.namespace,
+          config.releaseName,
+          constants.MIRROR_NODE_CHART,
+          config.mirrorNodeChartDirectory || constants.MIRROR_NODE_RELEASE_NAME,
+          config.mirrorNodeVersion,
+          config.chartValues,
+          config.clusterContext,
+          shouldReuseValues,
+          true,
+          false,
+          Boolean(config.mirrorNodeChartDirectory),
+        );
+        return;
+      } catch (error) {
+        if (attempt === constants.MIRROR_NODE_CHART_UPGRADE_MAX_ATTEMPTS) {
+          throw error;
+        }
+
+        this.logger.warn(
+          `Attempt ${attempt} of ${constants.MIRROR_NODE_CHART_UPGRADE_MAX_ATTEMPTS} to upgrade chart ` +
+            `'${config.releaseName}' failed, retrying in ` +
+            `${constants.MIRROR_NODE_CHART_UPGRADE_RETRY_DELAY_SECS} seconds`,
+          error,
+        );
+        await sleep(Duration.ofSeconds(constants.MIRROR_NODE_CHART_UPGRADE_RETRY_DELAY_SECS));
+
+        if (!config.isChartInstalled) {
+          try {
+            // remove the release left behind by the failed fresh install so the retry starts from a clean state
+            await this.chartManager.uninstall(config.namespace, config.releaseName, config.clusterContext);
+          } catch (uninstallError) {
+            // best-effort cleanup: a persistent failure will surface on the next upgrade attempt
+            this.logger.warn(`Failed to uninstall chart '${config.releaseName}' before retry`, uninstallError);
+          }
+        }
+      }
+    }
+  }
+
   private async deployMirrorNode(
     {config}: MirrorNodeDeployContext | MirrorNodeUpgradeContext,
     commandType: MirrorNodeCommandType,
@@ -751,19 +832,7 @@ export class MirrorNodeCommand extends BaseCommand {
       await this.kindLoadComponentImage(config.componentImage, config.clusterContext);
     }
 
-    await this.chartManager.upgrade(
-      config.namespace,
-      config.releaseName,
-      constants.MIRROR_NODE_CHART,
-      config.mirrorNodeChartDirectory || constants.MIRROR_NODE_RELEASE_NAME,
-      config.mirrorNodeVersion,
-      config.chartValues,
-      config.clusterContext,
-      shouldReuseValues,
-      true,
-      false,
-      Boolean(config.mirrorNodeChartDirectory),
-    );
+    await this.upgradeMirrorNodeChart(config, shouldReuseValues);
 
     this.eventBus.emit(new MirrorNodeDeployedEvent(config.deployment));
 
@@ -1097,10 +1166,7 @@ export class MirrorNodeCommand extends BaseCommand {
               title: 'Prepare address book',
               task: async (context_): Promise<void> => {
                 if (this.oneShotState.isActive()) {
-                  context_.addressBook = await this.accountManager.buildAddressBookBase64(
-                    PathEx.join(context_.config.cacheDir, 'keys'),
-                    context_.config.deployment,
-                  );
+                  context_.addressBook = await this.accountManager.buildAddressBookBase64(context_.config.deployment);
 
                   context_.config.chartValues.setLiteral('importer.addressBook', context_.addressBook);
                 } else {
@@ -1163,9 +1229,49 @@ export class MirrorNodeCommand extends BaseCommand {
                 await this.deployMirrorNode(context_, commandType);
               },
             },
+            this.waitForMirrorNodeSchemaTask(),
           ],
           constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
         ),
+    };
+  }
+
+  /**
+   * Waits for the importer to become ready — and thus for its Flyway schema migrations to complete —
+   * before dependent components are health-checked. Without this gate, a slow first-run schema build
+   * lets REST/REST-Java/Web3/gRPC query a partially-migrated database and fail the deployment.
+   */
+  private waitForMirrorNodeSchemaTask(): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Wait for mirror node database schema',
+      task: async (context_): Promise<void> => {
+        const config: MirrorNodeDeployConfigClass | MirrorNodeUpgradeConfigClass = context_.config;
+        const importerLabels: string[] = [
+          'app.kubernetes.io/component=importer',
+          `app.kubernetes.io/instance=${config.releaseName}`,
+        ];
+        const pods: Pods = this.k8Factory.getK8(config.clusterContext).pods();
+
+        try {
+          await pods.waitForRunningPhase(
+            config.namespace,
+            importerLabels,
+            constants.MIRROR_NODE_IMPORTER_DETECT_MAX_ATTEMPTS,
+            constants.MIRROR_NODE_IMPORTER_DETECT_DELAY,
+          );
+        } catch {
+          // importer disabled via custom values — no schema build to wait for
+          this.logger.info(`No importer pod found for release ${config.releaseName}; skipping mirror node schema wait`);
+          return;
+        }
+
+        await pods.waitForReadyStatus(
+          config.namespace,
+          importerLabels,
+          constants.MIRROR_NODE_SCHEMA_READY_MAX_ATTEMPTS,
+          constants.MIRROR_NODE_SCHEMA_READY_DELAY,
+        );
+      },
     };
   }
 
@@ -1672,6 +1778,14 @@ export class MirrorNodeCommand extends BaseCommand {
 
             context_.config = config;
 
+            config.mirrorNodeVersion = UpgradeVersionResolver.resolveFromFlags(
+              this.configManager,
+              [flags.mirrorNodeVersion],
+              config.mirrorNodeVersion,
+              this.remoteConfig.getComponentVersion(ComponentTypes.MirrorNode),
+              versions.MIRROR_NODE_VERSION,
+            );
+
             const hasMirrorNodeMemoryImprovements: boolean = new SemanticVersion<string>(
               config.mirrorNodeVersion,
             ).greaterThanOrEqual(versions.MEMORY_ENHANCEMENTS_MIRROR_NODE_VERSION);
@@ -1718,12 +1832,17 @@ export class MirrorNodeCommand extends BaseCommand {
 
             const deploymentName: DeploymentName = this.configManager.getFlag(flags.deployment);
 
-            await this.accountManager.loadNodeClient(
-              config.namespace,
-              this.remoteConfig.getClusterRefs(),
-              deploymentName,
-              this.configManager.getFlag<boolean>(flags.forcePortForward),
-            );
+            // In one-shot mode the AccountManager is owned by the outer deploy flow;
+            // calling loadNodeClient here would race with concurrent tasks (addNodeStakes,
+            // Create accounts) that share the same singleton and corrupt its port-forward state.
+            if (!this.oneShotState.isActive()) {
+              await this.accountManager.loadNodeClient(
+                config.namespace,
+                this.remoteConfig.getClusterRefs(),
+                deploymentName,
+                this.configManager.getFlag<boolean>(flags.forcePortForward),
+              );
+            }
 
             const realm: Realm = this.localConfig.configuration.realmForDeployment(deploymentName);
             const shard: Shard = this.localConfig.configuration.shardForDeployment(deploymentName);
@@ -1882,14 +2001,14 @@ export class MirrorNodeCommand extends BaseCommand {
         throw new SoloErrors.component.mirrorNodeUpgradeFailed(error);
       } finally {
         if (!this.oneShotState.isActive()) {
-          await lease.release();
+          await lease?.release();
         }
         await this.accountManager.close();
       }
     } else {
       this.taskList.registerCloseFunction(async (): Promise<void> => {
         if (!this.oneShotState.isActive()) {
-          await lease.release();
+          await lease?.release();
         }
         await this.accountManager.close();
       });
@@ -2122,14 +2241,14 @@ export class MirrorNodeCommand extends BaseCommand {
               .getK8(context_.config.clusterContext)
               .ingressClasses()
               .list();
-            existingIngressClasses.map((ingressClass): void => {
+            for (const ingressClass of existingIngressClasses) {
               if (ingressClass.name === constants.MIRROR_INGRESS_CLASS_NAME) {
-                this.k8Factory
+                await this.k8Factory
                   .getK8(context_.config.clusterContext)
                   .ingressClasses()
                   .delete(constants.MIRROR_INGRESS_CLASS_NAME);
               }
-            });
+            }
           },
         },
         this.disableMirrorNodeComponents(),

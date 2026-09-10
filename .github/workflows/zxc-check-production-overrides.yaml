@@ -1,0 +1,59 @@
+##
+# Copyright (C) 2024-2026 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+name: "ZXC: Check Production Overrides"
+# Fails if any top-level production dependency in package-lock.json is not
+# pinned to its exact locked version in the package.json overrides field.
+# Called by: flow-pull-request-checks.yaml, flow-build-application.yaml
+
+on:
+  workflow_call:
+    inputs:
+      custom-job-label:
+        description: "Custom Job Label:"
+        type: string
+        required: false
+        default: "Check"
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  check-production-overrides:
+    name: "Check Production Overrides (${{ inputs.custom-job-label }})"
+    runs-on: hiero-solo-linux-medium
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Check production overrides are current
+        run: node scripts/check-production-overrides.mjs

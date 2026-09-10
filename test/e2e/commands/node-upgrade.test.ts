@@ -7,7 +7,6 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {Duration} from '../../../src/core/time/duration.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {EndToEndTestSuiteBuilder} from '../end-to-end-test-suite-builder.js';
-import {InitTest} from './tests/init-test.js';
 import {ClusterReferenceTest} from './tests/cluster-reference-test.js';
 import {DeploymentTest} from './tests/deployment-test.js';
 import {ConsensusNodeTest} from './tests/consensus-node-test.js';
@@ -66,7 +65,7 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
 
         after(async (): Promise<void> => {
           await preDestroy(endToEndTestSuite);
-        });
+        }).timeout(Duration.ofMinutes(5).toMillis());
 
         beforeEach(async (): Promise<void> => {
           testLogger.info(`${testName}: resetting containers for each test`);
@@ -74,7 +73,6 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           testLogger.info(`${testName}: finished resetting containers for each test`);
         });
 
-        InitTest.init(options);
         ClusterReferenceTest.connect(options);
         DeploymentTest.create(options);
         DeploymentTest.addCluster(options);

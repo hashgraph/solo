@@ -14,30 +14,31 @@ import {type ConfigManager} from './config-manager.js';
 import {Helpers} from './helpers.js';
 import {type SoloLogger} from './logging/solo-logger.js';
 import {type AnyObject, type DirectoryPath, type NodeAlias, type NodeAliases, type Path} from '../types/aliases.js';
-import {type Optional} from '../types/index.js';
+import {type PriorityMapping} from '../types/index.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {type ConsensusNode} from './model/consensus-node.js';
-import {type K8Factory} from '../integration/kube/k8-factory.js';
-import {type K8} from '../integration/kube/k8.js';
-import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
-import {type Pod} from '../integration/kube/resources/pod/pod.js';
-import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
-import {type Container} from '../integration/kube/resources/container/container.js';
 import {type ClusterReferenceName, DeploymentName, Realm, Shard} from './../types/index.js';
 import {PathEx} from '../business/utils/path-ex.js';
+import {FilePermissions} from '../business/utils/file-permissions.js';
 import {AccountManager} from './account-manager.js';
 import {LocalConfigRuntimeState} from '../business/runtime-state/config/local/local-config-runtime-state.js';
 import {type RemoteConfigRuntimeStateApi} from '../business/runtime-state/api/remote-config-runtime-state-api.js';
 import {BlockNodeStateSchema} from '../data/schema/model/remote/state/block-node-state-schema.js';
 import {BlockNodesJsonWrapper} from './block-nodes-json-wrapper.js';
-import {NamespaceName} from '../types/namespace/namespace-name.js';
-import {Address} from '../business/address/address.js';
 import * as versions from '../../version.js';
 import {Numbers} from '../business/utils/numbers.js';
 import {SemanticVersion} from '../business/utils/semantic-version.js';
 import {type ProfileManagerStagingOptions} from './profile-manager-staging-options.js';
+import {Address} from '../business/address/address.js';
+import {type K8} from '../integration/kube/k8.js';
+import {type K8Factory} from '../integration/kube/k8-factory.js';
+import {NamespaceName} from '../types/namespace/namespace-name.js';
+import {type Pod} from '../integration/kube/resources/pod/pod.js';
+import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
+import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
+import {type Container} from '../integration/kube/resources/container/container.js';
 
 @injectable()
 export class ProfileManager {
@@ -171,23 +172,6 @@ export class ProfileManager {
       fs.mkdirSync(stagingDirectory, {recursive: true});
     }
 
-    const needsConfigTxt: boolean = versions.needsConfigTxtForConsensusVersion(resolvedStagingOptions.releaseTag);
-    let configTxtPath: Optional<string>;
-    if (needsConfigTxt) {
-      const gossipFqdnRestricted: boolean = await this.getGossipFqdnRestricted(
-        consensusNodes,
-        applicationPropertiesPath,
-      );
-      configTxtPath = await this.prepareConfigTxt(
-        accountMap,
-        consensusNodes,
-        stagingDirectory,
-        resolvedStagingOptions.appName,
-        resolvedStagingOptions.chainId,
-        gossipFqdnRestricted,
-      );
-    }
-
     // Update application.properties with shard and realm
     await this.updateApplicationPropertiesWithRealmAndShard(
       applicationPropertiesPath,
@@ -250,12 +234,12 @@ export class ProfileManager {
       }
     }
 
+    // Files staged via cpSync inherit the (wider) source mode and bypass the process umask.
+    FilePermissions.restrictTreeToOwner(PathEx.join(stagingDirectory, 'templates'));
+
     const bootstrapPropertiesPath: string = PathEx.join(stagingDirectory, 'templates', 'bootstrap.properties');
     await this.updateBoostrapPropertiesWithChainId(bootstrapPropertiesPath, resolvedStagingOptions.chainId);
 
-    if (configTxtPath) {
-      this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot);
-    }
     this._setFileContentsAsValue(
       'hedera.configMaps.log4j2Xml',
       PathEx.joinWithRealPath(stagingDirectory, 'templates', 'log4j2.xml'),
@@ -289,6 +273,15 @@ export class ProfileManager {
       yamlRoot,
     );
 
+    this.addBlockNodesJsonValues(consensusNodes, nodeAliases, deploymentName, yamlRoot);
+  }
+
+  public addBlockNodesJsonValues(
+    consensusNodes: ConsensusNode[],
+    nodeAliases: NodeAliases,
+    deploymentName: DeploymentName,
+    yamlRoot: AnyObject,
+  ): void {
     try {
       if (
         this.remoteConfig.configuration.state.blockNodes.length === 0 &&
@@ -297,29 +290,49 @@ export class ProfileManager {
         return;
       }
     } catch {
-      // quick fix for tests where field on remote config are unaccessible
+      // Some unit tests intentionally stub only part of remoteConfig; skip block-node values in those cases.
       return;
     }
 
-    for (const node of consensusNodes) {
-      const blockNodesJsonData: string = new BlockNodesJsonWrapper(
-        node.blockNodeMap,
-        node.externalBlockNodeMap,
-      ).toJSON();
+    const latestConsensusNodes: ConsensusNode[] = this.remoteConfig.getConsensusNodes();
+    const accountMap: Map<NodeAlias, string> = this.accountManager.getNodeAccountMap([...nodeAliases], deploymentName);
 
-      let nodeIndex: number = 0;
+    for (const [nodeIndex, nodeAlias] of nodeAliases.entries()) {
+      const node: ConsensusNode | undefined =
+        consensusNodes.find((candidate: ConsensusNode): boolean => candidate.name === nodeAlias) ??
+        latestConsensusNodes.find((candidate: ConsensusNode): boolean => candidate.name === nodeAlias);
 
-      for (const [index, nodeAlias] of nodeAliases.entries()) {
-        if (nodeAlias === node.name) {
-          nodeIndex = index;
-        }
+      if (!node) {
+        continue;
       }
+
+      const latestNode: ConsensusNode | undefined = latestConsensusNodes.find(
+        (candidate: ConsensusNode): boolean => candidate.name === nodeAlias,
+      );
+      const blockNodeMap: PriorityMapping[] =
+        node.blockNodeMap.length > 0 ? node.blockNodeMap : (latestNode?.blockNodeMap ?? []);
+      const externalBlockNodeMap: PriorityMapping[] =
+        node.externalBlockNodeMap.length > 0 ? node.externalBlockNodeMap : (latestNode?.externalBlockNodeMap ?? []);
+      const blockNodesJsonData: string = new BlockNodesJsonWrapper(
+        blockNodeMap,
+        externalBlockNodeMap,
+        this.remoteConfig,
+      ).toJSON();
+      const parsedBlockNodesJson: {nodes: unknown[]} = JSON.parse(blockNodesJsonData) as {nodes: unknown[]};
+
+      if (parsedBlockNodesJson.nodes.length === 0) {
+        continue;
+      }
+
+      this._setValue(`hedera.nodes.${nodeIndex}.name`, nodeAlias, yamlRoot);
+      this._setValue(`hedera.nodes.${nodeIndex}.nodeId`, `${Templates.nodeIdFromNodeAlias(nodeAlias)}`, yamlRoot);
+      this._setValue(`hedera.nodes.${nodeIndex}.accountId`, accountMap.get(nodeAlias), yamlRoot);
 
       // Create a unique filename for each consensus node
       const blockNodesJsonFilename: string = `${constants.BLOCK_NODES_JSON_FILE.replace('.json', '')}-${node.name}.json`;
       const blockNodesJsonPath: string = PathEx.join(constants.SOLO_CACHE_DIR, blockNodesJsonFilename);
 
-      fs.writeFileSync(blockNodesJsonPath, JSON.stringify(JSON.parse(blockNodesJsonData), undefined, 2));
+      fs.writeFileSync(blockNodesJsonPath, JSON.stringify(parsedBlockNodesJson, undefined, 2));
       this._setFileContentsAsValue(`hedera.nodes.${nodeIndex}.blockNodesJson`, blockNodesJsonPath, yamlRoot);
     }
   }
@@ -350,16 +363,28 @@ export class ProfileManager {
     }
   }
 
-  public resourcesForNetworkUpgrade(
+  public async resourcesForNetworkUpgrade(
     itemPath: string,
     fileName: string,
     stagingDirectory: string,
     yamlRoot: AnyObject,
-  ): void {
+    deploymentName?: DeploymentName,
+  ): Promise<void> {
     const filePath: string = PathEx.join(stagingDirectory, 'templates', fileName);
 
     if (!fs.existsSync(filePath)) {
       return;
+    }
+
+    if (fileName === constants.APPLICATION_PROPERTIES) {
+      if (deploymentName) {
+        await this.updateApplicationPropertiesWithRealmAndShard(
+          filePath,
+          this.localConfig.configuration.realmForDeployment(deploymentName),
+          this.localConfig.configuration.shardForDeployment(deploymentName),
+        );
+      }
+      await this.updateApplicationPropertiesForBlockNode(filePath);
     }
 
     this._setFileContentsAsValue(itemPath, filePath, yamlRoot);
@@ -458,7 +483,7 @@ export class ProfileManager {
 
     for (const line of lines) {
       if (line.startsWith('hedera.config.version=')) {
-        const version: number = Number.parseInt(line.split('=')[1], 10) + 1;
+        const version: number = Number.parseInt(line.split('=', 2)[1], 10) + 1;
         lines[lines.indexOf(line)] = `hedera.config.version=${version}`;
         break;
       }
@@ -544,33 +569,24 @@ export class ProfileManager {
       fileText.split('\n'),
     );
 
+    const applicationPropertiesText: string = lines.join('\n');
+    const tssEnabled: boolean = this.remoteConfig.configuration.state.tssEnabled ?? true;
     const streamMode: string = Helpers.resolveBlockStreamModeForConsensusVersion(
-      Helpers.parseBlockStreamMode(lines.join('\n')),
+      Helpers.parseBlockStreamMode(applicationPropertiesText),
       this.remoteConfig.configuration.versions.consensusNode,
       hasDeployedBlockNodes,
+      Helpers.parseStreamWrappedRecordBlocks(applicationPropertiesText),
+      tssEnabled,
     );
-    const writerMode: string = constants.BLOCK_STREAM_WRITER_MODE;
+    Helpers.updateBlockStreamPropertiesForMode(lines, streamMode);
 
-    let streamModeUpdated: boolean = false;
-    let writerModeUpdated: boolean = false;
-    for (const line of lines) {
-      if (line.startsWith('blockStream.streamMode=')) {
-        lines[lines.indexOf(line)] = `blockStream.streamMode=${streamMode}`;
-        streamModeUpdated = true;
-        continue;
-      }
-      if (line.startsWith('blockStream.writerMode=')) {
-        lines[lines.indexOf(line)] = `blockStream.writerMode=${writerMode}`;
-        writerModeUpdated = true;
-      }
-    }
-
-    if (!streamModeUpdated) {
-      lines.push(`blockStream.streamMode=${streamMode}`);
-    }
-    if (!writerModeUpdated) {
-      lines.push(`blockStream.writerMode=${writerMode}`);
-    }
+    // streamMode=BOTH sends both native blocks (BLOCK_HEADER) and Wrapped Record Blocks
+    // (ROUND_HEADER) to the block node.  The block node silently drops ROUND_HEADER items
+    // because they fail its hasBlockHeader() check, creating gaps that permanently stall the
+    // mirror importer on NOT_AVAILABLE.  Set this here so the CN pod reads it at first startup;
+    // the post-start ConfigMap update in createAndCopyBlockNodeJsonFileForConsensusNode is too
+    // late because the JVM has already cached its configuration by then.
+    Helpers.ensureWrappedRecordBlocksDisabled(lines, streamMode);
 
     await writeFile(applicationPropertiesPath, lines.join('\n') + '\n');
   }
@@ -612,26 +628,8 @@ export class ProfileManager {
     const fileContents: string = await readFile(applicationPropertiesPath, 'utf8');
     const lines: string[] = fileContents.split('\n');
 
-    let realmUpdated: boolean = false;
-    let shardUpdated: boolean = false;
-    for (const line of lines) {
-      if (line.startsWith('hedera.realm=')) {
-        lines[lines.indexOf(line)] = `hedera.realm=${realm}`;
-        realmUpdated = true;
-        continue;
-      }
-      if (line.startsWith('hedera.shard=')) {
-        lines[lines.indexOf(line)] = `hedera.shard=${shard}`;
-        shardUpdated = true;
-      }
-    }
-
-    if (!realmUpdated) {
-      lines.push(`hedera.realm=${realm}`);
-    }
-    if (!shardUpdated) {
-      lines.push(`hedera.shard=${shard}`);
-    }
+    Helpers.upsertApplicationProperty(lines, 'hedera.realm', `${realm}`);
+    Helpers.upsertApplicationProperty(lines, 'hedera.shard', `${shard}`);
 
     let releaseTag: SemanticVersion<string> = new SemanticVersion<string>(versions.HEDERA_PLATFORM_VERSION);
     try {
@@ -648,14 +646,32 @@ export class ProfileManager {
     }
 
     if (!releaseTag.lessThan(versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS) && tssEnabled) {
-      lines.push('tss.hintsEnabled=true', 'tss.historyEnabled=true', 'tss.forceMockSignatures=false');
+      if (!ProfileManager.hasApplicationProperty(lines, 'tss.hintsEnabled')) {
+        Helpers.upsertApplicationProperty(lines, 'tss.hintsEnabled', 'true');
+      }
 
-      if (this.remoteConfig.configuration.state.wrapsEnabled) {
-        lines.push('tss.wrapsEnabled=true');
+      if (!ProfileManager.hasApplicationProperty(lines, 'tss.historyEnabled')) {
+        Helpers.upsertApplicationProperty(lines, 'tss.historyEnabled', 'true');
+      }
+
+      if (!ProfileManager.hasApplicationProperty(lines, 'tss.forceMockSignatures')) {
+        Helpers.upsertApplicationProperty(lines, 'tss.forceMockSignatures', 'false');
+      }
+
+      if (
+        this.remoteConfig.configuration.state.wrapsEnabled &&
+        !ProfileManager.hasApplicationProperty(lines, 'tss.wrapsEnabled')
+      ) {
+        Helpers.upsertApplicationProperty(lines, 'tss.wrapsEnabled', 'true');
       }
     }
 
     await writeFile(applicationPropertiesPath, lines.join('\n') + '\n');
+  }
+
+  private static hasApplicationProperty(lines: string[], key: string): boolean {
+    const propertyPrefix: string = `${key}=`;
+    return lines.some((line: string): boolean => line.startsWith(propertyPrefix));
   }
 
   public async prepareValuesForNodeTransaction(
@@ -666,6 +682,7 @@ export class ProfileManager {
     if (configTxtPath) {
       this._setFileContentsAsValue('hedera.configMaps.configTxt', configTxtPath, yamlRoot);
     }
+    await this.updateApplicationPropertiesForBlockNode(applicationPropertiesPath);
     await this.bumpHederaConfigVersion(applicationPropertiesPath);
     this._setFileContentsAsValue('hedera.configMaps.applicationProperties', applicationPropertiesPath, yamlRoot);
 
@@ -709,7 +726,11 @@ export class ProfileManager {
    * @returns the saved endpoint address or undefined if no saved state exists or IP is no longer valid
    * @private
    */
-  private async extractSavedEndpoint(consensusNode: ConsensusNode, nodeSeq: number): Promise<Address | undefined> {
+  private async extractSavedEndpoint(
+    consensusNode: ConsensusNode,
+    nodeSeq: number,
+    gossipFqdnRestricted: boolean,
+  ): Promise<Address | undefined> {
     try {
       const k8: K8 = this.k8Factory.getK8(consensusNode.context);
       const networkJsonPath: string = `${constants.HEDERA_HAPI_PATH}/output/network.json`;
@@ -757,6 +778,13 @@ export class ProfileManager {
 
       // Check if endpoint uses domain name (FQDN)
       if (domainName) {
+        if (gossipFqdnRestricted) {
+          this.logger.warn(
+            `Saved endpoint ${domainName}:${port} for ${consensusNode.name} is an FQDN while gossip FQDN is restricted, falling back to current service address`,
+          );
+          return undefined;
+        }
+
         this.logger.info(`Found saved endpoint for ${consensusNode.name}: ${domainName}:${port} (FQDN)`);
         return new Address(port, domainName);
       }
@@ -770,13 +798,18 @@ export class ProfileManager {
 
         // Validate the saved IP still belongs to this node service.
         const serviceName: string = `network-${consensusNode.name}-svc`;
-        const service: {spec?: {clusterIP?: string}} | undefined = await k8
-          .services()
-          .read(NamespaceName.of(consensusNode.namespace), serviceName);
-        const serviceIpAddress: string | undefined = service?.spec?.clusterIP;
-        if (serviceIpAddress !== ipAddress) {
+        const service:
+          {spec?: {clusterIP?: string}; status?: {loadBalancer?: {ingress?: Array<{ip?: string}>}}} | undefined =
+          await k8.services().read(NamespaceName.of(consensusNode.namespace), serviceName);
+        const serviceIpAddresses: string[] = [
+          ...(service?.status?.loadBalancer?.ingress ?? [])
+            .map((ingress: {ip?: string}): string | undefined => ingress.ip)
+            .filter(Boolean),
+          ...(service?.spec?.clusterIP && service.spec.clusterIP !== 'None' ? [service.spec.clusterIP] : []),
+        ];
+        if (!serviceIpAddresses.includes(ipAddress)) {
           this.logger.warn(
-            `Saved endpoint ${ipAddress}:${port} for ${consensusNode.name} does not match current ${serviceName} ClusterIP ${serviceIpAddress ?? 'undefined'}, falling back to current service address`,
+            `Saved endpoint ${ipAddress}:${port} for ${consensusNode.name} does not match current ${serviceName} IPs ${serviceIpAddresses.join(',') || 'undefined'}, falling back to current service address`,
           );
           return undefined;
         }
@@ -802,6 +835,7 @@ export class ProfileManager {
    * @param destinationPath
    * @param [appName] - the app name (default: HederaNode.jar)
    * @param [chainId] - chain ID (298 for local network)
+   * @param [gossipFqdnRestricted] - whether gossip FQDN is restricted
    * @returns the config.txt file path
    */
   public async prepareConfigTxt(
@@ -836,12 +870,19 @@ export class ProfileManager {
     try {
       const configLines: string[] = [`swirld, ${chainId}`, `app, ${appName}`];
 
+      const shouldAvoidGossipFqdn: boolean =
+        gossipFqdnRestricted || Helpers.hasMultipleKubernetesContexts(consensusNodes);
+
       let nodeSeq: number = 0;
       for (const consensusNode of consensusNodes) {
         const internalIP: string = constants.LOCAL_HOST;
 
         // First try to extract endpoint from saved state (migration scenario)
-        let address: Address | undefined = await this.extractSavedEndpoint(consensusNode, nodeSeq);
+        let address: Address | undefined = await this.extractSavedEndpoint(
+          consensusNode,
+          nodeSeq,
+          shouldAvoidGossipFqdn,
+        );
 
         // If no saved state, get current external address
         if (!address) {
@@ -849,7 +890,7 @@ export class ProfileManager {
             consensusNode,
             this.k8Factory.getK8(consensusNode.context),
             externalPort,
-            gossipFqdnRestricted,
+            shouldAvoidGossipFqdn,
           );
         }
 

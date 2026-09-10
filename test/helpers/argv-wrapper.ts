@@ -76,8 +76,10 @@ export class Argv implements CloneTrait<Argv> {
       argv.setArg(f, f.definition.defaultValue);
     }
 
-    const currentDeployment: string =
-      argv.getArg(flags.deployment) || `${namespace?.name || argv.getArg<NamespaceName>(flags.namespace)}-deployment`;
+    // Derive the deployment name from the namespace so each E2E test is isolated to its own
+    // deployment. The deployment flag default now falls back to the SOLO_DEPLOYMENT environment
+    // variable (set globally in Taskfile.yml), so it can no longer be treated as "unset" here.
+    const currentDeployment: string = `${namespace?.name || argv.getArg<NamespaceName>(flags.namespace)}-deployment`;
     const cacheDirectory: string = getTestCacheDirectory(testName);
     argv.cacheDir = cacheDirectory;
     argv.setArg(flags.cacheDir, cacheDirectory);

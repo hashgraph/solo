@@ -33,12 +33,24 @@ psql -d "user=postgres connect_timeout=3" \
   --set "readPassword=${HEDERA_MIRROR_READ_PASSWORD}" <<__SQL__
 
 -- Create database & owner
-create database :dbName with owner :ownerUsername;
+select format('create database %I with owner %I', :'dbName', :'ownerUsername')
+where not exists (select 1 from pg_database where datname = :'dbName')\gexec
 
 -- Create roles
-create role readonly;
-create role readwrite in role readonly;
-create role temporary_admin in role readwrite;
+do \$\$
+begin
+  if not exists (select 1 from pg_roles where rolname = 'readonly') then
+    create role readonly;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'readwrite') then
+    create role readwrite;
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'temporary_admin') then
+    create role temporary_admin;
+  end if;
+end \$\$;
+grant readonly to readwrite;
+grant readwrite to temporary_admin;
 
 -- Create users
 alter user :ownerUsername with createrole;
@@ -64,7 +76,9 @@ grant usage on schema :tempSchema to public;
 revoke create on schema :tempSchema from public;
 
 -- Create readonly user with password and grant privileges
-create user :readUsername with password :'readPassword';
+select format('create user %I with password %L', :'readUsername', :'readPassword')
+where not exists (select 1 from pg_roles where rolname = :'readUsername')\gexec
+alter user :readUsername with password :'readPassword';
 grant readonly to :readUsername;
 
 -- Grant readonly privileges

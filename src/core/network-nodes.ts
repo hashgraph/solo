@@ -17,6 +17,7 @@ import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {K8} from '../integration/kube/k8.js';
 import {Container} from '../integration/kube/resources/container/container.js';
+import {NodeStatusEnums} from './enumerations.js';
 import chalk from 'chalk';
 
 /**
@@ -196,5 +197,19 @@ export class NetworkNodes {
         '-c',
         String.raw`curl -s http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v \#`,
       ]);
+  }
+
+  public async getNetworkNodePlatformStatusName(podReference: PodReference, context?: string): Promise<string> {
+    try {
+      const response: string = await this.getNetworkNodePodStatus(podReference, context);
+      const statusLine: string | undefined = response
+        ?.split('\n')
+        .find((line: string): boolean => line.startsWith('platform_PlatformStatus'));
+      const statusNumber: number = Number.parseInt(statusLine?.split(' ').pop() ?? '', 10);
+      return NodeStatusEnums[statusNumber as keyof typeof NodeStatusEnums] ?? 'UNKNOWN';
+    } catch {
+      // best-effort diagnostic only: if the pod exec or metrics scrape fails, report UNKNOWN rather than mask the original ping failure
+      return 'UNKNOWN';
+    }
   }
 }

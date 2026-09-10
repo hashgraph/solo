@@ -7,7 +7,7 @@ docker.io/envoyproxy/envoy:v1.21.1 \
 docker.io/grafana/grafana:10.1.5 \
 docker.io/haproxytech/haproxy-alpine:2.4.25 \
 quay.io/prometheus-operator/prometheus-config-reloader:v0.68.0 \
-docker.io/otel/opentelemetry-collector-contrib:0.72.0 \
+docker.io/grafana/alloy:v1.11.3 \
 gcr.io/hedera-registry/hedera-mirror-node-explorer:24.4.0 \
 gcr.io/hedera-registry/uploader-mirror:1.3.0 \
 gcr.io/mirrornode/hedera-mirror-grpc:0.103.0 \

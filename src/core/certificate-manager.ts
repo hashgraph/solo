@@ -45,9 +45,9 @@ export class CertificateManager {
     switch (type) {
       //? HAProxy
       case GrpcProxyTlsEnums.GRPC: {
-        const certData = fs.readFileSync(cert).toString();
-        const keyData = fs.readFileSync(key).toString();
-        const pem = `${certData}\n${keyData}`;
+        const certData: string = fs.readFileSync(cert).toString();
+        const keyData: string = fs.readFileSync(key).toString();
+        const pem: string = `${certData}\n${keyData}`;
 
         return {
           'tls.pem': Buffer.from(pem).toString('base64'),
@@ -72,21 +72,26 @@ export class CertificateManager {
    * @param key - file path to the key file
    * @param type - the certificate type if it's for gRPC or gRPC Web
    */
-  private async copyTlsCertificate(nodeAlias: NodeAlias, cert: string, key: string, type: GrpcProxyTlsEnums) {
+  private async copyTlsCertificate(
+    nodeAlias: NodeAlias,
+    cert: string,
+    key: string,
+    type: GrpcProxyTlsEnums,
+  ): Promise<void> {
     try {
       const data: Record<string, string> = this.buildSecret(cert, key, type);
-      const name = Templates.renderGrpcTlsCertificatesSecretName(nodeAlias, type);
-      const namespace = this.getNamespace();
-      const labels = Templates.renderGrpcTlsCertificatesSecretLabelObject(nodeAlias, type);
+      const name: string = Templates.renderGrpcTlsCertificatesSecretName(nodeAlias, type);
+      const namespace: NamespaceName = this.getNamespace();
+      const labels: Record<string, string> = Templates.renderGrpcTlsCertificatesSecretLabelObject(nodeAlias, type);
 
-      const isSecretCreated = await this.k8Factory
+      const isSecretCreated: boolean = await this.k8Factory
         .default()
         .secrets()
         .createOrReplace(namespace, name, SecretType.OPAQUE, data, labels);
       if (!isSecretCreated) {
         throw new SoloErrors.component.certificateSecretCreationFailed(nodeAlias);
       }
-    } catch (error: Error | any) {
+    } catch (error) {
       throw new SoloErrors.component.certificateSecretCreationFailed(nodeAlias, error);
     }
   }
@@ -142,9 +147,9 @@ export class CertificateManager {
       }
 
       for (const [index, cert_] of certs.entries()) {
-        const nodeAlias = cert_.nodeAlias;
-        const cert = cert_.filePath;
-        const key = keys[index].filePath;
+        const nodeAlias: NodeAlias = cert_.nodeAlias;
+        const cert: string = cert_.filePath;
+        const key: string = keys[index].filePath;
 
         subTasks.push({
           title: `${title} for node ${nodeAlias}`,

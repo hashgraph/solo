@@ -59,11 +59,18 @@ interface ConditionalLogSuppression {
    * If false, suppress matching errors anywhere once activated.
    */
   suppressOnlyBeforeActivation?: boolean;
+  /**
+   * Suppress an error only when a success marker appears *later* in the same log, proving the
+   * component recovered from it. Errors with no subsequent success — a terminal outage rather than
+   * a retried blip — still surface. Takes precedence over {@link suppressOnlyBeforeActivation}.
+   */
+  suppressWhenFollowedBySuccess?: boolean;
 }
 
 interface ActiveConditionalLogSuppression {
   rule: ConditionalLogSuppression;
   activationLineIndex: number;
+  lastSuccessLineIndex: number;
 }
 
 /**
@@ -80,7 +87,8 @@ interface ActiveConditionalLogSuppression {
  * codes and `[traceId="..."]` suffixes are stripped before matching.
  *
  * ### 2. Pod describe files  (`*.describe.txt`)
- * Written by `downloadHieroComponentLogs()` for every pod across all clusters.
+ * Written by `downloadHieroComponentLogs()` for every pod in the collected scope
+ * (all deployments by default, or a selected deployment when `--deployment` is set).
  * These are the output of `kubectl describe pod <name> -n <namespace>` and
  * contain the pod's status, container states, events, and resource usage.
  *
@@ -146,10 +154,13 @@ export class DiagnosticsAnalyzer {
       reason: 'Postgres "relation does not exist" during Flyway async-migration startup race',
     },
     {
-      // Mirror importer may log downloader errors early in startup, before
-      // stream processing stabilizes. If we later observe repeated
-      // RecordFileParser success, suppress those begin-phase downloader
-      // errors only; keep post-activation errors visible.
+      // The importer retries every block-node read. The node can be momentarily unreachable, close
+      // the stream with an HTTP/2 GOAWAY, not yet hold the requested block, or serve a block whose
+      // first item is not a block header. All of these are noise as long as the importer went on to
+      // process further blocks, so they are matched broadly by source class rather than by message
+      // text — enumerating individual messages is what let earlier drift ("source" vs "source:",
+      // "server status" vs "server status detail") silently disable these rules. Suppression
+      // requires a *later* success, so a terminal block-node outage still surfaces.
       logFilePattern: /mirror[^/]*-importer[^/]*\.log$/i,
       conditionalSuppressions: [
         {
@@ -159,20 +170,31 @@ export class DiagnosticsAnalyzer {
           suppressOnlyBeforeActivation: true,
         },
         {
-          errorPattern: /BlockNode Failed to get server status for BlockNode\(/i,
+          errorPattern: /BlockNode Failed to get server status(?: detail)? for BlockNode\(/i,
           successPattern: /RecordFileParser Successfully processed /i,
           minimumSuccessMatches: 2,
-          suppressOnlyBeforeActivation: true,
+          suppressWhenFollowedBySuccess: true,
         },
         {
-          errorPattern:
-            /CompositeBlockSource Failed to get block from BLOCK_NODE source .*No block node can provide block \d+/i,
+          errorPattern: /CompositeBlockSource Failed to get block from BLOCK_NODE source\b/i,
           successPattern: /RecordFileParser Successfully processed /i,
           minimumSuccessMatches: 2,
-          suppressOnlyBeforeActivation: true,
+          suppressWhenFollowedBySuccess: true,
         },
       ],
-      reason: 'Mirror Node importer begin-phase downloader errors after repeated record processing success',
+      reason: 'Mirror Node importer block-node read retries that a later block success proves recovered',
+    },
+    {
+      // When a block node supplies the stream, account balance files are not read from cloud
+      // storage, so AccountBalancesDownloader polls a bucket that was never configured. The AWS SDK
+      // reports that as an empty credential chain, and the paired request then times out. Both
+      // recur for the lifetime of the pod rather than only during bring-up, so neither is
+      // startup-scoped. The credential-chain text is itself the evidence that no S3/MinIO backend
+      // is in use, which is why this does not need to know the deployment flags.
+      logFilePattern: /mirror[^/]*-importer[^/]*\.log$/i,
+      transientMessagePattern:
+        /AccountBalancesDownloader Error downloading (?:signature )?files\b.*(?:Unable to load credentials from any of the providers in the chain|TimeoutException)/i,
+      reason: 'Account balance downloader has no cloud storage configured; the block stream supplies balances',
     },
     {
       // Mirror Node REST API retries its Redis connection until the Redis
@@ -199,11 +221,35 @@ export class DiagnosticsAnalyzer {
       // entry block during the startup window.
       logFilePattern: /mirror[^/]*-rest[^/]*\.log$/i,
       startupTransientMessagePattern: /Startup healthcheck failed .*Application readiness check failed/i,
-      startupTransientBlockPattern: /Application readiness check failed/i,
+      startupTransientBlockPattern:
+        /Application readiness check failed|^\d{4}-\d{2}-\d{2}T[\d:.]+Z\s+ERROR Startup healthcheck failed\s*$|^\d{4}-\d{2}-\d{2}T[\d:.]+Z\s+ERROR Startup healthcheck failed\s*\nError: connect ECONNREFUSED\b/i,
       startupWindowSeconds: 180,
       reason: 'Mirror Node REST readiness healthcheck during startup',
     },
+    {
+      // The read-side mirror components (rest, restjava, web3, grpc) accept scheduled work as soon as
+      // they boot, which can precede the importer's Flyway migration that creates the tables they
+      // query. The header line and the nested "Caused by:" lines all carry the message, so a message
+      // pattern covers the whole entry.
+      logFilePattern: /mirror[^/]*-(?:rest|web3|grpc)[^/]*\.log$/i,
+      startupTransientMessagePattern: /relation "[^"]+" does not exist/i,
+      startupWindowSeconds: 180,
+      reason: 'Mirror Node REST queried a table before the importer schema migration created it',
+    },
   ];
+
+  /**
+   * Report ordering for finding categories; the lowest value is the most severe. Used for both the
+   * `diagnostics-analysis.txt` report and the terminal summary so the two agree.
+   */
+  private static readonly CATEGORY_SEVERITY_ORDER: Record<DiagnosticsFindingCategory, number> = {
+    'image-pull': 1,
+    oom: 2,
+    'pod-readiness': 3,
+    'consensus-active': 4,
+    'log-exception': 5,
+    'app-error': 6,
+  };
 
   /** Matches an ISO-8601 timestamp at the start of an application log line. */
   private static readonly LOG_LINE_TIMESTAMP_PATTERN: RegExp =
@@ -278,7 +324,7 @@ export class DiagnosticsAnalyzer {
           `Detected ${findings.length} potential issue(s) from diagnostics logs. Summary written to ${reportPath}`,
         ),
       );
-      for (const [index, finding] of findings.slice(0, 10).entries()) {
+      for (const [index, finding] of DiagnosticsAnalyzer.orderFindingsBySeverity(findings).slice(0, 10).entries()) {
         this.logger.showUser(`${index + 1}. ${finding.title} [${finding.source}]`);
         if (finding.evidence.length > 0) {
           const maxEvidenceLines: number =
@@ -330,7 +376,17 @@ export class DiagnosticsAnalyzer {
     // Matches out-of-memory kills.
     // "OOMKilled" appears in the container's LastTerminationState and in Events.
     // "reason: OOMKilled" is the structured field in the container status JSON.
-    const oomPattern: RegExp = /OOMKilled|out of memory|reason:\s*OOMKilled/i;
+    //
+    // Exit code 137 (128 + SIGKILL) is included because the kubelet does not always attribute a
+    // memory-limit kill to OOMKilled: a container killed after exceeding its limit is frequently
+    // recorded as `exitCode: 137` with `reason: Error`, which none of the OOMKilled spellings
+    // match. Such a pod can also be `Running` and `Ready` at collection time — having already
+    // restarted — so the pod-readiness check does not flag it either, leaving a container that has
+    // been killed repeatedly completely invisible.
+    const oomPattern: RegExp = /OOMKilled|out of memory|reason:\s*OOMKilled|(?:exitCode|Exit Code):\s*137\b/i;
+    // Restart counts are captured alongside the OOM evidence: they show whether the kill happened
+    // once or is an ongoing loop, which the exit code alone does not convey.
+    const restartCountPattern: RegExp = /^\s*restartCount:\s*[1-9]\d*\s*$/im;
 
     this.logger.showUser(`  Found ${describeFiles.length} pod describe file(s)`);
 
@@ -362,7 +418,10 @@ export class DiagnosticsAnalyzer {
           category: 'oom',
           title: `OOM-related failure detected for pod ${podName}`,
           source,
-          evidence: this.extractMatchSnippets(content, oomPattern, 6),
+          evidence: [
+            ...this.extractMatchSnippets(content, oomPattern, 6),
+            ...this.extractMatchSnippets(content, restartCountPattern, 2),
+          ],
         });
       }
 
@@ -409,8 +468,9 @@ export class DiagnosticsAnalyzer {
    * for application-level ERROR lines (category: `app-error`).
    *
    * These are the raw container logs downloaded by `downloadHieroComponentLogs()`
-   * alongside the `*.describe.txt` files. Each file is scanned for lines
-   * containing `ERROR` and the first matching block (up to 8 lines) is captured.
+   * alongside the `*.describe.txt` files. Each file is scanned for lines carrying an `ERROR` or
+   * `FATAL` level, plus the level-less failures the JVM prints directly (`OutOfMemoryError`, and
+   * `Exception` as a standalone word), and the first matching block (up to 8 lines) is captured.
    */
   private analyzePodLogFiles(rootDirectory: string, findings: DiagnosticsFinding[]): void {
     // Only scan logs for non-consensus components. Consensus node logs are
@@ -423,7 +483,21 @@ export class DiagnosticsAnalyzer {
     );
 
     // Strip Docker/containerd timestamp prefix (e.g. "2026-04-06T03:24:32.470558065Z ") before matching.
-    const errorPattern: RegExp = /\b(?:ERROR|FATAL)\b/;
+    // A level token alone is not enough. The block node logs through java.util.logging, whose
+    // levels are FINE/INFO/WARNING/SEVERE, and the JVM prints failures with no level at all:
+    //
+    //   java.lang.OutOfMemoryError: Java heap space
+    //   Exception in thread "server-@default-listener" java.lang.OutOfMemoryError: Java heap space
+    //
+    // Neither contains ERROR or FATAL as a word ("OutOfMemoryError" has no word boundary before
+    // "Error"), so an entire block node log recording a heap death produced no finding at all.
+    //
+    // "Exception" is matched only as a standalone word, and case-sensitively. That is deliberately
+    // narrow: it catches `Exception in thread ...` while skipping class-name suffixes such as
+    // `io.helidon.common.socket.SocketWriterException` — low-level connection churn that a server
+    // logs routinely, often below ERROR — because there is no word boundary before "Exception"
+    // there. Case sensitivity keeps prose like "configured exception handling" from matching.
+    const errorPattern: RegExp = /\b(?:ERROR|FATAL)\b|\bOutOfMemoryError\b|\bException\b/;
 
     this.logger.showUser(`  Found ${logFiles.length} pod log file(s)`);
 
@@ -457,12 +531,29 @@ export class DiagnosticsAnalyzer {
       if (errorScan.evidence.length === 0) {
         continue;
       }
-      this.addDiagnosticsFinding(findings, {
-        category: 'app-error',
-        title: `Application ERROR detected in pod log: ${podName}`,
-        source: relativePath,
-        evidence: errorScan.evidence,
-      });
+      // Heap exhaustion is not a routine ERROR line — it is an out-of-memory death, and the pod's
+      // describe file may not show it at all when the container restarted and became Ready again.
+      // Reported under `oom` so it ranks with the other memory kills instead of last among
+      // app-errors, where the ten-finding terminal summary would push it out of sight.
+      const isHeapExhaustion: boolean = errorScan.evidence.some((line: string): boolean =>
+        /\bOutOfMemoryError\b/.test(line),
+      );
+      this.addDiagnosticsFinding(
+        findings,
+        isHeapExhaustion
+          ? {
+              category: 'oom',
+              title: `JVM heap exhaustion detected in pod log: ${podName}`,
+              source: relativePath,
+              evidence: errorScan.evidence,
+            }
+          : {
+              category: 'app-error',
+              title: `Application ERROR detected in pod log: ${podName}`,
+              source: relativePath,
+              evidence: errorScan.evidence,
+            },
+      );
     }
   }
 
@@ -839,17 +930,20 @@ export class DiagnosticsAnalyzer {
       }
       for (const rule of suppression.conditionalSuppressions) {
         const minimumSuccessMatches: number = Math.max(1, rule.minimumSuccessMatches ?? 1);
-        let successMatches: number = 0;
+        const successLineIndexes: number[] = [];
         for (const [index, line] of lines.entries()) {
-          if (!rule.successPattern.test(line)) {
-            continue;
-          }
-          successMatches++;
-          if (successMatches >= minimumSuccessMatches) {
-            activeSuppressions.push({rule, activationLineIndex: index});
-            break;
+          if (rule.successPattern.test(line)) {
+            successLineIndexes.push(index);
           }
         }
+        if (successLineIndexes.length < minimumSuccessMatches) {
+          continue;
+        }
+        activeSuppressions.push({
+          rule,
+          activationLineIndex: successLineIndexes[minimumSuccessMatches - 1],
+          lastSuccessLineIndex: successLineIndexes.at(-1),
+        });
       }
     }
     return activeSuppressions;
@@ -863,6 +957,9 @@ export class DiagnosticsAnalyzer {
     return activeSuppressions.some((activeSuppression: ActiveConditionalLogSuppression): boolean => {
       if (!activeSuppression.rule.errorPattern.test(line)) {
         return false;
+      }
+      if (activeSuppression.rule.suppressWhenFollowedBySuccess) {
+        return lineIndex < activeSuppression.lastSuccessLineIndex;
       }
       if (activeSuppression.rule.suppressOnlyBeforeActivation) {
         return lineIndex < activeSuppression.activationLineIndex;
@@ -1182,15 +1279,26 @@ export class DiagnosticsAnalyzer {
    * log-exception).  Returns the report as a string ready to be written to
    * `diagnostics-analysis.txt`.
    */
+  /**
+   * Returns `findings` ordered most severe first, preserving discovery order within a category.
+   *
+   * Shared by the report and the terminal summary. The summary previously iterated the unordered
+   * array, so which findings made its ten-item cut depended on the order the scanners happened to
+   * run in — a block node dead of heap exhaustion was pushed past the cut by routine consensus-node
+   * exceptions and never shown, even though the report ranked it correctly.
+   */
+  private static orderFindingsBySeverity(findings: readonly DiagnosticsFinding[]): DiagnosticsFinding[] {
+    // Sorts a copy, so the caller's array is untouched; `toSorted` is ES2023 and this project
+    // targets ES2022. Matches the existing pattern used elsewhere in src/.
+    // eslint-disable-next-line unicorn/no-array-sort
+    return [...findings].sort(
+      (first: DiagnosticsFinding, second: DiagnosticsFinding): number =>
+        DiagnosticsAnalyzer.CATEGORY_SEVERITY_ORDER[first.category] -
+        DiagnosticsAnalyzer.CATEGORY_SEVERITY_ORDER[second.category],
+    );
+  }
+
   private renderDiagnosticsFindings(findings: DiagnosticsFinding[]): string {
-    const severityOrder: Record<DiagnosticsFindingCategory, number> = {
-      'image-pull': 1,
-      oom: 2,
-      'pod-readiness': 3,
-      'consensus-active': 4,
-      'log-exception': 5,
-      'app-error': 6,
-    };
     const categoryLabel: Record<DiagnosticsFindingCategory, string> = {
       'image-pull': 'Image Pull',
       oom: 'Out Of Memory',
@@ -1207,17 +1315,7 @@ export class DiagnosticsAnalyzer {
       return lines.join('\n');
     }
 
-    const orderedFindings: DiagnosticsFinding[] = [];
-    for (const finding of findings) {
-      let insertionIndex: number = orderedFindings.length;
-      for (const [index, existingFinding] of orderedFindings.entries()) {
-        if (severityOrder[finding.category] < severityOrder[existingFinding.category]) {
-          insertionIndex = index;
-          break;
-        }
-      }
-      orderedFindings.splice(insertionIndex, 0, finding);
-    }
+    const orderedFindings: DiagnosticsFinding[] = DiagnosticsAnalyzer.orderFindingsBySeverity(findings);
 
     lines.push(`Detected ${orderedFindings.length} potential issue(s):`, '');
 

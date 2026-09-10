@@ -65,9 +65,4 @@ export interface CacheOperationHandler {
    * It may be used by callers to inspect or report cache contents.
    */
   list(): Promise<readonly CachedItemStructure[]>;
-
-  /**
-   * Deletes all cached artifacts and cache metadata for this domain.
-   */
-  prune(): Promise<void>;
 }

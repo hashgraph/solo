@@ -106,6 +106,13 @@ export class PathEx {
   }
 
   /**
+   * Return the directory name of a path. This is a wrapper around path.dirname.
+   */
+  public static dirname(pathValue: string): string {
+    return path.dirname(pathValue);
+  }
+
+  /**
    * Platform-specific path delimiter for PATH-like environment variables.
    */
   public static get delimiter(): string {

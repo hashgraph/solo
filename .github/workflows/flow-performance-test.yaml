@@ -61,8 +61,7 @@ defaults:
 
 permissions:
   contents: read
-  pull-requests: write
-  actions: read
+  actions: read # the cancellation poller reads the current workflow run
 
 env:
   STEP_TIMEOUT_MINUTES: '5'
@@ -71,20 +70,22 @@ env:
 jobs:
   performance-test:
     name: Performance Test
-    if: >
+    if: >-
       ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false ||
       startsWith(github.event.pull_request.title, 'trunk-merge') && !cancelled() && !failure() }}
     timeout-minutes: 90
     runs-on: hiero-solo-linux-large
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
 
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Posix Dependencies
@@ -97,10 +98,10 @@ jobs:
           sudo apt-get update && sudo apt-get install -y jq
 
       - name: Setup Node
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
-          node-version: 22
+          node-version: 24
 
       - name: Install wget
         uses: step-security/retry@38808b4332b98bb36ca031abff0c100231608288 # v4.0.0
@@ -124,7 +125,7 @@ jobs:
             npm ci
 
       - name: Install Task
-        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           version: 3.49.1
@@ -134,16 +135,35 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: task build:compile
 
+      - name: Restore Solo Bin Cache
+        id: solo-bin-cache
+        if: ${{ !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
+      - name: Restore Solo Image Cache
+        id: solo-image-cache
+        if: ${{ !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-image-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
+
       - name: Run E2E Tests
         id: run-e2e-tests
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          # github.event_name is read through the GITHUB_EVENT_NAME variable the runner provides.
+          CN_EDGE_VERSION_INPUT: ${{ inputs.cn-edge-version || '' }}
+          USE_EDGE_INPUT: ${{ inputs.use-edge }}
         run: |
           set -euo pipefail
           export PATH=~/.solo/bin:${PATH}
           echo SOLO_TEST_CLUSTER=solo-e2e > .env
           echo ONE_SHOT_WITH_BLOCK_NODE=true >> .env
-          CN_EDGE_VERSION="${{ inputs.cn-edge-version || '' }}"
+          CN_EDGE_VERSION="${CN_EDGE_VERSION_INPUT}"
           if [[ -n "${CN_EDGE_VERSION}" ]]; then
             echo "Using consensus node edge version: ${CN_EDGE_VERSION}"
             echo CONSENSUS_NODE_EDGE_VERSION="${CN_EDGE_VERSION}" >> .env
@@ -152,7 +172,7 @@ jobs:
             echo "No consensus node edge version specified, using default from version.ts"
           fi
           USE_EDGE="false"
-          if [[ "${{ github.event_name }}" != "pull_request" && "${{ inputs.use-edge }}" == "true" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" != "pull_request" && "${USE_EDGE_INPUT}" == "true" ]]; then
             USE_EDGE="true"
           fi
           if [[ "${USE_EDGE}" == "true" ]]; then
@@ -162,9 +182,7 @@ jobs:
           fi
           echo MIRROR_NODE_PINGER_TPS=10 >> .env
           echo ONE_SHOT_METRICS_TEST_DURATION_IN_MINUTES=5 >> .env
-          # Workaround: keep BOTH mode so SmartContractLoadTest does not return INVALID_TRANSACTION_BODY.
-          # TODO: remove once https://github.com/hiero-ledger/hiero-consensus-node/issues/25883 is fixed.
-          echo BLOCK_STREAM_STREAM_MODE=BOTH >> .env
+          echo ONE_SHOT_BLOCK_NODE_PERF=false >> .env
           cat .env
 
           # Start resource monitoring in background (30s interval for finer granularity)
@@ -195,22 +213,33 @@ jobs:
           }
           trap cleanup SIGTERM SIGINT
 
-          # API poller: polls the run's updated_at field every 30 s and sends
-          # SIGTERM to the main shell when GitHub marks the run as cancelled.
-          # Self-hosted runners do not deliver SIGTERM to step scripts directly,
-          # so this is the only reliable way to detect workflow cancellation.
+          # API poller: polls this workflow RUN's status every 30 s and sends
+          # SIGTERM to the main shell when GitHub reports the run cancelled or
+          # completed. Self-hosted (ARC) runners do not terminate the running
+          # step on cancellation — the job otherwise runs every step to full
+          # completion even after the run is cancelled (hiero-ledger/solo#5813) —
+          # so this API poll is the only reliable way to react to cancellation.
+          #
+          # The signal is the RUN's status/conclusion, NOT the job's own
+          # in_progress count: the job hosting this poller is itself always
+          # in_progress while the step runs, so counting in_progress jobs could
+          # never reach 0 and the poller never fired (#5813). The run's
+          # status/conclusion, by contrast, flip to completed/cancelled as soon
+          # as a cancel is requested, and — unlike the run-level updated_at
+          # timestamp — do not change when a sibling job transitions in a
+          # multi-job run such as the nightly extended tests (#5432).
           # GITHUB_TOKEN is passed explicitly via step env (self-hosted runners
           # do not auto-expose it as a shell variable).
-          _run_updated_at() {
+          _run_cancelled_or_completed() {
             local _api="${GITHUB_API_URL:-https://api.github.com}"
             curl -sf \
               -H "Authorization: token ${GITHUB_TOKEN}" \
               -H "Accept: application/vnd.github.v3+json" \
               "${_api}/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
-              | jq -r '.updated_at // empty' 2>/dev/null || echo ""
+              | jq -r 'if (.status == "completed" or .conclusion == "cancelled") then "stop" else "run" end' 2>/dev/null \
+              || echo ""
           }
-          RUN_UPDATED_AT_INITIAL="$(_run_updated_at)"
-          echo "Run updated_at baseline: ${RUN_UPDATED_AT_INITIAL}"
+          echo "Cancellation poller watching run status for run: ${GITHUB_RUN_ID}"
 
           if command -v setsid >/dev/null 2>&1; then
             setsid task test-e2e-performance &
@@ -222,12 +251,19 @@ jobs:
 
           # Start poller AFTER TASK_PID is set.
           api_cancel_poller() {
+            local stop_readings=0
             while true; do
               sleep 30
-              current="$(_run_updated_at)"
-              if [[ -n "${RUN_UPDATED_AT_INITIAL}" && -n "${current}" \
-                    && "${current}" != "${RUN_UPDATED_AT_INITIAL}" ]]; then
-                echo "=== API poller: updated_at changed, signalling main shell ==="
+              current="$(_run_cancelled_or_completed)"
+              # An empty reading is an API failure, which is not evidence of cancellation.
+              if [[ "${current}" == "stop" ]]; then
+                stop_readings=$((stop_readings + 1))
+              else
+                stop_readings=0
+              fi
+              # Require two consecutive confirmations to guard against a stale API read.
+              if (( stop_readings >= 2 )); then
+                echo "=== API poller: run cancelled or completed, signalling main shell ==="
                 kill -TERM $$ 2>/dev/null || true
                 return
               fi
@@ -256,6 +292,20 @@ jobs:
             npm run solo-test -- deployment diagnostics logs -q --dev || true
             exit "${TASK_RC}"
           fi
+
+      - name: Save Solo Bin Cache
+        if: ${{ github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
+
+      - name: Save Solo Image Cache
+        if: ${{ github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-image-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
 
       - name: Log Metrics
         id: log-metrics
@@ -423,7 +473,11 @@ jobs:
       - name: Performance Test Verification
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
-          MAX_MEMORY_MB=4000
+          # ONE_SHOT_BLOCK_NODE_PERF=false: no ring-buffer workaround applied.
+          # RTT probe runs but failures are non-fatal (hiero-block-node#3150) — block-node RSS
+          # stays at the ~143 MB baseline.  Measured peak (run 29267777062): 2 331 MiB.
+          # 3 000 MB (= 2 331 + 500 margin rounded to nearest 500) leaves headroom for NLG + mirror + kube-system.
+          MAX_MEMORY_MB=3000
           echo "Max memory threshold is set to ${MAX_MEMORY_MB} MB"
           echo "Parsing for the memory usage from the json file"
           MEMORY_USED_MB=$(cat ~/.solo/logs/*.json | jq '.memoryInMebibytes')

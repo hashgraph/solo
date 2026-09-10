@@ -3,6 +3,7 @@
 import {Listr} from 'listr2';
 import {
   createAndCopyBlockNodeJsonFileForConsensusNode,
+  Helpers,
   showVersionBanner,
   sleep,
   withTimeout,
@@ -12,6 +13,7 @@ import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {type AnyListrContext, type ArgvStruct, type NodeAlias} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
+import {type K8} from '../integration/kube/k8.js';
 import {
   type ClusterReferenceName,
   type ComponentId,
@@ -29,6 +31,7 @@ import {NamespaceName} from '../types/namespace/namespace-name.js';
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import {Duration} from '../core/time/duration.js';
 import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
+import {type Service} from '../integration/kube/resources/service/service.js';
 import chalk from 'chalk';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {type BlockNodeStateSchema} from '../data/schema/model/remote/state/block-node-state-schema.js';
@@ -39,6 +42,7 @@ import {patchInject} from '../core/dependency-injection/container-helper.js';
 import {Templates} from '../core/templates.js';
 import {SemanticVersion} from '../business/utils/semantic-version.js';
 import {assertUpgradeVersionNotOlder} from '../core/upgrade-version-guard.js';
+import {UpgradeVersionResolver} from '../core/upgrade-version-resolver.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {LedgerPhase} from '../data/schema/model/remote/ledger-phase.js';
@@ -60,6 +64,7 @@ import {BlockNodeDeployedEvent} from '../core/events/event-types/block-node-depl
 import {type Container} from '../integration/kube/resources/container/container.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import fs from 'node:fs';
+import yaml from 'yaml';
 
 interface BlockNodeDeployConfigClass {
   chartVersion: string;
@@ -67,8 +72,9 @@ interface BlockNodeDeployConfigClass {
   blockNodeChartDirectory: string;
   blockNodeTssOverlay: boolean;
   clusterRef: ClusterReferenceName;
+  cacheDir: string;
   deployment: DeploymentName;
-  devMode: boolean;
+  debugMode: boolean;
   domainName: Optional<string>;
   enableIngress: boolean;
   quiet: boolean;
@@ -85,6 +91,7 @@ interface BlockNodeDeployConfigClass {
   priorityMapping: Record<NodeAlias, number>;
   blockNodeMessageSizeSoftLimitBytes: Optional<number>;
   blockNodeMessageSizeHardLimitBytes: Optional<number>;
+  hostAliasesPatchTime?: Date;
 }
 
 interface BlockNodeDeployContext {
@@ -95,7 +102,7 @@ interface BlockNodeDestroyConfigClass {
   chartDirectory: string;
   clusterRef: ClusterReferenceName;
   deployment: DeploymentName;
-  devMode: boolean;
+  debugMode: boolean;
   quiet: boolean;
   namespace: NamespaceName;
   context: string;
@@ -103,6 +110,7 @@ interface BlockNodeDestroyConfigClass {
   releaseName: string;
   id: number;
   isLegacyChartInstalled: boolean;
+  hostAliasesPatchTime?: Date;
 }
 
 interface BlockNodeDestroyContext {
@@ -115,7 +123,7 @@ interface BlockNodeUpgradeConfigClass {
   blockNodeTssOverlay: boolean;
   clusterRef: ClusterReferenceName;
   deployment: DeploymentName;
-  devMode: boolean;
+  debugMode: boolean;
   quiet: boolean;
   valuesFile: Optional<string>;
   namespace: NamespaceName;
@@ -129,6 +137,7 @@ interface BlockNodeUpgradeConfigClass {
   isLegacyChartInstalled: boolean;
   /** Set by recreateBlockNodeChart; used by the readiness check to ignore the terminating predecessor pod. */
   recreateInstallTime?: Date;
+  hostAliasesPatchTime?: Date;
 }
 
 interface BlockNodeUpgradeContext {
@@ -138,7 +147,7 @@ interface BlockNodeUpgradeContext {
 interface BlockNodeAddExternalConfigClass {
   clusterRef: ClusterReferenceName;
   deployment: DeploymentName;
-  devMode: boolean;
+  debugMode: boolean;
   quiet: boolean;
   context: string;
   externalBlockNodeAddress: string;
@@ -156,7 +165,7 @@ interface BlockNodeAddExternalContext {
 interface BlockNodeDeleteExternalConfigClass {
   clusterRef: ClusterReferenceName;
   deployment: DeploymentName;
-  devMode: boolean;
+  debugMode: boolean;
   quiet: boolean;
   namespace: NamespaceName;
   context: string;
@@ -170,7 +179,7 @@ interface BlockNodeDeleteExternalContext {
 interface BlockNodeCollectJfrConfigClass {
   clusterRef: ClusterReferenceName;
   deployment: DeploymentName;
-  devMode: boolean;
+  debugMode: boolean;
   quiet: boolean;
   namespace: NamespaceName;
   context: string;
@@ -186,6 +195,11 @@ interface InferredData {
   releaseName: string;
   isChartInstalled: boolean;
   isLegacyChartInstalled: boolean;
+}
+
+interface BlockNodeHostAlias {
+  ip: string;
+  hostnames: string[];
 }
 
 @injectable()
@@ -210,10 +224,12 @@ export class BlockNodeCommand extends BaseCommand {
   // Sentinel printed by the in-pod consolidation script when no JFR recording is present.
   private static readonly NO_JFR_MARKER: string = 'SOLO_NO_JFR_RECORDING';
   private static readonly MIGRATION_COMPONENT_KEY: string = 'block-node';
+  private static readonly DEFAULT_MIRROR_NODE_ID: number = 1;
 
   public static readonly ADD_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment],
+    required: [],
     optional: [
+      flags.deployment,
       // Keep legacy flag visible as a separate deprecated option.
       flags.blockNodeChartVersion,
       flags.blockNodeVersion,
@@ -223,7 +239,8 @@ export class BlockNodeCommand extends BaseCommand {
       flags.blockNodeMessageSizeHardLimitBytes,
       flags.chartDirectory,
       flags.clusterRef,
-      flags.devMode,
+      flags.cacheDir,
+      flags.debugMode,
       flags.domainName,
       flags.enableIngress,
       flags.quiet,
@@ -238,10 +255,11 @@ export class BlockNodeCommand extends BaseCommand {
   };
 
   public static readonly ADD_EXTERNAL_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment, flags.externalBlockNodeAddress],
+    required: [flags.externalBlockNodeAddress],
     optional: [
+      flags.deployment,
       flags.clusterRef,
-      flags.devMode,
+      flags.debugMode,
       flags.quiet,
       flags.priorityMapping,
       flags.blockNodeMessageSizeSoftLimitBytes,
@@ -250,27 +268,36 @@ export class BlockNodeCommand extends BaseCommand {
   };
 
   public static readonly DELETE_EXTERNAL_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment],
-    optional: [flags.clusterRef, flags.devMode, flags.force, flags.quiet, flags.id],
+    required: [],
+    optional: [flags.deployment, flags.clusterRef, flags.debugMode, flags.force, flags.quiet, flags.id],
   };
 
   public static readonly DESTROY_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment],
-    optional: [flags.chartDirectory, flags.clusterRef, flags.devMode, flags.force, flags.quiet, flags.id],
+    required: [],
+    optional: [
+      flags.deployment,
+      flags.chartDirectory,
+      flags.clusterRef,
+      flags.debugMode,
+      flags.force,
+      flags.quiet,
+      flags.id,
+    ],
   };
 
   public static readonly COLLECT_JFR_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment],
-    optional: [flags.clusterRef, flags.devMode, flags.quiet, flags.id],
+    required: [],
+    optional: [flags.deployment, flags.clusterRef, flags.debugMode, flags.quiet, flags.id],
   };
 
   public static readonly UPGRADE_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment],
+    required: [],
     optional: [
+      flags.deployment,
       flags.chartDirectory,
       flags.blockNodeChartDirectory,
       flags.clusterRef,
-      flags.devMode,
+      flags.debugMode,
       flags.force,
       flags.quiet,
       flags.valuesFile,
@@ -320,6 +347,18 @@ export class BlockNodeCommand extends BaseCommand {
       chartValues.file(constants.BLOCK_NODE_TSS_VALUES_FILE);
     }
 
+    if (this.shouldConfigureRsaMirrorBootstrapSource()) {
+      chartValues.setLiteral(
+        'blockNode.config.ROSTER_BOOTSTRAP_RSA_MIRROR_NODE_BASE_URL',
+        `http://${this.resolveMirrorNodeReleaseName()}-restjava:80`,
+      );
+    }
+
+    const rsaBootstrapValuesFile: Optional<string> = this.writeRsaBootstrapInitContainerValuesFile(config);
+    if (rsaBootstrapValuesFile) {
+      chartValues.file(rsaBootstrapValuesFile);
+    }
+
     chartValues.filesFromCommaSeparatedInput(config.valuesFile);
 
     chartValues.set('nameOverride', config.releaseName);
@@ -335,17 +374,35 @@ export class BlockNodeCommand extends BaseCommand {
 
     if ('componentImage' in config && config.componentImage) {
       if (this.isLocalImageReference(config.componentImage)) {
-        const {name: localImageName, tag: rawTag} = this.splitImageNameTag(config.componentImage);
-        const localImageTag: string = SemanticVersion.getValidSemanticVersion(rawTag, false, 'Block node image tag');
-        if (this.isLocalImageAvailableInDocker(`${localImageName}:${localImageTag}`)) {
-          // Image found locally — kind-load task will load it; set pullPolicy: Never.
-          chartValues
-            .set('image.repository', localImageName)
-            .set('image.tag', localImageTag)
-            .set('image.pullPolicy', 'Never');
+        if (this.isLocalRegistryImageReference(config.componentImage)) {
+          const parsedReference: ParsedImageReference = ImageReference.parseImageReference(config.componentImage);
+          if (this.isLocalImageAvailableInDocker(config.componentImage)) {
+            // Image found locally — kind-load task will load it; set pullPolicy: Never.
+            chartValues
+              .setLiteral('image.registry', parsedReference.registry)
+              .set('image.repository', parsedReference.repository)
+              .set('image.tag', parsedReference.tag)
+              .set('image.pullPolicy', 'Never');
+          } else {
+            // Preserve the explicit registry/repository when a local registry image is pulled remotely.
+            chartValues
+              .setLiteral('image.registry', parsedReference.registry)
+              .set('image.repository', parsedReference.repository)
+              .set('image.tag', parsedReference.tag);
+          }
         } else {
-          // Not in local Docker — plain tag override so K8s can pull from a registry.
-          chartValues.set('image.tag', localImageTag);
+          const {name: localImageName, tag: rawTag} = this.splitImageNameTag(config.componentImage);
+          const localImageTag: string = SemanticVersion.getValidSemanticVersion(rawTag, false, 'Block node image tag');
+          if (this.isLocalImageAvailableInDocker(`${localImageName}:${localImageTag}`)) {
+            // Image found locally — kind-load task will load it; set pullPolicy: Never.
+            chartValues
+              .set('image.repository', localImageName)
+              .set('image.tag', localImageTag)
+              .set('image.pullPolicy', 'Never');
+          } else {
+            // Not in local Docker — plain tag override so K8s can pull from a registry.
+            chartValues.set('image.tag', localImageTag);
+          }
         }
       } else {
         const parsedReference: ParsedImageReference = ImageReference.parseImageReference(config.componentImage);
@@ -383,6 +440,252 @@ export class BlockNodeCommand extends BaseCommand {
     }
 
     return chartValues;
+  }
+
+  private shouldConfigureRsaMirrorBootstrapSource(): boolean {
+    const consensusNodeVersion: string =
+      this.remoteConfig.configuration.versions?.consensusNode?.toString() ?? versions.HEDERA_PLATFORM_VERSION;
+    const blockStreamMode: string = constants.getEnvironmentVariable('BLOCK_STREAM_STREAM_MODE') ?? 'BLOCKS';
+    return Helpers.requiresRsaBootstrap(consensusNodeVersion, blockStreamMode);
+  }
+
+  private resolveMirrorNodeReleaseName(): string {
+    const mirrorNodeId: number =
+      this.remoteConfig.configuration.state.mirrorNodes?.[0]?.metadata.id ?? BlockNodeCommand.DEFAULT_MIRROR_NODE_ID;
+    return Templates.renderMirrorNodeName(mirrorNodeId);
+  }
+
+  private writeRsaBootstrapInitContainerValuesFile(
+    config: BlockNodeDeployConfigClass | BlockNodeUpgradeConfigClass,
+  ): Optional<string> {
+    if (!('cacheDir' in config) || !this.shouldConfigureRsaMirrorBootstrapSource()) {
+      return undefined;
+    }
+
+    const consensusNodes: ConsensusNode[] = this.remoteConfig.getConsensusNodes();
+    if (consensusNodes.length === 0) {
+      return undefined;
+    }
+
+    const keysDirectory: string = PathEx.join(config.cacheDir, 'keys');
+    if (!fs.existsSync(keysDirectory)) {
+      return undefined;
+    }
+
+    const bootstrapJson: Optional<string> = Helpers.buildRsaAddressBookJson(consensusNodes, keysDirectory);
+    if (!bootstrapJson) {
+      return undefined;
+    }
+    const content: string = yaml.stringify({
+      blockNode: {
+        initContainers: [
+          {
+            name: 'init-storage-dirs',
+            image: 'busybox:1.36.1',
+            command: [
+              'sh',
+              '-c',
+              [
+                'mkdir -p /application-state-pvc',
+                'chown 2000:2000 /application-state-pvc',
+                'chmod 700 /application-state-pvc',
+                `if [ ! -s /application-state-pvc/rsa-bootstrap-roster.json ]; then printf '%s' '${bootstrapJson}' > /application-state-pvc/rsa-bootstrap-roster.json; fi`,
+                'mkdir -p /archive-pvc/archive-data',
+                'chown 2000:2000 /archive-pvc/archive-data',
+                'chmod 700 /archive-pvc/archive-data',
+                'mkdir -p /live-pvc/live-data',
+                'chown 2000:2000 /live-pvc/live-data',
+                'chmod 700 /live-pvc/live-data',
+              ].join(' && \\\n'),
+            ],
+            volumeMounts: [
+              {name: 'application-state-storage', mountPath: '/application-state-pvc'},
+              {name: 'archive-storage', mountPath: '/archive-pvc'},
+              {name: 'live-storage', mountPath: '/live-pvc'},
+              {name: 'logging-storage', mountPath: '/logging-pvc'},
+            ],
+          },
+        ],
+      },
+    });
+    const valuesFile: string = PathEx.join(config.cacheDir, `${config.releaseName}-rsa-bootstrap-values.yaml`);
+    fs.mkdirSync(config.cacheDir, {recursive: true});
+    fs.writeFileSync(valuesFile, content);
+    return valuesFile;
+  }
+
+  private getCluster(blockNode: BlockNodeStateSchema): ClusterSchema {
+    const clusterReference: ClusterReferenceName = blockNode.metadata.cluster;
+    const cluster: ClusterSchema | undefined = this.remoteConfig.configuration.clusters.find(
+      ({name}): boolean => name === clusterReference,
+    );
+
+    if (!cluster) {
+      throw new SoloErrors.system.clusterNotFoundInRemoteConfig(clusterReference);
+    }
+
+    return cluster;
+  }
+
+  private renderBlockNodeHostnames(blockNode: BlockNodeStateSchema): string[] {
+    const cluster: ClusterSchema = this.getCluster(blockNode);
+    const serviceName: string = Templates.renderBlockNodeName(blockNode.metadata.id);
+    const namespace: string = blockNode.metadata.namespace;
+
+    return [Templates.renderSvcFullyQualifiedDomainName(serviceName, namespace, cluster.dnsBaseDomain), serviceName];
+  }
+
+  private async buildBlockNodeHostAliases(targetBlockNode: BlockNodeStateSchema): Promise<BlockNodeHostAlias[]> {
+    const k8: K8 = this.k8Factory.getK8(this.remoteConfig.getClusterRefs()[targetBlockNode.metadata.cluster]);
+    const hostAliases: BlockNodeHostAlias[] = [];
+
+    const peerBlockNodes: BlockNodeStateSchema[] = this.remoteConfig.configuration.state.blockNodes.filter(
+      (blockNode): boolean =>
+        blockNode.metadata.id !== targetBlockNode.metadata.id &&
+        blockNode.metadata.cluster === targetBlockNode.metadata.cluster,
+    );
+
+    for (const peerBlockNode of peerBlockNodes) {
+      const serviceName: string = Templates.renderBlockNodeName(peerBlockNode.metadata.id);
+      const namespace: NamespaceName = NamespaceName.of(peerBlockNode.metadata.namespace);
+      const service: Service = await k8.services().read(namespace, serviceName);
+      const clusterIpAddress: string | undefined = service?.spec?.clusterIP;
+
+      if (!clusterIpAddress || clusterIpAddress === 'None') {
+        this.logger.warn(`Skipping host alias for block node service ${serviceName}: clusterIP is not available`);
+      } else {
+        hostAliases.push({
+          ip: clusterIpAddress,
+          hostnames: this.renderBlockNodeHostnames(peerBlockNode),
+        });
+      }
+    }
+
+    return hostAliases;
+  }
+
+  private async patchBlockNodePeerHostAliases(
+    clusterReference: ClusterReferenceName,
+    patchEmptyAliases: boolean,
+  ): Promise<boolean> {
+    // The block-node chart does not expose hostAliases, but back-fill needs stable peer service names
+    // in /etc/hosts on dynamic-IP clusters. Keep this patch close to the chart lifecycle operations.
+    const targetBlockNodes: BlockNodeStateSchema[] = this.remoteConfig.configuration.state.blockNodes.filter(
+      (blockNode): boolean => blockNode.metadata.cluster === clusterReference,
+    );
+    const k8: K8 = this.k8Factory.getK8(this.remoteConfig.getClusterRefs()[clusterReference]);
+    let patched: boolean = false;
+
+    for (const targetBlockNode of targetBlockNodes) {
+      const hostAliases: BlockNodeHostAlias[] = await this.buildBlockNodeHostAliases(targetBlockNode);
+
+      if (hostAliases.length === 0 && !patchEmptyAliases) {
+        continue;
+      }
+
+      const statefulSetName: string = Templates.renderBlockNodeName(targetBlockNode.metadata.id);
+
+      try {
+        await k8.manifests().patchObject({
+          apiVersion: 'apps/v1',
+          kind: 'StatefulSet',
+          metadata: {
+            namespace: targetBlockNode.metadata.namespace,
+            name: statefulSetName,
+          },
+          spec: {
+            template: {
+              spec: {
+                hostAliases,
+              },
+            },
+          },
+        });
+        patched = true;
+      } catch (error) {
+        if (this.isStatefulSetNotFoundError(error, statefulSetName)) {
+          this.logger.warn(
+            `Skipping host alias patch for block node StatefulSet '${statefulSetName}': StatefulSet no longer exists`,
+          );
+          continue;
+        }
+        throw error;
+      }
+
+      this.logger.debug(
+        `Patched block node StatefulSet '${statefulSetName}' in namespace '${targetBlockNode.metadata.namespace}' ` +
+          `with ${hostAliases.length} peer host alias entries`,
+      );
+    }
+
+    return patched;
+  }
+
+  private patchBlockNodePeerHostAliasesForAdd(): SoloListrTask<BlockNodeDeployContext> {
+    return {
+      title: 'Patch block node peer host aliases',
+      skip: (): boolean => !this.remoteConfig.isLoaded(),
+      task: async ({config}): Promise<void> => {
+        const patchTime: Date = new Date();
+        const patched: boolean = await this.patchBlockNodePeerHostAliases(config.clusterRef, false);
+        if (patched) {
+          config.hostAliasesPatchTime = patchTime;
+        }
+      },
+    };
+  }
+
+  private patchBlockNodePeerHostAliasesForDestroy(): SoloListrTask<BlockNodeDestroyContext> {
+    return {
+      title: 'Patch block node peer host aliases',
+      skip: (): boolean => !this.remoteConfig.isLoaded(),
+      task: async ({config}): Promise<void> => {
+        const patchTime: Date = new Date();
+        const patched: boolean = await this.patchBlockNodePeerHostAliases(config.clusterRef, true);
+        if (patched) {
+          config.hostAliasesPatchTime = patchTime;
+        }
+      },
+    };
+  }
+
+  private checkBlockNodePeerHostAliasesPatchForDestroy(): SoloListrTask<BlockNodeDestroyContext> {
+    return {
+      title: 'Check remaining block node pods are ready',
+      skip: ({config}): boolean => !config.hostAliasesPatchTime,
+      task: async ({config}): Promise<void> => {
+        const remainingBlockNodes: BlockNodeStateSchema[] = this.remoteConfig.configuration.state.blockNodes.filter(
+          (blockNode): boolean => blockNode.metadata.cluster === config.clusterRef,
+        );
+
+        for (const blockNode of remainingBlockNodes) {
+          await this.k8Factory
+            .getK8(config.context)
+            .pods()
+            .waitForReadyStatus(
+              NamespaceName.of(blockNode.metadata.namespace),
+              Templates.renderBlockNodeLabels(blockNode.metadata.id),
+              constants.BLOCK_NODE_PODS_RUNNING_MAX_ATTEMPTS,
+              constants.BLOCK_NODE_PODS_RUNNING_DELAY,
+              config.hostAliasesPatchTime,
+            );
+        }
+      },
+    };
+  }
+
+  private patchBlockNodePeerHostAliasesForUpgrade(): SoloListrTask<BlockNodeUpgradeContext> {
+    return {
+      title: 'Patch block node peer host aliases',
+      skip: (): boolean => !this.remoteConfig.isLoaded(),
+      task: async ({config}): Promise<void> => {
+        const patchTime: Date = new Date();
+        const patched: boolean = await this.patchBlockNodePeerHostAliases(config.clusterRef, false);
+        if (patched) {
+          config.hostAliasesPatchTime = patchTime;
+        }
+      },
+    };
   }
 
   private static appendExtraCommandArgs(
@@ -457,6 +760,7 @@ export class BlockNodeCommand extends BaseCommand {
             this.k8Factory,
             false,
             this.remoteConfig.configuration.versions.consensusNode,
+            this.remoteConfig.configuration.state.tssEnabled,
           );
         }
       },
@@ -480,6 +784,7 @@ export class BlockNodeCommand extends BaseCommand {
             this.k8Factory,
             false,
             this.remoteConfig.configuration.versions.consensusNode,
+            this.remoteConfig.configuration.state.tssEnabled,
           );
         }
       },
@@ -593,7 +898,7 @@ export class BlockNodeCommand extends BaseCommand {
               config.componentImage = `${constants.BLOCK_NODE_IMAGE_NAME}:${config.imageTag}`;
             }
 
-            config.livenessCheckPort = constants.BLOCK_NODE_PORT;
+            config.livenessCheckPort = this.getLivenessCheckPortNumber(config.chartVersion, config.componentImage);
 
             await this.persistBlockNodeMessageSizeOverrides(
               config.blockNodeMessageSizeSoftLimitBytes,
@@ -706,6 +1011,7 @@ export class BlockNodeCommand extends BaseCommand {
             }
           },
         },
+        this.patchBlockNodePeerHostAliasesForAdd(),
         {
           title: 'Check block node pod is ready',
           task: async ({config}): Promise<void> => {
@@ -718,13 +1024,17 @@ export class BlockNodeCommand extends BaseCommand {
                   Templates.renderBlockNodeLabels(config.newBlockNodeComponent.metadata.id),
                   constants.BLOCK_NODE_PODS_RUNNING_MAX_ATTEMPTS,
                   constants.BLOCK_NODE_PODS_RUNNING_DELAY,
+                  config.hostAliasesPatchTime,
                 );
             } catch (error) {
               throw new SoloErrors.system.blockNodeNotReady(config.releaseName, error);
             }
           },
         },
-        this.checkBlockNodeReadiness(),
+        this.checkBlockNodeReadiness(
+          (config): ComponentId => config.newBlockNodeComponent.metadata.id,
+          (config): number => config.livenessCheckPort,
+        ),
         this.handleConsensusNodeUpdating(),
         this.emitBlockNodeDeployed(),
       ],
@@ -828,6 +1138,8 @@ export class BlockNodeCommand extends BaseCommand {
           skip: ({config}): boolean => !config.isChartInstalled,
         },
         this.removeBlockNodeComponentFromRemoteConfig(),
+        this.patchBlockNodePeerHostAliasesForDestroy(),
+        this.checkBlockNodePeerHostAliasesPatchForDestroy(),
         this.rebuildBlockNodesJsonForConsensusNodes(),
       ],
       constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
@@ -991,7 +1303,10 @@ export class BlockNodeCommand extends BaseCommand {
           title: 'Initialize',
           task: async (context_, task): Promise<Listr<AnyListrContext>> => {
             await this.localConfig.load();
-            await this.remoteConfig.loadAndValidate(argv);
+            // Skip pod-presence validation: the operator may have intentionally scaled the
+            // block node StatefulSet to 0 (e.g. to delete a stale block-ranges.json before
+            // upgrading), and the upgrade must succeed even when no pods are running.
+            await this.remoteConfig.loadAndValidate(argv, false);
             if (!this.oneShotState.isActive()) {
               lease = await this.leaseManager.create();
             }
@@ -1031,7 +1346,13 @@ export class BlockNodeCommand extends BaseCommand {
               : this.renderReleaseName(config.id);
 
             config.context = this.remoteConfig.getClusterRefs()[config.clusterRef];
-            config.upgradeVersion ||= versions.BLOCK_NODE_VERSION;
+            config.upgradeVersion = UpgradeVersionResolver.resolveFromFlags(
+              this.configManager,
+              [flags.upgradeVersion],
+              config.upgradeVersion,
+              this.remoteConfig.getComponentVersion(ComponentTypes.BlockNode),
+              versions.BLOCK_NODE_VERSION,
+            );
             config.currentVersion =
               this.remoteConfig.getComponentVersion(ComponentTypes.BlockNode)?.toString() ?? '0.0.0';
 
@@ -1103,6 +1424,10 @@ export class BlockNodeCommand extends BaseCommand {
                 );
                 await this.recreateBlockNodeChart(config, stepTargetVersion, step);
               } else {
+                // Record timestamp before upgrade so the pod-ready check (which uses
+                // recreateInstallTime as a createdAfter cutoff) waits for the NEW pod,
+                // not the old one still running while the StatefulSet rolls out.
+                config.recreateInstallTime = new Date();
                 try {
                   await this.chartManager.upgrade(
                     namespace,
@@ -1143,6 +1468,7 @@ export class BlockNodeCommand extends BaseCommand {
             await this.updateBlockNodeVersionInRemoteConfig(config);
           },
         },
+        this.patchBlockNodePeerHostAliasesForUpgrade(),
         {
           title: 'Check block node pod is ready',
           task: async ({config}): Promise<void> => {
@@ -1155,13 +1481,17 @@ export class BlockNodeCommand extends BaseCommand {
                   Templates.renderBlockNodeLabels(config.id),
                   constants.BLOCK_NODE_PODS_RUNNING_MAX_ATTEMPTS,
                   constants.BLOCK_NODE_PODS_RUNNING_DELAY,
-                  config.recreateInstallTime,
+                  config.hostAliasesPatchTime ?? config.recreateInstallTime,
                 );
             } catch (error) {
               throw new SoloErrors.system.blockNodeNotReady(config.releaseName, error);
             }
           },
         },
+        this.checkBlockNodeReadiness(
+          (config): ComponentId => config.id,
+          (config): number => this.getLivenessCheckPortNumber(config.upgradeVersion),
+        ),
       ],
       constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
       undefined,
@@ -1376,10 +1706,40 @@ export class BlockNodeCommand extends BaseCommand {
             this.k8Factory,
             true,
             this.remoteConfig.configuration.versions.consensusNode,
+            this.remoteConfig.configuration.state.tssEnabled,
           );
         }
       },
     };
+  }
+
+  /// Returns the port used for the block node liveness/readiness check.
+  ///
+  /// Block node >= v0.39.0 serves its health endpoints (`/healthz/readyz`) from a dedicated
+  /// web server on `BLOCK_NODE_HEALTH_PORT`; earlier versions served them from the gRPC port
+  /// (`BLOCK_NODE_PORT`). The effective version is the higher of the requested chart version and
+  /// a local image tag (when set), mirroring `updateBlockNodeVersionInRemoteConfig`.
+  private getLivenessCheckPortNumber(chartVersion: string, componentImage?: string): number {
+    let blockNodeVersion: SemanticVersion<string> = new SemanticVersion<string>(chartVersion);
+
+    if (componentImage && this.isLocalImageReference(componentImage)) {
+      const tag: string = this.splitImageNameTag(componentImage).tag;
+      try {
+        const imageVersion: SemanticVersion<string> = new SemanticVersion<string>(tag);
+        if (blockNodeVersion.lessThan(imageVersion)) {
+          blockNodeVersion = imageVersion;
+        }
+      } catch {
+        // non-semver tags (e.g. implicit latest on tagless local registry refs) cannot drive the port choice
+      }
+    }
+
+    const minimumVersion: SemanticVersion<string> = new SemanticVersion<string>(
+      versions.MINIMUM_HIERO_BLOCK_NODE_VERSION_FOR_DEDICATED_HEALTH_PORT,
+    );
+    return blockNodeVersion.greaterThanOrEqual(minimumVersion)
+      ? constants.BLOCK_NODE_HEALTH_PORT
+      : constants.BLOCK_NODE_PORT;
   }
 
   private async updateBlockNodeVersionInRemoteConfig(
@@ -1401,7 +1761,11 @@ export class BlockNodeCommand extends BaseCommand {
     const deployConfig: BlockNodeDeployConfigClass = config as BlockNodeDeployConfigClass;
     if (deployConfig.componentImage && this.isLocalImageReference(deployConfig.componentImage)) {
       const tag: string = this.splitImageNameTag(deployConfig.componentImage).tag;
-      componentImageVersion = new SemanticVersion<string>(tag);
+      try {
+        componentImageVersion = new SemanticVersion<string>(tag);
+      } catch {
+        // non-semver tags (e.g. implicit latest on tagless local registry refs) do not bump the component version
+      }
     }
 
     const finalVersion: SemanticVersion<string> =
@@ -1438,6 +1802,16 @@ export class BlockNodeCommand extends BaseCommand {
   private isImmutableStatefulSetError(error: unknown): boolean {
     const message: string = error instanceof Error ? error.message : String(error);
     return message.includes('StatefulSet.apps') && message.includes('spec: Forbidden');
+  }
+
+  private isStatefulSetNotFoundError(error: unknown, statefulSetName: string): boolean {
+    const message: string = error instanceof Error ? error.message : String(error);
+    return (
+      message.includes('HTTP-Code: 404') &&
+      message.includes('statefulsets.apps') &&
+      message.includes(statefulSetName) &&
+      message.includes('not found')
+    );
   }
 
   private async recreateBlockNodeChart(
@@ -1564,8 +1938,8 @@ export class BlockNodeCommand extends BaseCommand {
     };
   }
 
-  private displayHealthCheckData(
-    task: SoloListrTaskWrapper<BlockNodeDeployContext>,
+  private displayHealthCheckData<TContext>(
+    task: SoloListrTaskWrapper<TContext>,
   ): (attempt: number, maxAttempt: number, color?: 'yellow' | 'green' | 'red', additionalData?: string) => void {
     const baseTitle: string = task.title;
 
@@ -1579,7 +1953,10 @@ export class BlockNodeCommand extends BaseCommand {
     };
   }
 
-  private checkBlockNodeReadiness(): SoloListrTask<BlockNodeDeployContext> {
+  private checkBlockNodeReadiness<TContext extends BlockNodeDeployContext | BlockNodeUpgradeContext>(
+    getId: (config: TContext['config']) => ComponentId,
+    getPort: (config: TContext['config']) => number = (): number => constants.BLOCK_NODE_PORT,
+  ): SoloListrTask<TContext> {
     return {
       title: 'Check block node readiness',
       task: async ({config}, task): Promise<void> => {
@@ -1593,7 +1970,7 @@ export class BlockNodeCommand extends BaseCommand {
         const blockNodePodReference: PodReference = await this.k8Factory
           .getK8(config.context)
           .pods()
-          .list(config.namespace, Templates.renderBlockNodeLabels(config.newBlockNodeComponent.metadata.id))
+          .list(config.namespace, Templates.renderBlockNodeLabels(getId(config)))
           .then((pods: Pod[]): PodReference => pods[0].podReference);
 
         const containerReference: ContainerReference = ContainerReference.of(
@@ -1614,7 +1991,7 @@ export class BlockNodeCommand extends BaseCommand {
                 .getK8(config.context)
                 .containers()
                 .readByRef(containerReference)
-                .execContainer(['bash', '-c', `curl -s http://localhost:${config.livenessCheckPort}/healthz/readyz`]),
+                .execContainer(['bash', '-c', `curl -s http://localhost:${getPort(config)}/healthz/readyz`]),
               Duration.ofSeconds(constants.BLOCK_NODE_ACTIVE_TIMEOUT),
               'Healthcheck timed out',
             );
@@ -1684,6 +2061,18 @@ export class BlockNodeCommand extends BaseCommand {
 
   private async inferDestroyData(id: ComponentId, namespace: NamespaceName, context: Context): Promise<InferredData> {
     id = this.inferBlockNodeId(id);
+    const releaseName: string = this.renderReleaseName(id);
+    const isChartInstalled: boolean = await this.chartManager.isChartInstalled(namespace, releaseName, context);
+
+    if (isChartInstalled) {
+      return {
+        id,
+        releaseName,
+        isChartInstalled,
+        isLegacyChartInstalled: false,
+      };
+    }
+
     const isLegacyChartInstalled: boolean = await this.checkIfLegacyChartIsInstalled(id, namespace, context);
 
     if (isLegacyChartInstalled) {
@@ -1695,11 +2084,10 @@ export class BlockNodeCommand extends BaseCommand {
       };
     }
 
-    const releaseName: string = this.renderReleaseName(id);
     return {
       id,
       releaseName,
-      isChartInstalled: await this.chartManager.isChartInstalled(namespace, releaseName, context),
+      isChartInstalled,
       isLegacyChartInstalled,
     };
   }

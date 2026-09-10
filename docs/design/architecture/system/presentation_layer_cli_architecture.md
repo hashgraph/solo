@@ -41,6 +41,7 @@ platform.
     * [Cluster](#cluster)
     * [Config](#config-1)
     * [State](#state-1)
+    * [Port-Forwards](#port-forwards)
     * [Diagnostics](#diagnostics)
   * [Explorer](#explorer-1)
     * [Node](#node-2)
@@ -147,6 +148,7 @@ flags may be specified at any level of the command hierarchy.
 | deployment  | config             | < list & info & create & delete & import >                                         |
 | deployment  | cluster            | < list & info & attach & detach >                                                  |
 | deployment  | state              | < info & destroy & images >                                                        |
+| deployment  | port-forwards      | < refresh & stop >                                                                 |
 | deployment  | diagnostics        | < logs & configs & all & connections & analyze >                                   |
 | explorer    | node               | < list & info & logs & add & upgrade & destroy >                                   |
 | keys        | consensus          | < generate >                                                                       |
@@ -156,8 +158,8 @@ flags may be specified at any level of the command hierarchy.
 | ledger      | file               | < create & update >                                                                |
 | mirror      | node               | < list & info & logs & add & upgrade & destroy >                                   |
 | relay       | node               | < list & info & logs & add & upgrade & destroy >                                   |
-| one-shot    | < single & multi > | < info & deploy & destroy >                                                        |
-| cache       | < images >         | < pull & load & list & clear & status >                                            |
+| one-shot    | < single & multi & falcon & show > | < deploy & destroy & prepare & deployment & accounts >             |
+| cache       | < images & charts > | < pull & load & list & clear & prune & status >                                   |
 
 
 #### Example Commands
@@ -167,6 +169,7 @@ solo cluster-ref config connect --cluster-ref <name> --context <context>
 solo deployment config create --deployment <name> --namespace <name> 
 solo deployment config list
 solo deployment config info [--deployment <name>]
+solo deployment config import [--namespace <name>] [--context <context>] # Reconstructs the local config from an existing cluster's remote config
 solo deployment cluster attach --deployment <name> --cluster-ref <name> --num-consensus-nodes 3 
 solo keys consensus generate --deployment <name> --gossip-tls-keys --grpc-tls-keys
 solo block node add --deployment <name> --cluster-ref <name> 
@@ -174,6 +177,7 @@ solo consensus network deploy --deployment <name> --no-start # Optionally do not
 solo mirror node add --deployment <name> --cluster-ref <name> 
 solo relay node add --deployment <name> --cluster-ref <name>
 solo explorer node add --deployment <name> --cluster-ref <name> 
+solo deployment port-forwards stop --deployment <name> # Close down all port-forwards for the deployment
 # Tear down the deployment when done
 solo deployment state destroy --deployment <name> 
 ```
@@ -284,6 +288,7 @@ associated with each group.
 | **Cluster**     | `cluster`      | View and manage Solo cluster references used by a deployment.                                                                                     |
 | **Config**      | `config`       | List, inspect, create, delete, and import deployments. These commands affect the local configuration only.                                        |
 | **State**       | `state`        | View the actual state of the deployment on the Kubernetes clusters or teardown/destroy all remote and local configuration for a given deployment. |
+| **Port-Forwards** | `port-forwards` | Manage the port-forward processes for all components in the deployment.                                                                         |
 | **Diagnostics** | `diagnostics`  | Capture diagnostic information such as logs, signed states, and ledger/network/node configurations.                                               |
 
 <p align="right">
@@ -475,7 +480,7 @@ operations associated with each resource.
 | **Info**       | `info`         | Displays deployment metadata, component versions, and port-forward status. If `--deployment` is omitted, it iterates all local deployments.  |
 | **Create**     | `create`       | Creates a new local deployment configuration.                                                                                                   |
 | **Delete**     | `delete`       | Removes a local deployment configuration.                                                                                                       |
-| **Import**     | `import`       | Imports deployment config from a file.                                                                                                          |
+| **Import**     | `import`       | Imports a deployment into the local configuration from an existing cluster's remote config.                                                     |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -487,6 +492,17 @@ operations associated with each resource.
 |----------------|----------------|--------------------------------------------------------------------|
 | **Info**       | `info`         | Shows the live state of a deployment across all clusters.          |
 | **Destroy**    | `destroy`      | Removes all components of a deployment including remote resources. |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+#### Port-Forwards
+
+| Operation Name | Command Syntax | Description                                                                                      |
+|----------------|----------------|--------------------------------------------------------------------------------------------------|
+| **Refresh**    | `refresh`      | Refreshes and restores killed port-forward processes for all components in the deployment.       |
+| **Stop**       | `stop`         | Stops (closes down) all port-forwards for a deployment and removes them from the remote config. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -618,6 +634,16 @@ operations associated with each resource.
 | **Clear**      | `clear`        | Clears the image archives.                                                            |
 | **Status**     | `status`       | Lists all images, displays data about them and all missing images.                    |
 
+#### Chart
+
+| Operation Name | Command Syntax | Description                                                                        |
+|----------------|----------------|------------------------------------------------------------------------------------|
+| **Pull**       | `pull`         | Pulls and caches the helm charts used by solo so deploys install them from cache.  |
+| **List**       | `list`         | Lists all cached helm chart archives.                                              |
+| **Clear**      | `clear`        | Clears the cached helm chart archives.                                             |
+| **Prune**      | `prune`        | Prunes the cached helm chart archives.                                             |
+| **Status**     | `status`       | Lists all cached helm charts, their total size, and any missing chart archives.    |
+
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
 </p>
@@ -655,6 +681,17 @@ operations associated with each resource.
 | **Info**       | `info`         | Displays details of the one shot configuration.                          |
 | **Deploy**     | `deploy`       | Deploys all required components for the selected one shot configuration. |
 | **Destroy**    | `destroy`      | Removes the deployed resources for the selected one shot configuration.  |
+
+<p align="right">
+:arrow_up_small: <a href="#table-of-contents">Back to top</a>
+</p>
+
+#### Show
+
+| Operation Name | Command Syntax | Description                                                            |
+|----------------|----------------|------------------------------------------------------------------------|
+| **Deployment** | `deployment`   | Displays information about the last one-shot deployment.               |
+| **Accounts**   | `accounts`     | Displays the contents of the one-shot deployment `accounts.json` file. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>

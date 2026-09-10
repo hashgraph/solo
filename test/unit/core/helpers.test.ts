@@ -32,6 +32,18 @@ import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {SoloErrors} from '../../../src/core/errors/solo-errors.js';
+import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
+
+/** Builds a K8Factory whose default kubeconfig resolves a context to the given cluster entry names. */
+function stubK8FactoryWithClusterEntries(clusterEntriesByContext: Record<string, string>): K8Factory {
+  return {
+    default: (): unknown => ({
+      contexts: (): unknown => ({
+        readClusterOfContext: (context: string): string => clusterEntriesByContext[context] ?? '',
+      }),
+    }),
+  } as unknown as K8Factory;
+}
 
 function makeConsensusNode(name: NodeAlias, nodeId: number): ConsensusNode {
   return new ConsensusNode(
@@ -114,8 +126,22 @@ describe('Helpers', (): void => {
       expect(Helpers.resolveBlockStreamModeForConsensusVersion(undefined, 'v0.74.0', true)).to.equal('BLOCKS');
     });
 
-    it('preserves BOTH during upgrades to 0.74+ when a block node is deployed', (): void => {
-      expect(Helpers.resolveBlockStreamModeForConsensusVersion('BOTH', 'v0.74.0', true)).to.equal('BOTH');
+    it('defaults to RECORDS for 0.74+ consensus versions when TSS is disabled', (): void => {
+      expect(Helpers.resolveBlockStreamModeForConsensusVersion(undefined, 'v0.74.0', true, false, false)).to.equal(
+        'RECORDS',
+      );
+    });
+
+    it('preserves BOTH during pre-0.74 upgrades when a block node is deployed', (): void => {
+      expect(Helpers.resolveBlockStreamModeForConsensusVersion('BOTH', 'v0.73.0', true)).to.equal('BOTH');
+    });
+
+    it('switches BOTH to BLOCKS during 0.74+ upgrades when a block node is deployed', (): void => {
+      expect(Helpers.resolveBlockStreamModeForConsensusVersion('BOTH', 'v0.74.0', true)).to.equal('BLOCKS');
+    });
+
+    it('preserves BOTH during 0.74+ WRB/RSA upgrades when a block node is deployed', (): void => {
+      expect(Helpers.resolveBlockStreamModeForConsensusVersion('BOTH', 'v0.75.0', true, true)).to.equal('BOTH');
     });
 
     it('preserves BOTH during upgrades to 0.74+ when no block node is deployed', (): void => {
@@ -130,12 +156,118 @@ describe('Helpers', (): void => {
       expect(Helpers.resolveBlockStreamModeForConsensusVersion('RECORDS', 'v0.74.0', true)).to.equal('BLOCKS');
     });
 
+    it('does not preserve BLOCKS when TSS is disabled', (): void => {
+      expect(Helpers.resolveBlockStreamModeForConsensusVersion('BLOCKS', 'v0.74.0', true, false, false)).to.equal(
+        'RECORDS',
+      );
+    });
+
     it('does not preserve BLOCKS when block node integration is inactive', (): void => {
       expect(Helpers.resolveBlockStreamModeForConsensusVersion('BLOCKS', 'v0.74.0')).to.equal('RECORDS');
     });
   });
 
+  describe('updateBlockStreamPropertiesForMode', (): void => {
+    it('sets wrappedRecordBlocks=false in BLOCKS mode when not explicitly enabled', (): void => {
+      const lines: string[] = [
+        'blockStream.streamMode=RECORDS',
+        'blockStream.writerMode=FILE',
+        'blockStream.streamMode=BOTH',
+      ];
+
+      Helpers.updateBlockStreamPropertiesForMode(lines, 'BLOCKS');
+
+      expect(lines).to.deep.equal([
+        'blockStream.streamMode=BLOCKS',
+        'blockStream.writerMode=FILE_AND_GRPC',
+        'blockStream.streamWrappedRecordBlocks=false',
+      ]);
+    });
+
+    it('overrides wrappedRecordBlocks=true to false in BLOCKS mode', (): void => {
+      const lines: string[] = [
+        'blockStream.streamMode=RECORDS',
+        'blockStream.writerMode=FILE',
+        'blockStream.streamWrappedRecordBlocks=true',
+        'blockStream.streamMode=BOTH',
+      ];
+
+      Helpers.updateBlockStreamPropertiesForMode(lines, 'BLOCKS');
+
+      expect(lines).to.deep.equal([
+        'blockStream.streamMode=BLOCKS',
+        'blockStream.writerMode=FILE_AND_GRPC',
+        'blockStream.streamWrappedRecordBlocks=false',
+      ]);
+    });
+
+    it('does not overwrite streamWrappedRecordBlocks in BOTH mode', (): void => {
+      const lines: string[] = ['blockStream.streamMode=BLOCKS', 'blockStream.streamWrappedRecordBlocks=false'];
+
+      Helpers.updateBlockStreamPropertiesForMode(lines, 'BOTH');
+
+      expect(lines).to.deep.equal([
+        'blockStream.streamMode=BOTH',
+        'blockStream.streamWrappedRecordBlocks=false',
+        'blockStream.writerMode=FILE_AND_GRPC',
+      ]);
+    });
+
+    it('disables wrapped record block publishing for BOTH mode when requested', (): void => {
+      const lines: string[] = ['blockStream.streamMode=BOTH', 'blockStream.streamWrappedRecordBlocks=true'];
+
+      Helpers.ensureWrappedRecordBlocksDisabled(lines, 'BOTH');
+
+      expect(lines).to.deep.equal(['blockStream.streamMode=BOTH', 'blockStream.streamWrappedRecordBlocks=false']);
+    });
+  });
+
   describe('generateExtraEnvironmentValuesFile', (): void => {
+    it('should preserve user-provided hedera.nodes root extraEnv entries when wraps injects TSS_LIB_WRAPS_ARTIFACTS_PATH', (): void => {
+      const node: ConsensusNode = makeConsensusNode('node1', 0);
+      const temporaryDirectory: string = fs.mkdtempSync(path.join(os.tmpdir(), 'test-helpers-'));
+      const userValuesFilePath: string = path.join(temporaryDirectory, 'user-values.yaml');
+      fs.writeFileSync(
+        userValuesFilePath,
+        [
+          'hedera:',
+          '  nodes:',
+          '    - root:',
+          '        extraEnv:',
+          '          - name: USER_ENV',
+          '            value: user-value',
+        ].join('\n'),
+        'utf8',
+      );
+
+      try {
+        const result: {hedera: {nodes: {root?: {extraEnv: {name: string; value: string}[]}}[]}} = generateAndParse(
+          [node],
+          {
+            wrapsEnabled: true,
+            tss: {
+              wraps: {
+                artifactsFolderName: 'data/keys/wraps-v1.0.0',
+              },
+            },
+            baseExtraEnvironmentVariables: helmValuesHelper.extractExtraEnvironmentFromValuesFiles(
+              [userValuesFilePath],
+              [node],
+            ),
+          },
+        );
+        expect(result.hedera.nodes[0].root?.extraEnv).to.deep.equal([
+          {name: 'USER_ENV', value: 'user-value'},
+          {
+            name: 'TSS_LIB_WRAPS_ARTIFACTS_PATH',
+            value: `${constants.HEDERA_HAPI_PATH}/data/keys/wraps-v1.0.0`,
+          },
+        ]);
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
     it('should sanitize -Xms/-Xmx from JAVA_OPTS coming from baseExtraEnvironmentVariables', (): void => {
       const node: ConsensusNode = makeConsensusNode('node1', 0);
       const result: {hedera: {nodes: {root?: {extraEnv: {name: string; value: string}[]}}[]}} = generateAndParse(
@@ -211,6 +343,82 @@ describe('Helpers', (): void => {
     });
   });
 
+  describe('describeUserProvidedExtraEnvironmentWarnings', (): void => {
+    it('warns when Solo overwrites a user-provided extraEnv value during wraps merge', (): void => {
+      const node: ConsensusNode = makeConsensusNode('node1', 0);
+      const temporaryDirectory: string = fs.mkdtempSync(path.join(os.tmpdir(), 'test-helpers-'));
+      const userValuesFilePath: string = path.join(temporaryDirectory, 'user-values.yaml');
+      fs.writeFileSync(
+        userValuesFilePath,
+        [
+          'hedera:',
+          '  nodes:',
+          '    - root:',
+          '        extraEnv:',
+          '          - name: TSS_LIB_WRAPS_ARTIFACTS_PATH',
+          '            value: /user/path',
+        ].join('\n'),
+        'utf8',
+      );
+
+      try {
+        const warnings: string[] = helmValuesHelper.describeUserProvidedExtraEnvironmentWarnings(
+          [userValuesFilePath],
+          [node],
+          {
+            wrapsEnabled: true,
+            tss: {
+              wraps: {
+                artifactsFolderName: 'data/keys/wraps-v1.0.0',
+              },
+            },
+          },
+        );
+
+        expect(warnings).to.deep.equal([
+          `Warning: User-provided extraEnv TSS_LIB_WRAPS_ARTIFACTS_PATH for node1 was overwritten during Solo's generated extraEnv merge. Final value: ${constants.HEDERA_HAPI_PATH}/data/keys/wraps-v1.0.0`,
+        ]);
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('warns when invalid or duplicate user-provided extraEnv entries are ignored', (): void => {
+      const node: ConsensusNode = makeConsensusNode('node1', 0);
+      const temporaryDirectory: string = fs.mkdtempSync(path.join(os.tmpdir(), 'test-helpers-'));
+      const userValuesFilePath: string = path.join(temporaryDirectory, 'user-values.yaml');
+      fs.writeFileSync(
+        userValuesFilePath,
+        [
+          'hedera:',
+          '  nodes:',
+          '    - root:',
+          '        extraEnv:',
+          '          - name: DUPLICATE_ENV',
+          '            value: first-value',
+          '          - name: DUPLICATE_ENV',
+          '            value: second-value',
+          '          - name: INVALID_ENV',
+        ].join('\n'),
+        'utf8',
+      );
+
+      try {
+        const warnings: string[] = helmValuesHelper.describeUserProvidedExtraEnvironmentWarnings(
+          [userValuesFilePath],
+          [node],
+        );
+
+        expect(warnings).to.deep.equal([
+          'Warning: Ignored 1 invalid extraEnv entry from --values-file input because each entry must contain string name and value fields.',
+          'Warning: User-provided extraEnv DUPLICATE_ENV for node1 is defined multiple times across --values-file inputs; the last value wins.',
+        ]);
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+  });
+
   describe('extractPerNodeBlockNodesJsonFromValuesFile', (): void => {
     it('should extract blockNodesJson per node from a YAML values file', (): void => {
       const node: ConsensusNode = makeConsensusNode('node1', 0);
@@ -248,7 +456,7 @@ describe('Helpers', (): void => {
 
     it('should return empty record when hedera.nodes is absent from the file', (): void => {
       const node: ConsensusNode = makeConsensusNode('node1', 0);
-      const valuesContent: string = 'hedera:\n  configMaps:\n    configTxt: "foo"\n';
+      const valuesContent: string = 'hedera:\n  configMaps:\n    settingsTxt: "foo"\n';
       const temporaryDirectory: string = fs.mkdtempSync(path.join(os.tmpdir(), 'test-helpers-'));
       const temporaryFile: string = path.join(temporaryDirectory, 'values.yaml');
       fs.writeFileSync(temporaryFile, valuesContent, 'utf8');
@@ -299,6 +507,58 @@ describe('Helpers', (): void => {
       const rows: string[] = remoteConfigsToDeploymentsTable(remoteConfigs);
 
       expect(rows).to.deep.equal(['Namespace : deployment']);
+    });
+  });
+
+  describe('isKindContext', (): void => {
+    it('recognizes a context kind wrote for one of its clusters', (): void => {
+      expect(Helpers.isKindContext('kind-solo')).to.be.true;
+      expect(Helpers.isKindContext('kind-solo-cluster')).to.be.true;
+    });
+
+    it('rejects a context that does not belong to a kind cluster', (): void => {
+      expect(Helpers.isKindContext('gke_my-project_us-central1_my-cluster')).to.be.false;
+      expect(Helpers.isKindContext('minikube')).to.be.false;
+      expect(Helpers.isKindContext('a-kind-cluster')).to.be.false;
+    });
+
+    it('rejects a missing context', (): void => {
+      const unresolvedContext: string = undefined;
+      expect(Helpers.isKindContext(unresolvedContext)).to.be.false;
+      expect(Helpers.isKindContext('')).to.be.false;
+    });
+
+    it('recognizes a renamed context through its kubeconfig cluster entry', (): void => {
+      expect(Helpers.isKindContext('solo-renamed', stubK8FactoryWithClusterEntries({'solo-renamed': 'kind-solo'}))).to
+        .be.true;
+    });
+  });
+
+  describe('kindClusterNameForContext', (): void => {
+    it('resolves the cluster name from a context kind wrote', (): void => {
+      expect(Helpers.kindClusterNameForContext('kind-solo')).to.equal('solo');
+      expect(Helpers.kindClusterNameForContext('kind-solo-cluster')).to.equal('solo-cluster');
+    });
+
+    it('resolves the cluster name of a renamed context through its kubeconfig cluster entry', (): void => {
+      const k8Factory: K8Factory = stubK8FactoryWithClusterEntries({'solo-renamed': 'kind-solo'});
+      expect(Helpers.kindClusterNameForContext('solo-renamed', k8Factory)).to.equal('solo');
+    });
+
+    it('returns undefined when neither the context nor its cluster entry is Kind-named', (): void => {
+      const k8Factory: K8Factory = stubK8FactoryWithClusterEntries({'gke-prod': 'gke-prod-entry'});
+      expect(Helpers.kindClusterNameForContext('gke-prod', k8Factory)).to.be.undefined;
+      expect(Helpers.kindClusterNameForContext('gke-prod')).to.be.undefined;
+      expect(Helpers.kindClusterNameForContext(undefined, k8Factory)).to.be.undefined;
+    });
+
+    it('returns undefined when the kubeconfig cluster entry cannot be read', (): void => {
+      const k8Factory: K8Factory = {
+        default: (): never => {
+          throw new Error('kubeconfig unavailable');
+        },
+      } as unknown as K8Factory;
+      expect(Helpers.kindClusterNameForContext('solo-renamed', k8Factory)).to.be.undefined;
     });
   });
 
@@ -398,6 +658,34 @@ nodes.gossipFqdnRestricted=true
 nodes.gossipFqdnRestricted=false`;
       // Should return the first match
       expect(parseGossipFqdnRestricted(content)).to.equal(true);
+    });
+  });
+
+  describe('parseNumericApplicationProperty', (): void => {
+    it('parses the value of a numeric property', (): void => {
+      const content: string = 'hedera.realm=3\nhedera.shard=2';
+      expect(Helpers.parseNumericApplicationProperty(content, 'hedera.realm')).to.equal(3);
+      expect(Helpers.parseNumericApplicationProperty(content, 'hedera.shard')).to.equal(2);
+    });
+
+    it('handles whitespace around the equals sign and value', (): void => {
+      const content: string = 'hedera.realm  =  10 ';
+      expect(Helpers.parseNumericApplicationProperty(content, 'hedera.realm')).to.equal(10);
+    });
+
+    it('returns undefined for a missing property', (): void => {
+      const content: string = 'some.other.property=value';
+      expect(Helpers.parseNumericApplicationProperty(content, 'hedera.realm')).to.be.undefined;
+    });
+
+    it('returns undefined for a non-numeric value', (): void => {
+      const content: string = 'hedera.realm=abc';
+      expect(Helpers.parseNumericApplicationProperty(content, 'hedera.realm')).to.be.undefined;
+    });
+
+    it('does not match a property whose key is a superstring of the requested key', (): void => {
+      const content: string = 'hedera.realmNumber=7';
+      expect(Helpers.parseNumericApplicationProperty(content, 'hedera.realm')).to.be.undefined;
     });
   });
 
@@ -663,6 +951,7 @@ describe('createAndCopyBlockNodeJsonFileForConsensusNode', (): void => {
 
   afterEach((): void => {
     sinon.restore();
+    resetTestContainer();
   });
 
   it('throws BlockNodesJsonEmptySoloError when blockNodeMap is empty and allowEmpty is false', async (): Promise<void> => {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {BaseCommandTest} from './base-command-test.js';
-import {type ClusterReferenceName, type DeploymentName} from '../../../../src/types/index.js';
+import {type ClusterReferenceName, type Context, type DeploymentName} from '../../../../src/types/index.js';
 import {Flags} from '../../../../src/commands/flags.js';
 import {main} from '../../../../src/index.js';
 import {Duration} from '../../../../src/core/time/duration.js';
@@ -37,6 +37,7 @@ import {MIRROR_NODE_PORT} from '../../../../src/core/constants.js';
 import {PortUtilities} from '../../../../src/business/utils/port-utilities.js';
 
 export class MirrorNodeTest extends BaseCommandTest {
+  private static _clusterReferenceIndex: number;
   private static soloMirrorNodeDeployArgv(
     testName: string,
     deployment: DeploymentName,
@@ -88,7 +89,7 @@ export class MirrorNodeTest extends BaseCommandTest {
       clusterReference,
       optionFromFlag(Flags.force),
       optionFromFlag(Flags.quiet),
-      optionFromFlag(Flags.devMode),
+      optionFromFlag(Flags.debugMode),
     );
 
     argvPushGlobalFlags(argv, testName, false, true);
@@ -190,8 +191,11 @@ export class MirrorNodeTest extends BaseCommandTest {
         const accountQueryUrl: string = `http://localhost:${portForwarder}/api/v1/accounts/${accountId}`;
 
         received = false;
+        let attempts: number = 0;
+        const maxAttempts: number = 120;
         // wait until the transaction reached consensus and retrievable from the mirror node API
-        while (!received) {
+        while (!received && attempts < maxAttempts) {
+          attempts += 1;
           const request: http.ClientRequest = http.request(
             accountQueryUrl,
             {method: 'GET', timeout: 100, headers: {Connection: 'close'}},
@@ -199,18 +203,20 @@ export class MirrorNodeTest extends BaseCommandTest {
               response.setEncoding('utf8');
 
               response.on('data', (chunk): void => {
-                let object: {account: string};
+                let object: {account?: string};
                 try {
-                  object = JSON.parse(chunk) as {account: string};
+                  object = JSON.parse(chunk) as {account?: string};
                 } catch {
                   testLogger.warn(`Mirror node returned non-JSON response, will retry: ${chunk}`);
                   return;
                 }
 
-                expect(
-                  object.account,
-                  'expect the created account to exist in the mirror nodes copy of the accounts',
-                ).to.equal(accountId);
+                if (object.account !== accountId) {
+                  testLogger.debug(
+                    `Account ${accountId} not visible in mirror yet (attempt ${attempts}/${maxAttempts}), will retry`,
+                  );
+                  return;
+                }
 
                 received = true;
               });
@@ -224,6 +230,11 @@ export class MirrorNodeTest extends BaseCommandTest {
           request.end(); // make the request
           await sleep(Duration.ofSeconds(2));
         }
+
+        expect(
+          received,
+          `expected account ${accountId} to become visible in mirror within ${maxAttempts} attempts`,
+        ).to.equal(true);
 
         await sleep(Duration.ofSeconds(1));
       }
@@ -299,6 +310,7 @@ export class MirrorNodeTest extends BaseCommandTest {
   }
 
   public static add(options: BaseTestOptions, clusterReferenceIndex: number = 1): void {
+    MirrorNodeTest._clusterReferenceIndex = clusterReferenceIndex;
     const {
       testName,
       testLogger,
@@ -312,17 +324,11 @@ export class MirrorNodeTest extends BaseCommandTest {
       valuesFile,
     } = options;
     const {soloMirrorNodeDeployArgv, verifyMirrorNodeDeployWasSuccessful, verifyPingerStatus} = MirrorNodeTest;
+    const targetClusterReference: ClusterReferenceName =
+      clusterReferenceNameArray[clusterReferenceIndex] || clusterReferenceNameArray[0];
 
     it(`${testName}: mirror node add`, async (): Promise<void> => {
-      await main(
-        soloMirrorNodeDeployArgv(
-          testName,
-          deployment,
-          clusterReferenceNameArray[clusterReferenceIndex],
-          pinger,
-          valuesFile,
-        ),
-      );
+      await main(soloMirrorNodeDeployArgv(testName, deployment, targetClusterReference, pinger, valuesFile));
       await verifyMirrorNodeDeployWasSuccessful(
         contexts,
         namespace,
@@ -414,9 +420,10 @@ export class MirrorNodeTest extends BaseCommandTest {
   public static destroy(options: BaseTestOptions): void {
     const {testName, deployment, clusterReferenceNameArray} = options;
     const {soloMirrorNodeDestroyArgv} = MirrorNodeTest;
+    const targetClusterReference: ClusterReferenceName = clusterReferenceNameArray[1] || clusterReferenceNameArray[0];
 
     it(`${testName}: mirror node destroy`, async (): Promise<void> => {
-      await main(soloMirrorNodeDestroyArgv(testName, deployment, clusterReferenceNameArray[1]));
+      await main(soloMirrorNodeDestroyArgv(testName, deployment, targetClusterReference));
     }).timeout(Duration.ofMinutes(5).toMillis());
   }
 
@@ -490,15 +497,11 @@ export class MirrorNodeTest extends BaseCommandTest {
     } = options;
     const {soloMirrorNodeDeployArgv, verifyMirrorNodeDeployWasSuccessful, verifyPingerStatus, optionFromFlag} =
       MirrorNodeTest;
+    const targetClusterReference: ClusterReferenceName = clusterReferenceNameArray[1] || clusterReferenceNameArray[0];
+    const targetContext: Context = contexts[1] || contexts[0];
 
     it(`${testName}: mirror node deploy with external database`, async (): Promise<void> => {
-      const argv: string[] = soloMirrorNodeDeployArgv(
-        testName,
-        deployment,
-        clusterReferenceNameArray[1],
-        pinger,
-        valuesFile,
-      );
+      const argv: string[] = soloMirrorNodeDeployArgv(testName, deployment, targetClusterReference, pinger, valuesFile);
 
       process.env.USE_MIRROR_NODE_LEGACY_RELEASE_NAME = 'true';
 
@@ -524,7 +527,7 @@ export class MirrorNodeTest extends BaseCommandTest {
       // role, so it lacks SELECT on tables created after V1.0 (e.g. entity, transaction, node).
       // Grant the readonly role now (after importer pod is ready = migrations are complete).
       const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
-      const k8: K8 = k8Factory.getK8(contexts[1]);
+      const k8: K8 = k8Factory.getK8(targetContext);
       await MirrorNodeTest.grantReadonlyRoleToMirrorRestUser(k8);
 
       await verifyMirrorNodeDeployWasSuccessful(

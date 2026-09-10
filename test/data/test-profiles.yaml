@@ -48,7 +48,7 @@ test:
         limits:
           cpu: 150m
           memory: 250Mi
-    otelCollector:
+    grafanaAlloy:
       resources:
         requests:
           cpu: 0

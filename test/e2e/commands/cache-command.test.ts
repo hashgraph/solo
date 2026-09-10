@@ -16,7 +16,6 @@ import {EndToEndTestSuiteBuilder} from '../end-to-end-test-suite-builder.js';
 import {type EndToEndTestSuite} from '../end-to-end-test-suite.js';
 import {type BaseTestOptions} from './tests/base-test-options.js';
 
-import {InitTest} from './tests/init-test.js';
 import {ClusterReferenceTest} from './tests/cluster-reference-test.js';
 import {DeploymentTest} from './tests/deployment-test.js';
 import {CacheTest} from './tests/cache-test.js';
@@ -63,7 +62,6 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           resetForTest(namespace.name, testCacheDirectory, false);
         });
 
-        InitTest.init(options);
         ClusterReferenceTest.connect(options);
         DeploymentTest.create(options);
         DeploymentTest.addCluster(options);
@@ -73,6 +71,12 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
         CacheTest.status(options);
         CacheTest.load(options);
         CacheTest.clear(options);
+
+        CacheTest.chartPull(options);
+        CacheTest.chartList(options);
+        CacheTest.chartStatus(options);
+        CacheTest.chartInstallUsesCache(options);
+        CacheTest.chartClear(options);
       });
     },
   )

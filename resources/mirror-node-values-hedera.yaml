@@ -40,10 +40,11 @@ importer:
     initialDelaySeconds: 0
     periodSeconds: 1
     failureThreshold: 60
+  # Importer startup includes the first-run Flyway schema build; 300 matches mirror-node-values.yaml
   startupProbe:
     initialDelaySeconds: 0
     periodSeconds: 1
-    failureThreshold: 60
+    failureThreshold: 300
   envFrom:
     - secretRef:
         name: mirror-passwords

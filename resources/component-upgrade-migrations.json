@@ -20,6 +20,11 @@
             "--set",
             "blockNode.metrics.path=/metrics"
           ]
+        },
+        {
+          "version": "0.37.0",
+          "strategy": "recreate",
+          "reason": "The 0.37.0 chart adds blockNode.persistence.applicationState and changes StatefulSet volumeClaimTemplates, which are immutable and require recreating the StatefulSet."
         }
       ]
     }

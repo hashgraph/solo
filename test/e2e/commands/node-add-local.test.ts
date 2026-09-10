@@ -49,9 +49,7 @@ describe('Node add with hedera local build', (): void => {
       opts: {k8Factory, accountManager},
     } = bootstrapResp;
 
-    after(async function (): Promise<void> {
-      this.timeout(Duration.ofMinutes(10).toMillis());
-
+    after(async (): Promise<void> => {
       await accountManager.close();
 
       if (destroyEnabled()) {
@@ -59,7 +57,7 @@ describe('Node add with hedera local build', (): void => {
 
         await k8Factory.default().namespaces().delete(namespace);
       }
-    });
+    }).timeout(Duration.ofMinutes(10).toMillis());
 
     it('Should create and update a file', async (): Promise<void> => {
       const testCacheDirectory: string = `./test-cache/${namespace.name}`;

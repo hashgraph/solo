@@ -62,7 +62,7 @@ export interface Container {
    *    group: hedera,
    *    size: 121,
    *    modifiedAt: Jan 15 13:50
-   *    name: config.txt
+   *    name: settings.txt
    * }]
    * @param destinationPath - the remote path to the directory
    * @returns a promise that returns array of directory entries, custom object

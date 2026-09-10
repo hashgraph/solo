@@ -11,12 +11,17 @@ export class GetSoloRemoteConfigMapTask {
     k8Factory: K8Factory,
     logger: SoloLogger,
     customOutputDirectory: string = '',
+    scopeToSelectedDeployment: boolean = false,
   ): SoloListrTask<AnyListrContext> {
     return {
-      title: 'Get solo-remote-config ConfigMaps from all clusters',
-      task: async (): Promise<void> => {
+      title: scopeToSelectedDeployment
+        ? 'Get solo-remote-config ConfigMaps for selected deployment'
+        : 'Get solo-remote-config ConfigMaps from all clusters',
+      task: async (context_: AnyListrContext): Promise<void> => {
         const outputDirectory: string = await new RemoteConfigCollector(k8Factory, logger).collect(
           customOutputDirectory,
+          scopeToSelectedDeployment ? context_?.config?.contexts : undefined,
+          scopeToSelectedDeployment ? context_?.config?.namespace : undefined,
         );
         logger.showUser(`Remote config saved to ${outputDirectory}`);
       },

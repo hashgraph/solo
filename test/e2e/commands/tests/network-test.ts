@@ -24,6 +24,7 @@ export class NetworkTest extends BaseCommandTest {
     enableLocalBuildPathTesting: boolean,
     localBuildReleaseTag: string,
     loadBalancerEnabled: boolean,
+    tssEnabled: boolean,
     wrapsEnabled: boolean,
     releaseTagOverride?: string,
   ): string[] {
@@ -44,6 +45,10 @@ export class NetworkTest extends BaseCommandTest {
     // have to enable load balancer to resolve cross cluster in multi-cluster
     if (loadBalancerEnabled) {
       argv.push(optionFromFlag(Flags.loadBalancerEnabled));
+    }
+
+    if (!tssEnabled) {
+      argv.push(`--no-${Flags.tssEnabled.name}`);
     }
 
     // TSS is enabled by default; enabling WRAPs exercises recursive hinTS/TSS aggregation (CN >= v0.74).
@@ -69,6 +74,7 @@ export class NetworkTest extends BaseCommandTest {
       enableLocalBuildPathTesting,
       localBuildReleaseTag,
       loadBalancerEnabled,
+      tssEnabled,
       wrapsEnabled,
       clusterReferenceNameArray,
       consensusNodesCount,
@@ -83,6 +89,7 @@ export class NetworkTest extends BaseCommandTest {
           enableLocalBuildPathTesting,
           localBuildReleaseTag,
           loadBalancerEnabled,
+          tssEnabled,
           wrapsEnabled,
           releaseTagOverride,
         ),

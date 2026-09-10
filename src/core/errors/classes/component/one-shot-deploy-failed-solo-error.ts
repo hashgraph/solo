@@ -21,7 +21,10 @@ export class OneShotDeployFailedSoloError extends SoloError {
         code: ErrorCodeRegistry.ONE_SHOT_DEPLOY_FAILED,
         troubleshootingSteps:
           'Check solo logs: tail -n 100 ~/.solo/logs/solo.log\n' +
-          'If rollback was skipped, clean up partial resources: solo one-shot single destroy',
+          'If rollback was skipped, clean up partial resources: solo one-shot single destroy\n' +
+          'If nothing else works, remove the SOLO_HOME directory and delete the cluster:\n +' +
+          'kind delete cluster --name solo-cluster\n' +
+          'rm -rf ~/.solo\n',
       },
       cause,
     );

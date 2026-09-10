@@ -198,7 +198,7 @@ export function testSeparateNodeUpdate(
     }).timeout(timeout);
 
     it('the consensus nodes accountId should be the newAccountId', async (): Promise<void> => {
-      // read config.txt file from first node, read config.txt line by line, it should not contain value of newAccountId
+      // the account-id label on the first node's pod should reflect the newAccountId
       const pods: Pod[] = await k8Factory
         .default()
         .pods()

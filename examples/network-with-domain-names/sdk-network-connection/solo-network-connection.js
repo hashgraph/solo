@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {AccountBalanceQuery, AccountId, Client, Logger, LogLevel, PrivateKey} from '@hiero-ledger/sdk';
+import {AccountId, AccountInfoQuery, Client, Logger, LogLevel, PrivateKey} from '@hiero-ledger/sdk';
 
 export const TREASURY_ACCOUNT_ID = '0.0.2';
 export const GENESIS_KEY =
@@ -39,10 +39,10 @@ async function main() {
   // check balance
   console.log('checking balance');
   try {
-    const balance = await new AccountBalanceQuery().setAccountId('0.0.2').execute(nodeClient);
+    const accountInfo = await new AccountInfoQuery().setAccountId('0.0.2').execute(nodeClient);
 
     console.log('checking balance...end');
-    console.log(`Account ${treasuryAccountId} balance: ${balance?.hbars}`);
+    console.log(`Account ${treasuryAccountId} balance: ${accountInfo?.balance}`);
     console.log('...end');
   } catch (error) {
     console.log('failure');

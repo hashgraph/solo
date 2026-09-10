@@ -63,21 +63,21 @@ import {KeysCommandDefinition} from '../../../command-definitions/keys-command-d
 import {type InvokedSoloCommand, invokeSoloCommand} from '../../../command-helpers.js';
 import {Flags as flags} from '../../../flags.js';
 import * as constants from '../../../../core/constants.js';
-import {
-  createDirectoryIfNotExists,
-  entityId,
-  remoteConfigsToDeploymentsTable,
-  sleep,
-} from '../../../../core/helpers.js';
+import {createDirectoryIfNotExists, entityId, Helpers, sleep} from '../../../../core/helpers.js';
 import {Duration} from '../../../../core/time/duration.js';
 import {BlockNodeDeployedEvent} from '../../../../core/events/event-types/block-node-deployed-event.js';
+import {MirrorNodeDeployedEvent} from '../../../../core/events/event-types/mirror-node-deployed-event.js';
 import {ListrLock} from '../../../../core/lock/listr-lock.js';
 import {UserBreak} from '../../../../core/errors/user-break.js';
 import {ConfirmationRequiredSoloError} from '../../../../core/errors/classes/validation/confirmation-required-solo-error.js';
+import {ValuesFileNotFoundSoloError} from '../../../../core/errors/classes/validation/values-file-not-found-solo-error.js';
+import {ValuesFileParser} from '../../../../core/util/values-file-parser.js';
 import {Templates} from '../../../../core/templates.js';
 import {PathEx} from '../../../../business/utils/path-ex.js';
 import {SemanticVersion} from '../../../../business/utils/semantic-version.js';
 import {NamespaceName} from '../../../../types/namespace/namespace-name.js';
+import {type Deployment} from '../../../../business/runtime-state/config/local/deployment.js';
+import {type StringFacade} from '../../../../business/runtime-state/facade/string-facade.js';
 import {type NodeId} from '../../../../types/aliases.js';
 import {type CommandFlag, type CommandFlags} from '../../../../types/flag-types.js';
 import {type ArgvStruct} from '../../../../types/aliases.js';
@@ -87,18 +87,20 @@ import {ExplorerStateSchema} from '../../../../data/schema/model/remote/state/ex
 import {RelayNodeStateSchema} from '../../../../data/schema/model/remote/state/relay-node-state-schema.js';
 import {DeploymentPhase} from '../../../../data/schema/model/remote/deployment-phase.js';
 import {ComponentTypes} from '../../../../core/config/remote/enumerations/component-types.js';
-import {ConfigMap} from '../../../../integration/kube/resources/config-map/config-map.js';
+import {ServiceReference} from '../../../../integration/kube/resources/service/service-reference.js';
+import {ServiceName} from '../../../../integration/kube/resources/service/service-name.js';
 import chalk from 'chalk';
 import fs from 'node:fs';
 import path from 'node:path';
-import yaml from 'yaml';
 import {DeployArgvBuilders} from './deploy-argv-builders.js';
 import {OrchestratorPipeline} from '../orchestrator-pipeline.js';
 import {SINGLE_DESTROY_COMMAND} from '../../one-shot-command-paths.js';
 import {MINIMUM_CN_VERSION_FOR_SMALL_MEMORY, MINIMUM_CN_VERSION_FOR_STATE_ON_DISK} from '../../../../../version.js';
 import {CacheCommandDefinition} from '../../../command-definitions/cache-command-definition.js';
+import {MessageLevel} from '../../../../core/logging/message-level.js';
 import {isDeploymentPhaseAtLeast} from '../../../../data/schema/model/remote/deployment-phase-helper.js';
 import {SpinnerListrOptions} from '../../../../core/spinner-listr-options.js';
+import {ClusterTaskManager} from '../../../../core/cluster-task-manager.js';
 
 const SINGLE_DEPLOY_CONFIGS_NAME: string = 'singleAddConfigs';
 
@@ -121,6 +123,7 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
     @inject(InjectTokens.MirrorNodeCommand) private readonly mirrorNodeCommand: MirrorNodeCommand,
     @inject(InjectTokens.ContainerEngineResourceInspector)
     private readonly containerEngineResourceInspector: ContainerEngineResourceInspector,
+    @inject(InjectTokens.ClusterTaskManager) private readonly clusterTaskManager: ClusterTaskManager,
   ) {
     this.taskList = patchInject(taskList, InjectTokens.TaskList, this.constructor.name);
     this.eventBus = patchInject(eventBus, InjectTokens.SoloEventBus, this.constructor.name);
@@ -140,6 +143,7 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
       InjectTokens.ContainerEngineResourceInspector,
       this.constructor.name,
     );
+    this.clusterTaskManager = patchInject(clusterTaskManager, InjectTokens.ClusterTaskManager, this.constructor.name);
   }
 
   public buildDeployPipeline(
@@ -200,12 +204,19 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             config.networkConfiguration = {};
             config.setupConfiguration = {};
             config.versions = versions;
+            // The dependency-install preamble ran before this pipeline; if it created the Kind
+            // cluster, the one-shot extraPortMappings exist and port-forwards can be skipped.
+            config.clusterHasOneShotPortMappings = this.clusterTaskManager.createdClusterWithOneShotPortMappings;
 
             config.cacheDir ??= constants.SOLO_CACHE_DIR;
 
             if (config.valuesFile) {
+              if (!fs.existsSync(config.valuesFile)) {
+                throw new ValuesFileNotFoundSoloError(config.valuesFile);
+              }
               const valuesFileContent: string = fs.readFileSync(context_.config.valuesFile, 'utf8');
-              const profileItems: Record<string, object> = yaml.parse(valuesFileContent) as Record<string, object>;
+              const profileItems: Record<string, object> =
+                (ValuesFileParser.parse(context_.config.valuesFile, valuesFileContent) as Record<string, object>) ?? {};
 
               if (profileItems.network) {
                 config.networkConfiguration = profileItems.network as object;
@@ -231,11 +242,13 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             }
             config.clusterRef ||= 'one-shot';
             config.context ||= this.k8Factory.default().contexts().readCurrent();
-            config.deployment ||= 'one-shot';
-            config.namespace ||= NamespaceName.of('one-shot');
+            config.deployment ||= constants.ONE_SHOT_DEPLOYMENT_NAME;
+            config.namespace ||= NamespaceName.of(constants.ONE_SHOT_DEPLOYMENT_NAME);
             this.configManager.setFlag(flags.namespace, config.namespace);
             config.numberOfConsensusNodes ||= 1;
             config.force = argv.force as boolean;
+
+            await this.localConfig.load();
 
             // Guard against accidental one-shot deployments to non-Kind Kubernetes contexts.
             // Quiet mode bypasses the confirmation prompt.
@@ -253,6 +266,9 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             if (!config.setupConfiguration[releaseTagKey]) {
               config.setupConfiguration[releaseTagKey] = versions.consensus;
             }
+
+            this.reconcileEffectiveVersions(config);
+
             this.logger.addLogBindings({
               clusterReference: config.clusterRef,
               context: config.context,
@@ -359,7 +375,9 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
       // One-shot deploy always starts from a clean slate: if the snapshot shows any pre-existing
       // one-shot state, auto-destroy it and deploy fresh rather than attempt to resume. The snapshot
       // proves existence, not health, so a partial or broken prior deployment cannot be trusted to
-      // resume cleanly — rebuilding is the predictable behavior. The confirmation and the destroy it
+      // resume cleanly — rebuilding is the predictable behavior. That includes a local config which
+      // claims a deployment the cluster can no longer back: its remote config is gone, so there is
+      // nothing left to resume, only leftovers to clear out. The confirmation and the destroy it
       // gates both run before the deploy lock is acquired because the invoked destroy acquires the
       // same lock.
       new OrchestratorPipelinePhase('Confirm cleanup of existing deployment state', {
@@ -425,39 +443,8 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
           },
         }),
       }),
-      new OrchestratorPipelinePhase('Check for other deployments', {
-        asListrTask: (): SoloListrTask<OneShotSingleDeployContext> => ({
-          title: 'Check for other deployments',
-          task: async (
-            _: OneShotSingleDeployContext,
-            task: SoloListrTaskWrapper<OneShotSingleDeployContext>,
-          ): Promise<void> => {
-            const existingRemoteConfigs: ConfigMap[] = await this.k8Factory
-              .default()
-              .configMaps()
-              .listForAllNamespaces(Templates.renderConfigMapRemoteConfigLabels());
-            if (existingRemoteConfigs.length > 0) {
-              const existingDeploymentsTable: string[] = remoteConfigsToDeploymentsTable(existingRemoteConfigs);
-              const promptOptions: {default: boolean; message: string} = {
-                default: false,
-                message:
-                  'Warning: Existing solo deployment detected in cluster.\n\n' +
-                  existingDeploymentsTable.join('\n') +
-                  '\n\nCreating another deployment will require additional' +
-                  ' CPU and memory resources. Do you want to proceed and create another deployment?',
-              };
-              const proceed: boolean = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, promptOptions);
-              if (!proceed) {
-                throw new UserBreak('Aborted by user');
-              }
-            }
-          },
-          skip: (context_: OneShotSingleDeployContext): boolean =>
-            context_.config.force === true || context_.config.quiet === true,
-        }),
-      }),
       OrchestratorPipelinePhase.composite(
-        'Prepare cluster and deployment',
+        'Cache container images',
         [
           new OrchestratorPipelinePhase('Pull docker images', {
             asListrTask: (getConfig: () => OneShotSingleDeployConfigClass): SoloListrTask<OneShotSingleDeployContext> =>
@@ -466,7 +453,6 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
                 CacheCommandDefinition.IMAGE_PULL_COMMAND,
                 (): string[] => DeployArgvBuilders.buildImagePullArgv(getConfig()),
                 this.taskList,
-                (): boolean => !constants.CONFIG.ENABLE_IMAGE_CACHE,
               ),
           }),
           new OrchestratorPipelinePhase('Load docker images', {
@@ -476,9 +462,19 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
                 CacheCommandDefinition.IMAGE_LOAD_COMMAND,
                 (): string[] => DeployArgvBuilders.buildImageLoadArgv(getConfig()),
                 this.taskList,
-                (): boolean => !constants.CONFIG.ENABLE_IMAGE_CACHE,
               ),
           }),
+        ],
+        OrchestratorPipelinePhase.EXECUTION_MODE.SEQUENTIAL,
+        true,
+        undefined,
+        // Skip the whole group when the image cache is disabled.
+        (): boolean => !constants.CONFIG.ENABLE_IMAGE_CACHE,
+        (getConfig: () => OneShotSingleDeployConfigClass): boolean => getConfig()?.parallelDeploy === true,
+      ),
+      OrchestratorPipelinePhase.composite(
+        'Prepare cluster and deployment',
+        [
           new OrchestratorPipelinePhase('Cluster connect', {
             asListrTask: (getConfig: () => OneShotSingleDeployConfigClass): SoloListrTask<OneShotSingleDeployContext> =>
               invokeSoloCommand(
@@ -625,24 +621,18 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
         'Deploy Solo components',
         [
           new OrchestratorPipelinePhase('Deploy block node', {
-            asListrTask: (
-              getConfig: () => OneShotSingleDeployConfigClass,
-            ): SoloListrTask<OneShotSingleDeployContext> => {
-              const skipAndNotify: () => boolean = (): boolean => {
-                const shouldSkip: boolean = !DeployArgvBuilders.shouldDeployBlockNode(getConfig());
-                if (shouldSkip) {
-                  this.eventBus.emit(new BlockNodeDeployedEvent(getConfig().deployment));
-                }
-                return shouldSkip;
-              };
-              return invokeSoloCommand(
+            asListrTask: (getConfig: () => OneShotSingleDeployConfigClass): SoloListrTask<OneShotSingleDeployContext> =>
+              invokeSoloCommand(
                 `solo ${BlockCommandDefinition.ADD_COMMAND}`,
                 BlockCommandDefinition.ADD_COMMAND,
                 (): string[] => DeployArgvBuilders.buildBlockNodeArgv(getConfig()),
                 this.taskList,
-                skipAndNotify,
-              );
-            },
+                OrchestratorPipelinePhase.skipAndNotify(
+                  this.eventBus,
+                  (): boolean => !DeployArgvBuilders.shouldDeployBlockNode(getConfig()),
+                  [(): BlockNodeDeployedEvent => new BlockNodeDeployedEvent(getConfig().deployment)],
+                ),
+              ),
           }),
           OrchestratorPipelinePhase.composite('Deploy network node', [
             new OrchestratorPipelinePhase('Deploy consensus node', {
@@ -696,7 +686,9 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
                 MirrorCommandDefinition.ADD_COMMAND,
                 (): string[] => DeployArgvBuilders.buildMirrorNodeArgv(getConfig(), false),
                 this.taskList,
-                (): boolean => !getConfig().deployMirrorNode,
+                OrchestratorPipelinePhase.skipAndNotify(this.eventBus, (): boolean => !getConfig().deployMirrorNode, [
+                  (): MirrorNodeDeployedEvent => new MirrorNodeDeployedEvent(getConfig().deployment),
+                ]),
               ),
           }),
           new OrchestratorPipelinePhase('Enable mirror pinger', {
@@ -760,17 +752,17 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             this.logger.info(`Output directory: ${outputDirectory}`);
             this.showOneShotUserNotes(context_, PathEx.join(outputDirectory, 'notes'));
             this.showVersions(PathEx.join(outputDirectory, 'versions'), deployConfig);
+            await this.exposeNodePortServices(deployConfig);
             this.showPortForwards(PathEx.join(outputDirectory, 'forwards'));
+            this.showCacheImageFailures();
             this.showAccounts(context_.createdAccounts, context_, PathEx.join(outputDirectory, 'accounts.json'));
-            this.cacheDeploymentName(context_, PathEx.join(constants.SOLO_CACHE_DIR, 'last-one-shot-deployment.txt'));
           },
         }),
       }),
     ];
 
-    // In parallel mode the components are collapsed to single lines (showSubtasks: false). The
-    // default renderer draws a static pointer for a running task that still has (hidden) subtasks,
-    // so animate those collapsed lines with a spinner instead.
+    // In parallel mode the components are collapsed to single lines (showSubtasks: false) since their
+    // concurrent subtrees would otherwise interleave.
     const parallel: boolean = argv[flags.parallelDeploy.name] !== false;
 
     return new OrchestratorPipeline<OneShotSingleDeployContext>(
@@ -895,7 +887,8 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
 
   /**
    * Returns true when the snapshot shows any pre-existing one-shot deployment state: a remote ConfigMap,
-   * any installed component Helm release, an accounts.json on disk, or any per-component phase at or beyond
+   * a recorded deployment whose remote ConfigMap has gone missing on a kind cluster, any installed
+   * component Helm release, an accounts.json on disk, or any per-component phase at or beyond
    * DEPLOYED. Used to trigger an auto-clean before a fresh deploy: one-shot deploy rebuilds from a
    * clean slate rather than resuming prior state — see the "Auto-clean existing deployment state" step.
    */
@@ -905,6 +898,7 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
     }
     if (
       snapshot.remoteConfig.configMapExists ||
+      snapshot.remoteConfig.orphanedOnKindCluster ||
       snapshot.helm.installedReleases.size > 0 ||
       snapshot.accounts.accountsFileExists
     ) {
@@ -943,15 +937,64 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
       this.logger.info('Helm releases unavailable during snapshot, treating as fresh deploy');
     }
 
+    const orphanedOnKindCluster: boolean = configMapExists
+      ? false
+      : await this.isRemoteConfigOrphanedOnKindCluster(deployConfig);
+
     const accountsFileExists: boolean = fs.existsSync(
       PathEx.join(this.getOneShotOutputDirectory(deployConfig.deployment), 'accounts.json'),
     );
 
     return {
-      remoteConfig: {configMapExists, componentPhases},
+      remoteConfig: {configMapExists, componentPhases, orphanedOnKindCluster},
       helm: {installedReleases},
       accounts: {accountsFileExists},
     };
+  }
+
+  /**
+   * Returns true when the local config records a deployment against this kind cluster whose remote
+   * config ConfigMap is provably absent, leaving the recorded deployment impossible to resume.
+   */
+  private async isRemoteConfigOrphanedOnKindCluster(deployConfig: OneShotSingleDeployConfigClass): Promise<boolean> {
+    try {
+      if (!Helpers.isKindContext(deployConfig.context, this.k8Factory)) {
+        return false;
+      }
+
+      const recordedDeployment: Deployment | undefined = this.localConfig.configuration.deployments.find(
+        (deployment: Deployment): boolean => deployment.name === deployConfig.deployment,
+      );
+
+      if (!recordedDeployment) {
+        return false;
+      }
+
+      const attachedToThisCluster: boolean = recordedDeployment.clusters.some(
+        (clusterReference: StringFacade): boolean =>
+          this.localConfig.configuration.clusterRefs.get(clusterReference.toString())?.toString() ===
+          deployConfig.context,
+      );
+
+      if (!attachedToThisCluster) {
+        return false;
+      }
+
+      const remoteConfigExists: boolean = await this.k8Factory
+        .getK8(deployConfig.context)
+        .configMaps()
+        .exists(NamespaceName.of(recordedDeployment.namespace), constants.SOLO_REMOTE_CONFIGMAP_NAME);
+
+      return !remoteConfigExists;
+    } catch (error) {
+      // Cannot prove the ConfigMap is absent, so do not claim leftover state and risk destroying a
+      // deployment that is merely unreachable.
+      this.logger.info(
+        `Could not determine whether the remote config is missing for deployment '${deployConfig.deployment}', treating it as present`,
+        error,
+      );
+      return false;
+    }
   }
 
   private showOneShotUserNotes(context_: OneShotSingleDeployContext, outputFile?: string): void {
@@ -1008,6 +1051,112 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
       createDirectoryIfNotExists(outputFile);
       fs.writeFileSync(outputFile, fileData);
       this.logger.showUser(chalk.green(`Versions used saved to file: ${outputFile}`));
+    }
+  }
+
+  // Surfaces any images that failed to cache or load during the run. Only shown when there were
+  // failures, so a clean run prints nothing.
+  private showCacheImageFailures(): void {
+    if (this.logger.getMessageGroupKeys().includes(constants.CACHE_IMAGE_FAILURE_MESSAGE_GROUP)) {
+      this.logger.showMessageGroup(constants.CACHE_IMAGE_FAILURE_MESSAGE_GROUP, MessageLevel.WARN);
+    }
+  }
+
+  /**
+   * Exposes the one-shot endpoints through the Kind cluster's extraPortMappings instead of kubectl
+   * port-forward tunnels, and adds their stable access URLs to the port-forwarding message group
+   * (reused so showPortForwards renders and files them). The mirror node is already exposed via its
+   * ingress-controller NodePort values file; for the explorer, JSON RPC relay, and consensus node
+   * gRPC this creates a fixed-NodePort service selecting the component's pods. NodePort and host
+   * port values must match resources/templates/small-memory/kind-config.yaml.
+   */
+  private async exposeNodePortServices(config: OneShotSingleDeployConfigClass): Promise<void> {
+    if (!config.clusterHasOneShotPortMappings) {
+      // The Kind cluster pre-existed (or used a custom config), so the one-shot host port mappings
+      // are absent; the subcommands kept their legacy kubectl port-forwards instead.
+      return;
+    }
+
+    if (!this.logger.getMessageGroupKeys().includes(constants.PORT_FORWARDING_MESSAGE_GROUP)) {
+      this.logger.addMessageGroup(constants.PORT_FORWARDING_MESSAGE_GROUP, 'Port forwarding enabled');
+    }
+
+    // Only node1 gets a static gRPC host mapping — Kind extraPortMappings are fixed at cluster
+    // creation, so additional consensus nodes cannot be mapped afterwards.
+    // Fresh one-shot deploys always assign component id 1 to their single explorer/relay instance.
+    const nodePortTargets: {
+      deployed: boolean;
+      hostPort: number;
+      label: string;
+      nodePort: number;
+      podPort: number;
+      selectorLabels: string[];
+      serviceName: string;
+    }[] = [
+      {
+        deployed: true,
+        hostPort: constants.ONE_SHOT_CONSENSUS_GRPC_HOST_PORT,
+        label: 'Consensus Node gRPC',
+        nodePort: constants.ONE_SHOT_CONSENSUS_GRPC_NODE_PORT,
+        podPort: constants.GRPC_PORT,
+        selectorLabels: Templates.renderHaProxyLabels(1),
+        serviceName: 'one-shot-consensus-grpc-nodeport',
+      },
+      {
+        deployed: config.deployExplorer || config.minimalSetup,
+        hostPort: constants.ONE_SHOT_EXPLORER_HOST_PORT,
+        label: 'Explorer',
+        nodePort: constants.ONE_SHOT_EXPLORER_NODE_PORT,
+        podPort: constants.EXPLORER_PORT,
+        selectorLabels: Templates.renderExplorerLabels(1),
+        serviceName: 'one-shot-explorer-nodeport',
+      },
+      {
+        deployed: config.deployRelay || config.minimalSetup,
+        hostPort: constants.ONE_SHOT_RELAY_HOST_PORT,
+        label: 'JSON RPC Relay',
+        nodePort: constants.ONE_SHOT_RELAY_NODE_PORT,
+        podPort: constants.JSON_RPC_RELAY_PORT,
+        selectorLabels: Templates.renderRelayLabels(1),
+        serviceName: 'one-shot-relay-nodeport',
+      },
+    ];
+
+    for (const target of nodePortTargets) {
+      if (!target.deployed) {
+        continue;
+      }
+      const selector: Record<string, string> = Object.fromEntries(
+        target.selectorLabels.map((labelPair: string): string[] => labelPair.split('=')),
+      ) as Record<string, string>;
+      try {
+        await this.k8Factory
+          .getK8(config.context)
+          .services()
+          .create(
+            ServiceReference.of(config.namespace, ServiceName.of(target.serviceName)),
+            {'app.kubernetes.io/managed-by': 'solo-one-shot'},
+            target.podPort,
+            target.podPort,
+            selector,
+            target.nodePort,
+          );
+      } catch (error) {
+        // best-effort: the service may already exist from a previous run of this task; warn instead
+        // of failing the whole deploy so a re-run stays idempotent.
+        this.logger.warn(`Failed to create NodePort service ${target.serviceName}: ${error.message}`);
+      }
+      this.logger.addMessageGroupMessage(
+        constants.PORT_FORWARDING_MESSAGE_GROUP,
+        `${target.label} available on ${constants.LOCAL_HOST}:${target.hostPort} (NodePort)`,
+      );
+    }
+
+    if (config.deployMirrorNode) {
+      this.logger.addMessageGroupMessage(
+        constants.PORT_FORWARDING_MESSAGE_GROUP,
+        `Mirror Node REST API available on ${constants.LOCAL_HOST}:${constants.ONE_SHOT_MIRROR_REST_HOST_PORT} (NodePort)`,
+      );
     }
   }
 
@@ -1162,16 +1311,37 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
     }
   }
 
-  private cacheDeploymentName(context: OneShotSingleDeployContext, outputFile: string): void {
-    fs.writeFileSync(outputFile, context.config.deployment);
-    this.logger.showUser(chalk.green(`Deployment name (${context.config.deployment}) saved to file: ${outputFile}`));
+  /**
+   * The per-component sections of a values file (network, blockNode, mirrorNode, explorerNode,
+   * relayNode) can override a component's version independently of the `config.versions` resolved
+   * from argv/defaults. Reconciles config.versions with those overrides, mirroring the same
+   * override precedence the deploy argv builders use, so the "Versions Used" summary reflects what
+   * is actually deployed.
+   */
+  private reconcileEffectiveVersions(config: OneShotSingleDeployConfigClass): void {
+    const releaseTagKey: string = flags.getFormattedFlagKey(flags.consensusNodeVersion);
+    const soloChartVersionKey: string = flags.getFormattedFlagKey(flags.soloChartVersion);
+    const blockNodeVersionKey: string = flags.getFormattedFlagKey(flags.blockNodeVersion);
+    const mirrorNodeVersionKey: string = flags.getFormattedFlagKey(flags.mirrorNodeVersion);
+    const explorerVersionKey: string = flags.getFormattedFlagKey(flags.explorerVersion);
+    const relayVersionKey: string = flags.getFormattedFlagKey(flags.relayVersion);
+
+    config.versions.consensus = (config.networkConfiguration[releaseTagKey] as string) ?? config.versions.consensus;
+    config.versions.soloChart =
+      (config.networkConfiguration[soloChartVersionKey] as string) ?? config.versions.soloChart;
+    config.versions.blockNode =
+      (config.blockNodeConfiguration[blockNodeVersionKey] as string) ?? config.versions.blockNode;
+    config.versions.mirror = (config.mirrorNodeConfiguration[mirrorNodeVersionKey] as string) ?? config.versions.mirror;
+    config.versions.explorer =
+      (config.explorerNodeConfiguration[explorerVersionKey] as string) ?? config.versions.explorer;
+    config.versions.relay = (config.relayNodeConfiguration[relayVersionKey] as string) ?? config.versions.relay;
   }
 
   private async confirmNonKindContext(
     config: OneShotSingleDeployConfigClass,
     task: SoloListrTaskWrapper<OneShotSingleDeployContext>,
   ): Promise<void> {
-    if (config.quiet === true || this.isKindContext(config.context)) {
+    if (config.quiet === true || Helpers.isKindContext(config.context, this.k8Factory)) {
       return;
     }
 
@@ -1185,14 +1355,13 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
     }
   }
 
-  private isKindContext(context: string): boolean {
-    return context.startsWith('kind-');
-  }
-
   private buildAutoCleanConfirmationMessage(snapshot: DeploymentStateSnapshot | undefined): string {
     const detected: string[] = [];
     if (snapshot?.remoteConfig.configMapExists) {
       detected.push('  - remote config (ConfigMap)');
+    }
+    if (snapshot?.remoteConfig.orphanedOnKindCluster) {
+      detected.push('  - a deployment in the local config whose remote config (ConfigMap) is missing');
     }
     if (snapshot && snapshot.helm.installedReleases.size > 0) {
       detected.push(`  - Helm releases: ${[...snapshot.helm.installedReleases].join(', ')}`);

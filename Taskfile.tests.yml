@@ -60,6 +60,22 @@ tasks:
         {{ .mocha_bin }} 'test/e2e/integration/**/*.ts'
         {{ .reporter_options_prefix }}-e2e-integration.xml"
 
+  test-install-validation:
+    desc: "Runs the per-distribution system-dependency install validation and generates reports in coverage/install-validation"
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha Install Validation Tests\"
+        {{ .reporter_prefix }}='coverage/install-validation'
+        {{ .mocha_bin }} 'test/e2e/integration/core/package-managers/os-package-manager-install.test.ts'
+        {{ .reporter_options_prefix }}-install-validation.xml --timeout 300000"
+
+  test-podman-runtime-validation:
+    desc: "Runs the Homebrew/podman container-runtime validation and generates reports in coverage/podman-runtime-validation"
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha Podman Runtime Validation Tests\"
+        {{ .reporter_prefix }}='coverage/podman-runtime-validation'
+        {{ .mocha_bin }} 'test/e2e/integration/core/package-managers/brew-podman-install.test.ts'
+        {{ .reporter_options_prefix }}-podman-runtime-validation.xml --timeout 600000"
+
   test-e2e-leases:
     desc: "Runs E2E lease tests with coverage and generates reports in coverage/e2e-leases"
     cmds:
@@ -169,10 +185,10 @@ tasks:
           {{ .reporter_options_prefix }}-e2e-performance.xml
 
   test-e2e-small-memory-load:
-    desc: "Runs E2E Small Memory Load test — CN v0.74 with NLG v0.14.0 throttle-protected load"
+    desc: "Runs E2E Small Memory Load test — CN with NLG v0.14.1 throttle-protected load"
     env:
-      CONSENSUS_NODE_VERSION: v0.74.0
-      NETWORK_LOAD_GENERATOR_CHART_VERSION: "0.14.0"
+      CONSENSUS_NODE_VERSION: v0.75.1
+      NETWORK_LOAD_GENERATOR_CHART_VERSION: "0.14.1"
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Small Memory Load Test\"
         {{ .reporter_prefix }}='coverage/e2e-small-memory-load'

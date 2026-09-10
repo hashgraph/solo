@@ -16,6 +16,11 @@ export class DefaultSoloEventBus implements SoloEventBus {
   private readonly emitter: NodeEventEmitter = new NodeEventEmitter();
   // Keep an in-memory log of all emitted events, grouped by event type.
   private readonly history: Map<SoloEventType, AnySoloEvent[]> = new Map();
+  // Set once a phase fails; the root cause is preserved (first-in wins) and reported to the caller.
+  private aborted: boolean = false;
+  private abortReasonError: Error | undefined = undefined;
+  // Cancel callbacks for in-flight waitFor promises, invoked on abort to fail them fast.
+  private readonly pendingWaiters: Set<(reason: Error) => void> = new Set();
 
   public constructor(@inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
@@ -54,74 +59,130 @@ export class DefaultSoloEventBus implements SoloEventBus {
     }
   }
 
+  public abort(reason: Error): void {
+    // First-in wins: keep the root cause and ignore later, cascading failures.
+    if (this.aborted) {
+      return;
+    }
+    this.aborted = true;
+    this.abortReasonError = reason;
+    this.logger.debug(`DefaultSoloEventBus.abort: reason=${reason.message}`);
+    const waiters: Array<(reason: Error) => void> = [...this.pendingWaiters];
+    this.pendingWaiters.clear();
+    for (const cancel of waiters) {
+      cancel(reason);
+    }
+  }
+
+  public abortReason(): Error | undefined {
+    return this.abortReasonError;
+  }
+
+  public reset(): void {
+    this.aborted = false;
+    this.abortReasonError = undefined;
+    this.pendingWaiters.clear();
+    this.history.clear();
+  }
+
   public async waitFor<T extends AnySoloEvent>(
     type: SoloEventType,
     predicate?: (event: T) => boolean,
     timeout: Duration = Duration.ofSeconds(60),
   ): Promise<T> {
     return new Promise<T>((resolve: (value: T | PromiseLike<T>) => void, reject: (reason: unknown) => void): void => {
+      // If a phase has already failed, fail fast instead of waiting until the timeout.
+      if (this.aborted) {
+        reject(new SoloErrors.internal.pipelineCancelled(this.abortReasonError as Error));
+        return;
+      }
+
+      // Ensure we only settle once, whether via handler, history check, timeout, or abort.
+      let settled: boolean = false;
+
       const timer: NodeJS.Timeout = setTimeout((): void => {
-        this.emitter.off(type, handler as (...arguments_: unknown[]) => void);
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
         reject(
           new SoloErrors.system.timeout(
             `waitFor timed out after ${timeout.toMillis()}ms waiting for event type: ${String(type)}`,
           ),
         );
       }, timeout.toMillis());
-      // Ensure we only resolve once if handler and history check race.
-      let settled: boolean = false;
-      // Register handler first to avoid missing events that arrive while
-      // we're checking the history.
+
       const handler: (event: T) => void = (event: T): void => {
+        let matches: boolean;
         try {
-          if (!predicate || predicate(event)) {
-            if (settled) {
-              return;
-            }
-            settled = true;
-            clearTimeout(timer);
-            this.emitter.off(type, handler as (...arguments_: unknown[]) => void);
-            resolve(event);
-          }
+          matches = !predicate || predicate(event);
         } catch (error) {
-          clearTimeout(timer);
-          this.emitter.off(type, handler as (...arguments_: unknown[]) => void);
+          if (settled) {
+            return;
+          }
+          settled = true;
+          cleanup();
           reject(
             new SoloErrors.system.containerOperationFailed(
               `waitFor handler predicate for event type: ${String(type)}`,
               error,
             ),
           );
+          return;
         }
+        if (!matches || settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        resolve(event);
       };
 
+      // Invoked by abort() so a sibling phase's failure fails this waiter fast.
+      const cancel: (reason: Error) => void = (reason: Error): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        reject(new SoloErrors.internal.pipelineCancelled(reason));
+      };
+
+      const cleanup: () => void = (): void => {
+        clearTimeout(timer);
+        this.emitter.off(type, handler as (...arguments_: unknown[]) => void);
+        this.pendingWaiters.delete(cancel);
+      };
+
+      // Register handler first to avoid missing events that arrive while we're checking the history.
       this.emitter.on(type, handler as (...arguments_: unknown[]) => void);
+      this.pendingWaiters.add(cancel);
 
       // Then check the history for already-emitted events (newest first).
       const events: AnySoloEvent[] | undefined = this.history.get(type);
       if (events) {
-        for (let index: number = events.length - 1; index >= 0; index--) {
+        for (let index: number = events.length - 1; index >= 0 && !settled; index--) {
           const candidate: T = events[index] as T;
+          let matches: boolean;
           try {
-            if (!predicate || predicate(candidate)) {
-              if (settled) {
-                return;
-              }
-              settled = true;
-              clearTimeout(timer);
-              this.emitter.off(type, handler as (...arguments_: unknown[]) => void);
-              resolve(candidate);
-              return;
-            }
+            matches = !predicate || predicate(candidate);
           } catch (error) {
-            clearTimeout(timer);
-            this.emitter.off(type, handler as (...arguments_: unknown[]) => void);
+            settled = true;
+            cleanup();
             reject(
               new SoloErrors.system.containerOperationFailed(
                 `waitFor history check predicate for event type: ${String(type)}`,
                 error,
               ),
             );
+            return;
+          }
+          if (matches) {
+            settled = true;
+            cleanup();
+            resolve(candidate);
+            return;
           }
         }
       }

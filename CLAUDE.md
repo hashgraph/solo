@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Solo (`@hiero-ledger/solo`) is a CLI tool for deploying and managing private Hedera Networks on Kubernetes. It orchestrates consensus nodes, mirror nodes, block explorers, and JSON-RPC relays via Helm charts on Kind clusters.
+Solo (`@hiero-ledger/solo`) is a CLI tool for deploying and managing private Hedera Networks on Kubernetes. It orchestrates consensus nodes, mirror nodes, block explorers, and JSON-RPC relays via Helm charts and Kubernetes APIs.
 
 - **Language:** TypeScript (ES2022, ESM)
 - **Runtime:** Node.js >= 22.0.0
@@ -57,9 +57,9 @@ The codebase follows a layered, command-driven architecture with dependency inje
 
 ### Layer Overview
 
-1. **`src/commands/`** — 14 CLI commands (account, deployment, network, node, cluster, block-node, explorer, mirror-node, relay, one-shot, backup-restore, rapid-fire, file). Each command extends `BaseCommand`. Command schemas are in `src/commands/command-definitions/`.
+1. **`src/commands/`** — 14 CLI commands (account, deployment, network, node, cluster, block-node, explorer, mirror-node, relay, one-shot, backup-restore, rapid-fire, file). Each command extends `BaseCommand` and implements command-specific workflows.
 
-2. **`src/core/`** — ~95 services: `account-manager.ts`, `config-manager.ts`, `chart-manager.ts`, `key-manager.ts`, `lock/` (distributed leases), `logging/` (Pino), `dependency-managers/` (installs Helm, Kind, kubectl), `dependency-injection/` (service container + `InjectTokens`).
+2. **`src/core/`** — ~95 services: `account-manager.ts`, `config-manager.ts`, `chart-manager.ts`, `key-manager.ts`, `lock/` (distributed leases), `logging/` (Pino), `dependency-managers/` (installation checks and dynamic command loading).
 
 3. **`src/integration/`** — External system clients: `kubernetes/` (K8s API wrapper), `helm/` (Helm chart execution), `kind/` (cluster provisioning), `git/`, `npm/`.
 
@@ -81,13 +81,13 @@ There are two categories of environment variables to keep in sync with `docs/sit
 
 ### 1. Direct env vars
 
-When adding, removing, or modifying environment variables consumed via `getEnvironmentVariable()` in `src/**/*.ts` or `version.ts`, update `env.md`. Each entry must include the variable name, a short description, and its default value (as defined in the source).
+When adding, removing, or modifying environment variables consumed via `getEnvironmentVariable()` in `src/**/*.ts` or `version.ts`, update `env.md`. Each entry must include the variable name, a short description, accepted/default values, and where it is used.
 
 ### 2. Config-system env vars
 
-The layered config system (`EnvironmentConfigSource`, prefix `SOLO`) allows environment variables to override any `@Expose()`d field on `SoloConfigSchema` and its nested schemas (`HelmChartSchema`, `TssSchema`, `WrapsSchema`). When adding, renaming, or removing `@Expose()`d properties on these schema classes, update `env.md` to reflect the corresponding env var.
+The layered config system (`EnvironmentConfigSource`, prefix `SOLO`) allows environment variables to override any `@Expose()`d field on `SoloConfigSchema` and its nested schemas (`HelmChartSchema`, etc.). Keep `env.md` updated for any user-facing config fields that can be overridden this way.
 
-**Naming convention:** Each camelCase property name segment is converted to `UPPER-KEBAB-CASE` (dashes separate words within a segment); schema object nesting levels are joined with `_`; the whole thing is prefixed with `SOLO_`.
+**Naming convention:** Each camelCase property name segment is converted to `UPPER-KEBAB-CASE` (dashes separate words within a segment); schema object nesting levels are joined with `_`; the whole key is prefixed with `SOLO_`.
 
 | Config property path           | Env var                               |
 | ------------------------------ | ------------------------------------- |
@@ -96,6 +96,14 @@ The layered config system (`EnvironmentConfigSource`, prefix `SOLO`) allows envi
 | `tss.wraps.libraryDownloadUrl` | `SOLO_TSS_WRAPS_LIBRARY-DOWNLOAD-URL` |
 
 This is **not** the same as plain `UPPER_SNAKE_CASE` — dashes within a segment represent camelCase word boundaries, not underscores.
+
+**Environment variable aliases.** Because the generated names are awkward (embedded dashes) and cannot
+match legacy fixed names, a field may also declare one or more fixed alias env var names with the
+`@EnvironmentAliasRegistry.alias('SOLO_TSS_READY_MAX_ATTEMPTS')` property decorator (see
+`src/data/schema/decorators/environment-alias-registry.ts`). The generated `SOLO_*` name always takes
+precedence; the alias applies only when the generated name is absent, and using an alias logs a notice.
+Aliases may only be placed on a uniquely-typed schema field (a reused type such as `HelmChartSchema`
+fails fast). When adding/removing an alias, keep this section and any env var docs in sync.
 
 ## Architecture and Design
 
@@ -199,6 +207,70 @@ TypeScript style guide bans empty or unexplained catch blocks.
 
 This applies even when the catch body contains statements — the comment documents the *intent*,
 not just the code.
+
+### Error Handling — Always Use a Registered `SoloErrors` Subclass
+
+Every error thrown in `src/` must be a dedicated subclass of `SoloError` registered in the
+`SoloErrors` namespace. **Never** throw `new SoloError(message)` directly or `new Error(message)`.
+The base class lacks the required `code` and `troubleshootingSteps` fields that users and operators
+depend on for diagnosis.
+
+**The three-step pattern:**
+
+1. **Create the error class** in `src/core/errors/classes/<category>/<name>-solo-error.ts`:
+
+```typescript
+// src/core/errors/classes/validation/backup-database-dump-not-found-solo-error.ts
+export class BackupDatabaseDumpNotFoundSoloError extends SoloError {
+  protected override readonly retryable: boolean = false;
+  protected override readonly ownership: ErrorOwnership = ErrorOwnership.User;
+
+  public constructor(dumpPath: string) {
+    super({
+      message: `Database dump required for restore but not found at ${dumpPath}`,
+      code: ErrorCodeRegistry.BACKUP_DATABASE_DUMP_NOT_FOUND,
+      troubleshootingSteps:
+        'Create the backup with --backup-external-database\n' +
+        'Restore from the extracted backup directory, not a zip file',
+    });
+  }
+}
+```
+
+2. **Register a new code** in `src/core/errors/error-code-registry.ts`.
+
+3. **Register and throw** via `SoloErrors.<category>` in `src/core/errors/solo-errors.ts`:
+
+```typescript
+// call site:
+throw new SoloErrors.validation.backupDatabaseDumpNotFound(dumpPath);
+```
+
+See `src/core/errors/classes/validation/backup-no-log-files-solo-error.ts` as a reference for the
+full class shape. The `SoloErrors` namespace in `solo-errors.ts` shows how to wire the import and
+factory entry.
+
+**Exception:** `KubeApiResponse.throwError` is the correct wrapper for K8s API errors — do not
+replace it with a raw `SoloError`.
+
+### Pin All Container Image Tags
+
+Every container image reference in this repository — whether in TypeScript source (init-container spec
+objects), shell-script heredocs, Helm values files, or Kubernetes manifests — **must** include an exact
+version tag. Floating tags (`busybox`, `alpine`, `latest`, `stable`) are forbidden because they can pull
+a different image on every deploy without any code change, creating a silent supply-chain risk.
+
+```yaml
+# wrong
+image: busybox
+
+# correct
+image: busybox:1.36.1
+```
+
+The same rule applies to package manager dependencies in `package.json`, Helm chart versions in
+`version.ts`, and any other pinned-version registry: always specify an exact version, never a range
+or mutable alias, unless the project has an explicit policy permitting ranges for that dependency type.
 
 ### Shell Scripts in `.github/` — SPDX Header Required
 

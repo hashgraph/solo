@@ -12,6 +12,23 @@
 
 An opinionated CLI tool to deploy and manage standalone test networks.
 
+## Homebrew Deprecation Notice
+
+**Warning: Homebrew support for Solo is being removed.** The Solo Homebrew formula will stop being updated after **August 31, 2026**; releases published after that date will only be available from npm.
+
+Install and upgrade Solo with npm instead:
+
+```bash
+npm install -g @hiero-ledger/solo
+```
+
+If Solo is currently installed with Homebrew, switch over with:
+
+```bash
+brew uninstall solo
+npm install -g @hiero-ledger/solo
+```
+
 ## Releases
 
 Solo releases are supported for one month after their release date. LTS (Long-Term Support) versions are supported for three months. Upgrade to the latest version to benefit from new features and improvements. 
@@ -20,17 +37,16 @@ Solo releases are supported for one month after their release date. LTS (Long-Te
 
 | Solo Version | Node.js             | Consensus Node | Kubernetes | Docker Resources               | Release Date | End of Support |
 |--------------|---------------------|----------------|------------|--------------------------------|--------------|----------------|
+| 0.88.0       | >= 22.0.0 (lts/jod) | v0.75.1        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-08-25   | 2026-09-25     |
+| 0.87.0       | >= 22.0.0 (lts/jod) | v0.75.1        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-08-18   | 2026-09-18     |
+| 0.86.0       | >= 22.0.0 (lts/jod) | v0.74.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-08-12   | 2026-09-12     |
+| 0.85.0       | >= 22.0.0 (lts/jod) | v0.74.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-08-04   | 2026-09-04     |
+| 0.84.0 (LTS) | >= 22.0.0 (lts/jod) | v0.74.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-07-28   | 2026-10-28     |
+| 0.82.0 (LTS) | >= 22.0.0 (lts/jod) | v0.74.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-07-14   | 2026-10-14     |
 | 0.80.0 (LTS) | >= 22.0.0 (lts/jod) | v0.74.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-06-30   | 2026-09-30     |
-| 0.79.0       | >= 22.0.0 (lts/jod) | v0.74.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-06-23   | 2026-07-23     |
 | 0.78.0 (LTS) | >= 22.0.0 (lts/jod) | v0.74.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-06-16   | 2026-09-16     |
-| 0.77.0       | >= 22.0.0 (lts/jod) | v0.73.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-06-03   | 2026-07-03     |
 | 0.76.0 (LTS) | >= 22.0.0 (lts/jod) | v0.73.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-06-02   | 2026-09-02     |
-| 0.75.0       | >= 22.0.0 (lts/jod) | v0.73.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-06-02   | 2026-07-02     |
 | 0.74.0 (LTS) | >= 22.0.0 (lts/jod) | v0.73.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-05-26   | 2026-08-26     |
-| 0.72.0 (LTS) | >= 22.0.0 (lts/jod) | v0.71.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-05-05   | 2026-08-05     |
-| 0.70.0 (LTS) | >= 22.0.0 (lts/jod) | v0.71.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-04-28   | 2026-07-28     |
-| 0.68.0 (LTS) | >= 22.0.0 (lts/jod) | v0.71.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-04-07   | 2026-07-07     |
-| 0.66.0 (LTS) | >= 22.0.0 (lts/jod) | v0.71.0        | >= v1.32.2 | Memory >= 12GB, CPU cores >= 6 | 2026-04-02   | 2026-07-02     |
 
 To see a list of legacy releases, please check the [legacy versions documentation page](legacy-versions.md).
 

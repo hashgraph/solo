@@ -62,7 +62,9 @@ describe('GitHubApiClient', (): void => {
 
     it('adds Authorization header when GITHUB_TOKEN is set', async (): Promise<void> => {
       const originalToken: string | undefined = process.env.GITHUB_TOKEN;
+      const originalGhToken: string | undefined = process.env.GH_TOKEN;
       process.env.GITHUB_TOKEN = 'test-token';
+      delete process.env.GH_TOKEN;
       try {
         fetchStub.resolves(makeOkResponse());
 
@@ -77,12 +79,71 @@ describe('GitHubApiClient', (): void => {
         } else {
           process.env.GITHUB_TOKEN = originalToken;
         }
+        if (originalGhToken === undefined) {
+          delete process.env.GH_TOKEN;
+        } else {
+          process.env.GH_TOKEN = originalGhToken;
+        }
       }
     });
 
-    it('omits Authorization header when GITHUB_TOKEN is not set', async (): Promise<void> => {
+    it('adds Authorization header when only GH_TOKEN is set', async (): Promise<void> => {
       const originalToken: string | undefined = process.env.GITHUB_TOKEN;
+      const originalGhToken: string | undefined = process.env.GH_TOKEN;
       delete process.env.GITHUB_TOKEN;
+      process.env.GH_TOKEN = 'gh-test-token';
+      try {
+        fetchStub.resolves(makeOkResponse());
+
+        await GitHubApiClient.get('https://api.github.com/test');
+
+        const requestInit: RequestInit = fetchStub.firstCall.args[1] as RequestInit;
+        const headers: Record<string, string> = requestInit.headers as Record<string, string>;
+        expect(headers['Authorization']).to.equal('Bearer gh-test-token');
+      } finally {
+        if (originalToken !== undefined) {
+          process.env.GITHUB_TOKEN = originalToken;
+        }
+        if (originalGhToken === undefined) {
+          delete process.env.GH_TOKEN;
+        } else {
+          process.env.GH_TOKEN = originalGhToken;
+        }
+      }
+    });
+
+    it('prefers GITHUB_TOKEN over GH_TOKEN', async (): Promise<void> => {
+      const originalToken: string | undefined = process.env.GITHUB_TOKEN;
+      const originalGhToken: string | undefined = process.env.GH_TOKEN;
+      process.env.GITHUB_TOKEN = 'github-token';
+      process.env.GH_TOKEN = 'gh-token';
+      try {
+        fetchStub.resolves(makeOkResponse());
+
+        await GitHubApiClient.get('https://api.github.com/test');
+
+        const requestInit: RequestInit = fetchStub.firstCall.args[1] as RequestInit;
+        const headers: Record<string, string> = requestInit.headers as Record<string, string>;
+        expect(headers['Authorization']).to.equal('Bearer github-token');
+      } finally {
+        if (originalToken === undefined) {
+          delete process.env.GITHUB_TOKEN;
+        } else {
+          process.env.GITHUB_TOKEN = originalToken;
+        }
+        if (originalGhToken === undefined) {
+          delete process.env.GH_TOKEN;
+        } else {
+          process.env.GH_TOKEN = originalGhToken;
+        }
+      }
+    });
+
+    it('omits Authorization header when GITHUB_TOKEN and GH_TOKEN are not set', async (): Promise<void> => {
+      const originalToken: string | undefined = process.env.GITHUB_TOKEN;
+      const originalGhToken: string | undefined = process.env.GH_TOKEN;
+      delete process.env.GITHUB_TOKEN;
+      delete process.env.GH_TOKEN;
       try {
         fetchStub.resolves(makeOkResponse());
 
@@ -94,6 +155,9 @@ describe('GitHubApiClient', (): void => {
       } finally {
         if (originalToken !== undefined) {
           process.env.GITHUB_TOKEN = originalToken;
+        }
+        if (originalGhToken !== undefined) {
+          process.env.GH_TOKEN = originalGhToken;
         }
       }
     });

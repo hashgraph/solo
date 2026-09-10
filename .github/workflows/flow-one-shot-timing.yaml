@@ -101,6 +101,10 @@ on:
         type: number
         required: false
         default: 3
+    secrets:
+      SLACK_TEST_WEBHOOK:
+        description: "Webhook used by the Send Slack Notification step to post the timing summary"
+        required: false
 
 defaults:
   run:
@@ -118,20 +122,22 @@ jobs:
     runs-on: hiero-solo-linux-large
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
 
       - name: Checkout Code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
-          node-version: 22
+          node-version: 24
           cache: 'npm'
 
       - name: Install Dependencies
@@ -142,7 +148,7 @@ jobs:
           command: npm ci
 
       - name: Install Task
-        uses: arduino/setup-task@b91d5d2c96a56797b48ac1e0e89220bf64044611 # v2.0.0
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           version: 3.49.1
@@ -151,7 +157,7 @@ jobs:
       - name: Install Solo CLI (released)
         if: ${{ inputs.use-released-solo == true }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: npm i @hashgraph/solo@latest
+        run: npm i @hiero-ledger/solo@latest
 
       - name: Compile Project (from source)
         if: ${{ inputs.use-released-solo != true }}
@@ -162,19 +168,35 @@ jobs:
         id: solo-cmd
         run: |
           if [ "${{ inputs.use-released-solo }}" = "true" ]; then
-            echo "cmd=npx @hashgraph/solo" >> "$GITHUB_OUTPUT"
+            echo "cmd=npx @hiero-ledger/solo" >> "$GITHUB_OUTPUT"
           else
             echo "cmd=npm run solo --" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Solo Init
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: |
-          ${{ steps.solo-cmd.outputs.cmd }} init --dev
-          export PATH=~/.solo/bin:${PATH}
+      - name: Restore Solo Bin Cache
+        id: solo-bin-cache
+        if: ${{ !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
+      - name: Restore Solo Image Cache
+        id: solo-image-cache
+        if: ${{ !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-image-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
 
       - name: Resolve Versions
         id: versions
+        env:
+          CN_VERSION_INPUT: ${{ inputs.consensus-node-version }}
+          BN_VERSION_INPUT: ${{ inputs.block-node-version }}
+          MN_VERSION_INPUT: ${{ inputs.mirror-node-version }}
+          RELAY_VERSION_INPUT: ${{ inputs.relay-version }}
+          EXPLORER_VERSION_INPUT: ${{ inputs.explorer-version }}
         run: |
           # Read defaults from version.ts and allow input overrides
           source .github/workflows/script/helper.sh
@@ -184,11 +206,11 @@ jobs:
           DEFAULT_RELAY=$(extract_version HEDERA_JSON_RPC_RELAY_VERSION version.ts)
           DEFAULT_EXPLORER=$(extract_version EXPLORER_VERSION version.ts)
 
-          CN_VERSION="${{ inputs.consensus-node-version }}"
-          BN_VERSION="${{ inputs.block-node-version }}"
-          MN_VERSION="${{ inputs.mirror-node-version }}"
-          RELAY_VERSION="${{ inputs.relay-version }}"
-          EXPLORER_VERSION="${{ inputs.explorer-version }}"
+          CN_VERSION="${CN_VERSION_INPUT}"
+          BN_VERSION="${BN_VERSION_INPUT}"
+          MN_VERSION="${MN_VERSION_INPUT}"
+          RELAY_VERSION="${RELAY_VERSION_INPUT}"
+          EXPLORER_VERSION="${EXPLORER_VERSION_INPUT}"
 
           echo "cn-version=${CN_VERSION:-$DEFAULT_CN}" >> "$GITHUB_OUTPUT"
           echo "bn-version=${BN_VERSION:-$DEFAULT_BN}" >> "$GITHUB_OUTPUT"
@@ -207,7 +229,7 @@ jobs:
 
       - name: Setup Java and Gradle (for local build)
         if: ${{ inputs.use-local-build == true }}
-        uses: actions/setup-java@1bcf9fb12cf4aa7d266a90ae39939e61372fe520 # v5.4.0
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           distribution: 'temurin'
@@ -354,6 +376,20 @@ jobs:
 
           echo "==== Cold median: $(( COLD_MEDIAN / 60 ))m $(( COLD_MEDIAN % 60 ))s ===="
           echo "==== Warm median: $(( WARM_MEDIAN / 60 ))m $(( WARM_MEDIAN % 60 ))s ===="
+
+      - name: Save Solo Bin Cache
+        if: ${{ github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
+
+      - name: Save Solo Image Cache
+        if: ${{ github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-image-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
 
       - name: Timing Summary
         id: timing-summary

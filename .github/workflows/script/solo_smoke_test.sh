@@ -1,4 +1,5 @@
 #!/bin/bash
+# SPDX-License-Identifier: Apache-2.0
 set -eo pipefail
 
 #
@@ -18,7 +19,7 @@ function clone_smart_contract_repo ()
     echo "Directory hedera-smart-contracts exists."
   else
     echo "Directory hedera-smart-contracts does not exist."
-    git clone https://github.com/hashgraph/hedera-smart-contracts --branch only-erc20-tests-v4
+    git clone https://github.com/hashgraph/hedera-smart-contracts --branch only-erc20-tests-v5
   fi
 }
 
@@ -31,17 +32,19 @@ function setup_smart_contract_test ()
   rm -f .env
 
   printf "\r::group::Install dependencies and compile smart contract\n"
-  npm install
+  npm ci
   npx hardhat compile || log_and_exit 1
   printf "\r::endgroup::\n"
 
   echo "Build .env file"
 
   echo "PRIVATE_KEYS=\"$CONTRACT_TEST_KEYS\"" > .env
+  echo "OPERATOR_ID_A=\"$OPERATOR_ID\"" >> .env
+  echo "OPERATOR_KEY_A=\"$OPERATOR_KEY\"" >> .env
   echo "RETRY_DELAY=5000 # ms" >> .env
   echo "MAX_RETRY=5" >> .env
-  cat .env
-
+  echo "MIRROR_NODE_REST_URL=http://127.0.0.1:38081/api/v1" >> .env
+  
   cd -
 }
 
@@ -146,12 +149,18 @@ function start_sdk_test ()
 {
   realm_num="${1:-0}"
   shard_num="${2:-0}"
+  result=0
   cd solo
   if [[ "$OSTYPE" == "linux-gnu"* ]]; then
     curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_x86_64.tar.gz" | sudo tar -xz -C /usr/local/bin
   fi
   if command -v grpcurl >/dev/null 2>&1; then
-    grpcurl -plaintext -d '{"file_id": {"shardNum": '"$shard_num"', "realmNum": '"$realm_num"', "fileNum": 102}, "limit": 0}' localhost:38081 com.hedera.mirror.api.proto.NetworkService/getNodes || result=$?
+    echo "Run mirror gRPC network node query"
+    if command -v timeout >/dev/null 2>&1; then
+      timeout 60s grpcurl -plaintext -d '{"file_id": {"shardNum": '"$shard_num"', "realmNum": '"$realm_num"', "fileNum": 102}, "limit": 0}' localhost:38081 com.hedera.mirror.api.proto.NetworkService/getNodes || result=$?
+    else
+      grpcurl -plaintext -d '{"file_id": {"shardNum": '"$shard_num"', "realmNum": '"$realm_num"', "fileNum": 102}, "limit": 0}' localhost:38081 com.hedera.mirror.api.proto.NetworkService/getNodes || result=$?
+    fi
     if [[ $result -ne 0 ]]; then
       echo "grpcurl command failed with exit code $result"
       log_and_exit $result
@@ -160,7 +169,12 @@ function start_sdk_test ()
   else
     echo "grpcurl not found, skipping gRPC connectivity test (install grpcurl to enable)"
   fi
-  node scripts/create-topic.js || result=$?
+  echo "Run JavaScript SDK topic smoke test"
+  if command -v timeout >/dev/null 2>&1; then
+    timeout 120s node scripts/create-topic.js || result=$?
+  else
+    node scripts/create-topic.js || result=$?
+  fi
   cd -
   if [[ $result -ne 0 ]]; then
     echo "JavaScript SDK test failed with exit code $result"
@@ -397,6 +411,13 @@ create_test_account "${SOLO_DEPLOYMENT}"
 clone_smart_contract_repo
 setup_smart_contract_test
 wait_for_contract_test_accounts
+latest_mirror_block_before_contract_test="$(get_latest_mirror_block_number)"
+echo "$(date '+%Y-%m-%d %H:%M:%S') - Mirror block before smart contract test: ${latest_mirror_block_before_contract_test}"
+if [[ "${SMOKE_MIRROR_BLOCK_SETTLE_BLOCKS:-0}" -gt 0 ]]; then
+  wait_for_mirror_block_progress "before smart contract test" "${latest_mirror_block_before_contract_test}" "${SMOKE_MIRROR_BLOCK_SETTLE_BLOCKS}" 180 2
+else
+  echo "Skipping mirror block settle wait before smart contract test"
+fi
 start_contract_test
 start_sdk_test "${REALM_NUM}" "${SHARD_NUM}"
 echo "Sleep a while to wait background transactions to finish"

@@ -33,6 +33,7 @@ import {HelmDockerAuthStaleException} from '../helm-docker-auth-stale-exception.
 import {RepositoryUpdateRequest} from '../request/repository/repository-update-request.js';
 import path from 'node:path';
 import {SemanticVersion} from '../../../business/utils/semantic-version.js';
+import {SubprocessEnvironment} from '../../../core/subprocess-environment.js';
 import {ChartPullRequest} from '../request/chart/chart-pull-request.js';
 
 type BiFunction<T, U, R> = (t: T, u: U) => R;
@@ -191,7 +192,10 @@ export class DefaultHelmClient implements HelmClient {
       builder.argument(DefaultHelmClient.NAMESPACE_ARG_NAME, namespace);
     }
 
-    builder.environmentVariable('PATH', `${this.installationDirectory}${path.delimiter}${process.env.PATH}`);
+    builder.environmentVariable(
+      'PATH',
+      `${this.installationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
+    );
     const execution: HelmExecution = builder.build();
 
     try {
@@ -209,6 +213,7 @@ export class DefaultHelmClient implements HelmClient {
           'Detected expired Docker authentication for GHCR (ghcr.io).',
           'Fix: run one of the following and retry:',
           '  - docker logout ghcr.io',
+          // eslint-disable-next-line unicorn/prefer-https
           '  - docker logout http://ghcr.io/',
         ].join('\n'),
       );
@@ -221,7 +226,12 @@ export class DefaultHelmClient implements HelmClient {
     await this.executeAsync(new RepositoryUpdateRequest());
   }
 
-  public async pullChartPackage(chart: Chart, version: string, destinationDirectory: string): Promise<void> {
-    await this.executeAsync(new ChartPullRequest(chart, version, destinationDirectory));
+  public async pullChartPackage(
+    chart: Chart,
+    version: string,
+    destinationDirectory: string,
+    repositoryUrl?: string,
+  ): Promise<void> {
+    await this.executeAsync(new ChartPullRequest(chart, version, destinationDirectory, repositoryUrl));
   }
 }

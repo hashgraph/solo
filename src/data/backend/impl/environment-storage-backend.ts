@@ -91,6 +91,22 @@ export class EnvironmentStorageBackend implements StorageBackend {
     return Buffer.from(value, 'utf8');
   }
 
+  /**
+   * Reads a fixed/legacy environment variable by its exact name,
+   * without applying the `SOLO_` prefix or key formatting.
+   * Returns undefined when the variable is missing or blank.
+   * Used to resolve environment variable aliases.
+   */
+  public readRawValue(name: string): string | undefined {
+    let environment: NodeJS.ProcessEnv = process.env;
+    if (!environment) {
+      environment = {};
+    }
+
+    const value: string | undefined = environment[name];
+    return value && value.trim() !== '' ? value : undefined;
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async writeBytes(_key: string, _data: Buffer): Promise<void> {
     throw new UnsupportedStorageOperationError('writeBytes is not supported by the environment storage backend');

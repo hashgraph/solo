@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {expect} from 'chai';
-import {describe, it} from 'mocha';
+import {afterEach, describe, it} from 'mocha';
+import sinon from 'sinon';
 import yaml from 'yaml';
 import {DefaultOneShotCommand} from '../../../src/commands/one-shot/default-one-shot.js';
+import {FalconPrepareSpecLoader} from '../../../src/commands/one-shot/falcon-prepare-spec-loader.js';
+import {type FalconPrepareSpec} from '../../../src/commands/one-shot/falcon-prepare-spec.js';
 import {type FalconPrepareConfig} from '../../../src/commands/one-shot/falcon-prepare-config.js';
 import {Flags} from '../../../src/commands/flags.js';
 import {type CommandFlag} from '../../../src/types/flag-types.js';
@@ -112,11 +115,11 @@ describe('DefaultOneShotCommand.generateFalconValuesYaml', (): void => {
     const output: string = DefaultOneShotCommand.generateFalconValuesYaml(config);
     const parsed: Record<string, Record<string, string | boolean>> = yaml.parse(output);
 
-    expect(parsed.setup[optionFromFlag(Flags.devMode)]).to.equal(true);
+    expect(parsed.setup[optionFromFlag(Flags.debugMode)]).to.equal(true);
     expect(parsed.setup[optionFromFlag(Flags.localBuildPath)]).to.equal('/path/to/build');
     expect(parsed.network[optionFromFlag(Flags.debugNodeAlias)]).to.equal('node1');
     expect(parsed.consensusNode[optionFromFlag(Flags.debugNodeAlias)]).to.equal('node1');
-    expect(parsed.blockNode[optionFromFlag(Flags.devMode)]).to.equal(true);
+    expect(parsed.blockNode[optionFromFlag(Flags.debugMode)]).to.equal(true);
   });
 
   it('should apply port forwarding setting', (): void => {
@@ -140,5 +143,81 @@ describe('DefaultOneShotCommand.generateFalconValuesYaml', (): void => {
     expect(output).to.include(negatedOptionFromFlag(Flags.deployMirrorNode));
     expect(output).to.include(negatedOptionFromFlag(Flags.deployExplorer));
     expect(output).to.include(negatedOptionFromFlag(Flags.deployRelay));
+  });
+});
+
+function stubFalconSpec(spec: FalconPrepareSpec): void {
+  sinon.stub(FalconPrepareSpecLoader, 'load').returns(spec);
+}
+
+describe('DefaultOneShotCommand falcon spec validation', (): void => {
+  afterEach((): void => {
+    sinon.restore();
+  });
+
+  it('throws on an unknown flagsFrom registry key', (): void => {
+    stubFalconSpec({blockedFlags: [], sections: [{name: 'x', flagsFrom: 'bogus.list'}], prompts: []});
+    expect((): string => DefaultOneShotCommand.generateFalconValuesYaml(createDefaultConfig())).to.throw(/bogus\.list/);
+  });
+
+  it('throws on an unknown flag name in overrides (guards the dev/debug class of typo)', (): void => {
+    stubFalconSpec({
+      blockedFlags: [],
+      sections: [{name: 'setup', flagsFrom: 'node.setup', overrides: {dev: true}}],
+      prompts: [],
+    });
+    expect((): string => DefaultOneShotCommand.generateFalconValuesYaml(createDefaultConfig())).to.throw(
+      /Unknown flag 'dev' in overrides/,
+    );
+  });
+
+  it('throws on an unknown flag name in extraKeys', (): void => {
+    stubFalconSpec({
+      blockedFlags: [],
+      sections: [{name: 'setup', flagsFrom: 'node.setup', extraKeys: {'not-a-flag': 'x'}}],
+      prompts: [],
+    });
+    expect((): string => DefaultOneShotCommand.generateFalconValuesYaml(createDefaultConfig())).to.throw(
+      /Unknown flag 'not-a-flag' in extraKeys/,
+    );
+  });
+
+  it('throws on an unknown ${config.<key>} reference', (): void => {
+    stubFalconSpec({
+      blockedFlags: [],
+      sections: [{name: 'setup', flagsFrom: 'node.setup', overrides: {'local-build-path': '${config.nope}'}}],
+      prompts: [],
+    });
+    expect((): string => DefaultOneShotCommand.generateFalconValuesYaml(createDefaultConfig())).to.throw(
+      /Unknown config key 'nope'/,
+    );
+  });
+
+  it('resolves ${config.<key>}, ${default}, and literal override values', (): void => {
+    stubFalconSpec({
+      blockedFlags: [],
+      sections: [
+        {name: 'setup', flagsFrom: 'node.setup', overrides: {'local-build-path': '${config.localBuildPath}'}},
+        {
+          name: 'consensusNode',
+          flagsFrom: 'node.start',
+          overrides: {'debug-node-alias': 'literal-alias', 'force-port-forward': '${default}'},
+        },
+      ],
+      prompts: [],
+    });
+    const config: FalconPrepareConfig = createDefaultConfig({localBuildPath: '/my/build/path'});
+    const parsed: Record<string, Record<string, string | boolean>> = yaml.parse(
+      DefaultOneShotCommand.generateFalconValuesYaml(config),
+    );
+
+    // ${config.<key>} resolves to the wizard answer
+    expect(parsed.setup[optionFromFlag(Flags.localBuildPath)]).to.equal('/my/build/path');
+    // a literal passes through verbatim
+    expect(parsed.consensusNode[optionFromFlag(Flags.debugNodeAlias)]).to.equal('literal-alias');
+    // ${default} resolves to the flag's default value
+    expect(parsed.consensusNode[optionFromFlag(Flags.forcePortForward)]).to.equal(
+      Flags.forcePortForward.definition.defaultValue,
+    );
   });
 });

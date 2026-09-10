@@ -14,19 +14,30 @@ import {type ConfigMap} from '../../../integration/kube/resources/config-map/con
 export class YamlConfigMapStorageBackend extends ConfigMapStorageBackend implements ObjectStorageBackend {
   public async readObject(key: string): Promise<object> {
     const data: Buffer = await this.readBytes(key);
-    if (!data) {
-      throw new StorageBackendError(`failed to read key: ${key} from config map`);
+    const content: string = data?.toString('utf8') ?? '';
+
+    if (content.length === 0) {
+      throw new SoloErrors.config.remoteDataInvalid(key, 'the value is empty', content);
     }
 
-    if (data.length === 0) {
-      throw new StorageBackendError(`data is empty for key: ${key}`);
-    }
-
+    let parsed: unknown;
     try {
-      return yaml.parse(data.toString('utf8'));
+      parsed = yaml.parse(content);
     } catch (error) {
-      throw new StorageBackendError(`error parsing yaml from key: ${key}`, error);
+      throw new SoloErrors.config.remoteDataInvalid(key, 'the value is not parseable as YAML', content, error);
     }
+
+    // yaml.parse() resolves whitespace-only, comment-only, scalar, and sequence documents without
+    // throwing; returning those would defer the failure to the schema layer with no trace of the cause.
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new SoloErrors.config.remoteDataInvalid(
+        key,
+        'the value is valid YAML but does not describe a configuration object',
+        content,
+      );
+    }
+
+    return parsed;
   }
 
   public async writeObject(key: string, data: object): Promise<void> {

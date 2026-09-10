@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {SoloErrors} from '../../../../core/errors/solo-errors.js';
+import {type SoloError} from '../../../../core/errors/solo-error.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {type ObjectMapper} from '../../../../data/mapper/api/object-mapper.js';
 import {RemoteConfigSource} from '../../../../data/configuration/impl/remote-config-source.js';
@@ -56,6 +57,9 @@ import {RemoteConfig} from './remote-config.js';
 import {ComponentIdsSchema} from '../../../../data/schema/model/remote/state/component-ids-schema.js';
 import {type BaseStateSchema} from '../../../../data/schema/model/remote/state/base-state-schema.js';
 import {Helpers} from '../../../../core/helpers.js';
+import {Duration} from '../../../../core/time/duration.js';
+import {type ContainerEngineClient} from '../../../../integration/container-engine/container-engine-client.js';
+import {ClusterNodeResumeOutcome} from '../../../../integration/container-engine/cluster-node-resume-outcome.js';
 import {ResourceNotFoundError} from '../../../../integration/kube/errors/resource-operation-errors.js';
 import {MissingRequiredParametersError} from '../../errors/missing-required-parameters-error.js';
 import {SemanticVersion} from '../../../utils/semantic-version.js';
@@ -72,6 +76,10 @@ interface VersionField {
 @injectable()
 export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
   private static readonly SOLO_REMOTE_CONFIGMAP_DATA_KEY: string = 'remote-config-data';
+
+  /** How long to wait for a resumed kind cluster's API: 30 attempts every 2 seconds, so at most a minute. */
+  private static readonly KIND_RESUME_MAX_ATTEMPTS: number = 30;
+  private static readonly KIND_RESUME_RETRY_INTERVAL: Duration = Duration.ofSeconds(2);
 
   private phase: RuntimeStatePhase = RuntimeStatePhase.NotLoaded;
 
@@ -90,6 +98,7 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
     @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
     @inject(InjectTokens.RemoteConfigValidator) private readonly remoteConfigValidator?: RemoteConfigValidatorApi,
     @inject(InjectTokens.ObjectMapper) private readonly objectMapper?: ObjectMapper,
+    @inject(InjectTokens.ContainerEngineClient) private readonly containerEngine?: ContainerEngineClient,
   ) {
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
@@ -101,6 +110,7 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
       this.constructor.name,
     );
     this.objectMapper = patchInject(objectMapper, InjectTokens.ObjectMapper, this.constructor.name);
+    this.containerEngine = patchInject(containerEngine, InjectTokens.ContainerEngineClient, this.constructor.name);
   }
 
   public get configuration(): RemoteConfig {
@@ -224,7 +234,7 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
     );
 
     const remoteConfig: RemoteConfigSchema = new RemoteConfigSchema(
-      6,
+      RemoteConfigSchema.SCHEMA_VERSION.major,
       new RemoteConfigMetadataSchema(new Date(), userIdentity),
       new ApplicationVersionsSchema(cliVersion),
       [cluster],
@@ -321,12 +331,23 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
 
     let configMap: ConfigMap;
     try {
-      configMap = await this.k8Factory
-        .getK8(context)
-        .configMaps()
-        .read(namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
+      configMap = await this.readRemoteConfigMap(namespace, context);
     } catch (error) {
-      throw error instanceof ResourceNotFoundError ? error : new SoloErrors.system.kubernetesApiInvalidResponse();
+      if (error instanceof ResourceNotFoundError) {
+        throw error;
+      }
+
+      // A kind cluster runs on this machine, so a failure there is a local problem rather than a cluster solo
+      // cannot reach — and the usual local problem is a node container that is simply stopped. Detection
+      // follows the `kind-<cluster-name>` names kind writes into the kubeconfig, including renamed contexts.
+      // Either way the original failure is kept as the cause so the real reason (context down, RBAC denial,
+      // API error) reaches the error output and the logs.
+      const kindClusterName: string | undefined = Helpers.kindClusterNameForContext(context, this.k8Factory);
+      if (kindClusterName === undefined) {
+        throw new SoloErrors.system.clusterUnreachable(context, error);
+      }
+
+      configMap = await this.resumeKindClusterAndRead(namespace, kindClusterName, context, error);
     }
     if (!configMap) {
       throw new SoloErrors.system.resourceNotFound(
@@ -335,6 +356,70 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
     }
 
     return configMap;
+  }
+
+  private async readRemoteConfigMap(namespace: NamespaceName, context: Context): Promise<ConfigMap> {
+    return await this.k8Factory.getK8(context).configMaps().read(namespace, constants.SOLO_REMOTE_CONFIGMAP_NAME);
+  }
+
+  /**
+   * Recovers a kind cluster whose node container was left stopped — by a reboot or a manual stop — and reads
+   * the remote config ConfigMap again once its Kubernetes API answers.
+   *
+   * Only a container that solo actually started is waited on: when there was nothing to resume the original
+   * failure is reported unchanged, so this never turns an unrelated API failure into a long wait.
+   *
+   * @param namespace - the namespace holding the remote config ConfigMap.
+   * @param clusterName - the kind cluster name the failed context targets.
+   * @param context - the kind kubeconfig context the read failed against.
+   * @param cause - the failure that triggered the recovery attempt.
+   */
+  private async resumeKindClusterAndRead(
+    namespace: NamespaceName,
+    clusterName: string,
+    context: Context,
+    cause: Error,
+  ): Promise<ConfigMap> {
+    const outcome: ClusterNodeResumeOutcome = await this.containerEngine.resumeStoppedClusterNode(clusterName);
+
+    if (outcome === ClusterNodeResumeOutcome.ENGINE_UNAVAILABLE) {
+      throw new SoloErrors.system.containerEngineNotRunning(cause);
+    }
+
+    if (outcome !== ClusterNodeResumeOutcome.RESUMED) {
+      throw new SoloErrors.system.kubernetesApiInvalidResponse(cause);
+    }
+
+    this.logger.showUser(
+      `The kind cluster '${clusterName}' was stopped; solo started its node container and is waiting for the Kubernetes API...`,
+    );
+
+    let lastError: Error = cause;
+
+    for (let attempt: number = 0; attempt < RemoteConfigRuntimeState.KIND_RESUME_MAX_ATTEMPTS; attempt++) {
+      if (attempt > 0) {
+        await Helpers.sleep(RemoteConfigRuntimeState.KIND_RESUME_RETRY_INTERVAL);
+      }
+
+      try {
+        const configMap: ConfigMap = await this.readRemoteConfigMap(namespace, context);
+        this.logger.showUser(`The kind cluster '${clusterName}' is available again.`);
+        return configMap;
+      } catch (error) {
+        // The API is answering again once it can tell us the ConfigMap is missing, so that is a real answer
+        // rather than a reason to keep waiting.
+        if (error instanceof ResourceNotFoundError) {
+          throw error;
+        }
+        lastError = error;
+      }
+    }
+
+    throw new SoloErrors.system.kindClusterStopped(clusterName, lastError);
+  }
+
+  private static isMissingRemoteConfigError(error: unknown): boolean {
+    return error instanceof ResourceNotFoundError || error instanceof SoloErrors.system.resourceNotFound;
   }
 
   public async populateFromExisting(namespace: NamespaceName, context: Context): Promise<void> {
@@ -353,9 +438,10 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
       deployment = this.localConfig.configuration.deploymentByName(deploymentName);
     } catch {
       // Deployment not in local config — fall back to namespace/context already resolved from remote config scan.
-      const namespaceFromConfig: NamespaceName = this.configManager.getFlag(flags.namespace);
+      const namespaceFromConfig: NamespaceName | string = this.configManager.getFlag(flags.namespace);
       if (namespaceFromConfig) {
-        this.namespace = namespaceFromConfig;
+        this.namespace =
+          typeof namespaceFromConfig === 'string' ? NamespaceName.of(namespaceFromConfig) : namespaceFromConfig;
       }
       return this.configManager.getFlag<Context>(flags.context);
     }
@@ -393,7 +479,22 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
     const context: Context = this.populateClusterReferences(deploymentName);
 
     // TODO: Compare configs from clusterReferences
-    await this.load(this.namespace, context);
+    try {
+      await this.load(this.namespace, context);
+    } catch (error) {
+      if (
+        RemoteConfigRuntimeState.isMissingRemoteConfigError(error) &&
+        Helpers.isKindContext(context, this.k8Factory)
+      ) {
+        throw new SoloErrors.config.remoteConfigMissingOnKindCluster(
+          deploymentName,
+          this.namespace?.name,
+          context,
+          error instanceof Error ? error : undefined,
+        );
+      }
+      throw error;
+    }
 
     this.logger.info('Remote config loaded');
     if (!validate) {
@@ -478,7 +579,7 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
             break;
           }
           default: {
-            throw new SoloErrors.internal.remoteConfigUnsupportedComponent(componentType);
+            throw this.unsupportedComponentTypeError(componentType);
           }
         }
       }
@@ -519,12 +620,8 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
       return;
     }
 
-    // TODO: Current quick fix for commands where namespace is not passed
-    let currentDeployment: Deployment = this.localConfig.configuration.deploymentByName(deploymentName);
-
     if (!deploymentName) {
       deploymentName = await promptTheUserForDeployment(this.configManager, undefined, this.localConfig);
-      currentDeployment = this.localConfig.configuration.deploymentByName(deploymentName);
       // TODO: Fix once we have the DataManager,
       //       without this the user will be prompted a second time for the deployment
       // TODO: we should not be mutating argv
@@ -535,9 +632,8 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
       this.configManager.setFlag(flags.deployment, deploymentName);
     }
 
-    if (!currentDeployment) {
-      throw new SoloErrors.internal.remoteConfigDeploymentNotSet(deploymentName);
-    }
+    // TODO: Current quick fix for commands where namespace is not passed
+    const currentDeployment: Deployment = this.localConfig.configuration.deploymentByName(deploymentName);
 
     const namespace: NamespaceNameAsString = currentDeployment.namespace;
 
@@ -721,9 +817,20 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
         break;
       }
       default: {
-        throw new SoloErrors.internal.remoteConfigUnsupportedComponent(componentType);
+        throw this.unsupportedComponentTypeError(componentType);
       }
     }
+  }
+
+  /** Builds the unsupported-component-type error, reporting the Solo and config schema versions on both sides. */
+  private unsupportedComponentTypeError(componentType: ComponentTypes): SoloError {
+    return new SoloErrors.internal.remoteConfigUnsupportedComponent(
+      componentType,
+      this.configuration.versions.cli.toString(),
+      getSoloVersion(),
+      this.configuration.schemaVersion,
+      this.source.schema.latestSupportedVersion.major,
+    );
   }
 
   public getComponentVersion(type: ComponentTypes): SemanticVersion<string> {

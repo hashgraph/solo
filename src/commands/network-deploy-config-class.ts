@@ -2,7 +2,7 @@
 
 import {type NamespaceName} from '../types/namespace/namespace-name.js';
 import {type NodeAlias, type NodeAliases, type IP} from '../types/aliases.js';
-import {type ClusterReferenceName, type ClusterReferences} from '../types/index.js';
+import {type ClusterReferenceName, type ClusterReferences, type EndpointPortMapping} from '../types/index.js';
 import {type HelmChartValues} from '../integration/helm/model/values.js';
 import {type StorageType} from '../core/constants.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
@@ -24,7 +24,6 @@ export interface NetworkDeployConfigClass {
   keysDir: string;
   nodeAliases: NodeAliases;
   stagingDir: string;
-  stagingKeysDir: string;
   valuesFile: string;
   chartValuesMap: Record<ClusterReferenceName, HelmChartValues>;
   grpcTlsCertificatePath: string;
@@ -35,8 +34,10 @@ export interface NetworkDeployConfigClass {
   resolvedThrottlesFile: string;
   haproxyIps: string;
   envoyIps: string;
+  networkNodeIps: string;
   haproxyIpsParsed?: Record<NodeAlias, IP>;
   envoyIpsParsed?: Record<NodeAlias, IP>;
+  networkNodeIpsParsed?: Record<NodeAlias, IP>;
   storageType: StorageType;
   gcsWriteAccessKey: string;
   gcsWriteSecrets: string;
@@ -60,6 +61,10 @@ export interface NetworkDeployConfigClass {
   clusterRefs: ClusterReferences;
   domainNames?: string;
   domainNamesMapping?: Record<NodeAlias, string>;
+  gossipEndpointPort?: string;
+  gossipEndpointPortMapping?: EndpointPortMapping;
+  serviceEndpointPort?: string;
+  serviceEndpointPortMapping?: EndpointPortMapping;
   blockNodeComponents: BlockNodeStateSchema[];
   debugNodeAlias: NodeAlias;
   app: string;
@@ -68,6 +73,7 @@ export interface NetworkDeployConfigClass {
   singleUseServiceMonitor: string;
   singleUsePodLog: string;
   enableMonitoringSupport: boolean;
+  clusterSetupNamespace: NamespaceName;
   javaFlightRecorderConfiguration: string;
   wrapsEnabled: boolean;
   wrapsKeyPath: string;

@@ -14,9 +14,11 @@ import {
   V1ExecAction,
   V1ObjectMeta,
   V1Pod,
+  type V1PersistentVolumeClaimList,
   type V1PodList,
   V1PodSpec,
   V1Probe,
+  type V1Volume,
 } from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
 import {type EphemeralContainerSpec} from '../../../resources/pod/ephemeral-container-spec.js';
@@ -29,7 +31,9 @@ import {K8ClientBase} from '../../k8-client-base.js';
 import {KubeError} from '../../../errors/kube-error.js';
 import {KubeMissingArgumentError} from '../../../errors/kube-missing-argument-error.js';
 import {KubePodNotFoundError} from '../../../errors/kube-pod-not-found-error.js';
+import {KubePodNotReadyError} from '../../../errors/kube-pod-not-ready-error.js';
 import {KubePodCreationFailedError} from '../../../errors/kube-pod-creation-failed-error.js';
+import {KubePodReadinessFailedError} from '../../../errors/kube-pod-readiness-failed-error.js';
 import {KubePodTerminationTimeoutError} from '../../../errors/kube-pod-termination-timeout-error.js';
 import * as constants from '../../../../../core/constants.js';
 import {type SoloLogger} from '../../../../../core/logging/solo-logger.js';
@@ -46,7 +50,8 @@ import {sleep} from '../../../../../core/helpers.js';
 
 export class K8ClientPods extends K8ClientBase implements Pods {
   /**
-   * Waiting reasons for container states that are non-recoverable (image unavailable in registry).
+   * Waiting reasons for container states that are non-recoverable (image unavailable in registry,
+   * or the container process has repeatedly crashed and will never restart cleanly on its own).
    */
   private static readonly FATAL_WAITING_REASONS: ReadonlySet<string> = new Set([
     'ImagePullBackOff',
@@ -54,12 +59,22 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     'InvalidImageName',
     'ImageInspectError',
     'RegistryUnavailable',
+    'CrashLoopBackOff',
   ]);
 
   /**
    * Terminated reasons for container states that are non-recoverable (e.g. out-of-memory kill).
    */
   private static readonly FATAL_TERMINATED_REASONS: ReadonlySet<string> = new Set(['OOMKilled']);
+
+  /**
+   * Event reasons that indicate a stuck volume attach/mount rather than an application-level
+   * startup failure (e.g. a slow or stuck storage backend on the node).
+   */
+  private static readonly VOLUME_MOUNT_EVENT_REASONS: ReadonlySet<string> = new Set([
+    'FailedMount',
+    'FailedAttachVolume',
+  ]);
 
   private static readonly FATAL_ERROR_RETRY_THRESHOLD: number = 3;
 
@@ -127,9 +142,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     for (const containerStatus of pod.allContainerStatuses ?? []) {
       if (containerStatus.waitingReason && K8ClientPods.FATAL_WAITING_REASONS.has(containerStatus.waitingReason)) {
         if (
-          (containerStatus.waitingReason === 'ErrImagePull' ||
-            containerStatus.waitingReason === 'ImagePullBackOff' ||
-            containerStatus.waitingReason === 'ImageInspectError') &&
+          ['ErrImagePull', 'ImagePullBackOff', 'ImageInspectError'].includes(containerStatus.waitingReason) &&
           !K8ClientPods.isNonRecoverableImagePullError(containerStatus.waitingMessage)
         ) {
           if (
@@ -173,6 +186,63 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     return K8ClientPods.NON_RECOVERABLE_IMAGE_PULL_PATTERNS.some((pattern): boolean => pattern.test(message));
   }
 
+  /**
+   * Best-effort diagnostic for a pod that never reached the required state: inspects the
+   * PersistentVolumeClaims the pod depends on and any FailedMount/FailedAttachVolume events, so a
+   * stuck or slow volume attach/mount (e.g. an mdadm-backed storage class with variable RAID
+   * resync latency) is distinguishable from a generic readiness timeout. Returns undefined when
+   * the pod has no PVC-backed volumes or nothing anomalous is found.
+   */
+  private async buildVolumeMountDiagnostic(
+    namespace: NamespaceName,
+    pod: V1Pod | undefined,
+  ): Promise<string | undefined> {
+    const claimNames: string[] = (pod?.spec?.volumes ?? [])
+      .map((volume: V1Volume): string | undefined => volume.persistentVolumeClaim?.claimName)
+      .filter(Boolean);
+
+    if (claimNames.length === 0) {
+      return undefined;
+    }
+
+    const diagnosticParts: string[] = [];
+
+    try {
+      const pvcList: V1PersistentVolumeClaimList = await this.kubeClient.listNamespacedPersistentVolumeClaim({
+        namespace: namespace.name,
+      });
+      for (const pvc of pvcList.items ?? []) {
+        const pvcName: string = pvc.metadata?.name ?? '';
+        const phase: string = pvc.status?.phase ?? 'Unknown';
+        if (claimNames.includes(pvcName) && phase !== 'Bound') {
+          diagnosticParts.push(`PVC "${pvcName}" is ${phase}`);
+        }
+      }
+    } catch {
+      // best-effort diagnostic only; a PVC lookup failure must not mask the original readiness timeout
+    }
+
+    try {
+      const eventList: {items?: CoreV1Event[]} = await this.kubeClient.listNamespacedEvent({
+        namespace: namespace.name,
+      });
+      const relevantNames: ReadonlySet<string> = new Set([pod?.metadata?.name ?? '', ...claimNames]);
+      const volumeEvents: CoreV1Event[] = (eventList.items ?? []).filter(
+        (event: CoreV1Event): boolean =>
+          K8ClientPods.VOLUME_MOUNT_EVENT_REASONS.has(event.reason ?? '') &&
+          relevantNames.has(event.involvedObject?.name ?? ''),
+      );
+      const latestEvent: CoreV1Event | undefined = volumeEvents.at(-1);
+      if (latestEvent) {
+        diagnosticParts.push(`event ${latestEvent.reason}: ${latestEvent.message ?? ''}`);
+      }
+    } catch {
+      // best-effort diagnostic only; an event lookup failure must not mask the original readiness timeout
+    }
+
+    return diagnosticParts.length > 0 ? diagnosticParts.join('; ') : undefined;
+  }
+
   public readByReference(podReference: PodReference | null): Pod {
     return new K8ClientPod(podReference, this, this.kubeClient, this.kubeConfig, this.kubectlInstallationDirectory);
   }
@@ -214,9 +284,8 @@ export class K8ClientPods extends K8ClientBase implements Pods {
         )
       : [];
 
-    return sortedItems.map(
-      (item: V1Pod): Pod =>
-        K8ClientPod.fromV1Pod(item, this, this.kubeClient, this.kubeConfig, this.kubectlInstallationDirectory),
+    return sortedItems.map((item: V1Pod): Pod =>
+      K8ClientPod.fromV1Pod(item, this, this.kubeClient, this.kubeConfig, this.kubectlInstallationDirectory),
     );
   }
 
@@ -246,7 +315,10 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     } catch (error: Error | unknown) {
       const errorMessage: string = error instanceof Error ? error.message : String(error);
       this.logger.showUser(`Pod readiness check failed: ${errorMessage}`);
-      throw new KubePodNotFoundError(`pods:${labels.join(',')}`);
+      // Wrap readiness failures in a dedicated error so CI reviewers can see the
+      // namespace/label selector that was being waited on while still preserving
+      // the underlying fatal pod cause for image-pull/startup debugging.
+      throw new KubePodReadinessFailedError(namespace.name, labels, error);
     }
   }
 
@@ -348,6 +420,12 @@ export class K8ClientPods extends K8ClientBase implements Pods {
 
     return new Promise<Pod[]>((resolve, reject): void => {
       let attempts: number = 0;
+      // Newest eligible pod seen on the most recent successful list, so a timeout can report
+      // "found but never ready" instead of the misleading "no pod found".
+      let lastObservedPod: Pod | undefined;
+      // Raw pod alongside lastObservedPod, kept only for its spec.volumes (the Pod wrapper does
+      // not retain it) so a timeout can inspect which PVCs the pod depends on.
+      let lastObservedRawPod: V1Pod | undefined;
       const fatalErrorStreakByPod: Map<string, {count: number; error: string}> = new Map<
         string,
         {count: number; error: string}
@@ -380,9 +458,16 @@ export class K8ClientPods extends K8ClientBase implements Pods {
 
             // When a createdAfter cutoff is provided, skip pods that existed before the
             // cutoff (e.g. a terminating predecessor from a recreate migration).
+            // Kubernetes stores creationTimestamp at second precision (sub-second part is
+            // always 0). A millisecond-precision cutoff would silently exclude a replacement
+            // pod created in the same second; floor to the second boundary minus 1 ms so
+            // any pod timestamped at or after that second is treated as eligible.
+            const createdAfterThreshold: number = createdAfter
+              ? Math.floor(createdAfter.getTime() / 1000) * 1000 - 1
+              : 0;
             const createdAfterEligibleItems: V1Pod[] = createdAfter
               ? sortedItems.filter(
-                  (pod): boolean => (pod.metadata?.creationTimestamp?.getTime() || 0) > createdAfter.getTime(),
+                  (pod): boolean => (pod.metadata?.creationTimestamp?.getTime() || 0) > createdAfterThreshold,
                 )
               : sortedItems;
 
@@ -431,6 +516,8 @@ export class K8ClientPods extends K8ClientBase implements Pods {
                 this.kubeConfig,
                 this.kubectlInstallationDirectory,
               );
+              lastObservedPod = pod;
+              lastObservedRawPod = newestItem;
               if (phases.has(newestItem.status?.phase) && (!podItemPredicate || podItemPredicate(pod))) {
                 return resolve([pod]);
               }
@@ -442,6 +529,20 @@ export class K8ClientPods extends K8ClientBase implements Pods {
 
         if (++attempts < maxAttempts) {
           setTimeout((): Promise<void> => check(resolve, reject), delay);
+        } else if (lastObservedPod) {
+          const volumeMountDiagnostic: string | undefined = await this.buildVolumeMountDiagnostic(
+            namespace,
+            lastObservedRawPod,
+          );
+          return reject(
+            new KubePodNotReadyError(
+              `labels:${labelSelector}`,
+              lastObservedPod.podReference?.name?.toString() ?? '<unknown>',
+              lastObservedPod.phase,
+              lastObservedPod.allContainerStatuses ?? [],
+              volumeMountDiagnostic,
+            ),
+          );
         } else {
           return reject(new KubePodNotFoundError(`labels:${labelSelector}`));
         }

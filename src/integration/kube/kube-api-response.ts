@@ -87,6 +87,25 @@ export class KubeApiResponse {
     return errorResponse?.code === StatusCodes.NOT_FOUND || errorResponse?.statusCode === StatusCodes.NOT_FOUND;
   }
 
+  private static readonly TRANSIENT_STATUS_CODES: number[] = [
+    StatusCodes.TOO_MANY_REQUESTS,
+    StatusCodes.INTERNAL_SERVER_ERROR,
+    StatusCodes.BAD_GATEWAY,
+    StatusCodes.SERVICE_UNAVAILABLE,
+    StatusCodes.GATEWAY_TIMEOUT,
+  ];
+
+  /**
+   * Checks if the error response has a status code indicating a transient server-side failure
+   * (e.g. `etcdserver: request timed out` surfaces as 500) that is safe to retry for
+   * idempotent operations.
+   * @param errorResponse
+   */
+  public static isTransientServerError(errorResponse: ApiError): boolean {
+    const code: number = errorResponse?.code || errorResponse?.statusCode;
+    return KubeApiResponse.TRANSIENT_STATUS_CODES.includes(code);
+  }
+
   /**
    * Checks if the error response has a status code indicating a "Created" status (201).
    * @param errorResponse

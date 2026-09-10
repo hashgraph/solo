@@ -2,6 +2,6 @@
 
 export interface ClusterReferenceDefaultConfigClass {
   cacheDir: string;
-  devMode: boolean;
+  debugMode: boolean;
   clusterRef: string;
 }

@@ -32,6 +32,12 @@ export interface SchemaDefinition<T> {
   readonly migrations: SchemaMigration[];
 
   /**
+   * The highest schema version this build can produce: the latest migration target, or the base schema version when
+   * no migrations exist. Data recorded with a higher version was written by a newer version of the software.
+   */
+  readonly latestSupportedVersion: SemanticVersion<number>;
+
+  /**
    * Transforms the plain javascript object into an instance of the model class. Applies any necessary migrations to the
    * input data before creating the model instance.
    *

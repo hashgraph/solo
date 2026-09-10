@@ -21,19 +21,32 @@ import {KubeConfig} from '@kubernetes/client-node';
 import sinon from 'sinon';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {type LocalConfigRuntimeState} from '../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
+import {type RemoteConfig} from '../../../src/business/runtime-state/config/remote/remote-config.js';
+import {type RemoteConfigRuntimeStateApi} from '../../../src/business/runtime-state/api/remote-config-runtime-state-api.js';
 import {type AnyObject, type NodeAlias, type NodeAliases} from '../../../src/types/aliases.js';
 import * as constants from '../../../src/core/constants.js';
 import {Address} from '../../../src/business/address/address.js';
-
+import {SemanticVersion} from '../../../src/business/utils/semantic-version.js';
+import {BlockNodeStateSchema} from '../../../src/data/schema/model/remote/state/block-node-state-schema.js';
+import {ComponentStateMetadataSchema} from '../../../src/data/schema/model/remote/state/component-state-metadata-schema.js';
+import {ClusterSchema} from '../../../src/data/schema/model/common/cluster-schema.js';
 function invokeExtractSavedEndpoint(
   manager: ProfileManager,
   consensusNode: ConsensusNode,
   nodeSequence: number,
+  gossipFqdnRestricted: boolean = false,
 ): Promise<Address | undefined> {
-  const extractSavedEndpoint: (node: ConsensusNode, nodeSequence: number) => Promise<Address | undefined> = (
-    manager as unknown as Record<string, (node: ConsensusNode, nodeSequence: number) => Promise<Address | undefined>>
+  const extractSavedEndpoint: (
+    node: ConsensusNode,
+    nodeSequence: number,
+    gossipFqdnRestricted: boolean,
+  ) => Promise<Address | undefined> = (
+    manager as unknown as Record<
+      string,
+      (node: ConsensusNode, nodeSequence: number, gossipFqdnRestricted: boolean) => Promise<Address | undefined>
+    >
   ).extractSavedEndpoint;
-  return extractSavedEndpoint.call(manager, consensusNode, nodeSequence);
+  return extractSavedEndpoint.call(manager, consensusNode, nodeSequence, gossipFqdnRestricted);
 }
 
 describe('ProfileManager', (): void => {
@@ -42,12 +55,13 @@ describe('ProfileManager', (): void => {
   const deploymentName: string = 'deployment';
   const kubeConfig: KubeConfig = new KubeConfig();
   kubeConfig.loadFromDefault();
+  const currentClusterName: string = kubeConfig.getCurrentCluster()?.name ?? 'test-cluster';
   const consensusNodes: ConsensusNode[] = [
     {
       name: 'node1',
       nodeId: 1,
       namespace: namespace.name,
-      cluster: kubeConfig.getCurrentCluster().name,
+      cluster: currentClusterName,
       context: kubeConfig.getCurrentContext(),
       dnsBaseDomain: 'cluster.local',
       dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
@@ -59,7 +73,7 @@ describe('ProfileManager', (): void => {
       name: 'node2',
       nodeId: 2,
       namespace: namespace.name,
-      cluster: kubeConfig.getCurrentCluster().name,
+      cluster: currentClusterName,
       context: kubeConfig.getCurrentContext(),
       dnsBaseDomain: 'cluster.local',
       dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
@@ -71,7 +85,7 @@ describe('ProfileManager', (): void => {
       name: 'node3',
       nodeId: 3,
       namespace: namespace.name,
-      cluster: kubeConfig.getCurrentCluster().name,
+      cluster: currentClusterName,
       context: kubeConfig.getCurrentContext(),
       dnsBaseDomain: 'cluster.local',
       dnsConsensusNodePattern: 'network-{nodeAlias}-svc.{namespace}.svc',
@@ -194,6 +208,258 @@ describe('ProfileManager', (): void => {
       const valuesYaml: AnyObject = yaml.parse(fs.readFileSync(cachedValuesFile, 'utf8')) as AnyObject;
       expect(valuesYaml.hedera.configMaps.applicationEnv).to.equal(fileContents);
     });
+
+    it('addBlockNodesJsonValues should use current remote config mappings when node input is stale', (): void => {
+      const staleConsensusNodes: ConsensusNode[] = [
+        {
+          ...consensusNodes[0],
+          blockNodeMap: [],
+          externalBlockNodeMap: [],
+        },
+      ];
+      const latestConsensusNodes: ConsensusNode[] = [
+        {
+          ...consensusNodes[0],
+          blockNodeMap: [[1, 1]],
+          externalBlockNodeMap: [],
+        },
+      ];
+      const yamlRoot: AnyObject = {};
+
+      const profileManagerPrivate: {
+        remoteConfig: RemoteConfigRuntimeStateApi;
+      } = profileManager as unknown as {
+        remoteConfig: RemoteConfigRuntimeStateApi;
+      };
+      const configurationStub: sinon.SinonStub = sinon.stub(profileManagerPrivate.remoteConfig, 'configuration').get(
+        (): RemoteConfig =>
+          ({
+            clusters: [new ClusterSchema(currentClusterName, namespace.name, deploymentName)],
+            state: {
+              blockNodes: [
+                new BlockNodeStateSchema(new ComponentStateMetadataSchema(1, namespace.name, currentClusterName)),
+              ],
+              externalBlockNodes: [],
+              tssEnabled: false,
+            },
+            versions: {
+              consensusNode: version.HEDERA_PLATFORM_VERSION,
+            },
+          }) as unknown as RemoteConfig,
+      );
+
+      try {
+        // @ts-expect-error - TS2339: to mock
+        profileManager.remoteConfig.getConsensusNodes = sinon.stub().returns(latestConsensusNodes);
+
+        profileManager.addBlockNodesJsonValues(staleConsensusNodes, ['node1'], deploymentName, yamlRoot);
+
+        const blockNodesJson: {
+          nodes: {address: string; priority: number; servicePort: number; streamingPort: number}[];
+        } = JSON.parse(yamlRoot.hedera.nodes[0].blockNodesJson) as {
+          nodes: {address: string; priority: number; servicePort: number; streamingPort: number}[];
+        };
+
+        expect(blockNodesJson.nodes).to.have.lengthOf(1);
+        expect(blockNodesJson.nodes[0].address).to.equal(`block-node-1.${namespace.name}.svc.cluster.local`);
+        expect(blockNodesJson.nodes[0].priority).to.equal(1);
+      } finally {
+        configurationStub.restore();
+        // @ts-expect-error - TS2339: to mock
+        profileManager.remoteConfig.getConsensusNodes = sinon.stub().returns(consensusNodes);
+      }
+    });
+
+    it('resourcesForNetworkUpgrade should normalize application.properties before writing chart values', async (): Promise<void> => {
+      const templatesDirectory: string = PathEx.join(stagingDirectory, 'templates');
+      const applicationPropertiesPath: string = PathEx.join(templatesDirectory, constants.APPLICATION_PROPERTIES);
+      const yamlRoot: AnyObject = {};
+      const updateApplicationPropertiesStub: sinon.SinonStub = (
+        profileManager as unknown as {updateApplicationPropertiesForBlockNode: sinon.SinonStub}
+      ).updateApplicationPropertiesForBlockNode;
+
+      fs.mkdirSync(templatesDirectory, {recursive: true});
+      fs.writeFileSync(applicationPropertiesPath, 'blockStream.streamMode=RECORDS\n', 'utf8');
+
+      updateApplicationPropertiesStub.callsFake(async (filePath: string): Promise<void> => {
+        fs.appendFileSync(filePath, 'blockStream.streamMode=BLOCKS\n', 'utf8');
+      });
+
+      await profileManager.resourcesForNetworkUpgrade(
+        'hedera.configMaps.applicationProperties',
+        constants.APPLICATION_PROPERTIES,
+        stagingDirectory,
+        yamlRoot,
+      );
+
+      expect(updateApplicationPropertiesStub.calledWith(applicationPropertiesPath)).to.be.true;
+      expect(yamlRoot.hedera.configMaps.applicationProperties).to.contain('blockStream.streamMode=BLOCKS');
+
+      updateApplicationPropertiesStub.resetBehavior();
+      updateApplicationPropertiesStub.resetHistory();
+    });
+
+    it('updateApplicationPropertiesForBlockNode should use record streams when TSS is disabled', async (): Promise<void> => {
+      const manager: ProfileManager = new ProfileManager(undefined, undefined, temporaryDirectory);
+      const applicationPropertiesPath: string = PathEx.join(temporaryDirectory, constants.APPLICATION_PROPERTIES);
+
+      fs.writeFileSync(applicationPropertiesPath, 'blockStream.streamMode=BLOCKS\n', 'utf8');
+
+      const managerPrivate: {
+        remoteConfig: RemoteConfigRuntimeStateApi;
+        updateApplicationPropertiesForBlockNode: (applicationPropertiesPath: string) => Promise<void>;
+      } = manager as unknown as {
+        remoteConfig: RemoteConfigRuntimeStateApi;
+        updateApplicationPropertiesForBlockNode: (applicationPropertiesPath: string) => Promise<void>;
+      };
+
+      const configurationStub: sinon.SinonStub = sinon.stub(managerPrivate.remoteConfig, 'configuration').get(
+        (): RemoteConfig =>
+          ({
+            components: {
+              state: {
+                blockNodes: [
+                  new BlockNodeStateSchema(new ComponentStateMetadataSchema(1, namespace.name, currentClusterName)),
+                ],
+              },
+            },
+            state: {
+              tssEnabled: false,
+            },
+            versions: {
+              consensusNode: new SemanticVersion<string>('0.75.1'),
+            },
+          }) as unknown as RemoteConfig,
+      );
+
+      try {
+        await managerPrivate.updateApplicationPropertiesForBlockNode.call(manager, applicationPropertiesPath);
+      } finally {
+        configurationStub.restore();
+      }
+
+      const applicationProperties: string = fs.readFileSync(applicationPropertiesPath, 'utf8');
+      expect(applicationProperties).to.contain('blockStream.streamMode=RECORDS');
+    });
+
+    it('updateApplicationPropertiesWithRealmAndShard should not duplicate TSS properties', async (): Promise<void> => {
+      const applicationPropertiesPath: string = PathEx.join(temporaryDirectory, constants.APPLICATION_PROPERTIES);
+      const applicationProperties: string = [
+        'hedera.realm=0',
+        'hedera.shard=0',
+        'tss.hintsEnabled=true',
+        'tss.historyEnabled=true',
+        'tss.forceMockSignatures=false',
+        '',
+      ].join('\n');
+
+      fs.writeFileSync(applicationPropertiesPath, applicationProperties, 'utf8');
+
+      const profileManagerPrivate: {
+        remoteConfig: RemoteConfigRuntimeStateApi;
+        updateApplicationPropertiesWithRealmAndShard: (
+          applicationPropertiesPath: string,
+          realm: number,
+          shard: number,
+        ) => Promise<void>;
+      } = profileManager as unknown as {
+        remoteConfig: RemoteConfigRuntimeStateApi;
+        updateApplicationPropertiesWithRealmAndShard: (
+          applicationPropertiesPath: string,
+          realm: number,
+          shard: number,
+        ) => Promise<void>;
+      };
+
+      const configurationStub: sinon.SinonStub = sinon.stub(profileManagerPrivate.remoteConfig, 'configuration').get(
+        (): RemoteConfig =>
+          ({
+            state: {tssEnabled: true, wrapsEnabled: false},
+            versions: {consensusNode: new SemanticVersion<string>(version.HEDERA_PLATFORM_VERSION)},
+          }) as unknown as RemoteConfig,
+      );
+
+      const updateApplicationPropertiesWithRealmAndShard: (
+        applicationPropertiesPath: string,
+        realm: number,
+        shard: number,
+      ) => Promise<void> = profileManagerPrivate.updateApplicationPropertiesWithRealmAndShard;
+
+      try {
+        await updateApplicationPropertiesWithRealmAndShard.call(profileManager, applicationPropertiesPath, 1, 2);
+        await updateApplicationPropertiesWithRealmAndShard.call(profileManager, applicationPropertiesPath, 1, 2);
+      } finally {
+        configurationStub.restore();
+      }
+
+      const updatedApplicationProperties: string = fs.readFileSync(applicationPropertiesPath, 'utf8');
+
+      expect(updatedApplicationProperties.match(/^hedera\.realm=/gm)).to.have.lengthOf(1);
+      expect(updatedApplicationProperties.match(/^hedera\.shard=/gm)).to.have.lengthOf(1);
+      expect(updatedApplicationProperties.match(/^tss\.hintsEnabled=/gm)).to.have.lengthOf(1);
+      expect(updatedApplicationProperties.match(/^tss\.historyEnabled=/gm)).to.have.lengthOf(1);
+      expect(updatedApplicationProperties.match(/^tss\.forceMockSignatures=/gm)).to.have.lengthOf(1);
+      expect(updatedApplicationProperties).to.contain('hedera.realm=1');
+      expect(updatedApplicationProperties).to.contain('hedera.shard=2');
+    });
+
+    it('updateApplicationPropertiesWithRealmAndShard should preserve explicit TSS properties', async (): Promise<void> => {
+      const applicationPropertiesPath: string = PathEx.join(temporaryDirectory, constants.APPLICATION_PROPERTIES);
+      const applicationProperties: string = [
+        'hedera.realm=0',
+        'hedera.shard=0',
+        'tss.hintsEnabled=false',
+        'tss.historyEnabled=false',
+        'tss.forceMockSignatures=false',
+        'tss.wrapsEnabled=false',
+        '',
+      ].join('\n');
+
+      fs.writeFileSync(applicationPropertiesPath, applicationProperties, 'utf8');
+
+      const profileManagerPrivate: {
+        remoteConfig: RemoteConfigRuntimeStateApi;
+        updateApplicationPropertiesWithRealmAndShard: (
+          applicationPropertiesPath: string,
+          realm: number,
+          shard: number,
+        ) => Promise<void>;
+      } = profileManager as unknown as {
+        remoteConfig: RemoteConfigRuntimeStateApi;
+        updateApplicationPropertiesWithRealmAndShard: (
+          applicationPropertiesPath: string,
+          realm: number,
+          shard: number,
+        ) => Promise<void>;
+      };
+
+      const configurationStub: sinon.SinonStub = sinon.stub(profileManagerPrivate.remoteConfig, 'configuration').get(
+        (): RemoteConfig =>
+          ({
+            state: {tssEnabled: true, wrapsEnabled: true},
+            versions: {consensusNode: new SemanticVersion<string>(version.HEDERA_PLATFORM_VERSION)},
+          }) as unknown as RemoteConfig,
+      );
+
+      const updateApplicationPropertiesWithRealmAndShard: (
+        applicationPropertiesPath: string,
+        realm: number,
+        shard: number,
+      ) => Promise<void> = profileManagerPrivate.updateApplicationPropertiesWithRealmAndShard;
+
+      try {
+        await updateApplicationPropertiesWithRealmAndShard.call(profileManager, applicationPropertiesPath, 1, 2);
+      } finally {
+        configurationStub.restore();
+      }
+
+      const updatedApplicationProperties: string = fs.readFileSync(applicationPropertiesPath, 'utf8');
+
+      expect(updatedApplicationProperties).to.contain('tss.hintsEnabled=false');
+      expect(updatedApplicationProperties).to.contain('tss.historyEnabled=false');
+      expect(updatedApplicationProperties).to.contain('tss.forceMockSignatures=false');
+      expect(updatedApplicationProperties).to.contain('tss.wrapsEnabled=false');
+    });
   });
 
   describe('prepareConfigText', (): void => {
@@ -237,13 +503,47 @@ describe('ProfileManager', (): void => {
       expect(savedAddress?.port).to.equal(50_211);
     });
 
+    it('ignores saved domainName endpoint when gossip FQDN is restricted', async (): Promise<void> => {
+      const savedDomainName: string = 'network-node1-svc.test-namespace.svc.cluster.local';
+      const networkJsonContent: string = JSON.stringify({
+        nodeMetadata: [{rosterEntry: {gossipEndpoint: [{port: 50_211, domainName: savedDomainName}]}}],
+      });
+
+      const getK8Stub: sinon.SinonStub = sinon.stub().returns({
+        pods: (): {list: () => Promise<Array<{podReference: unknown}>>} => ({
+          list: async (): Promise<Array<{podReference: unknown}>> => [{podReference: {}}],
+        }),
+        containers: (): {readByRef: () => {execContainer: () => Promise<string>}} => ({
+          readByRef: (): {execContainer: () => Promise<string>} => ({
+            execContainer: async (): Promise<string> => networkJsonContent,
+          }),
+        }),
+      });
+      sinon
+        .stub(
+          (profileManager as unknown as {k8Factory: {getK8: (...arguments_: unknown[]) => unknown}}).k8Factory,
+          'getK8',
+        )
+        .callsFake(getK8Stub);
+
+      const savedAddress: Address | undefined = await invokeExtractSavedEndpoint(
+        profileManager,
+        consensusNodes[0],
+        0,
+        true,
+      );
+      expect(savedAddress).to.be.undefined;
+    });
+
     it('decodes saved ipAddressV4 and validates it against the expected node service', async (): Promise<void> => {
       const savedIpAddress: string = '10.1.2.3';
       const encodedIpAddress: string = Buffer.from([10, 1, 2, 3]).toString('base64');
       const networkJsonContent: string = JSON.stringify({
         nodeMetadata: [{rosterEntry: {gossipEndpoint: [{port: 50_211, ipAddressV4: encodedIpAddress}]}}],
       });
-      const serviceReadStub: sinon.SinonStub = sinon.stub().resolves({spec: {clusterIP: savedIpAddress}});
+      const serviceReadStub: sinon.SinonStub = sinon
+        .stub()
+        .resolves({spec: {clusterIP: '10.96.1.1'}, status: {loadBalancer: {ingress: [{ip: savedIpAddress}]}}});
       const getK8Stub: sinon.SinonStub = sinon.stub().returns({
         pods: (): {list: () => Promise<Array<{podReference: unknown}>>} => ({
           list: async (): Promise<Array<{podReference: unknown}>> => [{podReference: {}}],
@@ -278,7 +578,11 @@ describe('ProfileManager', (): void => {
       const extractSavedEndpointStub: sinon.SinonStub = sinon
         .stub(
           profileManager as unknown as {
-            extractSavedEndpoint: (consensusNode: ConsensusNode, nodeSeq: number) => Promise<Address | undefined>;
+            extractSavedEndpoint: (
+              consensusNode: ConsensusNode,
+              nodeSeq: number,
+              gossipFqdnRestricted: boolean,
+            ) => Promise<Address | undefined>;
           },
           'extractSavedEndpoint',
         )
@@ -302,6 +606,64 @@ describe('ProfileManager', (): void => {
       expect(externalAddressStub.calledOnce).to.equal(true);
       expect(externalAddressStub.firstCall.args[3]).to.equal(false);
       expect(fs.readFileSync(configTxtPath, 'utf8')).to.contain('fallback-node1.test, 50211');
+    });
+
+    it('avoids FQDN gossip endpoints for multi-context config.txt generation', async (): Promise<void> => {
+      const destinationPath: string = PathEx.join(temporaryDirectory, 'config-multi-context');
+      fs.mkdirSync(destinationPath, {recursive: true});
+
+      const extractSavedEndpointStub: sinon.SinonStub = sinon
+        .stub(
+          profileManager as unknown as {
+            extractSavedEndpoint: (
+              consensusNode: ConsensusNode,
+              nodeSeq: number,
+              gossipFqdnRestricted: boolean,
+            ) => Promise<Address | undefined>;
+          },
+          'extractSavedEndpoint',
+        )
+        .resolves();
+
+      const externalAddressStub: sinon.SinonStub = sinon
+        .stub(Address, 'getExternalAddress')
+        .callsFake(
+          async (consensusNode: ConsensusNode): Promise<Address> =>
+            new Address(50_211, `fallback-${consensusNode.name}.test`),
+        );
+      sinon
+        .stub(
+          (profileManager as unknown as {k8Factory: {getK8: (...arguments_: unknown[]) => unknown}}).k8Factory,
+          'getK8',
+        )
+        .returns({});
+      const multiContextConsensusNodes: ConsensusNode[] = [
+        consensusNodes[0],
+        {
+          ...consensusNodes[1],
+          context: 'second-context',
+          cluster: 'second-cluster',
+        },
+      ];
+      const nodeAccountMap: Map<NodeAlias, string> = new Map([
+        [multiContextConsensusNodes[0].name as NodeAlias, '0.0.3'],
+        [multiContextConsensusNodes[1].name as NodeAlias, '0.0.4'],
+      ]);
+
+      const configTxtPath: string = await profileManager.prepareConfigTxt(
+        nodeAccountMap,
+        multiContextConsensusNodes,
+        destinationPath,
+        constants.HEDERA_APP_NAME,
+        constants.HEDERA_CHAIN_ID,
+        false,
+      );
+
+      expect(extractSavedEndpointStub.calledTwice).to.equal(true);
+      expect(extractSavedEndpointStub.firstCall.args[2]).to.equal(true);
+      expect(externalAddressStub.calledTwice).to.equal(true);
+      expect(externalAddressStub.firstCall.args[3]).to.equal(true);
+      expect(fs.readFileSync(configTxtPath, 'utf8')).to.contain('fallback-node2.test, 50211');
     });
   });
 

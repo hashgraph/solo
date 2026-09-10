@@ -2,7 +2,12 @@
 
 import {type Rbacs} from '../../../resources/rbac/rbacs.js';
 import {type ClusterRole} from '../../../resources/rbac/cluster-role.js';
-import {type RbacAuthorizationV1Api, type V1ClusterRole, type V1ClusterRoleBinding} from '@kubernetes/client-node';
+import {
+  type RbacAuthorizationV1Api,
+  type V1ClusterRole,
+  type V1ClusterRoleBinding,
+  type V1PolicyRule,
+} from '@kubernetes/client-node';
 import {K8ClientClusterRole} from './k8-client-cluster-role.js';
 import {ResourceType} from '../../../resources/resource-type.js';
 import {KubeApiResponse} from '../../../kube-api-response.js';
@@ -29,16 +34,29 @@ export class K8ClientRbacs implements Rbacs {
   }
 
   public async clusterRoleExists(name: string): Promise<boolean> {
+    return (await this.readClusterRole(name)) !== undefined;
+  }
+
+  public async readClusterRole(name: string): Promise<ClusterRole | undefined> {
     try {
-      await this.k8sRbacApi.readClusterRole({name});
+      const v1ClusterRole: V1ClusterRole = await this.k8sRbacApi.readClusterRole({name});
+      return new K8ClientClusterRole(
+        name,
+        (v1ClusterRole.rules ?? []).map(
+          (rule: V1PolicyRule): {apiGroups: string[]; resources: string[]; verbs: string[]} => ({
+            apiGroups: rule.apiGroups ?? [],
+            resources: rule.resources ?? [],
+            verbs: rule.verbs ?? [],
+          }),
+        ),
+        v1ClusterRole.metadata?.labels,
+      );
     } catch (error) {
       if (KubeApiResponse.isNotFound(error)) {
-        return false;
+        return undefined;
       }
       KubeApiResponse.throwError(error, ResourceOperation.READ, ResourceType.RBAC, undefined, name);
     }
-
-    return true;
   }
 
   public async deleteClusterRole(name: string): Promise<void> {

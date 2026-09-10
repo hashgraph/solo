@@ -9,28 +9,24 @@ env:
         echo "npm run solo-test --"
       fi
   TIMEOUT_COMMAND:
-    sh: |
-      if command -v gtimeout >/dev/null 2>&1; then
-        echo "gtimeout"
-      elif command -v timeout >/dev/null 2>&1; then
-        echo "timeout"
-      else
-        echo ""
-      fi
+    sh: command -v gtimeout >/dev/null 2>&1 && echo "gtimeout" || echo "timeout"
 
 vars:
   # Network Configuration
   NETWORK_SIZE: "2"
   NODE_ALIASES: "node1,node2"
+  # The relay runs on Cluster 2, where only node2's LoadBalancer address is routable.
+  RELAY_NODE_ALIASES: "node2"
   DEPLOYMENT: "external-database-test-deployment"
   NAMESPACE: "external-database-test"
   CLUSTER_NAME: "backup-restore-cluster"
   BACKUP_DIR: "{{ .USER_WORKING_DIR }}/solo-backup"
   ZIP_PASSWORD: "xxxx"
   ZIP_INPUT_FILE: "{{ .BACKUP_DIR }}/solo-backup.zip"
+  EXPECTED_LB_IPS_FILE: "{{ .TASKFILE_DIR }}/expected-lb-ips.env"
   SOLO_USER_DIR: "{{ default (printf \"%s/.solo\" (env \"HOME\")) }}"
-  SHARD: "0"
-  REALM: "0"
+  SHARD: "3"
+  REALM: "2"
 
   POSTGRES_USERNAME: "postgres"
   POSTGRES_PASSWORD: "XXXXXXX"
@@ -41,27 +37,89 @@ vars:
   POSTGRES_DATABASE_NAMESPACE: "database"
   POSTGRES_CONTAINER_NAME: "{{ .POSTGRES_NAME }}-0"
   POSTGRES_HOST_FQDN: "my-postgresql.database.svc.cluster.local"
+  RUN_RESTORE_SMOKE_TEST: '{{ .RUN_RESTORE_SMOKE_TEST | default "false" }}'
+  # Static LoadBalancer IPs pinned into the chart at deploy time via solo's
+  # --haproxy-ips / --envoy-ips / --network-node-ips flags. MetalLB honors
+  # service.spec.loadBalancerIP so the same IPs survive destroy+recreate without
+  # any post-deploy patching. Replaces the old ensure-lb-ips/verify-* scripts.
+  HAPROXY_IPS: "node1=172.19.1.0,node2=172.19.2.1"
+  ENVOY_IPS: "node1=172.19.1.2,node2=172.19.2.2"
+  NETWORK_NODE_IPS: "node1=172.19.1.1,node2=172.19.2.0"
 
 
 tasks:
   # ==================== Main Workflow Tasks ====================
+  image_pull:
+    desc: Pull the latest Docker images for the solo deployment
+    cmds:
+      - cmd: |
+          $SOLO_COMMAND cache image pull
+
+  image_load:
+    desc: Load Docker images for the solo deployment from cache
+    cmds:
+      - cmd: |
+          # Running in background so that the restore-clusters task can continue without waiting for image load to complete
+          $SOLO_COMMAND cache image load --cluster-ref solo-e2e-c2 &
 
   default:
     desc: Run complete backup/restore workflow - deploy, backup, destroy, restore, and verify
     cmds:
+      - task: image_pull
       - task: initial-deploy
       - task: generate-transactions
       - task: backup
+      - cmd: |
+          $SOLO_COMMAND deployment diagnostics debug --deployment {{ .DEPLOYMENT }} --dev || true
       - task: destroy-cluster
       - task: restore-clusters
+      - task: deploy-external-database
+      - task: restore-db
       - task: restore-network
       - task: restore-config
+      - task: restart
       - cmd: |
-          if [ -n "{{ .TIMEOUT_COMMAND }}" ]; then
-            {{ .TIMEOUT_COMMAND }} 60s {{ .SOLO_COMMAND }} consensus node start --deployment {{ .DEPLOYMENT }} || true
-          else
-            {{ .SOLO_COMMAND }} consensus node start --deployment {{ .DEPLOYMENT }} || true
-          fi
+          {{ .TIMEOUT_COMMAND }} 60s {{ .SOLO_COMMAND }} deployment diagnostics logs --deployment {{ .DEPLOYMENT }} --quiet-mode --dev
+
+  restart:
+    desc: Restart consensus nodes after restore (skips cluster redeployment)
+    cmds:
+      # LB IPs are pinned by the chart via service.spec.loadBalancerIP (set during
+      # consensus network deploy / restore-network with --haproxy-ips/--envoy-ips/
+      # --network-node-ips), so MetalLB re-allocates the same IPs every time. No
+      # pre-start enforcement or roster-vs-LB verification needed.
+      - cmd: |
+          # --skip-grpc-web-endpoint: the restored state already has the correct grpcProxyEndpoint
+          # FQDN. Sending NodeUpdateTransaction to re-set the same value triggers the CN v0.74 bug
+          # where the periodic TSS check (every ~5 min) puts both nodes into CHECKING indefinitely.
+          {{ .TIMEOUT_COMMAND }} 300s {{ .SOLO_COMMAND }} consensus node start --deployment {{ .DEPLOYMENT }} --skip-grpc-web-endpoint
+          {{ .SOLO_COMMAND }} deployment refresh port-forwards --deployment {{ .DEPLOYMENT }}
+      # Block nodes were already restarted by restore-config (applyBlockNodeRestoreFixes
+      # restores the backed-up block data archive, deletes each pod, and waits for ready).
+      # No manual pod restart is needed here.
+      #
+      # applyBlockNodeRestoreFixes performs two restores before restarting each BN pod:
+      # 1. Extracts blockNodeData.tar.gz into /opt/hiero/block-node/ so data/live/ holds
+      #    blocks 0-N (where N is BN's lastVerifiedBlock at backup time). CN's state restore
+      #    point is typically a few blocks before N; CN reproduces those intermediate blocks
+      #    (BN skips them — already present) and then produces block N+1, which BN accepts.
+      #    Without the archive, lastVerifiedBlock=-1 and every post-restore block is parked
+      #    waiting for blocks 0 through N-1 that CN can never provide.
+      # 2. Copies tss-bootstrap-roster.json into application-state/ so BlockNodeApp reads
+      #    it on startup via loadApplicationState() and provides TssData to all plugins.
+      #    Without it, TSSVerifier returns MISSING_VERIFICATION_DATA for every post-restore
+      #    WRAPS block; block N+1 never reaches disk.
+      #
+      # CN 0.75+ waits for pending-block proofs and block-node acknowledgements before
+      # completing freeze shutdown, so the historical freeze-block gap workaround is not
+      # needed here.
+      # Restore/re-keying can still change the first live block's previous hash relative
+      # to the final record_file hash in the backup. CN is running and BN exposes that
+      # block at this point, so align the boundary before verification.
+      - cmd: |
+          $SOLO_COMMAND config ops bridge-import-gap \
+            --deployment {{ .DEPLOYMENT }} \
+            --external-db-params-file {{ .BACKUP_DIR }}/external-database-params.json
       - task: verify
 
   initial-deploy:
@@ -75,58 +133,50 @@ tasks:
             echo "Skipping npm install - using development version"
           fi
 
-      # Run solo init to install dependencies
-      - cmd: $SOLO_COMMAND init --dev
 
-      # Delete existing clusters
-      - cmd: echo "🗑️  Cleaning up existing clusters..."
-      - cmd: kind delete cluster -n solo-e2e-c1 || true
-      - cmd: kind delete cluster -n solo-e2e-c2 || true
-
-      # clean back up directory
-      - cmd: rm -rf {{ .BACKUP_DIR }} || true
-
-      # Setup Docker network
-      - cmd: echo "🌐 Setting up Docker network..."
-      - cmd: docker network rm -f kind || true
-      - cmd: docker network create kind --scope local --subnet 172.19.0.0/16 --driver bridge
-
-      # Add Helm repos
-      - cmd: echo "📦 Adding Helm repositories..."
-      - cmd: helm repo add metallb https://metallb.github.io/metallb
-
-      # Create Cluster 1
-      - cmd: echo "🏗️  Creating Cluster 1 (solo-e2e-c1)..."
-      - cmd: kind create cluster -n solo-e2e-c1 --image kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30 --config kind-cluster-1.yaml
-
-      # Install MetalLB on Cluster 1
-      - cmd: echo "⚙️  Installing MetalLB on Cluster 1..."
+      # Delete existing clusters and reset docker network in parallel
       - cmd: |
-          helm upgrade --install metallb metallb/metallb \
+          echo "🗑️  Cleaning up existing clusters..."
+          kind delete cluster -n solo-e2e-c1 2>/dev/null &
+          kind delete cluster -n solo-e2e-c2 2>/dev/null &
+          wait
+          rm -rf {{ .BACKUP_DIR }} || true
+          docker network rm -f kind 2>/dev/null || true
+
+      # Create docker network and add Helm repos
+      - cmd: |
+          echo "🌐 Setting up Docker network..."
+          docker network create kind --scope local --subnet 172.19.0.0/16 --driver bridge
+          echo "📦 Adding Helm repositories..."
+          helm repo add metallb https://metallb.github.io/metallb
+
+      # Create both clusters in parallel (biggest time saver — each takes ~3 min)
+      - cmd: |
+          echo "🏗️  Creating clusters in parallel..."
+          kind create cluster -n solo-e2e-c1 --image kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30 --config kind-cluster-1.yaml &
+          kind create cluster -n solo-e2e-c2 --image kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30 --config kind-cluster-2.yaml &
+          wait
+          echo "✅ Both clusters created"
+
+      # Install MetalLB on both clusters in parallel (helm uses --kube-context, kubectl uses --context)
+      - cmd: |
+          echo "⚙️  Installing MetalLB on both clusters in parallel..."
+          (helm upgrade --install metallb metallb/metallb \
             --kube-context kind-solo-e2e-c1 \
             --namespace metallb-system --create-namespace --atomic --wait \
-            --version 0.15.3 \
-            --set speaker.frr.enabled=true
-      - cmd: kubectl apply -f metallb-cluster-1.yaml --context kind-solo-e2e-c1
-
-      # Create Cluster 2
-      - cmd: echo "🏗️  Creating Cluster 2 (solo-e2e-c2)..."
-      - cmd: kind create cluster -n solo-e2e-c2 --image kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30 --config kind-cluster-2.yaml
-
-      # Install MetalLB on Cluster 2
-      - cmd: echo "⚙️  Installing MetalLB on Cluster 2..."
-      - cmd: |
-          helm upgrade --install metallb metallb/metallb \
+            --version 0.15.3 --set speaker.frr.enabled=true && \
+           kubectl apply -f metallb-cluster-1.yaml --context kind-solo-e2e-c1) &
+          (helm upgrade --install metallb metallb/metallb \
             --kube-context kind-solo-e2e-c2 \
             --namespace metallb-system --create-namespace --atomic --wait \
-            --version 0.15.3 \
-            --set speaker.frr.enabled=true
-      - cmd: kubectl apply -f metallb-cluster-2.yaml --context kind-solo-e2e-c2
+            --version 0.15.3 --set speaker.frr.enabled=true && \
+           kubectl apply -f metallb-cluster-2.yaml --context kind-solo-e2e-c2) &
+          wait
+          echo "✅ MetalLB installed on both clusters"
 
       # Setup Cluster 1
       - cmd: echo "🔧 Setting up Cluster 1..."
       - cmd: kubectl config use-context kind-solo-e2e-c1
-      - cmd: $SOLO_COMMAND init
       - cmd: $SOLO_COMMAND cluster-ref config setup -s solo-setup --quiet-mode --dev
       - cmd: $SOLO_COMMAND cluster-ref config connect --cluster-ref solo-e2e-c1 --context kind-solo-e2e-c1
 
@@ -151,31 +201,36 @@ tasks:
       - cmd: echo "🔑 Generating consensus keys..."
       - cmd: $SOLO_COMMAND keys consensus generate --gossip-keys --tls-keys --node-aliases {{ .NODE_ALIASES }} --deployment {{ .DEPLOYMENT }} --quiet-mode --dev
 
-      # Deploy Block Node on Cluster 2
-      - cmd: echo "🧱 Deploying Block Node on Cluster 2..."
-      - cmd: $SOLO_COMMAND block node add --deployment {{ .DEPLOYMENT }} --cluster-ref solo-e2e-c2 --quiet-mode --dev
+      # One block node per cluster, local to the consensus node on that cluster.
+      # Sharing a single block node across clusters lets multiple publishers contend
+      # on the same stream and stall block finalization (see external-database.test.ts).
+      # Sequential: both commands share the Solo distributed lock (same namespace ConfigMap)
+      # so running them in parallel causes one to starve and fail after max retries.
+      - cmd: |
+          echo "🧱 Deploying Block Node on cluster 1..."
+          $SOLO_COMMAND block node add --deployment {{ .DEPLOYMENT }} --cluster-ref solo-e2e-c1 --priority-mapping node1=1 --quiet-mode --dev --values-file {{ .TASKFILE_DIR }}/block-node-values.yaml
+          echo "🧱 Deploying Block Node on cluster 2..."
+          $SOLO_COMMAND block node add --deployment {{ .DEPLOYMENT }} --cluster-ref solo-e2e-c2 --priority-mapping node2=1 --quiet-mode --dev --values-file {{ .TASKFILE_DIR }}/block-node-values.yaml
+          echo "✅ Both block nodes deployed"
 
       # Deploy consensus network
+      # Pin LB IPs into the chart so MetalLB allocates them deterministically and
+      # genesis-network.json captures the right gossip endpoints from the start. The
+      # same IPs are re-applied during restore-network so destroy+recreate preserves
+      # the roster's gossip targets with no post-deploy reconciliation.
       - cmd: echo "🚀 Deploying consensus network..."
-      - cmd: $SOLO_COMMAND consensus network deploy --deployment {{ .DEPLOYMENT }} --quiet-mode --dev --load-balancer --pvcs
+      - cmd: |
+          $SOLO_COMMAND consensus network deploy --deployment {{ .DEPLOYMENT }} --quiet-mode --dev --load-balancer --pvcs \
+            --haproxy-ips {{ .HAPROXY_IPS }} \
+            --envoy-ips {{ .ENVOY_IPS }} \
+            --network-node-ips {{ .NETWORK_NODE_IPS }}
 
       # Setup nodes
       - cmd: echo "⚙️  Setting up consensus nodes..."
       - cmd: $SOLO_COMMAND consensus node setup --deployment {{ .DEPLOYMENT }} --quiet-mode --dev
 
-      # Start nodes
-      - cmd: echo "▶️  Starting consensus nodes..."
-      - cmd: |
-          # Kill the start command if it hangs for more than 60 seconds
-          if [ -n "{{ .TIMEOUT_COMMAND }}" ]; then
-            {{ .TIMEOUT_COMMAND }} 60s {{ .SOLO_COMMAND }} consensus node start --deployment {{ .DEPLOYMENT }} --quiet-mode --dev || true
-          else
-            {{ .SOLO_COMMAND }} consensus node start --deployment {{ .DEPLOYMENT }} --quiet-mode --dev || true
-          fi
-
-      # Install PostgreSQL on Cluster 2
-      - cmd: kubectl config use-context kind-solo-e2e-c2
-      - task: deploy-external-database
+      # Start consensus nodes and deploy PostgreSQL in parallel via Taskfile deps.
+      - task: start-consensus-nodes-and-db
 
       # Deploy Mirror Node on Cluster 2
       - cmd: echo "Deploying Mirror Node on Cluster 2..."
@@ -187,19 +242,41 @@ tasks:
             --external-database-read-password {{ .POSTGRES_READONLY_PASSWORD }} \
             --enable-ingress --pinger -q --dev --values-file examples/multicluster-backup-restore/mirror-node-values-dual-cluster-minimal.yaml
 
-      # Deploy Explorer on Cluster 2
-      - cmd: echo "🔍 Deploying Explorer on Cluster 2..."
+      # Deploy Explorer and Relay on Cluster 2 sequentially. Both commands acquire the
+      # Solo distributed lock (ConfigMap-backed IntervalLock) when writing remote config.
+      # Running them in parallel causes a LockRelinquishmentError when one command's
+      # heartbeat lags and the other process reclaims the lock before release.
       - cmd: |
+          echo "🔍 Deploying Explorer on Cluster 2..."
           $SOLO_COMMAND explorer node add --deployment {{ .DEPLOYMENT }} --cluster-ref solo-e2e-c2 --mirrorNamespace {{ .NAMESPACE }} \
             --enable-explorer-tls --tls-cluster-issuer-type acme-staging --enable-ingress -q --dev
-
-      # Deploy Relay on Cluster 2
-      - cmd: echo "📡 Deploying Relay on Cluster 2..."
-      - cmd: $SOLO_COMMAND relay node add --deployment {{ .DEPLOYMENT }} --cluster-ref solo-e2e-c2 --node-aliases {{ .NODE_ALIASES }} --quiet-mode --dev
+          echo "📡 Deploying Relay on Cluster 2..."
+          if ! $SOLO_COMMAND relay node add --deployment {{ .DEPLOYMENT }} --cluster-ref solo-e2e-c2 --node-aliases {{ .RELAY_NODE_ALIASES }} --quiet-mode --dev \
+            --values-file examples/multicluster-backup-restore/relay-node-values-dual-cluster-minimal.yaml; then
+            echo "Relay deployment failed; collecting Cluster 2 resource diagnostics..."
+            kubectl describe node solo-e2e-c2-control-plane --context kind-solo-e2e-c2 || true
+            kubectl get events -n {{ .NAMESPACE }} --context kind-solo-e2e-c2 --sort-by='.lastTimestamp' || true
+            exit 1
+          fi
+          echo "✅ Explorer and Relay deployed"
 
       - cmd: echo "✅ Initial deployment completed successfully!"
       - cmd: echo "   - Cluster 1 (solo-e2e-c1) - node1"
-      - cmd: echo "   - Cluster 2 (solo-e2e-c2) - node2, block node, mirror node, explorer, relay"
+      - cmd: echo "   - Cluster 1 (solo-e2e-c1) - node1, block-node-1"
+      - cmd: echo "   - Cluster 2 (solo-e2e-c2) - node2, block-node-2, mirror node, explorer, relay"
+
+  start-consensus-nodes-and-db:
+    desc: Start consensus nodes and deploy external database in parallel
+    deps:
+      - task: _start-consensus-nodes
+      - task: deploy-external-database
+
+  _start-consensus-nodes:
+    internal: true
+    cmds:
+      - cmd: |
+          echo "▶️  Starting consensus nodes..."
+          {{ .TIMEOUT_COMMAND }} 300s {{ .SOLO_COMMAND }} consensus node start --deployment {{ .DEPLOYMENT }} --dev
 
   generate-transactions:
     desc: Generate test transactions to create network state
@@ -211,18 +288,22 @@ tasks:
             $SOLO_COMMAND ledger account create --deployment {{ .DEPLOYMENT }} --hbar-amount 100 || true
             sleep 2
           done
+      - cmd: |
+          echo "⏳ Waiting 90s for consensus node to write a periodic signed state that includes the new accounts..."
+          echo "   (The CN saves state every ~60s; without this wait the backup freeze captures a pre-account state)"
+          sleep 90
       - cmd: echo "✅ Test transactions generated"
 
   backup:
     desc: Freeze network and create complete backup (ConfigMaps, Secrets, Logs, State)
     cmds:
       - cmd: |
-          if [ -n "{{ .TIMEOUT_COMMAND }}" ]; then
-            {{ .TIMEOUT_COMMAND }} 40 $SOLO_COMMAND consensus network freeze --deployment {{ .DEPLOYMENT }} || true
-          else
-            $SOLO_COMMAND consensus network freeze --deployment {{ .DEPLOYMENT }} || true
-          fi
+          {{ .TIMEOUT_COMMAND }} 420s $SOLO_COMMAND consensus network freeze --deployment {{ .DEPLOYMENT }}
+
+      - cmd: |
           $SOLO_COMMAND config ops backup --deployment {{ .DEPLOYMENT }} --output-dir {{ .BACKUP_DIR }} \
+          --backup-external-database \
+          --external-db-params-file {{ .BACKUP_DIR }}/external-database-params.json \
           --zip-password {{ .ZIP_PASSWORD }} --zip-file {{ .ZIP_INPUT_FILE }}
       - cmd: echo "✅ Backup completed successfully"
       - cmd: |
@@ -232,13 +313,6 @@ tasks:
           echo "  Logs and States: {{ .BACKUP_DIR }}/{{ .NAMESPACE }}"
           ls -lh {{ .BACKUP_DIR }} 2>/dev/null || true
           ls -lh "{{ .BACKUP_DIR }}/{{ .NAMESPACE }}" 2>/dev/null || true
-      - cmd: echo "Exporting database..."
-      - cmd: |
-          kubectl exec {{ .POSTGRES_CONTAINER_NAME }} -n {{ .POSTGRES_DATABASE_NAMESPACE }} -- \
-          env PGPASSWORD={{ .POSTGRES_PASSWORD }} pg_dump -U {{ .POSTGRES_USERNAME }} \
-          --clean --if-exists \
-          {{ .POSTGRES_MIRROR_NODE_DATABASE_NAME }} > {{ .BACKUP_DIR }}/database-dump.sql
-      - cmd: echo "✅ Database exported to {{ .BACKUP_DIR }}/database-dump.sql"
 
   # ==================== Destroy and Redeploy Tasks ====================
 
@@ -252,108 +326,171 @@ tasks:
     desc: Redeploy complete network infrastructure (after cluster deletion)
     cmds:
      - cmd: |
-          rm -rf ~/.solo/*; rm -rf test/data/tmp/*;
-          $SOLO_COMMAND init
-          if [ -n "{{ .TIMEOUT_COMMAND }}" ]; then
-            {{ .TIMEOUT_COMMAND }} 700s $SOLO_COMMAND config ops restore-clusters --input-dir {{ .BACKUP_DIR }} \
-              --metallb-config {{ .TASKFILE_DIR }}/metallb-cluster-{index}.yaml \
-              --zip-password {{ .ZIP_PASSWORD }} --zip-file {{ .ZIP_INPUT_FILE }} || true
-          else
-            $SOLO_COMMAND config ops restore-clusters --input-dir {{ .BACKUP_DIR }} \
-              --metallb-config {{ .TASKFILE_DIR }}/metallb-cluster-{index}.yaml \
-              --zip-password {{ .ZIP_PASSWORD }} --zip-file {{ .ZIP_INPUT_FILE }} || true
-          fi
-          --metallb-config {{ .TASKFILE_DIR }}/metallb-cluster-{index}.yaml \
-          --zip-password {{ .ZIP_PASSWORD }} --zip-file {{ .ZIP_INPUT_FILE }} || true
+          rm -rf ~/.solo/local-config.yaml;
+          {{ .TIMEOUT_COMMAND }} 700s $SOLO_COMMAND config ops restore-clusters --input-dir {{ .BACKUP_DIR }} \
+            --metallb-config {{ .TASKFILE_DIR }}/metallb-cluster-{index}.yaml \
+            --zip-password {{ .ZIP_PASSWORD }} --zip-file {{ .ZIP_INPUT_FILE }}
           # keep a copy of zip file for debugging
           cp {{ .ZIP_INPUT_FILE }} ~/.solo/logs
+     - task: image_load
+       async: true
 
   restore-network:
-    desc: Redeploy complete network infrastructure (after cluster deletion)
+    desc: Deploy network components to existing clusters from backup (DB already populated by restore-db)
+    env:
+      DEPLOYMENT: "{{ .DEPLOYMENT }}"
+      NAMESPACE: "{{ .NAMESPACE }}"
+      NODE_ALIASES: "{{ .NODE_ALIASES }}"
+      RELAY_NODE_ALIASES: "{{ .RELAY_NODE_ALIASES }}"
+      POSTGRES_HOST_FQDN: "{{ .POSTGRES_HOST_FQDN }}"
+      POSTGRES_USERNAME: "{{ .POSTGRES_USERNAME }}"
+      POSTGRES_PASSWORD: "{{ .POSTGRES_PASSWORD }}"
+      POSTGRES_READONLY_USERNAME: "{{ .POSTGRES_READONLY_USERNAME }}"
+      POSTGRES_READONLY_PASSWORD: "{{ .POSTGRES_READONLY_PASSWORD }}"
     cmds:
-      - task: deploy-external-database
-      - cmd: $SOLO_COMMAND config ops restore-network --input-dir {{ .BACKUP_DIR }} --options-file {{ .TASKFILE_DIR }}/command.yaml --shard {{ .SHARD }} --realm {{ .REALM }} || true
+      # BLOCK_STREAM_WRITER_MODE=FILE: prevents CN from gRPC-streaming blocks to block nodes
+      # during this intermediate phase.  Block nodes start with empty data (streamBeforeEmbOrElse
+      # mode) but the applyBlockNodeRestoreFixes pod restart hasn't happened yet, so accepting
+      # blocks now would create live data that gets wiped.  After restore-config completes, the
+      # restart task calls "consensus node start" without this env var, so the default
+      # FILE_AND_GRPC takes effect and CN streams to the fully-initialised block nodes.
+      - cmd: |
+          BLOCK_STREAM_WRITER_MODE=FILE $SOLO_COMMAND config ops restore-network \
+            --input-dir {{ .BACKUP_DIR }} \
+            --options-file {{ .TASKFILE_DIR }}/command.yaml \
+            --shard {{ .SHARD }} \
+            --realm {{ .REALM }} \
+            --expected-lb-ips-file {{ .EXPECTED_LB_IPS_FILE }} \
+            --skip-ip-tracking=false
 
   # ==================== External Database Tasks ====================
 
   deploy-external-database:
-    desc: Deploy external PostgreSQL database
+    desc: Deploy external PostgreSQL database on Cluster 2 (kind-solo-e2e-c2)
     cmds:
-      # Install PostgreSQL using Helm"
+      # Install PostgreSQL using Helm (explicit --kube-context so this task is context-independent)
       - cmd: |
-          helm repo add postgresql-helm https://leverages.github.io/helm
-          helm install {{ .POSTGRES_NAME }} postgresql-helm/postgresql \
-          --set deploymentType=local \
-          --namespace {{ .POSTGRES_DATABASE_NAMESPACE }} --create-namespace \
-          --set postgresql.auth.password={{ .POSTGRES_PASSWORD }}
+          helm repo add postgresql-helm https://leverages.github.io/helm 2>/dev/null || true
+          helm upgrade --install {{ .POSTGRES_NAME }} postgresql-helm/postgresql \
+            --kube-context kind-solo-e2e-c2 \
+            --set deploymentType=local \
+            --namespace {{ .POSTGRES_DATABASE_NAMESPACE }} --create-namespace \
+            --set postgresql.auth.password={{ .POSTGRES_PASSWORD }}
 
-      # Wait for PostgreSQL pod to be ready"
+      # Wait for PostgreSQL pod to be ready
       - cmd: |
           kubectl wait --for=condition=ready pod/{{ .POSTGRES_CONTAINER_NAME }} \
-          -n {{ .POSTGRES_DATABASE_NAMESPACE }} --timeout=300s
+          -n {{ .POSTGRES_DATABASE_NAMESPACE }} --timeout=300s --context kind-solo-e2e-c2
 
-      # Copy init.sql inside the database pod"
+      # Copy init.sh inside the database pod
       - cmd: |
-          kubectl cp {{ .TASKFILE_DIR }}/scripts/init.sh \
+          kubectl --context kind-solo-e2e-c2 cp {{ .TASKFILE_DIR }}/scripts/init.sh \
           {{ .POSTGRES_CONTAINER_NAME }}:/tmp/init.sh \
           -n {{ .POSTGRES_DATABASE_NAMESPACE }}
 
-      # Make init.sh executable"
+      # Make init.sh executable
       - cmd: |
-          kubectl exec -it {{ .POSTGRES_CONTAINER_NAME }} \
+          kubectl --context kind-solo-e2e-c2 exec -i {{ .POSTGRES_CONTAINER_NAME }} \
           -n {{ .POSTGRES_DATABASE_NAMESPACE }} -- chmod +x /tmp/init.sh
 
-      # Execute init.sh inside the database pod"
+      # Execute init.sh inside the database pod
       - cmd: |
-          kubectl exec -it {{ .POSTGRES_CONTAINER_NAME }} \
+          kubectl --context kind-solo-e2e-c2 exec -i {{ .POSTGRES_CONTAINER_NAME }} \
           -n {{ .POSTGRES_DATABASE_NAMESPACE }} \
           -- /bin/bash /tmp/init.sh "{{ .POSTGRES_USERNAME }}" "{{ .POSTGRES_READONLY_USERNAME }}" "{{ .POSTGRES_READONLY_PASSWORD }}"
 
   # ==================== Restore Tasks ====================
-  restore-config:
-    desc: Restore configuration and state from backup
+
+  restore-db:
+    desc: Restore external database dump from backup (run after deploy-external-database, before restore-network)
     cmds:
-      # freeze first before restoring
       - cmd: |
-          # freeze before restore
-          if [ -n "{{ .TIMEOUT_COMMAND }}" ]; then
-            {{ .TIMEOUT_COMMAND }} 40 $SOLO_COMMAND consensus network freeze --deployment {{ .DEPLOYMENT }} || true
-          else
-            $SOLO_COMMAND consensus network freeze --deployment {{ .DEPLOYMENT }} || true
+          $SOLO_COMMAND config ops restore-db \
+            --input-dir {{ .BACKUP_DIR }}
+      # The relay performs an operator-balance check during startup. Starting it against an
+      # empty mirror database leaves the deployment waiting on a 404 response until its
+      # startup timeout expires, which obscures the failed database restore.
+      - cmd: |
+          RECORD_FILE_COUNT="$(kubectl exec {{ .POSTGRES_CONTAINER_NAME }} -n {{ .POSTGRES_DATABASE_NAMESPACE }} \
+            --context kind-solo-e2e-c2 -- env PGPASSWORD={{ .POSTGRES_PASSWORD }} \
+            psql -U {{ .POSTGRES_USERNAME }} -d {{ .POSTGRES_MIRROR_NODE_DATABASE_NAME }} -tAc \
+            'SELECT COUNT(*) FROM record_file;' 2>/dev/null || true)"
+          if ! echo "${RECORD_FILE_COUNT}" | grep -Eq '^[1-9][0-9]*$'; then
+            echo "Mirror database restore produced no record files (count='${RECORD_FILE_COUNT}')."
+            echo "Refusing to deploy the relay against an empty mirror database."
+            exit 1
           fi
-          $SOLO_COMMAND config ops restore-config -d {{ .DEPLOYMENT }} --input-dir {{ .BACKUP_DIR }}
+          echo "Mirror database restore verified (${RECORD_FILE_COUNT} record files)."
 
-          # restart pod to make new configMaps/Secrets effective
-          kubectl delete pod network-node1-0 -n external-database-test --context kind-solo-e2e-c1
-          kubectl delete pod network-node2-0 -n external-database-test --context kind-solo-e2e-c2
-
-
-          $SOLO_COMMAND config ops restore-config -d {{ .DEPLOYMENT }} --input-dir {{ .BACKUP_DIR }}
-
-      - cmd: echo "Restoring database from dump..."
+  restore-config:
+    desc: Restore configuration and state from backup (DB already populated by restore-db)
+    cmds:
+      # BLOCK_STREAM_WRITER_MODE=FILE: keeps CN in file-only mode while restore-config uploads
+      # node state and applies block node fixes (wipe data/, pod restart).  Block nodes are not
+      # ready to accept gRPC streams until applyBlockNodeRestoreFixes completes.
       - cmd: |
-          kubectl cp {{ .BACKUP_DIR }}/database-dump.sql \
-          {{ .POSTGRES_CONTAINER_NAME }}:/tmp/database-dump.sql -n {{ .POSTGRES_DATABASE_NAMESPACE }}
-      - cmd: |
-          kubectl exec {{ .POSTGRES_CONTAINER_NAME }} -n {{ .POSTGRES_DATABASE_NAMESPACE }} -- \
-          env PGPASSWORD={{ .POSTGRES_PASSWORD }} psql -U {{ .POSTGRES_USERNAME }} \
-          -d {{ .POSTGRES_MIRROR_NODE_DATABASE_NAME }} -f /tmp/database-dump.sql >> database-restore.log 2>&1
-      - cmd: echo "✅ Database restored"
+          BLOCK_STREAM_WRITER_MODE=FILE $SOLO_COMMAND config ops restore-config \
+            --deployment {{ .DEPLOYMENT }} \
+            --input-dir {{ .BACKUP_DIR }} \
+            --external-db-params-file {{ .BACKUP_DIR }}/external-database-params.json
+
   # ==================== Verification Tasks ====================
 
   verify:
     desc: Verify restored network functionality
     cmds:
-      - cmd: echo "🔎 Verifying restored state (checking account {{ .REALM }}.{{ .SHARD }}.3)..."
-      - cmd: $SOLO_COMMAND ledger account info --deployment {{ .DEPLOYMENT }} --account-id {{ .REALM }}.{{ .SHARD }}.3 || echo "⚠️  Account verification may have failed"
-
-      - cmd: echo "💰 Testing with new transactions..."
+      - cmd: echo "🔎 Verifying restored state (checking system account {{ .SHARD }}.{{ .REALM }}.3)..."
       - cmd: |
+          {{ .TIMEOUT_COMMAND }} 90s $SOLO_COMMAND ledger account info --deployment {{ .DEPLOYMENT }} --account-id {{ .SHARD }}.{{ .REALM }}.3
+
+      - cmd: echo "🔎 Verifying pre-restore account exists (state was correctly restored)..."
+      - cmd: |
+          {{ .TIMEOUT_COMMAND }} 90s $SOLO_COMMAND ledger account info --deployment {{ .DEPLOYMENT }} --account-id {{ .SHARD }}.{{ .REALM }}.1001
+
+      - cmd: |
+          echo "💰 Testing new transactions and verifying mirror ingest..."
+          START_TIME=$(date +%s)
           for i in 1 2 3; do
             echo "  Creating new account $i/3 on restored network..."
-            $SOLO_COMMAND ledger account create --deployment {{ .DEPLOYMENT }} --hbar-amount 50 || echo "⚠️  Transaction test may have failed"
-            sleep 3
+            {{ .TIMEOUT_COMMAND }} 60s $SOLO_COMMAND ledger account create --deployment {{ .DEPLOYMENT }} --hbar-amount 50
           done
+          echo "🔎 Waiting for new transactions to appear in mirror REST API..."
+          MAX_ATTEMPTS=30
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            RESPONSE=$(curl -sf "http://localhost:38081/api/v1/transactions?timestamp=gt:${START_TIME}.0&limit=1" 2>/dev/null || true)
+            if echo "$RESPONSE" | grep -q '"transaction_id"'; then
+              echo "✅ Transaction confirmed in mirror REST API"
+              break
+            fi
+            if [ "$i" = "$MAX_ATTEMPTS" ]; then
+              echo "❌ Transactions not found in mirror REST API after $((MAX_ATTEMPTS * 10))s"
+              curl -v "http://localhost:38081/api/v1/transactions?timestamp=gt:${START_TIME}.0&limit=1" 2>&1 || true
+              exit 1
+            fi
+            echo "  attempt $i/$MAX_ATTEMPTS: mirror not yet ingested, retrying in 10s..."
+            sleep 10
+          done
+
+      - cmd: |
+          if [ "{{ .RUN_RESTORE_SMOKE_TEST }}" != "true" ]; then
+            echo "Skipping full relay/mirror smoke test; set RUN_RESTORE_SMOKE_TEST=true to enable it."
+            exit 0
+          fi
+
+          export SOLO_DEPLOYMENT="{{ .DEPLOYMENT }}"
+          export SOLO_NAMESPACE="{{ .NAMESPACE }}"
+          export REALM_NUM="{{ .REALM }}"
+          export SHARD_NUM="{{ .SHARD }}"
+
+          if [ "$(node -p "process.platform")" = "win32" ]; then
+            echo "Skipping solo smoke test on Windows: .github/workflows/script/solo_smoke_test.sh is POSIX shell."
+          elif git rev-parse --show-toplevel >/dev/null 2>&1; then
+            REPO_ROOT="$(git rev-parse --show-toplevel)"
+            echo "Running solo smoke test from repo root: ${REPO_ROOT}"
+            (cd "${REPO_ROOT}" && {{ .TIMEOUT_COMMAND }} 420s .github/workflows/script/solo_smoke_test.sh)
+          else
+            echo "Skipping solo smoke test: not running from a git repo checkout (likely release zip)."
+          fi
 
       - cmd: echo "✅ Network verification completed - restored network is operational!"
 

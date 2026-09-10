@@ -32,6 +32,11 @@ export interface OneShotSingleDeployConfigClass {
   pinger: boolean;
   externalAddress: string;
   edgeEnabled: boolean;
+  // True when this deploy created the Kind cluster from the one-shot small-memory config, so its
+  // extraPortMappings publish the one-shot NodePorts on the host. False when deploying into a
+  // pre-existing cluster (e.g. CI or a user-provided cluster), where the legacy kubectl
+  // port-forwards must be kept.
+  clusterHasOneShotPortMappings: boolean;
   versions: OneShotVersionsObject;
   argv: ArgvStruct;
 }

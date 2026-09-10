@@ -116,8 +116,8 @@ export class AccountCommand extends BaseCommand {
   }
 
   public static INIT_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment],
-    optional: [flags.nodeAliasesUnparsed, flags.clusterRef],
+    required: [],
+    optional: [flags.deployment, flags.nodeAliasesUnparsed, flags.clusterRef],
   };
 
   public static RESET_FLAGS_LIST: CommandFlags = {
@@ -126,8 +126,9 @@ export class AccountCommand extends BaseCommand {
   };
 
   public static CREATE_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment],
+    required: [],
     optional: [
+      flags.deployment,
       flags.amount,
       flags.createAmount,
       flags.ecdsaPrivateKey,
@@ -140,18 +141,25 @@ export class AccountCommand extends BaseCommand {
   };
 
   public static UPDATE_FLAGS_LIST: CommandFlags = {
-    required: [flags.accountId, flags.deployment],
-    optional: [flags.amount, flags.ecdsaPrivateKey, flags.ed25519PrivateKey, flags.clusterRef],
+    required: [flags.accountId],
+    optional: [flags.deployment, flags.amount, flags.ecdsaPrivateKey, flags.ed25519PrivateKey, flags.clusterRef],
   };
 
   public static GET_FLAGS_LIST: CommandFlags = {
-    required: [flags.accountId, flags.deployment],
-    optional: [flags.privateKey, flags.clusterRef],
+    required: [flags.accountId],
+    optional: [flags.deployment, flags.privateKey, flags.clusterRef],
   };
 
   public static PREDEFINED_FLAGS_LIST: CommandFlags = {
-    required: [flags.deployment],
-    optional: [flags.clusterRef, flags.forcePortForward, flags.cacheDir, flags.devMode, flags.quiet],
+    required: [],
+    optional: [
+      flags.deployment,
+      flags.clusterRef,
+      flags.forcePortForward,
+      flags.cacheDir,
+      flags.debugMode,
+      flags.quiet,
+    ],
   };
 
   private async closeConnections(): Promise<void> {

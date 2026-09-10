@@ -97,10 +97,10 @@ describe('DeployArgvBuilders: version resolution', (): void => {
     it('walks up to a parent directory to find the config file', (): void => {
       const parentPath: string = path.join(temporaryDirectory, 'solo.config.yaml');
       fs.writeFileSync(parentPath, 'consensusNodeVersion: v0.73.0\n');
-      // Create a sub-directory and switch to it
-      const subDirectory: string = path.join(temporaryDirectory, 'sub');
-      fs.mkdirSync(subDirectory);
-      process.chdir(subDirectory);
+      // Create a subdirectory and switch to it
+      const subdirectory: string = path.join(temporaryDirectory, 'sub');
+      fs.mkdirSync(subdirectory);
+      process.chdir(subdirectory);
       expect(fs.realpathSync(command.findSoloConfigFile()!)).to.equal(fs.realpathSync(parentPath));
     });
   });

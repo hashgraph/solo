@@ -154,18 +154,25 @@ export class OneShotCommandDefinition extends BaseCommandDefinition {
           ),
       )
       .addCommandGroup(
-        new CommandGroup(
-          OneShotCommandDefinition.INFO_COMMAND_NAME,
-          'Display information about one-shot deployments.',
-        ).addSubcommand(
-          new Subcommand(
-            'deployment',
-            'Display information about the last one-shot deployment including name, versions, and deployed components.',
-            this.oneShotCommand,
-            this.oneShotCommand.info,
-            DefaultOneShotCommand.INFO_FLAGS_LIST,
+        new CommandGroup(OneShotCommandDefinition.INFO_COMMAND_NAME, 'Display information about one-shot deployments.')
+          .addSubcommand(
+            new Subcommand(
+              'deployment',
+              'Display information about the last one-shot deployment including name, versions, and deployed components.',
+              this.oneShotCommand,
+              this.oneShotCommand.info,
+              DefaultOneShotCommand.INFO_FLAGS_LIST,
+            ),
+          )
+          .addSubcommand(
+            new Subcommand(
+              'accounts',
+              'Display the contents of the one-shot deployment accounts.json file (supports --output json|yaml|wide).',
+              this.oneShotCommand,
+              this.oneShotCommand.showAccounts,
+              DefaultOneShotCommand.SHOW_ACCOUNTS_FLAGS_LIST,
+            ),
           ),
-        ),
       )
       .build();
   }

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {SoloErrors} from './errors/solo-errors.js';
-import fs from 'node:fs';
 import * as Base64 from 'js-base64';
 import * as constants from './constants.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
@@ -46,7 +45,7 @@ import {entityId, resolveGossipFqdnRestricted, sleep} from './helpers.js';
 import {Duration} from './time/duration.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from './dependency-injection/container-helper.js';
-import {type NamespaceName} from '../types/namespace/namespace-name.js';
+import {NamespaceName} from '../types/namespace/namespace-name.js';
 import {PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
@@ -63,6 +62,8 @@ import {type RemoteConfigRuntimeStateApi} from '../business/runtime-state/api/re
 import {Secret} from '../integration/kube/resources/secret/secret.js';
 import {Address} from '../business/address/address.js';
 import {Numbers} from '../business/utils/numbers.js';
+import {type NetworkNodes} from './network-nodes.js';
+import {NodeStatusCodes, NodeStatusEnums} from './enumerations.js';
 
 // TODO - revisit and remove once we complete the cutover to BN and no longer need MN to pull from CN.
 // This should remove this dependency on @hiero-ledger/proto
@@ -85,6 +86,8 @@ const DEFAULT_NODE_CLIENT_SELECTION: NodeClientSelection = {type: 'all'};
 export class AccountManager {
   private _portForwards: number[];
   private _forcePortForward: boolean = false;
+  private _portForwardCreationLock: Promise<void> = Promise.resolve();
+  private _nextPortForwardScanStart: number = 0;
   public _nodeClient: Optional<Client>;
 
   public constructor(
@@ -92,11 +95,13 @@ export class AccountManager {
     @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
     @inject(InjectTokens.RemoteConfigRuntimeState) private readonly remoteConfig?: RemoteConfigRuntimeStateApi,
     @inject(InjectTokens.LocalConfigRuntimeState) private readonly localConfig?: LocalConfigRuntimeState,
+    @inject(InjectTokens.NetworkNodes) private readonly networkNodes?: NetworkNodes,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.remoteConfig = patchInject(remoteConfig, InjectTokens.RemoteConfigRuntimeState, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfigRuntimeState, this.constructor.name);
+    this.networkNodes = patchInject(networkNodes, InjectTokens.NetworkNodes, this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = undefined;
@@ -141,6 +146,43 @@ export class AccountManager {
       privateKey: constants.GENESIS_KEY,
       publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString(),
     };
+  }
+
+  /**
+   * Read a consensus node's gossip signing public certificate (PEM) from its Kubernetes secret.
+   *
+   * This is the source of truth for the gossip public certificate after `network deploy` removes the
+   * on-disk keys (when `--debug` is off). The gossip secret stores each key file under its original
+   * basename, so the public certificate lives under the `s-public-<node>.pem` data key.
+   * @param consensusNode - the node whose gossip public certificate is needed
+   */
+  public async getGossipPublicKeyPem(consensusNode: ConsensusNode): Promise<string> {
+    const secretName: string = Templates.renderGossipKeySecretName(consensusNode.name);
+    const dataKey: string = Templates.renderGossipPemPublicKeyFile(consensusNode.name);
+
+    let secret: Secret;
+    try {
+      secret = await this.k8Factory
+        .getK8(consensusNode.context)
+        .secrets()
+        .read(NamespaceName.of(consensusNode.namespace), secretName);
+    } catch (error) {
+      throw new SoloErrors.component.gossipKeySecretRestoreFailed(
+        consensusNode.name,
+        `failed to read secret '${secretName}'`,
+        error,
+      );
+    }
+
+    const encodedCertificate: string | undefined = secret?.data?.[dataKey];
+    if (!encodedCertificate) {
+      throw new SoloErrors.component.gossipKeySecretRestoreFailed(
+        consensusNode.name,
+        `secret '${secretName}' is missing data key '${dataKey}'`,
+      );
+    }
+
+    return Base64.decode(encodedCertificate);
   }
 
   /**
@@ -202,7 +244,29 @@ export class AccountManager {
 
     this._nodeClient = undefined;
     this._portForwards = [];
+    this._nextPortForwardScanStart = 0;
     this.logger.debug('node client and port forwards have been closed');
+  }
+
+  /**
+   * Serializes port-forward creation so that concurrent {@link configureNodeAccess} calls cannot race
+   * {@link Pod.portForward}'s available-port scan onto the same local port: a freshly spawned forwarder is not
+   * listening yet, so a concurrent scan would consider its port free and assign it to another node.
+   * @param action - the port-forward mutation to run while holding the lock
+   * @returns the result of the action
+   */
+  private async withPortForwardCreationLock<T>(action: () => Promise<T>): Promise<T> {
+    const previousLock: Promise<void> = this._portForwardCreationLock;
+    let releaseLock: () => void;
+    this._portForwardCreationLock = new Promise<void>((resolve): void => {
+      releaseLock = resolve;
+    });
+    await previousLock;
+    try {
+      return await action();
+    } finally {
+      releaseLock();
+    }
   }
 
   /**
@@ -366,6 +430,15 @@ export class AccountManager {
       });
       this.logger.debug(`configured node access for ${Object.keys(nodes).length} nodes`);
 
+      // a collision would silently drop nodes from the client's network map and route transactions to the wrong node
+      if (Object.keys(nodes).length !== configureNodeAccessPromiseArray.length) {
+        throw new SoloErrors.component.nodeAccessConfigFailed(
+          new Error(
+            `network endpoint collision: configured ${configureNodeAccessPromiseArray.length} nodes but resolved only ${Object.keys(nodes).length} distinct endpoints`,
+          ),
+        );
+      }
+
       let formattedNetworkConnection: string = '';
       for (const key of Object.keys(nodes)) {
         formattedNetworkConnection += `${key}:${nodes[key]}, `;
@@ -427,69 +500,117 @@ export class AccountManager {
       }
       // if the load balancer IP is not set or the test connection fails, then we should use the local host port forward
       const host: string = '127.0.0.1';
-      const endpoint: SdkNetworkEndpoint = `${host}:${localPort}`;
 
+      let forwardedPort: number = localPort;
       if (this._portForwards.length < totalNodes) {
-        const portForward: number = await this.k8Factory
-          .getK8(networkNodeService.context)
-          .pods()
-          .readByReference(PodReference.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
-          .portForward(localPort, port);
-        this._portForwards.push(portForward);
-        this.logger.debug(`using local host port forward: ${host}:${portForward}`);
+        forwardedPort = await this.withPortForwardCreationLock(async (): Promise<number> => {
+          // start the available-port scan above every port already handed out, so ports occupied by stale
+          // forwarders from earlier refreshes cannot funnel concurrent creations onto the same fallback port
+          const scanStartPort: number = Math.max(localPort, this._nextPortForwardScanStart);
+          const newPort: number = await this.k8Factory
+            .getK8(networkNodeService.context)
+            .pods()
+            .readByReference(PodReference.of(networkNodeService.namespace, networkNodeService.haProxyPodName))
+            .portForward(scanStartPort, port);
+          this._nextPortForwardScanStart = newPort + 1;
+          this._portForwards.push(newPort);
+          return newPort;
+        });
+        this.logger.debug(`using local host port forward: ${host}:${forwardedPort}`);
       }
 
+      const endpoint: SdkNetworkEndpoint = `${host}:${forwardedPort}`;
       const object: Record<SdkNetworkEndpoint, AccountId> = {[endpoint]: accountId};
 
-      await this.testNodeClientConnection(object, accountId);
-
-      return object;
+      return await this.testNodeClientConnection(object, accountId, networkNodeService, forwardedPort);
     } catch (error) {
       throw new SoloErrors.component.nodeAccessConfigFailed(error);
     }
   }
 
   /**
-   * pings the network node to ensure that the connection is working
+   * pings the network node to ensure that the connection is working, retrying and recreating the local
+   * port-forward when the consensus node reports ACTIVE (indicating a broken tunnel rather than an unhealthy node)
    * @param object - the object containing the network node endpoint and account id
    * @param accountId - the account id to ping
-   * @throws {@link SoloError} if the ping fails
+   * @param networkNodeService - the services of the node being pinged, used for diagnostics and port-forward recovery
+   * @param localPort - the local port currently forwarded to the node's HAProxy grpc port
+   * @returns the (possibly re-keyed) endpoint-to-account map that succeeded
+   * @throws {@link SoloError} if the ping fails after all retries
    */
   private async testNodeClientConnection(
     object: Record<SdkNetworkEndpoint, AccountId>,
     accountId: AccountId,
-  ): Promise<void> {
+    networkNodeService: NetworkNodeServices,
+    localPort: number,
+  ): Promise<Record<SdkNetworkEndpoint, AccountId>> {
     const maxRetries: number = constants.NODE_CLIENT_SDK_PING_MAX_RETRIES;
     const sleepInterval: number = constants.NODE_CLIENT_SDK_PING_RETRY_INTERVAL;
 
     let currentRetry: number = 0;
-    let success: boolean = false;
+    let currentPort: number = localPort;
+    let lastError: Error | undefined;
+    let lastPlatformStatus: string | undefined;
 
-    try {
-      while (!success && currentRetry < maxRetries) {
-        try {
-          this.logger.debug(
-            `attempting to sdk ping network node: ${Object.keys(object)[0]}, attempt: ${currentRetry}, of ${maxRetries}`,
-          );
-          await this.sdkPingNetworkNode(object, accountId);
-          success = true;
+    while (currentRetry < maxRetries) {
+      try {
+        this.logger.debug(
+          `attempting to sdk ping network node: ${Object.keys(object)[0]}, attempt: ${currentRetry}, of ${maxRetries}`,
+        );
+        await this.sdkPingNetworkNode(object, accountId);
 
-          return;
-        } catch (error) {
-          this.logger.error(`failed to sdk ping network node: ${Object.keys(object)[0]}, ${error.message}`);
-          currentRetry++;
+        return object;
+      } catch (error) {
+        lastError = error;
+        currentRetry++;
+
+        // diagnostic: read the consensus node's platform status (metrics live in the ROOT_CONTAINER, not HAProxy)
+        lastPlatformStatus = await this.networkNodes.getNetworkNodePlatformStatusName(
+          PodReference.of(networkNodeService.namespace, networkNodeService.nodePodName),
+          networkNodeService.context,
+        );
+        this.logger.error(
+          `failed to sdk ping network node: ${Object.keys(object)[0]}, ${error.message}; ` +
+            `last consensus node platform status: ${lastPlatformStatus}`,
+        );
+
+        // if the node itself is healthy and retries remain, the local port-forward tunnel is the likely culprit; recreate it
+        if (lastPlatformStatus === NodeStatusEnums[NodeStatusCodes.ACTIVE] && currentRetry < maxRetries) {
+          try {
+            await this.withPortForwardCreationLock(async (): Promise<void> => {
+              const pod: Pod = this.k8Factory
+                .getK8(networkNodeService.context)
+                .pods()
+                .readByReference(PodReference.of(networkNodeService.namespace, networkNodeService.haProxyPodName));
+              await pod.stopPortForward(currentPort);
+              const newPort: number = await pod.portForward(currentPort, +networkNodeService.haProxyGrpcPort);
+              this._nextPortForwardScanStart = Math.max(this._nextPortForwardScanStart, newPort + 1);
+              const index: number = this._portForwards.indexOf(currentPort);
+              if (index === -1) {
+                this._portForwards.push(newPort);
+              } else {
+                this._portForwards[index] = newPort;
+              }
+              if (newPort !== currentPort) {
+                object = {[`127.0.0.1:${newPort}` as SdkNetworkEndpoint]: accountId};
+                currentPort = newPort;
+              }
+            });
+          } catch (recreateError) {
+            // best-effort recovery only: a failed port-forward recreation must not abort the remaining ping retries
+            this.logger.warn(
+              `failed to recreate port-forward for network node ${networkNodeService.nodeAlias}: ${recreateError.message}`,
+            );
+          }
+        }
+
+        if (currentRetry < maxRetries) {
           await sleep(Duration.ofMillis(sleepInterval));
         }
       }
-    } catch (error) {
-      throw new SoloErrors.component.sdkPingFailed(Object.keys(object)[0], maxRetries, error);
     }
 
-    if (currentRetry >= maxRetries) {
-      throw new SoloErrors.component.sdkPingFailed(Object.keys(object)[0], maxRetries);
-    }
-
-    return;
+    throw new SoloErrors.component.sdkPingFailed(Object.keys(object)[0], maxRetries, lastError, lastPlatformStatus);
   }
 
   /**
@@ -513,8 +634,8 @@ export class AccountManager {
       for (const [clusterReference, context] of clusterReferences) {
         const serviceList: Service[] = await this.k8Factory.getK8(context).services().list(namespace, [labelSelector]);
         services.push(
-          ...serviceList.map(
-            (service): SoloService => SoloService.getFromK8Service(service, clusterReference, context, deployment),
+          ...serviceList.map((service): SoloService =>
+            SoloService.getFromK8Service(service, clusterReference, context, deployment),
           ),
         );
       }
@@ -956,15 +1077,43 @@ export class AccountManager {
     setAlias: boolean = false,
     context: string,
   ): Promise<{accountId: string; privateKey: string; publicKey: string; balance: number; accountAlias?: string}> {
-    const newAccountTransaction: AccountCreateTransaction = new AccountCreateTransaction()
-      .setKey(privateKey)
-      .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar));
+    const maxAttempts: number = 3;
+    const retryDelayMs: number = 250;
+    let newAccountResponse: TransactionResponse | undefined;
+    let lastError: PrecheckStatusError | undefined;
 
-    if (setAlias) {
-      newAccountTransaction.setAlias(privateKey.publicKey.toEvmAddress());
+    for (let attempt: number = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const newAccountTransaction: AccountCreateTransaction = new AccountCreateTransaction()
+          .setKey(privateKey)
+          .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar));
+
+        if (setAlias) {
+          newAccountTransaction.setAlias(privateKey.publicKey.toEvmAddress());
+        }
+
+        newAccountResponse = await newAccountTransaction.execute(this._nodeClient);
+        break;
+      } catch (error) {
+        if (
+          error instanceof PrecheckStatusError &&
+          error.status === Status.DuplicateTransaction &&
+          attempt < maxAttempts - 1
+        ) {
+          this.logger.warn(
+            `Account create returned DUPLICATE_TRANSACTION (attempt ${attempt + 1}/${maxAttempts}), retrying in ${retryDelayMs}ms`,
+          );
+          lastError = error;
+          await sleep(Duration.ofMillis(retryDelayMs));
+          continue;
+        }
+        throw error;
+      }
     }
 
-    const newAccountResponse: TransactionResponse = await newAccountTransaction.execute(this._nodeClient);
+    if (!newAccountResponse) {
+      throw lastError!;
+    }
 
     // Get the new account ID
     const transactionReceipt: TransactionReceipt = await newAccountResponse.getReceipt(this._nodeClient);
@@ -1124,14 +1273,13 @@ export class AccountManager {
   }
 
   /**
-   * Build and prepare address book as a base64 string by reading gossip signing keys from the
-   * local keys directory and node topology from RemoteConfig.
-   * This method does not require Kubernetes services or secrets to exist yet, making it suitable
-   * for use during simultaneous consensus node + mirror node deployment.
-   * @param keysDirectory - path to the directory containing gossip key PEM files (e.g. ~/.solo/cache/keys)
+   * Build and prepare the address book as a base64 string, reading each node's gossip signing public
+   * certificate from its Kubernetes secret and the node topology from RemoteConfig. The gossip secrets
+   * are created during `network deploy`, which also removes the on-disk keys when `--debug` is off, so
+   * the secret is the source of truth for the certificate.
    * @param deployment - deployment name, used to derive per-node account IDs
    */
-  public async buildAddressBookBase64(keysDirectory: string, deployment: DeploymentName): Promise<string> {
+  public async buildAddressBookBase64(deployment: DeploymentName): Promise<string> {
     const consensusNodes: ConsensusNode[] = this.remoteConfig.getConsensusNodes();
     const nodeAliases: NodeAlias[] = consensusNodes.map((node: ConsensusNode): NodeAlias => node.name);
     const accountMap: Map<NodeAlias, string> = this.getNodeAccountMap(nodeAliases, deployment);
@@ -1153,18 +1301,17 @@ export class AccountManager {
         port: constants.GRPC_PORT,
       };
 
-      // Read the gossip signing certificate from the local keys directory.
+      // Read the gossip signing certificate from the node's Kubernetes secret.
       // The mirror node importer uses the embedded public key to verify record file signatures.
       let rsaPubKeyHex: string | undefined;
       try {
-        const pemFilePath: string = PathEx.join(keysDirectory, Templates.renderGossipPemPublicKeyFile(nodeAlias));
-        const pemData: string = fs.readFileSync(pemFilePath, 'utf8');
+        const pemData: string = await this.getGossipPublicKeyPem(consensusNode);
         const cert: X509Certificate = new crypto.X509Certificate(pemData);
         const derBuffer: Buffer = cert.publicKey.export({type: 'spki', format: 'der'}) as Buffer;
         rsaPubKeyHex = derBuffer.toString('hex');
       } catch (error) {
         this.logger.warn(
-          `Could not read gossip signing key for ${nodeAlias} from ${keysDirectory}: ${error.message}. ` +
+          `Could not read gossip signing key for ${nodeAlias} from its Kubernetes secret: ${error.message}. ` +
             'Address book entry will have no RSA_PubKey; mirror node importer may fail signature verification.',
         );
       }

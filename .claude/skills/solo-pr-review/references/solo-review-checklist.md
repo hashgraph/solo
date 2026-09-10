@@ -461,6 +461,102 @@ cycle is detected and prints the offending chains.
 
 ---
 
+## 23. Every thrown error must be a registered `SoloErrors` subclass
+
+**What to look for**
+
+- `throw new SoloError(message)` — bare base-class throw, missing `code` and `troubleshootingSteps`.
+- `throw new Error(message)` — native Error instead of `SoloError` at all.
+- `new SoloError({message, code})` with no `troubleshootingSteps`.
+- A catch block that re-wraps with `new SoloError(...)` instead of the registered type.
+
+**How to respond**
+
+- "we should not throw `new SoloError(message)` directly — every error must be a dedicated subclass registered in `SoloErrors`."
+- Spell out the three steps:
+  1. Create `src/core/errors/classes/<category>/<name>-solo-error.ts` extending `SoloError` with `message`, `code` (new entry in `ErrorCodeRegistry`), and `troubleshootingSteps`.
+  2. Register it in `SoloErrors.<category>` in `solo-errors.ts`.
+  3. Replace the raw throw with `throw new SoloErrors.<category>.<methodName>(params)`.
+- Name the nearest sibling error class as a shape reference (e.g. "see `backup-no-log-files-solo-error.ts` for the shape to follow").
+
+**Counter-check before flagging**
+
+- `KubeApiResponse.throwError` is the correct pattern for K8s client wrappers — do not flag it.
+- Catch blocks that *translate* a foreign error by calling `SoloErrors.*` are fine.
+
+**Prior precedent:** PR #5358 (`backup-restore.ts:1187` threw `new SoloError(message)` directly; the rest of the file used `SoloErrors.validation.*` correctly).
+
+---
+
+## 24. Pin all container image tags and package.json dependencies
+
+**What to look for**
+
+- Any `image: busybox`, `image: alpine`, `image: ubuntu`, or other image reference without an explicit
+  version tag (e.g. `busybox` instead of `busybox:1.36.1`).
+- Images pinned only to a mutable tag like `latest`, `stable`, or a branch name.
+- Image references in TypeScript-generated YAML (init-container spec objects in `block-node.ts`,
+  `deploy-argv-builders.ts`, etc.) as well as in shell-script heredocs and Helm values files checked
+  into the repo.
+- Any `package.json` dependency with a floating version (e.g., `^1.2.3`, `~1.2.3`, `*`, or no version at all).
+
+**How to respond — suggestion-block form**
+
+````
+```suggestion
+      image: busybox:1.36.1
+```
+pin to an exact version — floating tags can pull a different image on every deploy (supply-chain risk).
+````
+
+**How to handle pre-existing unpinned images not in the diff**
+
+- Note them in the review summary under Major (not as an inline comment, since GitHub can't anchor
+  comments on unchanged lines).
+- Recommend a follow-up PR that pins them; do not block merge on pre-existing issues.
+
+**Prior precedent:** PR #5358 (`busybox` unpinned in `launch_network.sh` and `block-node.ts`).
+
+---
+
+## 25. Changed comments, docs, tests, and PR claims describe the final implementation
+
+**What to look for**
+
+- A changed `//` comment, block comment, JSDoc, log explanation, or code example that describes an API shape,
+  callback, control flow, configuration source, process lifetime, error path, logging behavior, or security property
+  differently from the final code.
+- Test names, test comments, or PR text claiming coverage such as “every spawn”, “all call sites”, “end-to-end”, or
+  platform support when the test calls only a helper, skips a branch, or does not cross the relevant process boundary.
+- Documentation that promises an exact command, prerequisite, output, default, or fallback which differs from the
+  current implementation.
+- Text that is internally contradictory, or appears to describe a previous design after a refactor changed the
+  signature, ownership, execution model, or configuration flow.
+
+**How to verify**
+
+1. Enumerate each changed behavioral claim in the diff, including the PR description and companion documentation.
+2. Trace the claim through the final version of the relevant source and tests — not merely the changed hunk or an
+   earlier commit. Check the actual signature, callers, branches, emitted output, and configuration values.
+3. When a claim spans a subprocess, worker, container, or CI platform, verify the behavior crosses that boundary in
+   the implementation and test. Process-local globals, callbacks, loggers, and environment allowlists do not
+   automatically propagate to a separately started process.
+4. Compare examples and documented output with the invoked task or command. Conditional skips and helper-only tests
+   must not be presented as full integration coverage.
+
+**How to respond**
+
+- State the claim, the actual final behavior, and the precise code/test location that disproves it. For example:
+  “This comment appears left over from the earlier callback design: `forCommand()` no longer accepts that callback;
+  the reporter is configured separately. Please update or remove the comment so future changes do not preserve the
+  wrong contract.”
+- If the mismatch conceals a real defect, assign severity based on the defect, not the fact that its explanation is
+  stale. A documentation-only discrepancy is normally Minor; an inaccurate coverage or security claim can be Major
+  or Critical when it risks unsafe operation or an untested regression.
+- Do not dismiss a mismatch as “comments only” until the final implementation and test behavior have been verified.
+
+---
+
 ## Quick decision aids
 
 **"Should this be a class with statics or a module of functions?"**

@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import {expect} from 'chai';
 import {type K8ClientFactory} from '../../../src/integration/kube/k8-client/k8-client-factory.js';
 import {type K8} from '../../../src/integration/kube/k8.js';
-import {DEFAULT_LOCAL_CONFIG_FILE, SOLO_CACHE_DIR} from '../../../src/core/constants.js';
+import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {NamespaceName} from '../../../src/types/namespace/namespace-name.js';
@@ -150,15 +150,11 @@ endToEndTestSuite.runTestSuite();
 // ---------------------------------------------------------------------------
 
 async function getNamespaceFromDeployment(): Promise<string> {
-  const storedDeploymentName: string = fs.readFileSync(
-    PathEx.join(SOLO_CACHE_DIR, 'last-one-shot-deployment.txt'),
-    'utf8',
-  );
   const localConfig: LocalConfigRuntimeState = container.resolve<LocalConfigRuntimeState>(
     InjectTokens.LocalConfigRuntimeState,
   );
   await localConfig.load();
-  const storedDeployment: Deployment = localConfig.configuration.deploymentByName(storedDeploymentName);
+  const storedDeployment: Deployment = localConfig.configuration.deploymentByName(deploymentName);
   return storedDeployment.namespace;
 }
 
@@ -197,17 +193,13 @@ function soloOneShotDestroy(testNameArgument: string): string[] {
 function soloRapidFire(testNameArgument: string, performanceTest: string, argumentsString: string): string[] {
   const {newArgv, argvPushGlobalFlags, optionFromFlag} = BaseCommandTest;
 
-  const storedDeploymentName: string = fs.readFileSync(
-    PathEx.join(SOLO_CACHE_DIR, 'last-one-shot-deployment.txt'),
-    'utf8',
-  );
   const argv: string[] = newArgv();
   argv.push(
     'rapid-fire',
     'load',
     'start',
     optionFromFlag(Flags.deployment),
-    storedDeploymentName,
+    deploymentName,
     optionFromFlag(Flags.performanceTest),
     performanceTest,
     optionFromFlag(Flags.nlgArguments),

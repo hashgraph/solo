@@ -11,7 +11,11 @@ import {RemoteConfigStructure} from './interfaces/remote-config-structure.js';
 
 @Exclude()
 export class RemoteConfigSchema implements RemoteConfigStructure {
-  public static readonly SCHEMA_VERSION: SemanticVersion<number> = new SemanticVersion(1);
+  /**
+   * The current version of the remote configuration schema. This must always match the version produced by the newest
+   * migration registered in RemoteConfigSchemaDefinition.
+   */
+  public static readonly SCHEMA_VERSION: SemanticVersion<number> = new SemanticVersion(8);
 
   @Expose()
   public schemaVersion: number;

@@ -8,9 +8,11 @@ resources:
 
 blockNode:
   config:
-    JAVA_OPTS: '-Xmx24m -XX:MaxDirectMemorySize=8m -XX:MaxMetaspaceSize=32m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath="/tmp/dump.hprof"'
-    # 36 MiB: accommodates the ~30 MiB genesis WRAPS proof with ~20% headroom
-    SERVER_MAX_MESSAGE_SIZE_BYTES: "37748736"
+    # TSS bootstrap can include a large genesis WRAPS proof. Keep JVM heap and direct memory
+    # above the block node chart's default max block message size so it can receive and parse
+    # the proof without OOM/readiness instability; pod memory remains capped by
+    # resources.limits.memory.
+    JAVA_OPTS: '-Xms256m -Xmx512m -XX:MaxDirectMemorySize=128m -XX:MaxMetaspaceSize=128m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath="/tmp/dump.hprof"'
   health:
     readiness:
       initialDelaySeconds: 0

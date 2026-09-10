@@ -393,12 +393,10 @@ export class ComponentUpgradeMigrationRules {
     // Step 1: Normalize all boundary versions and filter to those crossed during this upgrade.
     // A boundary is crossed when: currentVersion < boundaryVersion AND targetVersion >= boundaryVersion.
     const crossed: ComponentUpgradeBoundaryRule[] = componentConfig.boundaries
-      .map(
-        (boundary): ComponentUpgradeBoundaryRule => ({
-          ...boundary,
-          version: new SemanticVersion<string>(boundary.version).toString(),
-        }),
-      )
+      .map((boundary): ComponentUpgradeBoundaryRule => ({
+        ...boundary,
+        version: new SemanticVersion<string>(boundary.version).toString(),
+      }))
       .filter(
         (boundary): boolean =>
           current.lessThan(new SemanticVersion<string>(boundary.version)) &&

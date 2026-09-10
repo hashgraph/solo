@@ -5,4 +5,5 @@ import {type NodeCommonConfigWithNodeAliases} from './node-common-config-with-no
 
 export interface NodeFreezeConfigClass extends NodeCommonConfigWithNodeAliases, CheckedNodesConfigClass {
   freezeAdminPrivateKey: string;
+  freezeBlockDrainSeconds: number;
 }

@@ -2,18 +2,19 @@
   "name": "metrics-plotter-ts",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json && esbuild dist/src/plot-metrics.js --bundle --outfile=src/static/bundle.js --platform=browser --minify",
     "start": "npx http-server src -c-1 -p 8123",
     "screenshot": "node dist/src/screenshot.js"
   },
   "devDependencies": {
-    "esbuild": "^0.28.1",
-    "typescript": "^5.0.0",
-    "http-server": "^14.1.1",
-    "puppeteer": "^24.36.0",
-    "ts-node": "^10.9.1",
-    "@types/node": "^20.0.0",
-    "@types/puppeteer": "^5.4.7"
+    "esbuild": "0.28.1",
+    "typescript": "7.0.2",
+    "http-server": "14.1.1",
+    "puppeteer": "25.3.0",
+    "ts-node": "10.9.1",
+    "@types/node": "26.1.1",
+    "@types/puppeteer": "7.0.4"
   }
 }

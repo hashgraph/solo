@@ -1,0 +1,8 @@
+# Minimal dual-cluster overrides for the JSON-RPC relay.
+#
+# The default 250Mi limit is intermittently insufficient while the relay initializes
+# against the restored mirror node database in CI.
+relay:
+  resources:
+    limits:
+      memory: 1000Mi

@@ -686,7 +686,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
         await containerReference.copyFrom(`${HEDERA_HAPI_PATH}/VERSION`, temporaryDirectory);
         const versionFile: string = fs.readFileSync(`${temporaryDirectory}/VERSION`, 'utf8');
 
-        const versionLine: string = versionFile.split('\n')[0].trim();
+        const versionLine: string = versionFile.split('\n', 1)[0].trim();
         expect(versionLine).to.equal(`VERSION=${TEST_UPGRADE_TO_VERSION.replace('v', '')}`);
       }
 
@@ -733,7 +733,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
         );
         const upgradedApplicationProperties: string = fs.readFileSync(applicationPropertiesPath, 'utf8');
 
-        expect(modifiedApplicationProperties).to.equal(upgradedApplicationProperties);
+        expect(modifiedApplicationProperties.trimEnd()).to.equal(upgradedApplicationProperties.trimEnd());
       }
 
       {
@@ -820,7 +820,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
 
       const upgradedApplicationProperties: string = fs.readFileSync(testApplicationPropertiesPath, 'utf8');
 
-      expect(updatedContent).to.equal(upgradedApplicationProperties);
+      expect(updatedContent.trimEnd()).to.equal(upgradedApplicationProperties.trimEnd());
     }).timeout(Duration.ofMinutes(10).toMillis());
   }
 

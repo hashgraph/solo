@@ -92,6 +92,12 @@ tasks:
     cmds:    
       - cmd: |
           mkdir -p "{{ .TEMP_DIR }}"
+          echo "==== Normalizing port-forwards before baseline ===="
+          RESOLVED_DEPLOYMENT="$(node {{ .USER_WORKING_DIR }}/resolve-deployment.mjs "{{ .DEPLOYMENT }}")"
+          $SOLO_COMMAND deployment refresh port-forwards --deployment "${RESOLVED_DEPLOYMENT}" --dev
+          echo ""
+
+      - cmd: |
           node {{ .USER_WORKING_DIR }}/port-forward-status.mjs \
             --mode summary \
             --expected-port-count-file "{{ .EXPECTED_PORT_COUNT_FILE }}"

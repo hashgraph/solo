@@ -1,0 +1,78 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# Workaround for hiero-block-node#3150 (VerificationServicePlugin gating backpressure):
+#
+# Issue 1 — Ring buffer overflow (hiero-block-node#3150):
+# VerificationServicePlugin (a gating Disruptor consumer) cannot keep up with incoming
+# block items, causing the ring buffer to fill cumulatively across all 5 performance load
+# tests.  Observed in run 28988949642: ring buffer was ~98% full (980 K/1 M) when
+# SmartContract started; the remaining 2% capacity exhausted in ~8 s.
+# Raised to 2 M (run 29115871280): ring buffer filled to ~100% across tests 1–4
+# (overflowing 8 s before SmartContract started), freezing the mirror importer.
+# 4 M ring buffer is sufficient for the 4 enabled load tests: at the empirical net
+# production rate of ~2 778/s, tests 1–4 accumulate ~3.7 M items — just under the 4 M
+# limit.  SmartContractLoadTest is disabled until hiero-block-node#3150 is fixed (see performance.test.ts) because
+# it pushed the fill to ~4.83 M, exceeding 4 M and requiring an 8 M buffer + ~6 GB heap.
+# Workaround: 4 M ring buffer + 8 CPUs + ZGC (see config below).
+#
+# Issue 2 — BAD_BLOCK_PROOF for WRB blocks (observed in runs 28988949642 and 28991564151):
+# ExtendedMerkleTreeSession.verifyRsaProof() rejects all SignedRecordFileProof (WRB/RSA)
+# blocks immediately when keyByNodeId is empty.  keyByNodeId is populated only when
+# RsaRosterBootstrapPlugin delivers a NodeAddressBook via onContextUpdate.
+# Fix: DefaultOneShotDeployOrchestrator injects an rsa-bootstrap-roster.json file (containing
+# the node's RSA SPKI hex extracted from s-public-node*.pem) into the block node's
+# application-state PVC via an init container, so BlockNodeApp.loadApplicationState() can
+# read the file on startup as a safety net.
+# DeployArgvBuilders.writeRsaBootstrapInitContainerValuesFile() also sets
+# ROSTER_BOOTSTRAP_RSA_MIRROR_NODE_BASE_URL to the in-cluster mirror-restjava service URL
+# so the RsaRosterBootstrapPlugin can re-populate keyByNodeId continuously via 500 ms
+# periodic queries. Without that URL the plugin never queries, and keyByNodeId stays empty
+# after block-stream address-book updates clear it — causing BAD_BLOCK_PROOF on the WRB block.
+# NOTE: do NOT override ROSTER_BOOTSTRAP_RSA_MN_INITIAL_QUERY_INTERVAL_MILLIS or
+# ROSTER_BOOTSTRAP_RSA_MN_SUBSEQUENT_QUERY_INTERVAL_MILLIS here; disabling that query
+# (runs 29059494192–29065180887) prevents the mirror from providing the correct RSA key
+# and causes BAD_BLOCK_PROOF to reappear at the WRB block despite the bootstrap file.
+#
+# Applied automatically when ONE_SHOT_BLOCK_NODE_PERF=true; kept separate from
+# block-node-perf-values.yaml so JFR profiling is opt-in.
+# TODO: remove once hiero-block-node fixes VerificationServicePlugin gating backpressure.
+resources:
+  requests:
+    cpu: "4"
+    memory: "4Gi"
+  limits:
+    cpu: "8"
+    memory: "5Gi"
+
+blockNode:
+  config:
+    # The block node's Helidon HTTP/2 server fires rapid-reset protection at 50 RST_STREAM per 10s.
+    # The mirror importer's default 100ms reconnect interval generates ~10 RST_STREAM/s during the
+    # 200ms window after a mid-block reconnect (a known block node subscriber bug, @todo(1673)).
+    # Raise the threshold so brief reconnect bursts don't trigger connection termination.
+    SERVER_HTTP2_MAX_RAPID_RESETS: "500"
+    # Enlarge the Disruptor ring buffer to 4 194 304 (2^22, power-of-2 per Disruptor requirement).
+    # The ring buffer fills cumulatively across all load tests.
+    # Observed in run 28988949642: ring buffer was ~98% full (980 K/1 M) when SmartContract
+    # started; the remaining 2% capacity was exhausted in ~8 s, losing block 7 644 permanently.
+    # Raised to 2 M (run 29115871280): ring buffer filled to 100 % across tests 1–4 (overflowed
+    # 8 s before SmartContract started).
+    # 4 M is sufficient for the 4 enabled tests: empirical net production rate ≈ 2 778/s,
+    # so tests 1–4 accumulate ~3.7 M items (4 × 403 s × 2 778/s ≈ 4.48 M... but active
+    # load-only time ≈ 4 × 300 s = 1 200 s → 3.3 M), staying below the 4 M limit.
+    # SmartContractLoadTest is skipped because it pushed the fill to ~4.83 M.
+    MESSAGING_BLOCK_ITEM_QUEUE_SIZE: "4194304"
+    # ZGC (Java 21+ Generational ZGC) eliminates multi-second G1GC stop-the-world pauses.
+    # Sub-millisecond GC pauses allow the verification thread to drain the ring buffer
+    # consistently at high TPS load.  Heap ceiling at 4 g: 4 M ring pre-allocation (~1.2 GB)
+    # + live data (~2 GB) + JVM overhead (~0.5 GB) ≈ 3.7 GB — within the 4 g ceiling.
+    # -Xms kept low (512 m) so the JVM only commits heap on demand; RSS rises to ~3.7 GB
+    # only at peak ring-buffer fill, not at startup.
+    JAVA_OPTS: >-
+      -Xms512m
+      -Xmx4g
+      -XX:+UseZGC
+      -XX:MaxDirectMemorySize=64m
+      -XX:MaxMetaspaceSize=128m
+      -XX:+HeapDumpOnOutOfMemoryError
+      -XX:HeapDumpPath="/tmp/dump.hprof"

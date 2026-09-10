@@ -8,6 +8,8 @@ import {type SoloLogger} from '../../../core/logging/solo-logger.js';
 import * as constants from '../../../core/constants.js';
 import {ExecutionBuilder} from '../../execution-builder.js';
 import {type ExternalCommandInvocation} from '../../../core/execution/external-command-invocation.js';
+import {SubprocessEnvironment} from '../../../core/subprocess-environment.js';
+import {SubprocessCommandProfile} from '../../../core/subprocess-command-profile.js';
 
 @injectable()
 /**
@@ -36,11 +38,6 @@ export class HelmExecutionBuilder extends ExecutionBuilder {
    * The list of options and a list of their one or more values.
    */
   private readonly _optionsWithMultipleValues: Array<{key: string; value: string[]}> = [];
-
-  /**
-   * The flags to be passed to the helm command.
-   */
-  private readonly _flags: string[] = [];
 
   /**
    * The positional arguments to be passed to the helm command.
@@ -168,26 +165,12 @@ export class HelmExecutionBuilder extends ExecutionBuilder {
   }
 
   /**
-   * Adds a flag to the helm execution.
-   * @param flag the flag to be added
-   * @returns this builder
-   */
-  public flag(flag: string): HelmExecutionBuilder {
-    if (!flag) {
-      throw new Error('flag must not be null');
-    }
-
-    this._flags.push(flag);
-    return this;
-  }
-
-  /**
    * Builds the HelmExecution instance.
    * @returns the HelmExecution instance
    */
   public build(): HelmExecution {
     const invocation: ExternalCommandInvocation = this.buildCommand();
-    const environment: Record<string, string> = {...process.env};
+    const environment: Record<string, string> = SubprocessEnvironment.forCommand(SubprocessCommandProfile.HELM);
 
     for (const [key, value] of this._environmentVariables.entries()) {
       environment[key] = value;
