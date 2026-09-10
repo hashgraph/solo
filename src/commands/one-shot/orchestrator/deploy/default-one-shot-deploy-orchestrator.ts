@@ -958,7 +958,7 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
    */
   private async isRemoteConfigOrphanedOnKindCluster(deployConfig: OneShotSingleDeployConfigClass): Promise<boolean> {
     try {
-      if (!Helpers.isKindContext(deployConfig.context)) {
+      if (!Helpers.isKindContext(deployConfig.context, this.k8Factory)) {
         return false;
       }
 
@@ -1341,7 +1341,7 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
     config: OneShotSingleDeployConfigClass,
     task: SoloListrTaskWrapper<OneShotSingleDeployContext>,
   ): Promise<void> {
-    if (config.quiet === true || Helpers.isKindContext(config.context)) {
+    if (config.quiet === true || Helpers.isKindContext(config.context, this.k8Factory)) {
       return;
     }
 
