@@ -54,7 +54,8 @@ tasks:
       OUTPUT_DIR: '{{.OUTPUT_DIR | default "output/hl"}}'
       DRY_RUN: '{{.DRY_RUN | default "false"}}'
     cmds:
-      - npm install
+      - npm ci
+      - npx eslint . --fix
       - task build
       - mkdir -p "{{.OUTPUT_DIR}}"
       - |

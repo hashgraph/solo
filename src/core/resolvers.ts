@@ -3,6 +3,7 @@
 import {type DeploymentName} from './../types/index.js';
 import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';
+import {FlagValidation} from '../commands/validation/flag-validation.js';
 import {NamespaceName} from '../types/namespace/namespace-name.js';
 import {type SoloListrTaskWrapper} from '../types/index.js';
 import {input as inputPrompt, select as selectPrompt} from '@inquirer/prompts';
@@ -80,7 +81,10 @@ export class Resolvers {
 
       const answer: string = await inputPrompt({
         message: 'Enter the name of the deployment:',
-        validate: (value: string): boolean => !!value,
+        // Applies the same rules the flag declares, so a name typed here is held to what
+        // `--deployment` would accept rather than only being checked for emptiness.
+        validate: (value: string): boolean | string =>
+          !!value && (FlagValidation.violationOf(flags.deployment, value) ?? true),
       });
 
       configManager.setFlag(flags.deployment, answer);

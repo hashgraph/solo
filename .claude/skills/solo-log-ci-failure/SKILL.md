@@ -4,7 +4,7 @@ description: Create a GitHub bug issue in hiero-ledger/solo for a failed CI work
 license: MIT
 metadata:
   author: Jeromy Cannon
-  version: "2.1.0"
+  version: "2.2.0"
   domain: github
   triggers: log ci failure, ci failure issue, workflow failure, failed workflow run, solo-log-ci-failure
   role: developer
@@ -27,8 +27,9 @@ All executable logic lives in a single reviewable shell script in this skill dir
 GitHub artifacts auto-purge after 7 days. The script downloads key log files and uploads them as a
 **secret gist** (never expires, not publicly listed). The issue body links directly to the gist.
 
-> **Prerequisite:** the `gh` token must have the `gist` scope. Verify with `gh auth status`.
-> If missing, run: `gh auth refresh -h github.com -s gist`
+> **Prerequisite:** the `gh` token must have the `gist` scope (for log preservation) and the
+> `project` scope (for the board additions in step 7). Verify with `gh auth status`.
+> If missing, run: `gh auth refresh -h github.com -s gist -s project`
 
 ---
 
@@ -71,22 +72,37 @@ bash ~/.claude/skills/solo-log-ci-failure/log-ci-failure.sh "<workflow-url>" [<p
 The script:
 1. Fetches run and job metadata
 2. Downloads job log and best-matching artifact
-3. Extracts SOLO error codes, full exception stack traces (including `Caused by` chains), error boxes, and failed commands
-4. Auto-generates issue title and body from extracted error data
-5. Creates a secret gist with all log files
-6. Creates the GitHub issue (Bug, P0-🔥)
-7. Adds to both project boards at Ready/P0
-8. Links as sub-issue of the initiative
-9. Cleans up `/tmp/solo-ci-<RUN_ID>`
+3. Finds the first step with `conclusion: "failure"` and slices the job log to that step's time
+   window — every extraction below reads from that slice, not the whole job log
+4. Extracts SOLO error codes, full exception stack traces (including `Caused by` chains), error boxes, and failed commands
+5. Auto-generates issue title and body from extracted error data
+6. Creates a secret gist with all log files
+7. Creates the GitHub issue (Bug, P0-🔥)
+8. Adds to both project boards at Ready/P0
+9. Links as sub-issue of the initiative
+10. Cleans up `/tmp/solo-ci-<RUN_ID>`
+
+### Why extraction is scoped to the failed step
+
+A job's raw log interleaves every step. Steps that run after the real failure — most commonly a
+best-effort diagnostics collector invoked with `... || true` — can print their own SOLO-NNNN error
+box even though that step itself reported `success`. Grepping the whole log for the first match used
+to surface that later, unrelated error instead of the one that actually failed the job (and, when a
+step never invoked the `solo` CLI at all, `solo.log` content from any step is ignored rather than
+guessed at). The artifact auto-selection is scoped the same way: an artifact only gets attached when
+it shares a real token with the job name, or is the one unambiguous candidate in the run — otherwise
+none is attached, rather than guessing among artifacts that belong to unrelated jobs.
 
 ### Title auto-generation
 
-The script generates a title in `{Job Name} > {error description}` format using this priority:
+The script generates a title in `{Job Name} > {error description}` format using this priority, all
+read from the failed step's own output unless noted:
 
-1. **SOLO error code** — `[SOLO-NNNN] <message from solo.log>`
-2. **First meaningful `ERROR:` line** from solo.log (skipping the noisy `Error executing: 'podman'` cascade)
-3. **First extracted exception stack headline** from job/solo logs (for example `OneShotDeployFailedSoloError: ...`)
-4. **`##[error]`** line from the job log
+1. **SOLO error code** — `[SOLO-NNNN] <message from solo.log, if that step ran a solo command>`
+2. **First meaningful `ERROR:` line** from solo.log, only when the failed step's own output shows a
+   solo command actually ran there (skipping the noisy `Error executing: 'podman'` cascade)
+3. **First extracted exception stack headline** from the failed step (for example `OneShotDeployFailedSoloError: ...`)
+4. **`##[error]`** line from the failed step
 5. Fallback: `task failed`
 
 ### Error details extraction

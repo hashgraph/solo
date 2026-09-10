@@ -424,6 +424,81 @@ export class DeploymentTest extends BaseCommandTest {
     });
   }
 
+  private static soloDeploymentPortForwardsStopArgv(testName: string, deployment: DeploymentName): string[] {
+    const {newArgv, optionFromFlag, argvPushGlobalFlags} = DeploymentTest;
+    const argv: string[] = newArgv();
+
+    argv.push(
+      DeploymentCommandDefinition.COMMAND_NAME,
+      DeploymentCommandDefinition.PORT_FORWARDS_SUBCOMMAND_NAME,
+      DeploymentCommandDefinition.PORT_FORWARDS_STOP,
+      optionFromFlag(Flags.deployment),
+      deployment,
+    );
+
+    argvPushGlobalFlags(argv, testName);
+    return argv;
+  }
+
+  /**
+   * Verifies `solo deployment port-forwards stop`: it stops every configured port-forward and removes the
+   * configuration from the remote config. Afterwards `solo deployment config ports` should report that no
+   * port-forwards remain. Run this last — stopping the port-forwards breaks any connectivity-dependent tests.
+   */
+  public static verifyStopPortForwards(options: BaseTestOptions): void {
+    const {testName, testLogger, deployment, clusterReferenceNameArray, namespace, testCacheDirectory} = options;
+    const {soloDeploymentPortForwardsStopArgv, soloDeploymentConfigPortsArgv, runMainAndCaptureOutputToJson} =
+      DeploymentTest;
+
+    it(`${testName}: verify deployment port-forwards stop`, async (): Promise<void> => {
+      testLogger.info(`${testName}: beginning deployment port-forwards stop verification`);
+
+      const clusterReference: ClusterReferenceName = clusterReferenceNameArray[0];
+
+      const stopResult: {stdout: string; outputFilePath: string} = await runMainAndCaptureOutputToJson(
+        soloDeploymentPortForwardsStopArgv(testName, deployment),
+        {
+          testName,
+          outputFileName: 'deployment-port-forwards-stop-output.json',
+          metadata: {
+            command: 'deployment port-forwards stop',
+            deployment,
+            namespace: namespace.name,
+          },
+        },
+      );
+
+      expect(stopResult.stdout).to.contain('Stopping Port-Forwards');
+      // One-shot with a self-created Kind cluster serves via NodePort, so no port-forwards are registered to stop.
+      if (stopResult.stdout.includes('No port-forwards configured in this deployment')) {
+        expect(stopResult.stdout).to.not.contain('Stopped:');
+      } else {
+        expect(stopResult.stdout).to.contain('Stopped:');
+      }
+
+      // After stopping, the remote config no longer lists any port-forwards, so `config ports` reports none.
+      const portsResult: {stdout: string; outputFilePath: string} = await runMainAndCaptureOutputToJson(
+        soloDeploymentConfigPortsArgv(testName, deployment, clusterReference, 'wide', testCacheDirectory),
+        {
+          testName,
+          outputFileName: 'deployment-config-ports-after-stop-output.json',
+          metadata: {
+            command: 'deployment config ports',
+            deployment,
+            namespace: namespace.name,
+            clusterReference,
+            output: 'wide',
+          },
+        },
+      );
+
+      expect(portsResult.stdout).to.contain('No port-forwards configured in remote config');
+
+      testLogger.info(`${testName}: deployment port-forwards stop output saved to ${stopResult.outputFilePath}`);
+      testLogger.info(`${testName}: finished deployment port-forwards stop verification`);
+    });
+  }
+
   private static async assertPortsFile(
     filePath: string,
     format: 'json' | 'yaml',

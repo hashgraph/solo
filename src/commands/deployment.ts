@@ -142,6 +142,11 @@ export class DeploymentCommand extends BaseCommand {
     optional: [flags.deployment, flags.quiet],
   };
 
+  public static STOP_PORT_FORWARDS_FLAGS_LIST: CommandFlags = {
+    required: [flags.deployment],
+    optional: [flags.quiet],
+  };
+
   public static IMAGES_FLAGS_LIST: CommandFlags = {
     required: [],
     optional: [flags.deployment, flags.clusterRef, flags.quiet],
@@ -1479,6 +1484,20 @@ export class DeploymentCommand extends BaseCommand {
   }
 
   /**
+   * Deprecated entry point for the legacy `solo deployment refresh port-forwards` command. Emits a deprecation
+   * notice pointing users at `solo deployment port-forwards refresh`, then delegates to {@link refresh}.
+   */
+  public async refreshDeprecated(argv: ArgvStruct): Promise<boolean> {
+    this.logger.showUser(
+      chalk.yellow(
+        "[DEPRECATED] 'solo deployment refresh port-forwards' is deprecated and will be removed in a future " +
+          "release. Use 'solo deployment port-forwards refresh' instead.",
+      ),
+    );
+    return this.refresh(argv);
+  }
+
+  /**
    * Refresh port-forward processes for all components in the deployment
    */
   public async refresh(argv: ArgvStruct): Promise<boolean> {
@@ -1572,14 +1591,8 @@ export class DeploymentCommand extends BaseCommand {
         {
           title: 'Refresh port-forwards for all components',
           task: async (_context_, task): Promise<void> => {
-            const componentsToCheck: {type: string; components: BaseStateSchema[]}[] = [
-              {type: 'ConsensusNode', components: this.remoteConfig.configuration.state.consensusNodes || []},
-              {type: 'HaProxy', components: this.remoteConfig.configuration.state.haProxies || []},
-              {type: 'BlockNode', components: this.remoteConfig.configuration.state.blockNodes || []},
-              {type: 'MirrorNode', components: this.remoteConfig.configuration.state.mirrorNodes || []},
-              {type: 'RelayNode', components: this.remoteConfig.configuration.state.relayNodes || []},
-              {type: 'Explorer', components: this.remoteConfig.configuration.state.explorers || []},
-            ];
+            const componentsToCheck: {type: string; components: BaseStateSchema[]}[] =
+              DeploymentCommand.buildComponentsToCheck(this.remoteConfig.configuration.state);
 
             let restoredCount: number = 0;
             let totalChecked: number = 0;
@@ -1685,6 +1698,113 @@ export class DeploymentCommand extends BaseCommand {
       await tasks.run();
     } catch (error) {
       throw new SoloErrors.system.portForwardRefreshFailed(error);
+    }
+
+    return true;
+  }
+
+  /**
+   * Stop (close down) all port-forwards configured for a deployment. Kills the underlying kubectl port-forward
+   * processes and removes their configuration from the deployment's remote config so a subsequent refresh does not
+   * restore them and list no longer reports them.
+   */
+  public async stopPortForwards(argv: ArgvStruct): Promise<boolean> {
+    interface StopPortForwardsContext {
+      deployment: DeploymentName;
+    }
+
+    const tasks: SoloListr<StopPortForwardsContext> = new Listr(
+      [
+        {
+          title: 'Initialize',
+          task: async (context_): Promise<void> => {
+            await this.localConfig.load();
+            await this.remoteConfig.loadAndValidate(argv);
+
+            this.configManager.update(argv);
+
+            context_.deployment = this.configManager.getFlag<DeploymentName>(flags.deployment);
+            const deployment: Deployment = this.localConfig.configuration.deploymentByName(context_.deployment);
+            if (!deployment) {
+              throw new SoloErrors.deployment.notFound(`Deployment ${context_.deployment} not found in local config`);
+            }
+          },
+        },
+        {
+          title: 'Stop port-forwards for all components',
+          task: async (_context_, task): Promise<void> => {
+            const componentsToCheck: {type: string; components: BaseStateSchema[]}[] =
+              DeploymentCommand.buildComponentsToCheck(this.remoteConfig.configuration.state);
+
+            let totalConfigured: number = 0;
+            let stoppedCount: number = 0;
+
+            this.logger.showUser(chalk.cyan('\n=== Stopping Port-Forwards ===\n'));
+
+            for (const {type, components} of componentsToCheck) {
+              for (const component of components) {
+                if (!component.metadata?.portForwardConfigs || component.metadata.portForwardConfigs.length === 0) {
+                  continue;
+                }
+
+                const {cluster: clusterReference} = component.metadata;
+                const context: string | undefined = this.localConfig.configuration.clusterRefs
+                  .get(clusterReference)
+                  ?.toString();
+                const k8Client: K8 = this.k8Factory.getK8(context);
+
+                // Only entries that fail to stop are retained so a later refresh can retry them.
+                const remainingConfigs: PortForwardConfig[] = [];
+
+                for (const portForwardConfig of component.metadata.portForwardConfigs) {
+                  totalConfigured++;
+                  const {localPort, podPort} = portForwardConfig;
+                  const componentLabel: string = `${type} ${component.metadata.id}`;
+
+                  try {
+                    // stopPortForward matches the running process by local port, so no pod reference is needed.
+                    // eslint-disable-next-line unicorn/no-null
+                    await k8Client.pods().readByReference(null).stopPortForward(localPort);
+                    stoppedCount++;
+                    const detail: string = `✓ ${componentLabel}: localhost:${localPort} -> pod:${podPort} [Stopped]`;
+                    this.logger.showUser(chalk.green(detail));
+                  } catch (error) {
+                    remainingConfigs.push(portForwardConfig);
+                    const detail: string = `✗ ${componentLabel}: localhost:${localPort} -> pod:${podPort} [Failed: ${error.message}]`;
+                    this.logger.showUser(chalk.red(detail));
+                  }
+                }
+
+                component.metadata.portForwardConfigs = remainingConfigs;
+              }
+            }
+
+            if (stoppedCount > 0) {
+              await this.remoteConfig.persist();
+            }
+
+            this.logger.showUser(chalk.cyan('\n=== Summary ==='));
+            this.logger.showUser(`Total port-forwards configured: ${totalConfigured}`);
+            if (totalConfigured === 0) {
+              this.logger.showUser(chalk.yellow('No port-forwards configured in this deployment'));
+            } else {
+              this.logger.showUser(chalk.green(`Stopped: ${stoppedCount}`));
+              if (stoppedCount === totalConfigured) {
+                this.logger.showUser(chalk.green('✓ All port-forwards stopped'));
+              }
+            }
+
+            task.title = `Stopped ${stoppedCount} of ${totalConfigured} port-forward(s)`;
+          },
+        },
+      ],
+      constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
+    );
+
+    try {
+      await tasks.run();
+    } catch (error) {
+      throw new SoloErrors.system.portForwardStopFailed(error);
     }
 
     return true;
@@ -1864,14 +1984,8 @@ export class DeploymentCommand extends BaseCommand {
               }
 
               // Show port-forward status
-              const componentsToCheck: {type: string; components: BaseStateSchema[]}[] = [
-                {type: 'ConsensusNode', components: consensusNodes},
-                {type: 'HaProxy', components: haProxies},
-                {type: 'BlockNode', components: blockNodes},
-                {type: 'MirrorNode', components: mirrorNodes},
-                {type: 'RelayNode', components: relayNodes},
-                {type: 'Explorer', components: explorers},
-              ];
+              const componentsToCheck: {type: string; components: BaseStateSchema[]}[] =
+                DeploymentCommand.buildComponentsToCheck(state);
 
               let totalChecked: number = 0;
               let runningCount: number = 0;
@@ -1915,7 +2029,7 @@ export class DeploymentCommand extends BaseCommand {
                 if (notRunningCount > 0) {
                   this.logger.showUser(
                     chalk.yellow(
-                      `    Tip: Run 'solo deployment refresh port-forwards --deployment ${deployment.name}' to restore missing port-forwards.`,
+                      `    Tip: Run 'solo deployment port-forwards refresh --deployment ${deployment.name}' to restore missing port-forwards.`,
                     ),
                   );
                 }
@@ -1957,6 +2071,17 @@ export class DeploymentCommand extends BaseCommand {
   /**
    * Get the pod name for a component based on its type
    */
+  private static buildComponentsToCheck(state: DeploymentStateSchema): {type: string; components: BaseStateSchema[]}[] {
+    return [
+      {type: 'ConsensusNode', components: state.consensusNodes || []},
+      {type: 'HaProxy', components: state.haProxies || []},
+      {type: 'BlockNode', components: state.blockNodes || []},
+      {type: 'MirrorNode', components: state.mirrorNodes || []},
+      {type: 'RelayNode', components: state.relayNodes || []},
+      {type: 'Explorer', components: state.explorers || []},
+    ];
+  }
+
   private async getPodNameForComponent(
     component: BaseStateSchema,
     componentType: string,

@@ -52,6 +52,8 @@ interface MirrorNodeCommandInternal {
     config: MirrorNodeMemoryOverrideConfig,
   ) => void;
   addMirrorNodeImageTagOverrides: (chartValues: HelmChartValues, mirrorNodeVersion: string) => void;
+  shouldApplyMirrorNodeImageTagOverrides: (mirrorNodeChartDirectory: string) => boolean;
+  configManager: {wasFlagProvidedByUser: sinon.SinonStub};
   initializeSharedPostgresDatabaseTask: () => SoloListrTask<MirrorNodeDatabaseTaskContext>;
   primePostgresSecretTask: () => SoloListrTask<MirrorNodeDatabaseTaskContext>;
   waitForMirrorNodeSchemaTask: () => SoloListrTask<MirrorNodeSchemaWaitTaskContext>;
@@ -320,6 +322,33 @@ describe('MirrorNodeCommand unit tests', (): void => {
     expect(valuesArguments).to.include('rest.image.tag=0.157.0');
     expect(valuesArguments).to.include('restjava.image.tag=0.157.0');
     expect(valuesArguments).to.include('web3.image.tag=0.157.0');
+  });
+
+  it('should apply mirror node image tag overrides when no local chart directory is used', (): void => {
+    const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+      mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+
+    expect(mirrorNodeCommandInternal.shouldApplyMirrorNodeImageTagOverrides('')).to.equal(true);
+  });
+
+  it('should skip mirror node image tag overrides for a local chart directory when the version flag was not provided', (): void => {
+    const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+      mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+    mirrorNodeCommandInternal.configManager = {wasFlagProvidedByUser: sinon.stub().returns(false)};
+
+    expect(
+      mirrorNodeCommandInternal.shouldApplyMirrorNodeImageTagOverrides('/home/user/hiero-mirror-node/charts'),
+    ).to.equal(false);
+  });
+
+  it('should apply mirror node image tag overrides for a local chart directory when the version flag was explicitly provided', (): void => {
+    const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+      mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+    mirrorNodeCommandInternal.configManager = {wasFlagProvidedByUser: sinon.stub().returns(true)};
+
+    expect(
+      mirrorNodeCommandInternal.shouldApplyMirrorNodeImageTagOverrides('/home/user/hiero-mirror-node/charts'),
+    ).to.equal(true);
   });
 
   it('should use block node importer endpoint properties for mirror node 0.157.0', (): void => {

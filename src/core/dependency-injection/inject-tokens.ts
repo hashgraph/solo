@@ -38,7 +38,6 @@ export class InjectTokens {
   public static NodeCommand: symbol = Symbol.for('NodeCommand');
   public static DeploymentCommand: symbol = Symbol.for('DeploymentCommand');
   public static ExplorerCommand: symbol = Symbol.for('ExplorerCommand');
-  public static InitCommand: symbol = Symbol.for('InitCommand');
   public static MirrorNodeCommand: symbol = Symbol.for('MirrorNodeCommand');
   public static NetworkCommand: symbol = Symbol.for('NetworkCommand');
   public static RelayCommand: symbol = Symbol.for('RelayCommand');
@@ -121,6 +120,7 @@ export class InjectTokens {
   // Command Definitions
   public static BackupRestoreCommandDefinition: symbol = Symbol.for('BackupRestoreCommandDefinition');
   public static BlockCommandDefinition: symbol = Symbol.for('BlockCommandDefinition');
+  public static InitCommandDefinition: symbol = Symbol.for('InitCommandDefinition');
   public static ClusterReferenceCommandDefinition: symbol = Symbol.for('ClusterReferenceCommandDefinition');
   public static ConsensusCommandDefinition: symbol = Symbol.for('ConsensusCommandDefinition');
   public static DeploymentCommandDefinition: symbol = Symbol.for('DeploymentCommandDefinition');

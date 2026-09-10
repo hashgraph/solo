@@ -73,6 +73,7 @@ Browse the source code and configuration files for this example in the [GitHub r
 
 * The **one-shot falcon** commands are designed to streamline deployment workflows
 * All network components are configured through a single values file
+* The values file may be written as YAML or as JSON — a file starting with `{` is read as JSON
 * This is perfect for CI/CD pipelines and automated testing
 * For more advanced customization, see the main [Solo documentation](https://github.com/hiero-ledger/solo)
 

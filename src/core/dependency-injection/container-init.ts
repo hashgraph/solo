@@ -47,7 +47,6 @@ import {AccountCommand} from '../../commands/account.js';
 import {FileCommand} from '../../commands/file.js';
 import {DeploymentCommand} from '../../commands/deployment.js';
 import {ExplorerCommand} from '../../commands/explorer.js';
-import {InitCommand} from '../../commands/init/init.js';
 import {MirrorNodeCommand} from '../../commands/mirror-node.js';
 import {RelayCommand} from '../../commands/relay.js';
 import {NetworkCommand} from '../../commands/network.js';
@@ -104,6 +103,7 @@ import {PostgresSharedResource} from '../shared-resources/postgres.js';
 import {SharedResourceManager} from '../shared-resources/shared-resource-manager.js';
 import {ROOT_DIR} from '../constants.js';
 import {CacheCommandDefinition} from '../../commands/command-definitions/cache-command-definition.js';
+import {InitCommandDefinition} from '../../commands/init/init-command-definition.js';
 import {CacheCommand} from '../../commands/cache.js';
 import {ImageCacheHandlerBuilder} from '../../integration/cache/impl/image-cache-handler-builder.js';
 import {DockerClient} from '../../integration/container-engine/docker-client.js';
@@ -181,7 +181,6 @@ export class Container {
       new SingletonContainer(InjectTokens.NodeCommand, NodeCommand),
       new SingletonContainer(InjectTokens.DeploymentCommand, DeploymentCommand),
       new SingletonContainer(InjectTokens.ExplorerCommand, ExplorerCommand),
-      new SingletonContainer(InjectTokens.InitCommand, InitCommand),
       new SingletonContainer(InjectTokens.MirrorNodeCommand, MirrorNodeCommand),
       new SingletonContainer(InjectTokens.NetworkCommand, NetworkCommand),
       new SingletonContainer(InjectTokens.RelayCommand, RelayCommand),
@@ -221,6 +220,7 @@ export class Container {
 
       // Command Definitions
       new SingletonContainer(InjectTokens.BackupRestoreCommandDefinition, BackupRestoreCommandDefinition),
+      new SingletonContainer(InjectTokens.InitCommandDefinition, InitCommandDefinition),
       new SingletonContainer(InjectTokens.BlockCommandDefinition, BlockCommandDefinition),
       new SingletonContainer(InjectTokens.ClusterReferenceCommandDefinition, ClusterReferenceCommandDefinition),
       new SingletonContainer(InjectTokens.ConsensusCommandDefinition, ConsensusCommandDefinition),

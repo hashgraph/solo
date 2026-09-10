@@ -11,7 +11,7 @@ import {PathEx} from '../../../../src/business/utils/path-ex.js';
 import {CacheCommandDefinition} from '../../../../src/commands/command-definitions/cache-command-definition.js';
 import {CacheArtifactEnum} from '../../../../src/integration/cache/enums/cache-artifact-enum.js';
 import {ChartManager} from '../../../../src/core/chart-manager.js';
-import {MINIO_OPERATOR_CHART, SOLO_LOGS_DIR} from '../../../../src/core/constants.js';
+import {MINIO_OPERATOR_CHART} from '../../../../src/core/constants.js';
 import {MINIO_OPERATOR_VERSION} from '../../../../version.js';
 import {HelmChartValues} from '../../../../src/integration/helm/model/values.js';
 import {sleep} from '../../../../src/core/helpers.js';
@@ -249,7 +249,10 @@ export class CacheTest extends BaseCommandTest {
         `expected the MinIO operator chart to be cached before install; cached archives: ${cachedArchives.join(', ')}`,
       ).to.be.true;
 
-      const logFilePath: string = PathEx.join(SOLO_LOGS_DIR, 'solo.log');
+      // SoloPinoLogger writes under the container-configured home directory, which the test harness
+      // points at testCacheDirectory rather than the default SOLO_LOGS_DIR — read the same file it writes.
+      const homeDirectory: string = container.resolve<string>(InjectTokens.HomeDirectory);
+      const logFilePath: string = PathEx.join(homeDirectory, 'logs', 'solo.log');
       const logSizeBefore: number = fs.existsSync(logFilePath) ? fs.statSync(logFilePath).size : 0;
 
       const chartManager: ChartManager = container.resolve<ChartManager>(InjectTokens.ChartManager);

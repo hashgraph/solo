@@ -23,7 +23,7 @@ export class NodeClientLoadFailedSoloError extends SoloError {
           'Check solo logs: tail -n 100 ~/.solo/logs/solo.log\n' +
           'Verify consensus node pods are running: kubectl get pods -n <namespace>\n' +
           'Inspect node pod logs: kubectl logs <node-pod> -n <namespace>\n' +
-          'Verify network port-forwards are active: solo deployment refresh port-forwards',
+          'Verify network port-forwards are active: solo deployment port-forwards refresh',
       },
       cause,
     );

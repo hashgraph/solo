@@ -13,7 +13,6 @@ import fs from 'node:fs';
 import {DEFAULT_LOCAL_CONFIG_FILE} from '../../../src/core/constants.js';
 import {resetForTest} from '../../test-container.js';
 import {type K8ClientFactory} from '../../../src/integration/kube/k8-client/k8-client-factory.js';
-import {InitTest} from './tests/init-test.js';
 import {ClusterReferenceTest} from './tests/cluster-reference-test.js';
 import {DeploymentTest} from './tests/deployment-test.js';
 import {ConsensusNodeTest} from './tests/consensus-node-test.js';
@@ -73,7 +72,6 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
 
         afterEach(async (): Promise<void> => await sleep(Duration.ofMillis(5)));
 
-        InitTest.init(options);
         ClusterReferenceTest.connect(options);
         DeploymentTest.create(options);
         DeploymentTest.addCluster(options);

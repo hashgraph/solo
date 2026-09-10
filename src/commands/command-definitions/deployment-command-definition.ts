@@ -43,8 +43,15 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
     'View the actual state of the deployment on the Kubernetes clusters or ' +
     'teardown/destroy all remote and local configuration for a given deployment.';
 
+  public static readonly PORT_FORWARDS_SUBCOMMAND_NAME: string = 'port-forwards';
+  private static readonly PORT_FORWARDS_SUBCOMMAND_DESCRIPTION: string =
+    'Manage the port-forward processes for all components in the deployment.';
+
+  // Deprecated: the 'refresh port-forwards' path is superseded by 'port-forwards refresh'. It is kept as a hidden
+  // alias for backward compatibility and emits a deprecation notice when invoked.
   public static readonly REFRESH_SUBCOMMAND_NAME: string = 'refresh';
   private static readonly REFRESH_SUBCOMMAND_DESCRIPTION: string =
+    "[DEPRECATED] Use 'solo deployment port-forwards refresh' instead. " +
     'Refresh port-forward processes for all components in the deployment.';
 
   public static readonly DIAGNOSTICS_SUBCOMMAND_NAME: string = 'diagnostics';
@@ -67,6 +74,8 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
   public static readonly DIAGNOSTICS_CONNECTIONS: string = 'connections';
   public static readonly DIAGNOSTICS_REPORT: string = 'report';
   public static readonly REFRESH_PORT_FORWARDS: string = 'port-forwards';
+  public static readonly PORT_FORWARDS_REFRESH: string = 'refresh';
+  public static readonly PORT_FORWARDS_STOP: string = 'stop';
 
   public static readonly STATE_IMAGES: string = 'images';
 
@@ -82,8 +91,15 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
   public static readonly CONNECTIONS_COMMAND: string =
     `${DeploymentCommandDefinition.COMMAND_NAME} ${DeploymentCommandDefinition.DIAGNOSTICS_SUBCOMMAND_NAME} ${DeploymentCommandDefinition.DIAGNOSTICS_CONNECTIONS}` as const;
 
+  // Deprecated alias, superseded by REFRESH_PORT_FORWARDS_COMMAND.
   public static readonly REFRESH_COMMAND: string =
     `${DeploymentCommandDefinition.COMMAND_NAME} ${DeploymentCommandDefinition.REFRESH_SUBCOMMAND_NAME} ${DeploymentCommandDefinition.REFRESH_PORT_FORWARDS}` as const;
+
+  public static readonly REFRESH_PORT_FORWARDS_COMMAND: string =
+    `${DeploymentCommandDefinition.COMMAND_NAME} ${DeploymentCommandDefinition.PORT_FORWARDS_SUBCOMMAND_NAME} ${DeploymentCommandDefinition.PORT_FORWARDS_REFRESH}` as const;
+
+  public static readonly STOP_PORT_FORWARDS_COMMAND: string =
+    `${DeploymentCommandDefinition.COMMAND_NAME} ${DeploymentCommandDefinition.PORT_FORWARDS_SUBCOMMAND_NAME} ${DeploymentCommandDefinition.PORT_FORWARDS_STOP}` as const;
 
   public static readonly INFO_COMMAND: string =
     `${DeploymentCommandDefinition.COMMAND_NAME} ${DeploymentCommandDefinition.CONFIG_SUBCOMMAND_NAME} ${DeploymentCommandDefinition.CONFIG_INFO}` as const;
@@ -206,14 +222,41 @@ export class DeploymentCommandDefinition extends BaseCommandDefinition {
           DeploymentCommandDefinition.REFRESH_SUBCOMMAND_DESCRIPTION,
         ).addSubcommand(
           new Subcommand(
-            'port-forwards',
-            'Refresh and restore killed port-forward processes.',
+            DeploymentCommandDefinition.REFRESH_PORT_FORWARDS,
+            "[DEPRECATED] Use 'solo deployment port-forwards refresh' instead. " +
+              'Refresh and restore killed port-forward processes.',
             this.deploymentCommand,
-            this.deploymentCommand.refresh,
+            this.deploymentCommand.refreshDeprecated,
             DeploymentCommand.REFRESH_FLAGS_LIST,
             [constants.KUBECTL],
           ),
         ),
+      )
+      .addCommandGroup(
+        new CommandGroup(
+          DeploymentCommandDefinition.PORT_FORWARDS_SUBCOMMAND_NAME,
+          DeploymentCommandDefinition.PORT_FORWARDS_SUBCOMMAND_DESCRIPTION,
+        )
+          .addSubcommand(
+            new Subcommand(
+              DeploymentCommandDefinition.PORT_FORWARDS_REFRESH,
+              'Refresh and restore killed port-forward processes.',
+              this.deploymentCommand,
+              this.deploymentCommand.refresh,
+              DeploymentCommand.REFRESH_FLAGS_LIST,
+              [constants.KUBECTL],
+            ),
+          )
+          .addSubcommand(
+            new Subcommand(
+              DeploymentCommandDefinition.PORT_FORWARDS_STOP,
+              'Stop (close down) all port-forwards for a deployment and remove them from the remote config.',
+              this.deploymentCommand,
+              this.deploymentCommand.stopPortForwards,
+              DeploymentCommand.STOP_PORT_FORWARDS_FLAGS_LIST,
+              [constants.KUBECTL],
+            ),
+          ),
       )
       .addCommandGroup(
         new CommandGroup(

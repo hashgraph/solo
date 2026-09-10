@@ -12,6 +12,7 @@ import {RemoteConfigUnsupportedComponentError} from '../../../src/core/errors/cl
 import {SdkPingFailedSoloError} from '../../../src/core/errors/classes/component/sdk-ping-failed-solo-error.js';
 import {SdkClientNoHealthyNodesSoloError} from '../../../src/core/errors/classes/component/sdk-client-no-healthy-nodes-solo-error.js';
 import {SdkErrorTranslator} from '../../../src/core/errors/sdk-error-translator.js';
+import {SoloLogsDirectoryNotWritableSoloError} from '../../../src/core/errors/classes/system/solo-logs-directory-not-writable-solo-error.js';
 
 describe('Errors', (): void => {
   const message: string = 'errorMessage';
@@ -118,5 +119,46 @@ describe('Errors', (): void => {
   it('should not translate unrelated errors', (): void => {
     expect(SdkErrorTranslator.tryTranslate(new Error('something else'))).to.equal(undefined);
     expect(SdkErrorTranslator.tryTranslate('not an error')).to.equal(undefined);
+  });
+
+  describe('SoloLogsDirectoryNotWritableSoloError', (): void => {
+    const logPath: string = '/home/user/.solo/logs';
+
+    // This error is raised while the logger is being built, so it is reported without a logger and never
+    // reaches the log file. If the errno is not in the message it is not observable at all, and the
+    // remediation steps only fit EACCES.
+    for (const [code, causeMessage, expectedDetail] of [
+      ['EACCES', `EACCES: permission denied, access '${logPath}'`, 'EACCES: permission denied'],
+      ['EROFS', `EROFS: read-only file system, mkdir '${logPath}'`, 'EROFS: read-only file system'],
+      ['ENOSPC', `ENOSPC: no space left on device, mkdir '${logPath}'`, 'ENOSPC: no space left on device'],
+    ] as [string, string, string][]) {
+      it(`should surface ${code} in the message so the causes are distinguishable`, (): void => {
+        const error: SoloLogsDirectoryNotWritableSoloError = new SoloLogsDirectoryNotWritableSoloError(
+          logPath,
+          new Error(causeMessage),
+        );
+
+        expect(error.message).to.equal(`Solo cannot write to its log destination: ${logPath}: ${expectedDetail}`);
+        // The path is stated once, not repeated by the file system message's trailing syscall clause.
+        expect(error.message.indexOf(logPath)).to.equal(error.message.lastIndexOf(logPath));
+      });
+    }
+
+    it('should keep a cause message that is not in the file system shape whole', (): void => {
+      const error: SoloLogsDirectoryNotWritableSoloError = new SoloLogsDirectoryNotWritableSoloError(
+        logPath,
+        new Error('stream closed unexpectedly'),
+      );
+
+      expect(error.message).to.equal(
+        `Solo cannot write to its log destination: ${logPath}: stream closed unexpectedly`,
+      );
+    });
+
+    it('should omit the detail entirely when there is no cause', (): void => {
+      const error: SoloLogsDirectoryNotWritableSoloError = new SoloLogsDirectoryNotWritableSoloError(logPath);
+
+      expect(error.message).to.equal(`Solo cannot write to its log destination: ${logPath}`);
+    });
   });
 });

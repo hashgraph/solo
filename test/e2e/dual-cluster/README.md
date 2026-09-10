@@ -143,7 +143,7 @@ Current Command		: init
 
 ***************************************************************************************
 Note: solo stores various artifacts (config, logs, keys etc.) in its home directory: /Users/user/.solo
-If a full reset is needed, delete the directory or relevant sub-directories before running 'solo init'.
+If a full reset is needed, delete the directory or relevant sub-directories before running solo again.
 ***************************************************************************************
 Switched to context "kind-solo-e2e-c1".
 

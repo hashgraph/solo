@@ -26,7 +26,7 @@ export class SdkPingFailedSoloError extends SoloError {
           'Check solo logs: tail -n 100 ~/.solo/logs/solo.log\n' +
           `Verify the node pod is running: kubectl get pods -n <namespace> -l solo.hedera.com/node-name=${nodeAlias}\n` +
           'Inspect node logs: kubectl logs <node-pod> -n <namespace>\n' +
-          'Check port-forward status: solo deployment refresh port-forwards\n' +
+          'Check port-forward status: solo deployment port-forwards refresh\n' +
           'Restart the node: solo consensus node restart',
       },
       cause,

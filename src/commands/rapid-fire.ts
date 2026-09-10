@@ -1182,11 +1182,20 @@ export class RapidFireCommand extends BaseCommand {
         const k8Containers: Containers = this.k8Factory.getK8(context_.config.context).containers();
 
         for (const pod of nlgPods) {
+          if (pod.phase !== constants.POD_PHASE_RUNNING) {
+            continue;
+          }
           const containerReference: ContainerReference = ContainerReference.of(
             pod.podReference,
             constants.NETWORK_LOAD_GENERATOR_CONTAINER,
           );
           const container: Container = k8Containers.readByRef(containerReference);
+          try {
+            await container.execContainer(`pgrep -f ${testClass}`);
+          } catch {
+            // process does not exist, no need to kill it
+            continue;
+          }
           try {
             await container.execContainer(`pkill -f ${testClass}`);
           } catch (error) {

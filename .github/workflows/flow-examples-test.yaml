@@ -108,7 +108,6 @@ defaults:
 
 permissions:
   contents: read
-  actions: write
 
 env:
   STEP_TIMEOUT_MINUTES: '5'
@@ -121,25 +120,32 @@ jobs:
       matrix: ${{ steps.set_matrix.outputs.matrix }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Generate Matrix
         id: set_matrix
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          # github.event_name and github.ref_name are read through the GITHUB_EVENT_NAME and
+          # GITHUB_REF_NAME variables the runner already provides.
+          EXAMPLE_DIRECTORY_INPUT: ${{ inputs.example-directory }}
+          USE_REDUCED_TEST_MATRIX_INPUT: ${{ inputs.use-reduced-test-matrix }}
         run: |
-          EXAMPLE_DIR="${{ inputs.example-directory }}"
+          EXAMPLE_DIR="${EXAMPLE_DIRECTORY_INPUT}"
           STANDARD_MATRIX_FILE=".github/workflows/support/examples-test-matrix.json"
           REDUCED_MATRIX_FILE=".github/workflows/support/examples-reduced-matrix.json"
-          EVENT_NAME="${{ github.event_name }}"
-          REF_NAME="${{ github.ref_name }}"
-          USE_REDUCED_TEST_MATRIX="${{ inputs.use-reduced-test-matrix }}"
+          EVENT_NAME="${GITHUB_EVENT_NAME}"
+          REF_NAME="${GITHUB_REF_NAME}"
+          USE_REDUCED_TEST_MATRIX="${USE_REDUCED_TEST_MATRIX_INPUT}"
 
           if [[ "${REF_NAME}" == trunk-merge/* || "${EVENT_NAME}" == "push" || "${EVENT_NAME}" == "pull_request" || "${USE_REDUCED_TEST_MATRIX}" == "true" ]]; then
             echo "Using reduced matrix (${EVENT_NAME}:${REF_NAME}, use-reduced-test-matrix=${USE_REDUCED_TEST_MATRIX})."
@@ -185,13 +191,15 @@ jobs:
       max-parallel: 4
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node
@@ -230,7 +238,7 @@ jobs:
       - name: Install grpcurl
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
-          go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
+          go install github.com/fullstorydev/grpcurl/cmd/grpcurl@d00c28104be4b06f4dd887196ccfc57b054aa069 # v1.9.3
 
       - name: Resolve consensus node version and Java version
         id: resolve-consensus-java
@@ -253,7 +261,7 @@ jobs:
 
       - name: Setup Java
         if: ${{ runner.os == 'linux' && matrix.example.local-java-build && !cancelled() && !failure() }}
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           distribution: temurin
@@ -287,10 +295,18 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: task build:compile
 
+      - name: Restore Solo Bin Cache
+        id: solo-bin-cache
+        if: ${{ !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Restore Solo Image Cache
         id: solo-image-cache
         if: ${{ !cancelled() && !failure() }}
-        uses: ./.github/actions/solo-image-cache
+        uses: $/.github/actions/solo-image-cache
         with:
           operation: restore
           key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
@@ -310,6 +326,21 @@ jobs:
           path: ~/.solo/helm-chart-cache
           key: helm-chart-deps-${{ runner.os }}-${{ hashFiles('version.ts') }}
           restore-keys: helm-chart-deps-${{ runner.os }}-
+
+      - name: Install Helm
+        if: ${{ !cancelled() && !failure() }}
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: 'v3.14.2'
+
+      - name: Install Kind
+        if: ${{ !cancelled() && !failure() }}
+        uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
+        with:
+          install_only: true
+          version: 'v0.29.0'
+          node_image: 'kindest/node:v1.31.9@sha256:b94a3a6c06198d17f59cca8c6f486236fa05e2fb359cbd75dabbfc348a10b211'
+          kubectl_version: 'v1.32.2'
 
       - name: Prepare Example Directory - ${{ matrix.example.name }}
         id: prepare_example
@@ -474,9 +505,16 @@ jobs:
 
           echo "Task completed successfully"
 
+      - name: Save Solo Bin Cache
+        if: ${{ github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Save Solo Image Cache
         if: ${{ github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
-        uses: ./.github/actions/solo-image-cache
+        uses: $/.github/actions/solo-image-cache
         with:
           operation: save
           key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}

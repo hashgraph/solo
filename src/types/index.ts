@@ -13,7 +13,6 @@ export type {PrivateKeyAndCertificateObject} from './private-key-and-certificate
 export type {ExtendedNetServer} from './extended-net-server.js';
 export type {LocalContextObject} from './local-context-object.js';
 export type {AccountIdWithKeyPairObject} from './account-id-with-key-pair-object.js';
-export type {Validate} from './validate.js';
 export type {ToObject} from './to-object.js';
 export type {ToJSON} from './to-json.js';
 export type {ServiceEndpoint} from './service-endpoint.js';
@@ -56,12 +55,6 @@ export type ComponentData = {
 };
 
 export type InitDependenciesOptions = {deps: string[]; createCluster: boolean; useSmallMemoryCluster?: boolean};
-
-export type ReleaseNameData = {
-  releaseName: Optional<string>;
-  exists: boolean;
-  version?: Optional<string>;
-};
 
 export type Version = string;
 /// TODO - see if we can use NamespaceName and use some annotations and overrides to covert to strings

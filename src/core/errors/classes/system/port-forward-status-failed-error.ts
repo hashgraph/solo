@@ -20,7 +20,7 @@ export class PortForwardStatusFailedError extends SoloError {
         code: ErrorCodeRegistry.PORT_FORWARD_STATUS_FAILED,
         troubleshootingSteps:
           'Check the all pods exist and are running: kubectl get pods -n <namespace>\n' +
-          'Restart the port-forward: solo deployment refresh port-forwards --deployment <deployment-name>',
+          'Restart the port-forward: solo deployment port-forwards refresh --deployment <deployment-name>',
       },
       cause,
     );

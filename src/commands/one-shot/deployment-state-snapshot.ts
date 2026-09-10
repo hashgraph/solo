@@ -7,6 +7,7 @@ export interface DeploymentStateSnapshot {
   remoteConfig: {
     configMapExists: boolean;
     componentPhases: Map<ComponentTypes, DeploymentPhase>;
+    orphanedOnKindCluster: boolean;
   };
   helm: {
     installedReleases: Set<string>;

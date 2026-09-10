@@ -37,8 +37,6 @@ tasks:
   deploy:
     desc: "Create kind cluster and deploy consensus/mirror/explorer/block nodes"
     cmds:
-      # Run solo init to install dependencies
-      - cmd: $SOLO_COMMAND init --dev
 
       - cmd: |
           SHARED_KIND_CONFIG="{{ .TASKFILE_DIR }}/../../resources/kind-config.yaml"

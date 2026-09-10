@@ -4,7 +4,7 @@ import pino, {type Logger as PinoLogger, type LoggerOptions, type StreamEntry} f
 import pinoPretty from 'pino-pretty';
 import {createStream, type Options as RotatingFileStreamOptions, type RotatingFileStream} from 'rotating-file-stream';
 import {type Writable} from 'node:stream';
-import {mkdirSync} from 'node:fs';
+import {accessSync, constants as fileSystemConstants, existsSync, mkdirSync} from 'node:fs';
 import {v4 as uuidv4} from 'uuid';
 // eslint-disable-next-line unicorn/import-style
 import * as util from 'node:util';
@@ -18,6 +18,7 @@ import {type SoloLogger} from './solo-logger.js';
 import {OneShotState} from '../one-shot-state.js';
 import {SoloErrors} from '../errors/solo-errors.js';
 import {SoloError} from '../errors/solo-error.js';
+import {FatalErrorReporter} from '../fatal-error-reporter.js';
 import {MessageLevel} from './message-level.js';
 
 type ChalkColor = typeof chalk.red;
@@ -25,7 +26,7 @@ type ChalkColor = typeof chalk.red;
 /**
  * Pino-based implementation of the SoloLogger interface.
  *
- * Emits two files under constants.SOLO_LOGS_DIR:
+ * Emits two files under the `logs` subdirectory of the container-configured Solo home directory:
  *  - solo.ndjson : newline-delimited JSON (authoritative)
  *  - solo.log    : pretty human-readable
  */
@@ -42,34 +43,73 @@ export class SoloPinoLogger implements SoloLogger {
   private readonly MINOR_LINE_SEPARATOR: string =
     '-------------------------------------------------------------------------------';
 
+  /**
+   * Log files are created owner-only. Solo logs command lines, Helm arguments and Kubernetes
+   * responses; the object redaction configured below is best-effort, so the files must not be
+   * readable by other users on a shared machine. `0644` — what the stream libraries default to —
+   * is world-readable and violates the SOLO_HOME permission policy the e2e suite asserts.
+   *
+   * The mode is applied at creation rather than chmod'ed afterwards, which would leave a window at
+   * `0644` and would miss the files rotation creates later. A umask can only clear further bits, so
+   * the result is never looser than this.
+   */
+  private static readonly LOG_FILE_MODE: number = 0o600;
+  /** Matching owner-only mode for the directory holding those files. */
+  private static readonly LOG_DIRECTORY_MODE: number = 0o700;
+
   private static readonly MAX_BOX_WIDTH: number = 120;
   private static readonly MIN_BOX_WIDTH: number = 70;
 
   /**
+   * Resolves the home directory whose `logs` subdirectory receives the log files. Honouring the
+   * container-configured home keeps a container pointed at a different home — the test container,
+   * for example — from writing into the user's real `~/.solo/logs`.
+   */
+  private static resolveHomeDirectory(homeDirectory: string | undefined): string {
+    if (homeDirectory) {
+      return homeDirectory;
+    }
+    try {
+      return patchInject(homeDirectory, InjectTokens.HomeDirectory, SoloPinoLogger.name);
+    } catch {
+      // The logger can be constructed before the container is initialized, in which case no home has
+      // been configured yet and the default is the correct destination.
+      return constants.SOLO_HOME_DIR;
+    }
+  }
+
+  /**
    * @param logLevel - the log level to use (fatal|error|warn|info|debug|trace)
    * @param developmentMode - if true, show full stack traces in error messages
+   * @param homeDirectory - the Solo home directory whose `logs` subdirectory receives the log files
    */
   public constructor(
     @inject(InjectTokens.LogLevel) logLevel?: string,
     @inject(InjectTokens.DevelopmentMode) private developmentMode?: boolean,
     @inject(InjectTokens.OneShotState) private readonly oneShotState?: OneShotState,
+    @inject(InjectTokens.HomeDirectory) homeDirectory?: string,
   ) {
     logLevel = patchInject(logLevel, InjectTokens.LogLevel, this.constructor.name) ?? 'info';
     this.developmentMode = patchInject(developmentMode, InjectTokens.DevelopmentMode, this.constructor.name);
 
     this.nextTraceId();
 
-    // Ensure logs directory exists
-    const logsDirectory: string = constants.SOLO_LOGS_DIR;
-    try {
-      mkdirSync(logsDirectory, {recursive: true});
-    } catch {
-      // no-op: if this fails, pino will attempt to create the files and error if impossible
-    }
+    // The home directory is resolved from the container so a container pointed at a different home
+    // writes there rather than into the user's real ~/.solo/logs. The directory itself is created by
+    // findLogDestinationFailure below, which runs before any stream is built.
+    const logsDirectory: string = PathEx.join(SoloPinoLogger.resolveHomeDirectory(homeDirectory), 'logs');
 
     // Configure dual outputs: NDJSON (machine) + pretty (human)
     const ndjsonFileName: string = 'solo.ndjson';
     const prettyFileName: string = 'solo.log';
+
+    // A broken log destination must not stop the command from running: report it with its code and
+    // remediation, then fall back to console-only logging. `solo deployment create` still works when
+    // ~/.solo/logs is unwritable; the user simply loses the log files and is told why.
+    const destinationFailure: SoloError | undefined = SoloPinoLogger.findLogDestinationFailure(logsDirectory, [
+      ndjsonFileName,
+      prettyFileName,
+    ]);
 
     // Shared pino-pretty formatting options; the destination is supplied per output below.
     const prettyOptions: NonNullable<Parameters<typeof pinoPretty>[0]> = {
@@ -97,19 +137,31 @@ export class SoloPinoLogger implements SoloLogger {
       },
     };
 
+    if (destinationFailure) {
+      FatalErrorReporter.renderToStandardError(destinationFailure, 'WARNING');
+      // Console-only: pretty output on stderr, so stdout stays clean for command results.
+      this.pinoLogger = pino(baseOptions, pinoPretty({...prettyOptions, destination: 2}));
+      return;
+    }
+
     if (process.env.CI === 'true') {
       // Note: log rotation is not necessary in CI environments
       const ndjsonStream: ReturnType<typeof pino.destination> = pino.destination({
         dest: PathEx.join(logsDirectory, ndjsonFileName),
         sync: true,
+        mode: SoloPinoLogger.LOG_FILE_MODE,
+      });
+      const prettyDestination: ReturnType<typeof pino.destination> = pino.destination({
+        dest: PathEx.join(logsDirectory, prettyFileName),
+        sync: true,
+        mode: SoloPinoLogger.LOG_FILE_MODE,
       });
       const prettyStream: ReturnType<typeof pinoPretty> = pinoPretty({
         ...prettyOptions,
-        destination: pino.destination({
-          dest: PathEx.join(logsDirectory, prettyFileName),
-          sync: true,
-        }),
+        destination: prettyDestination,
       });
+      SoloPinoLogger.reportStreamFailures(ndjsonStream, PathEx.join(logsDirectory, ndjsonFileName));
+      SoloPinoLogger.reportStreamFailures(prettyDestination, PathEx.join(logsDirectory, prettyFileName));
       this.pinoLogger = pino(
         baseOptions,
         pino.multistream([
@@ -123,12 +175,19 @@ export class SoloPinoLogger implements SoloLogger {
         size: constants.LOG_MAX_FILE_SIZE,
         interval: constants.LOG_ROTATION_INTERVAL,
         maxFiles: constants.LOG_MAX_FILES,
+        mode: SoloPinoLogger.LOG_FILE_MODE,
       };
       const ndjsonStream: RotatingFileStream = createStream(ndjsonFileName, rotationOptions);
+      const prettyDestination: RotatingFileStream = createStream(prettyFileName, rotationOptions);
       const prettyStream: ReturnType<typeof pinoPretty> = pinoPretty({
         ...prettyOptions,
-        destination: createStream(prettyFileName, rotationOptions),
+        destination: prettyDestination,
       });
+      // accessSync only reflects the read-only attribute on Windows — it does not consult ACLs — and a
+      // disk can fill mid-run, so the preflight above is the fast path, not the only one. Without these
+      // listeners such a failure surfaces asynchronously as an unactionable internal error.
+      SoloPinoLogger.reportStreamFailures(ndjsonStream, PathEx.join(logsDirectory, ndjsonFileName));
+      SoloPinoLogger.reportStreamFailures(prettyDestination, PathEx.join(logsDirectory, prettyFileName));
       // Track the streams multistream writes to so flush() can drain them before the process exits.
       this.rotatingStreams.push(ndjsonStream, prettyStream);
       this.pinoLogger = pino(
@@ -380,6 +439,64 @@ export class SoloPinoLogger implements SoloLogger {
         stack: cause.stack,
       })),
     };
+  }
+
+  /**
+   * Returns the coded failure when the log directory, or an existing log file inside it, cannot be
+   * written, and `undefined` when the destination is usable.
+   *
+   * The stream implementations report this asynchronously, after the constructor has already returned, so
+   * it escapes as an unactionable internal error — and because reporting it writes another log line, it can
+   * repeat without bound. Probing up front turns the whole class of failure into one coded error naming the
+   * offending path, which the constructor renders before falling back to console-only logging.
+   */
+  private static findLogDestinationFailure(logsDirectory: string, fileNames: string[]): SoloError | undefined {
+    try {
+      mkdirSync(logsDirectory, {recursive: true, mode: SoloPinoLogger.LOG_DIRECTORY_MODE});
+      accessSync(logsDirectory, fileSystemConstants.W_OK);
+    } catch (error) {
+      return new SoloErrors.system.soloLogsDirectoryNotWritable(logsDirectory, error as Error);
+    }
+
+    for (const fileName of fileNames) {
+      const filePath: string = PathEx.join(logsDirectory, fileName);
+      if (!existsSync(filePath)) {
+        continue;
+      }
+      try {
+        accessSync(filePath, fileSystemConstants.W_OK);
+      } catch (error) {
+        return new SoloErrors.system.soloLogsDirectoryNotWritable(filePath, error as Error);
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Routes an asynchronous write failure on a log stream through the same coded error as the preflight.
+   *
+   * Without this, a destination that only fails once writing starts — a Windows ACL the preflight cannot
+   * see, or a disk that fills mid-run — surfaces as an unhandled stream error rather than as SOLO-5083.
+   */
+  private static reportStreamFailures(stream: NodeJS.EventEmitter, filePath: string): void {
+    let reported: boolean = false;
+
+    stream.on('error', (streamError: Error): void => {
+      // The listener stays attached for the life of the stream: detaching it after the first failure
+      // would make the next failed write an unhandled 'error' event, which crashes the process. Once
+      // the destination is known bad every later failure says the same thing, so only the first is
+      // rendered — otherwise a stream that fails on every flush reproduces the report flood of #5370.
+      if (reported) {
+        return;
+      }
+      reported = true;
+
+      FatalErrorReporter.renderToStandardError(
+        new SoloErrors.system.soloLogsDirectoryNotWritable(filePath, streamError),
+        'WARNING',
+      );
+    });
   }
 
   public showUserError(error: unknown): void {

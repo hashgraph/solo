@@ -39,12 +39,7 @@ defaults:
     shell: bash
 
 permissions:
-  id-token: write
   contents: read
-  actions: read
-  pull-requests: write
-  checks: write
-  statuses: write
 
 jobs:
   code-style:
@@ -52,12 +47,14 @@ jobs:
     runs-on: hiero-solo-linux-medium
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install Task
         uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
@@ -115,6 +112,8 @@ jobs:
 
       - name: Compare warnings with target branch
         if: ${{ github.event_name == 'pull_request' }}
+        env:
+          TARGET_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: |
           get_warnings() {
             file="$1"
@@ -126,7 +125,7 @@ jobs:
             fi
           }
           # Determine the PR target (base) branch
-          target_branch="${{ github.event.pull_request.base.ref }}"
+          target_branch="${TARGET_BRANCH}"
           echo "Target branch: $target_branch"
           # Fetch and check out the target branch from origin
           git fetch origin "$target_branch":"$target_branch"

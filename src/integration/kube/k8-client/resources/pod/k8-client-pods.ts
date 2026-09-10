@@ -45,7 +45,8 @@ import {sleep} from '../../../../../core/helpers.js';
 
 export class K8ClientPods extends K8ClientBase implements Pods {
   /**
-   * Waiting reasons for container states that are non-recoverable (image unavailable in registry).
+   * Waiting reasons for container states that are non-recoverable (image unavailable in registry,
+   * or the container process has repeatedly crashed and will never restart cleanly on its own).
    */
   private static readonly FATAL_WAITING_REASONS: ReadonlySet<string> = new Set([
     'ImagePullBackOff',
@@ -53,6 +54,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     'InvalidImageName',
     'ImageInspectError',
     'RegistryUnavailable',
+    'CrashLoopBackOff',
   ]);
 
   /**

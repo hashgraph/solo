@@ -175,7 +175,6 @@ The `init.sh` script sets up the PostgreSQL database with:
 4. **Restore Input Build**: Builds `./saved-states/restore-input/states/<cluster-ref>/<namespace>/` and copies each node's state zip
 5. **State Upload and Start**: Starts all nodes together with `solo consensus node start --state-file ./saved-states/restore-input`
    * State files are extracted to `data/saved/`
-   * Cleanup: Only the latest/biggest round is kept, older rounds are automatically deleted to save disk space
    * Node ID Renaming: Directory paths containing node IDs are automatically renamed to match each target node
 6. **Mirror Node**: Deploys mirror node connected to restored database and seeds initial data
 7. **Verification**: Checks that restored state matches original

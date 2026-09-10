@@ -118,7 +118,6 @@ SOLO_NAMESPACE=solo-e2e
 SOLO_CLUSTER_SETUP_NAMESPACE=solo-setup
 SOLO_DEPLOYMENT=solo-e2e
 
-npm run solo-test -- init --dev
 kind delete cluster -n "${SOLO_CLUSTER_NAME}"
 
 if [ "${storageType}" == "minio_only" ]; then

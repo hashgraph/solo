@@ -37,9 +37,7 @@ on:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -60,25 +58,31 @@ jobs:
       versioned-release: ${{ steps.set-inputs.outputs.versioned_release }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
       - name: Set Inputs
         id: set-inputs
+        env:
+          # github.ref, github.ref_name and github.event_name are read below through the
+          # GITHUB_REF, GITHUB_REF_NAME and GITHUB_EVENT_NAME variables the runner already
+          # provides, so only the workflow inputs need binding here.
+          DOCS_BUILD_LABEL_INPUT: ${{ inputs.docs-build-label }}
+          DRY_RUN_ENABLED_INPUT: ${{ inputs.dry-run-enabled }}
         run: |
           set -eo pipefail
           echo "::group::Set Inputs"
           echo "Inputs:"
-          echo "docs-build-label=${{ inputs.docs-build-label }}"
-          echo "dry-run-enabled=${{ inputs.dry-run-enabled }}"
-          echo "github.ref=${{ github.ref }}"
-          echo "github.ref_name=${{ github.ref_name }}"
-          echo "github.event_name=${{ github.event_name }}"
+          echo "docs-build-label=${DOCS_BUILD_LABEL_INPUT}"
+          echo "dry-run-enabled=${DRY_RUN_ENABLED_INPUT}"
+          echo "github.ref=${GITHUB_REF}"
+          echo "github.ref_name=${GITHUB_REF_NAME}"
+          echo "github.event_name=${GITHUB_EVENT_NAME}"
           echo "::endgroup::"
-          
+
           echo "::group::Default Output Values"
-          DOCS_BUILD_LABEL="${{ inputs.docs-build-label }}"
+          DOCS_BUILD_LABEL="${DOCS_BUILD_LABEL_INPUT}"
           echo "defaulting: DOCS_BUILD_LABEL=${DOCS_BUILD_LABEL}"
           MAIN_REF="main"
           echo "defaulting: MAIN_REF=${MAIN_REF}"
@@ -94,8 +98,8 @@ jobs:
           fi
          
           # Only download artifacts and attach docs to a release if this is a workflow_dispatch running with a version tag
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            if [[ "${{ github.ref_name }}" != "main" || "${{ inputs.docs-build-label }}" != "main" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if [[ "${GITHUB_REF_NAME}" != "main" || "${DOCS_BUILD_LABEL_INPUT}" != "main" ]]; then
               echo "Running with a version tag and via workflow_dispatch, this is a versioned release."
               VERSIONED_RELEASE=true
               echo "setting: VERSIONED_RELEASE=${VERSIONED_RELEASE}"
@@ -112,9 +116,9 @@ jobs:
           
           # If the github.ref_name is `main`, then we will checkout github.ref, else checkout `main` for the 
           #  docs-build-label = `main`
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
             echo "Running on 'main' branch, setting MAIN_REF to github.ref."
-            MAIN_REF="${{ github.ref }}"
+            MAIN_REF="${GITHUB_REF}"
             echo "setting: MAIN_REF=${MAIN_REF}"
           else
             echo "Running on a branch or tag other than 'main', setting MAIN_REF to 'main'."
@@ -138,7 +142,7 @@ jobs:
   docs-automation:
     name: Docs Automation
     if: ${{ needs.setup.outputs.versioned-release == 'true' && !cancelled() && !failure() }}
-    uses: ./.github/workflows/zxc-docs-automation.yaml
+    uses: $/.github/workflows/zxc-docs-automation.yaml
     needs:
       - setup
     secrets:
@@ -148,7 +152,7 @@ jobs:
   hugo-docs-build:
     name: Hugo Docs Build
     if: ${{ needs.setup.outputs.versioned-release == 'true' && !cancelled() && !failure() }}
-    uses: ./.github/workflows/zxc-hugo-build.yaml
+    uses: $/.github/workflows/zxc-hugo-build.yaml
     needs:
       - setup
     with:
@@ -161,7 +165,7 @@ jobs:
   #  to GitHub Pages.  This runs after hugo-docs-build if the docs-build-label is not 'main'.
   hugo-docs-build-main:
     name: Hugo Docs Build - Main
-    uses: ./.github/workflows/zxc-hugo-build.yaml
+    uses: $/.github/workflows/zxc-hugo-build.yaml
     needs:
       - setup
       - hugo-docs-build
@@ -175,8 +179,12 @@ jobs:
   # Publish the Hugo docs site to GitHub Pages unless dry-run is enabled or if this is a merge to release/* branch
   hugo-docs-publish:
     name: Hugo Docs Publish
+    permissions:
+      contents: write # zxc-hugo-publish.yaml attaches the docs archives to the release
+      pages: write # zxc-hugo-publish.yaml deploys to GitHub Pages
+      id-token: write # required by actions/deploy-pages
     if: ${{ needs.setup.outputs.versioned-release == 'true' && inputs.dry-run-enabled != 'true' && startsWith(github.ref_name, 'release/') && !cancelled() && !failure() }}
-    uses: ./.github/workflows/zxc-hugo-publish.yaml
+    uses: $/.github/workflows/zxc-hugo-publish.yaml
     needs:
       - setup
       - hugo-docs-build-main
@@ -193,7 +201,7 @@ jobs:
   hugo-docs-build-main-only:
     name: Hugo Docs Build - Main Only
     if: ${{ needs.setup.outputs.versioned-release == 'false' && !cancelled() && !failure() }}
-    uses: ./.github/workflows/zxc-hugo-build.yaml
+    uses: $/.github/workflows/zxc-hugo-build.yaml
     needs:
       - setup
     with:
@@ -205,7 +213,11 @@ jobs:
   # Publish the Hugo docs site to GitHub Pages unless dry-run is enabled or if this is a merge to release/* branch
   hugo-docs-publish-main-only:
     name: Hugo Docs Publish - Main Only
-    uses: ./.github/workflows/zxc-hugo-publish.yaml
+    permissions:
+      contents: write # zxc-hugo-publish.yaml attaches the docs archives to the release
+      pages: write # zxc-hugo-publish.yaml deploys to GitHub Pages
+      id-token: write # required by actions/deploy-pages
+    uses: $/.github/workflows/zxc-hugo-publish.yaml
     needs:
       - setup
       - hugo-docs-build-main-only

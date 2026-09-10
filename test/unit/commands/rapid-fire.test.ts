@@ -2,8 +2,17 @@
 
 import {expect} from 'chai';
 import {afterEach, beforeEach, describe, it} from 'mocha';
+import sinon, {type SinonStub} from 'sinon';
+import {container} from 'tsyringe-neo';
 import {RapidFireCommand} from '../../../src/commands/rapid-fire.js';
 import {NlgResultStatus} from '../../../src/commands/rapid-fire/nlg-result-status.js';
+import {resetForTest} from '../../test-container.js';
+import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
+import {type K8} from '../../../src/integration/kube/k8.js';
+import {NamespaceName} from '../../../src/types/namespace/namespace-name.js';
+import {PodName} from '../../../src/integration/kube/resources/pod/pod-name.js';
+import {PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
+import * as constants from '../../../src/core/constants.js';
 
 interface NlgResultForTest {
   status: NlgResultStatus;
@@ -219,5 +228,100 @@ describe('RapidFireCommand', (): void => {
     it('uses a longer catch-up timeout before measured RTT samples start', (): void => {
       expect(internals.mirrorReadinessPollTimeout({rttPollTimeout: 30_000})).to.equal(900_000);
     });
+  });
+});
+
+interface StopContext {
+  config: {
+    performanceTest: string;
+    packageName: string;
+    context: string;
+    namespace: NamespaceName;
+  };
+}
+
+interface RapidFireCommandStopAccessor {
+  stopLoadTest(): {task: (context_: StopContext, task: {title: string}) => Promise<void>};
+  k8Factory: K8Factory;
+}
+
+describe('RapidFireCommand stopLoadTest', (): void => {
+  let rapidFireCommand: RapidFireCommand;
+  let execContainerStub: SinonStub;
+  let podsListStub: SinonStub;
+
+  const stopContext: StopContext = {
+    config: {
+      performanceTest: 'TokenTransferLoadTest',
+      packageName: 'com.hedera.benchmark',
+      context: 'kind-solo-cluster',
+      namespace: NamespaceName.of('test-ns'),
+    },
+  };
+  const taskWrapper: {title: string} = {title: ''};
+
+  beforeEach((): void => {
+    resetForTest();
+    rapidFireCommand = container.resolve(RapidFireCommand);
+
+    execContainerStub = sinon.stub().resolves('');
+    const containerStub: unknown = {execContainer: execContainerStub};
+    podsListStub = sinon.stub();
+
+    const k8ClientStub: unknown = {
+      pods: sinon.stub().returns({list: podsListStub}),
+      containers: sinon.stub().returns({readByRef: sinon.stub().returns(containerStub)}),
+    };
+
+    sinon
+      .stub((rapidFireCommand as unknown as RapidFireCommandStopAccessor).k8Factory, 'getK8')
+      .returns(k8ClientStub as unknown as K8);
+  });
+
+  afterEach((): void => {
+    sinon.restore();
+  });
+
+  it('skips pods that are not Running', async (): Promise<void> => {
+    const podReference: PodReference = PodReference.of(NamespaceName.of('test-ns'), PodName.of('nlg-pod-1'));
+    const pendingPod: unknown = {phase: 'Pending', podReference};
+    podsListStub.resolves([pendingPod]);
+
+    const taskDefinition: ReturnType<RapidFireCommandStopAccessor['stopLoadTest']> = (
+      rapidFireCommand as unknown as RapidFireCommandStopAccessor
+    ).stopLoadTest();
+    await taskDefinition.task(stopContext, taskWrapper);
+
+    expect(execContainerStub.called).to.equal(false);
+  });
+
+  it('runs pgrep then pkill on Running pods when the process exists', async (): Promise<void> => {
+    const podReference: PodReference = PodReference.of(NamespaceName.of('test-ns'), PodName.of('nlg-pod-1'));
+    const runningPod: unknown = {phase: constants.POD_PHASE_RUNNING, podReference};
+    podsListStub.resolves([runningPod]);
+
+    const testClass: string = `${stopContext.config.packageName}.${stopContext.config.performanceTest}`;
+    const taskDefinition: ReturnType<RapidFireCommandStopAccessor['stopLoadTest']> = (
+      rapidFireCommand as unknown as RapidFireCommandStopAccessor
+    ).stopLoadTest();
+    await taskDefinition.task(stopContext, taskWrapper);
+
+    expect(execContainerStub.calledTwice).to.equal(true);
+    expect(execContainerStub.firstCall.args[0]).to.equal(`pgrep -f ${testClass}`);
+    expect(execContainerStub.secondCall.args[0]).to.equal(`pkill -f ${testClass}`);
+  });
+
+  it('skips pkill on Running pods when pgrep finds no process', async (): Promise<void> => {
+    const podReference: PodReference = PodReference.of(NamespaceName.of('test-ns'), PodName.of('nlg-pod-1'));
+    const runningPod: unknown = {phase: constants.POD_PHASE_RUNNING, podReference};
+    podsListStub.resolves([runningPod]);
+    execContainerStub.rejects(new Error('command terminated with exit code 1'));
+
+    const taskDefinition: ReturnType<RapidFireCommandStopAccessor['stopLoadTest']> = (
+      rapidFireCommand as unknown as RapidFireCommandStopAccessor
+    ).stopLoadTest();
+    await taskDefinition.task(stopContext, taskWrapper);
+
+    expect(execContainerStub.calledOnce).to.equal(true);
   });
 });

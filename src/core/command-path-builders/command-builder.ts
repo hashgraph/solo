@@ -1,22 +1,25 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {SoloErrors} from '../errors/solo-errors.js';
-import {type AnyYargs, type ArgvStruct} from '../../types/aliases.js';
+import {type AnyObject, type AnyYargs, type ArgvStruct} from '../../types/aliases.js';
 import {type SoloLogger} from '../logging/solo-logger.js';
-import {type CommandDefinition} from '../../types/index.js';
+import {type CommandDefinition, type SoloListrTask, type SoloListrTaskWrapper} from '../../types/index.js';
 import {type CommandFlags} from '../../types/flag-types.js';
 import {Flags as flags} from '../../commands/flags.js';
 import {container, inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../dependency-injection/inject-tokens.js';
-import {InitCommand} from '../../commands/init/init.js';
 import {patchInject} from '../dependency-injection/container-helper.js';
 import {type TaskList} from '../task-list/task-list.js';
-import {ListrContext, ListrRendererValue} from 'listr2';
+import {Listr, type ListrContext, ListrRendererValue} from 'listr2';
 import * as constants from '../constants.js';
 import {SpinnerListrOptions} from '../spinner-listr-options.js';
 import {type Deprecation} from '../../types/deprecation.js';
 import {Deprecations} from '../deprecations.js';
 import {type DeprecationRegistry} from '../deprecation-registry.js';
+import {type DependencyManager} from '../dependency-managers/index.js';
+import {type ChartManager} from '../chart-manager.js';
+import {type ClusterTaskManager} from '../cluster-task-manager.js';
+import {BaseCommand} from '../../commands/base.js';
 
 export const ONE_SHOT_COMMAND: string = 'one-shot';
 export const SINGLE_SUBCOMMAND: string = 'single';
@@ -35,26 +38,61 @@ export class Subcommand {
     public readonly dependencies: string[] = [],
     public readonly createCluster: boolean = false,
     public readonly deprecated?: Deprecation,
-    @inject(InjectTokens.InitCommand) private readonly initCommand?: InitCommand,
     @inject(InjectTokens.TaskList)
     private readonly taskList?: TaskList<ListrContext, ListrRendererValue, ListrRendererValue>,
+    @inject(InjectTokens.DependencyManager) private readonly depManager?: DependencyManager,
+    @inject(InjectTokens.ChartManager) private readonly chartManager?: ChartManager,
+    @inject(InjectTokens.ClusterTaskManager) private readonly clusterTaskManager?: ClusterTaskManager,
+    @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
   ) {
-    this.initCommand = patchInject(initCommand, InjectTokens.InitCommand, this.constructor.name);
     this.taskList = patchInject(taskList, InjectTokens.TaskList, this.constructor.name);
+    this.depManager = patchInject(depManager, InjectTokens.DependencyManager, this.constructor.name);
+    this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
+    this.clusterTaskManager = patchInject(clusterTaskManager, InjectTokens.ClusterTaskManager, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
   }
 
   public async installDependencies(
     useSmallMemoryCluster: boolean = false,
     collapseTasks: boolean = false,
   ): Promise<void> {
-    const tasks: any = this.taskList.newTaskList(
-      [
-        ...this.initCommand.installDependenciesTasks({
-          deps: this.dependencies,
-          createCluster: this.createCluster,
-          useSmallMemoryCluster,
-        }),
-      ],
+    if (!this.dependencies || this.dependencies.length === 0) {
+      return;
+    }
+
+    const taskItems: SoloListrTask<AnyObject>[] = [
+      BaseCommand.dockerDesktopPreflightTask(this.logger),
+      {
+        title: 'Check dependencies',
+        task: async (_: AnyObject, task: SoloListrTaskWrapper<AnyObject>): Promise<unknown> => {
+          const subTasks: SoloListrTask<AnyObject>[] = this.depManager.taskCheckDependencies<AnyObject>(
+            this.dependencies,
+          );
+          return task.newListr(subTasks, {
+            concurrent: true,
+            rendererOptions: {
+              collapseSubtasks: false,
+            },
+          });
+        },
+      },
+    ];
+
+    if (this.dependencies.includes(constants.HELM)) {
+      taskItems.push({
+        title: 'Setup chart manager',
+        task: async (): Promise<void> => {
+          await this.chartManager.setup();
+        },
+      });
+    }
+
+    if (this.createCluster) {
+      taskItems.push(...this.clusterTaskManager.setupLocalClusterTasks(useSmallMemoryCluster));
+    }
+
+    const tasks: Listr<AnyObject, ListrRendererValue, ListrRendererValue> = this.taskList.newTaskList(
+      taskItems,
       collapseTasks ? SpinnerListrOptions.build(true) : constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
       undefined,
       this.name,
@@ -62,7 +100,7 @@ export class Subcommand {
     if (this.taskList.parentTaskListMap.size === 0) {
       try {
         await tasks.run();
-      } catch (error: Error | any) {
+      } catch (error) {
         throw new SoloErrors.system.dependencyInstallFailed('dependencies', error);
       }
     }

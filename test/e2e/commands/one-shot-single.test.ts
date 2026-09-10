@@ -171,6 +171,8 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
         await new MetricsServerImpl().logMetrics(testName, PathEx.join(constants.SOLO_LOGS_DIR, `${testName}`));
       }).timeout(Duration.ofMinutes(60).toMillis());
 
+      DeploymentTest.verifyStopPortForwards(options);
+
       // TODO add verifications
     });
   })

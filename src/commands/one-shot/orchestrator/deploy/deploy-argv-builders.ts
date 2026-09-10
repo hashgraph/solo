@@ -205,7 +205,10 @@ export class DeployArgvBuilders {
         initContainers: [
           {
             name: 'init-storage-dirs',
-            image: 'busybox',
+            // Pinned rather than tracking the block node chart's floating `busybox` default, so the
+            // override cannot pull a different image on a later deploy without a code change. Matches
+            // the tag used by the block node's other init container and already in the image cache.
+            image: 'busybox:1.36.1',
             command: [
               'sh',
               '-c',
