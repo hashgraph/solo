@@ -344,5 +344,89 @@ describe('SemanticVersion', (): void => {
       const version: SemanticVersion<string> = new SemanticVersion('3.14.2+gc309b6f');
       expect(version.toString()).to.equal('3.14.2+gc309b6f');
     });
+
+    it('should round-trip a version with hyphenated build metadata', (): void => {
+      const version: SemanticVersion<string> = new SemanticVersion('1.2.3+build-1');
+      expect(version.toString()).to.equal('1.2.3+build-1');
+    });
+
+    it('should round-trip a version with pre-release and hyphenated build metadata', (): void => {
+      const version: SemanticVersion<string> = new SemanticVersion('1.2.3-alpha+sha-a1b2c3');
+      expect(version.toString()).to.equal('1.2.3-alpha+sha-a1b2c3');
+    });
+  });
+
+  describe('build metadata with hyphens (issue #5932)', (): void => {
+    it('should not treat a hyphen in build metadata as a pre-release separator', (): void => {
+      const version: SemanticVersion<string> = new SemanticVersion('1.2.3+build-1');
+      expect(version.major).to.equal(1);
+      expect(version.minor).to.equal(2);
+      expect(version.patch).to.equal(3);
+      expect(version.preRelease).to.be.undefined;
+      expect(version.buildMetadata).to.equal('build-1');
+    });
+
+    it('should handle multiple hyphens in build metadata', (): void => {
+      const version: SemanticVersion<string> = new SemanticVersion('1.2.3+foo-bar-baz');
+      expect(version.major).to.equal(1);
+      expect(version.minor).to.equal(2);
+      expect(version.patch).to.equal(3);
+      expect(version.preRelease).to.be.undefined;
+      expect(version.buildMetadata).to.equal('foo-bar-baz');
+    });
+
+    it('should correctly separate pre-release and hyphenated build metadata', (): void => {
+      const version: SemanticVersion<string> = new SemanticVersion('1.2.3-alpha+sha-a1b2c3');
+      expect(version.major).to.equal(1);
+      expect(version.minor).to.equal(2);
+      expect(version.patch).to.equal(3);
+      expect(version.preRelease).to.equal('alpha');
+      expect(version.buildMetadata).to.equal('sha-a1b2c3');
+    });
+
+    it('should parse a normal pre-release version without build metadata', (): void => {
+      const version: SemanticVersion<string> = new SemanticVersion('1.2.3-alpha');
+      expect(version.major).to.equal(1);
+      expect(version.minor).to.equal(2);
+      expect(version.patch).to.equal(3);
+      expect(version.preRelease).to.equal('alpha');
+      expect(version.buildMetadata).to.be.undefined;
+    });
+
+    it('should parse a version with only build metadata and no pre-release', (): void => {
+      const version: SemanticVersion<string> = new SemanticVersion('3.14.2+gc309b6f');
+      expect(version.major).to.equal(3);
+      expect(version.minor).to.equal(14);
+      expect(version.patch).to.equal(2);
+      expect(version.preRelease).to.be.undefined;
+      expect(version.buildMetadata).to.equal('gc309b6f');
+    });
+
+    it('should treat 1.2.3+build-1 as equal to 1.2.3 (build metadata does not affect precedence)', (): void => {
+      const version1: SemanticVersion<string> = new SemanticVersion('1.2.3+build-1');
+      const version2: SemanticVersion<string> = new SemanticVersion('1.2.3');
+      expect(version1.equals(version2)).to.be.true;
+      expect(version1.compare(version2)).to.equal(0);
+    });
+
+    it('should treat 1.2.3+build-1 as greater than 1.2.3-alpha (no pre-release > pre-release)', (): void => {
+      const version1: SemanticVersion<string> = new SemanticVersion('1.2.3+build-1');
+      const version2: SemanticVersion<string> = new SemanticVersion('1.2.3-alpha');
+      expect(version1.greaterThan(version2)).to.be.true;
+    });
+
+    it('should preserve hyphens within a pre-release identifier', (): void => {
+      const version: SemanticVersion<string> = new SemanticVersion('1.0.0-alpha-beta');
+      expect(version.preRelease).to.equal('alpha-beta');
+      expect(version.buildMetadata).to.be.undefined;
+      expect(version.toString()).to.equal('1.0.0-alpha-beta');
+    });
+
+    it('should handle dotted build metadata containing a hyphen', (): void => {
+      const version: SemanticVersion<string> = new SemanticVersion('1.2.3+build.1-rc');
+      expect(version.preRelease).to.be.undefined;
+      expect(version.buildMetadata).to.equal('build.1-rc');
+      expect(version.toString()).to.equal('1.2.3+build.1-rc');
+    });
   });
 });

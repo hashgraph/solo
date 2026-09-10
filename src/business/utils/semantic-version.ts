@@ -146,7 +146,7 @@ export class SemanticVersion<T extends string | number> {
         }
       }
 
-      const preReleaseMatch: RegExpMatchArray = this.originalValue.match(/-(.+?)(?:\+|$)/);
+      const preReleaseMatch: RegExpMatchArray = this.originalValue.match(/^v?\d+(?:\.\d+)*-([^+]+)/);
       if (preReleaseMatch) {
         this.preRelease = preReleaseMatch[1];
       }
