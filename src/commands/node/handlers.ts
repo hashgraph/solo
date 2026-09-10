@@ -432,17 +432,24 @@ export class NodeCommandHandlers extends CommandHandler {
     };
   }
 
-  /** Run the task only when the uploaded state archive was captured from a freeze state. */
-  private onlyWhenRestoringFreezeState(task: SoloListrTask<AnyListrContext>): SoloListrTask<AnyListrContext> {
+  /** Run the task only when a state file was supplied, meaning this start is a restore. */
+  private onlyWhenRestoringFromStateFile(task: SoloListrTask<AnyListrContext>): SoloListrTask<AnyListrContext> {
     return this.withAdditionalSkip(task, (context_: AnyListrContext): boolean | string =>
-      context_.config.restoredFromFreezeState ? false : 'Not restoring from a freeze state',
+      context_.config.stateFile?.length > 0 ? false : 'No state file supplied',
     );
   }
 
-  /** Run the task unless the uploaded state archive was captured from a freeze state. */
+  /** Run the task only when the restored nodes settled in FREEZE_COMPLETE rather than ACTIVE. */
+  private onlyWhenRestoringFreezeState(task: SoloListrTask<AnyListrContext>): SoloListrTask<AnyListrContext> {
+    return this.withAdditionalSkip(task, (context_: AnyListrContext): boolean | string =>
+      context_.config.restoredFromFreezeState ? false : 'Nodes did not come up frozen',
+    );
+  }
+
+  /** Run the task unless the restored nodes settled in FREEZE_COMPLETE. */
   private skipWhenRestoringFreezeState(task: SoloListrTask<AnyListrContext>): SoloListrTask<AnyListrContext> {
     return this.withAdditionalSkip(task, (context_: AnyListrContext): boolean | string =>
-      context_.config.restoredFromFreezeState ? 'Restoring from a freeze state' : false,
+      context_.config.restoredFromFreezeState ? 'Nodes came up frozen' : false,
     );
   }
 
@@ -1228,13 +1235,13 @@ export class NodeCommandHandlers extends CommandHandler {
         // with suspend=y and will never reach ACTIVE until a debugger connects via this port-forward.
         this.tasks.enableDebuggerPortForwarding(),
 
-        // A freeze-captured archive replays into FREEZE_COMPLETE, so it must not wait for
-        // ACTIVE or run the ACTIVE-only TSS and start-event tasks. Every other start,
-        // including a restore from a node that was only stopped, replays into ACTIVE.
-        // Which one applies depends on the archive rather than on `--state-file` being
-        // set, so uploadStateFiles reads the archive and both groups are gated on what
-        // it found.
-        this.onlyWhenRestoringFreezeState(this.tasks.checkAllNodesAreFrozen('nodeAliases')),
+        // A restore can settle in either ACTIVE or FREEZE_COMPLETE and the archive does not
+        // say which: the snapshot round is usually an ordinary signed round, but the
+        // preconsensus events replayed on top of it can still carry the freeze transaction
+        // and re-freeze the node. So observe the status the nodes actually reach and gate the
+        // ACTIVE-only follow-up work (TSS, stakes, gRPC web endpoint, start event) on that,
+        // instead of predicting it from `--state-file` being set.
+        this.onlyWhenRestoringFromStateFile(this.tasks.checkAllNodesAreActiveOrFrozen('nodeAliases')),
         this.onlyWhenRestoringFreezeState(this.tasks.checkNodeProxiesAreActive()),
         this.onlyWhenRestoringFreezeState(this.changeAllNodePhases(DeploymentPhase.FROZEN)),
 

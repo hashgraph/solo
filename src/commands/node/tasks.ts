@@ -1597,13 +1597,7 @@ export class NodeCommandTasks {
     return {
       title: 'Upload state files network nodes',
       task: async (context_): Promise<void> => {
-        const config: NodeAddConfigClass & {stateFile?: string; restoredFromFreezeState?: boolean} = context_.config;
-        const networkNodes: NetworkNodes = container.resolve<NetworkNodes>(InjectTokens.NetworkNodes);
-        // A freeze-captured archive replays into FREEZE_COMPLETE while any other
-        // signed round replays into ACTIVE, so the caller has to know which kind
-        // every uploaded archive holds before it decides what to wait for.
-        let uploadedArchiveCount: number = 0;
-        let freezeStateArchiveCount: number = 0;
+        const config: NodeAddConfigClass & {stateFile?: string} = context_.config;
 
         for (const nodeAlias of context_.config.nodeAliases) {
           const kubeContext: Optional<string> = extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
@@ -1694,11 +1688,6 @@ export class NodeCommandTasks {
             throw new SoloErrors.validation.invalidStateZipFileName(zipFileName);
           }
 
-          uploadedArchiveCount++;
-          if (networkNodes.isFreezeStateArchive(zipFile)) {
-            freezeStateArchiveCount++;
-          }
-
           this.logger.debug(`Uploading state files to pod ${podReference.name}`);
           await container.copyTo(zipFile, `${constants.HEDERA_HAPI_PATH}/data`);
 
@@ -1755,13 +1744,6 @@ export class NodeCommandTasks {
             `chown -R hedera:hedera ${constants.HEDERA_HAPI_PATH}/data/saved`,
           ]);
         }
-
-        // Only treat the restore as a freeze restore when every node restores from
-        // a freeze round; a mixed or non-freeze set replays into ACTIVE.
-        config.restoredFromFreezeState = uploadedArchiveCount > 0 && freezeStateArchiveCount === uploadedArchiveCount;
-        this.logger.debug(
-          `restored ${freezeStateArchiveCount}/${uploadedArchiveCount} node archives from a freeze state`,
-        );
       },
       skip,
     };
@@ -2481,6 +2463,70 @@ export class NodeCommandTasks {
         );
       },
     };
+  }
+
+  /**
+   * Wait for every node to settle on a terminal startup status, ACTIVE or FREEZE_COMPLETE, and
+   * record on the config which one a state restore landed in.
+   *
+   * A restore cannot predict the status from the archive. The snapshot round is often an
+   * ordinary signed round (this consensus node version reports `SIGNING_WEIGHT_SUM: 0` for
+   * freeze states, so a freeze round is never selected as fully signed), yet the preconsensus
+   * events replayed on top of it still carry the freeze transaction and put the node back into
+   * FREEZE_COMPLETE. Whether that happens depends on how far the retained event stream runs
+   * past the snapshot, so observe the status the nodes actually reach instead of inferring it.
+   */
+  public checkAllNodesAreActiveOrFrozen(nodeAliasesProperty: string): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Check all nodes are ACTIVE or FREEZE_COMPLETE',
+      task: async (context_, task): Promise<void> => {
+        const nodeAliases: NodeAliases = context_.config[nodeAliasesProperty];
+        const frozenStatusName: string = NodeStatusEnums[NodeStatusCodes.FREEZE_COMPLETE];
+
+        const statuses: string[] = await Promise.all(
+          nodeAliases.map((nodeAlias: NodeAlias): Promise<string> =>
+            this.waitForActiveOrFrozenStatus(context_, nodeAlias),
+          ),
+        );
+
+        // Only a network that came up entirely frozen skips the ACTIVE-only follow-up work; a
+        // mixed result is reported so the operator can see which node disagreed.
+        context_.config.restoredFromFreezeState = statuses.every(
+          (status: string): boolean => status === frozenStatusName,
+        );
+
+        const statusSummary: string = nodeAliases
+          .map((nodeAlias: NodeAlias, index: number): string => `${nodeAlias}=${statuses[index]}`)
+          .join(', ');
+        task.title = `Check all nodes are ACTIVE or FREEZE_COMPLETE - ${chalk.green(statusSummary)}`;
+      },
+    };
+  }
+
+  private async waitForActiveOrFrozenStatus(context_: AnyListrContext, nodeAlias: NodeAlias): Promise<string> {
+    const maxAttempts: number = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS;
+    const acceptedStatusNames: string[] = [
+      NodeStatusEnums[NodeStatusCodes.ACTIVE],
+      NodeStatusEnums[NodeStatusCodes.FREEZE_COMPLETE],
+    ];
+    const context: string = extractContextFromConsensusNodes(nodeAlias, this.remoteConfig.getConsensusNodes());
+    const podReference: PodReference = PodReference.of(
+      context_.config.namespace,
+      Templates.renderNetworkPodName(nodeAlias),
+    );
+    const networkNodes: NetworkNodes = container.resolve<NetworkNodes>(InjectTokens.NetworkNodes);
+
+    for (let attempt: number = 0; attempt < maxAttempts; attempt++) {
+      const status: string = await networkNodes.getNetworkNodePlatformStatusName(podReference, context);
+      if (acceptedStatusNames.includes(status)) {
+        this.logger.debug(`[state-restore] ${nodeAlias}: reached ${status} after ${attempt + 1} attempt(s)`);
+        return status;
+      }
+
+      await sleep(Duration.ofMillis(constants.NETWORK_NODE_ACTIVE_DELAY));
+    }
+
+    throw new SoloErrors.component.nodeNotReady(nodeAlias, acceptedStatusNames.join(' or '), maxAttempts, maxAttempts);
   }
 
   public waitForFrozenStateToBeStable(nodeAliasesProperty: string): SoloListrTask<AnyListrContext> {
