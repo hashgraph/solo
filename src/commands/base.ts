@@ -45,7 +45,7 @@ import {type ConfigProvider} from '../data/configuration/api/config-provider.js'
 import {type DefaultKindClientBuilder} from '../integration/kind/impl/default-kind-client-builder.js';
 import {type KindClient} from '../integration/kind/kind-client.js';
 import {LoadDockerImageOptionsBuilder} from '../integration/kind/model/load-docker-image/load-docker-image-options-builder.js';
-import {checkDockerImageExists} from '../core/helpers.js';
+import {checkDockerImageExists, Helpers} from '../core/helpers.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {OperatingSystem} from '../business/utils/operating-system.js';
 import {ImageReference, type ParsedImageReference} from '../business/utils/image-reference.js';
@@ -272,8 +272,9 @@ export abstract class BaseCommand extends ShellRunner {
     return resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
   }
 
-  protected kindClusterNameFromContext(clusterContext: string): string {
-    return clusterContext.startsWith('kind-') ? clusterContext.slice('kind-'.length) : clusterContext;
+  /** Resolves the Kind cluster name the given kubeconfig context targets, or undefined for a non-Kind context. */
+  protected kindClusterNameFromContext(clusterContext: string): string | undefined {
+    return Helpers.kindClusterNameForContext(clusterContext, this.k8Factory);
   }
 
   protected isLocalImageReference(imageReference: string): boolean {
@@ -324,7 +325,8 @@ export abstract class BaseCommand extends ShellRunner {
     clusterContext: string,
     additionalContexts: Context[] = [],
   ): Promise<void> {
-    if (!clusterContext.startsWith('kind-')) {
+    const primaryKindCluster: string | undefined = this.kindClusterNameFromContext(clusterContext);
+    if (primaryKindCluster === undefined) {
       throw new SoloErrors.validation.illegalArgument(
         `Component image '${componentImage}' requires Kind image loading, but target cluster context ` +
           `'${clusterContext}' is not a Kind cluster. Push the image to a registry reachable ` +
@@ -336,21 +338,27 @@ export abstract class BaseCommand extends ShellRunner {
     const kindExecutable: string = await this.depManager.getExecutable(constants.KIND);
     const kindClient: KindClient = await this.kindBuilder.executable(kindExecutable).build();
 
-    await this.loadImageIntoKindContext(kindClient, componentImage, clusterContext);
+    await this.loadImageIntoKindCluster(kindClient, componentImage, primaryKindCluster);
 
+    const loadedKindClusters: Set<string> = new Set<string>([primaryKindCluster]);
     const extraContexts: Context[] = [...new Set<Context>(additionalContexts)].filter(
       (context: Context): boolean => context !== clusterContext,
     );
     for (const targetContext of extraContexts) {
-      if (!targetContext.startsWith('kind-')) {
+      const kindClusterName: string | undefined = this.kindClusterNameFromContext(targetContext);
+      if (kindClusterName === undefined) {
         this.logger.warn(
           `Skipping preload of component image '${componentImage}' into non-Kind cluster context ` +
             `'${targetContext}'; components deployed there must pull the image from a registry.`,
         );
         continue;
       }
+      if (loadedKindClusters.has(kindClusterName)) {
+        continue;
+      }
+      loadedKindClusters.add(kindClusterName);
       try {
-        await this.loadImageIntoKindContext(kindClient, componentImage, targetContext);
+        await this.loadImageIntoKindCluster(kindClient, componentImage, kindClusterName);
       } catch (error) {
         // best-effort: a stale or unreachable additional Kind context must not fail the deploy to the required cluster
         this.logger.warn(
@@ -361,12 +369,11 @@ export abstract class BaseCommand extends ShellRunner {
     }
   }
 
-  private async loadImageIntoKindContext(
+  private async loadImageIntoKindCluster(
     kindClient: KindClient,
     componentImage: string,
-    targetContext: Context,
+    kindClusterName: string,
   ): Promise<void> {
-    const kindClusterName: string = this.kindClusterNameFromContext(targetContext);
     this.logger.debug(`Loading '${componentImage}' into Kind cluster '${kindClusterName}'`);
     await kindClient.loadDockerImage(
       componentImage,
