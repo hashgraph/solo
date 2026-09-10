@@ -336,23 +336,6 @@ export abstract class BaseCommand extends ShellRunner {
       throw new SoloErrors.validation.illegalArgument(
         `--${flags.componentImageArchive.name} requires --${flags.componentImage.name} to identify the image in the archive.`,
         componentImageArchive,
-       );
-    }
-  }
-
-  /** Loads a local component image into the required cluster context's Kind cluster, then best-effort into any additional Kind contexts. */
-  protected async kindLoadComponentImage(
-    componentImage: string,
-    clusterContext: string,
-    additionalContexts: Context[] = [],
-  ): Promise<void> {
-    const primaryKindCluster: string | undefined = this.kindClusterNameFromContext(clusterContext);
-    if (primaryKindCluster === undefined) {
-      throw new SoloErrors.validation.illegalArgument(
-        `Component image '${componentImage}' requires Kind image loading, but target cluster context ` +
-          `'${clusterContext}' is not a Kind cluster. Push the image to a registry reachable ` +
-          'from the target cluster and pass that registry image reference to --component-image.',
-        componentImage,
       );
     }
 
@@ -389,12 +372,17 @@ export abstract class BaseCommand extends ShellRunner {
     return Boolean(componentImage && this.isLocalImageAvailableInDocker(componentImage));
   }
 
-  protected async kindLoadComponentImage(componentImage: string, clusterContext: string): Promise<void> {
-    const targetContexts: Context[] = this.getKindTargetContexts(
-      componentImage,
-      flags.componentImage.name,
-      clusterContext,
-    );
+  /** Loads a local component image into the required cluster context's Kind cluster, then best-effort into any additional Kind contexts. */
+  protected async kindLoadComponentImage(
+    componentImage: string,
+    clusterContext: string,
+    additionalContexts: Context[] = [],
+  ): Promise<void> {
+    const primaryKindCluster: string | undefined = this.kindClusterNameFromContext(clusterContext);
+    if (primaryKindCluster === undefined) {
+      throw this.nonKindTargetContextsError(componentImage, flags.componentImage.name, [clusterContext]);
+    }
+
     const kindExecutable: string = await this.depManager.getExecutable(constants.KIND);
     const kindClient: KindClient = await this.kindBuilder.executable(kindExecutable).build();
 
@@ -462,15 +450,23 @@ export abstract class BaseCommand extends ShellRunner {
     );
 
     if (nonKindContexts.length > 0) {
-      throw new SoloErrors.validation.illegalArgument(
-        `Component image source '${componentImageSource}' from --${sourceFlagName} requires Kind image loading, but target ` +
-          `cluster context(s) '${nonKindContexts.join("', '")}' are not Kind clusters. Push the image to a registry ` +
-          'reachable from every target cluster and pass that registry image reference to --component-image.',
-        componentImageSource,
-      );
+      throw this.nonKindTargetContextsError(componentImageSource, sourceFlagName, nonKindContexts);
     }
 
     return targetContexts;
+  }
+
+  private nonKindTargetContextsError(
+    componentImageSource: string,
+    sourceFlagName: string,
+    nonKindContexts: Context[],
+  ): InstanceType<typeof SoloErrors.validation.illegalArgument> {
+    return new SoloErrors.validation.illegalArgument(
+      `Component image source '${componentImageSource}' from --${sourceFlagName} requires Kind image loading, but target ` +
+        `cluster context(s) '${nonKindContexts.join("', '")}' are not Kind clusters. Push the image to a registry ` +
+        'reachable from every target cluster and pass that registry image reference to --component-image.',
+      componentImageSource,
+    );
   }
 
   private async loadImageIntoKindCluster(

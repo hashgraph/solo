@@ -37,6 +37,12 @@ interface BaseCommandInternal {
     clusterContext: string,
     additionalContexts?: Context[],
   ) => Promise<void>;
+  kindLoadComponentImageArchive: (componentImageArchive: string, clusterContext: Context) => Promise<void>;
+  loadComponentImage: (
+    componentImage: string | undefined,
+    componentImageArchive: string | undefined,
+    clusterContext: Context,
+  ) => Promise<void>;
   logger: SoloLogger;
   remoteConfig: {getContexts: () => Context[]};
   depManager: {getExecutable: (dependency: string) => Promise<string>};
