@@ -24,6 +24,9 @@ import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
 import {SoloErrors} from './errors/solo-errors.js';
 import {Zippy} from './zippy.js';
 import {PcesTrimmer} from './pces-trimmer.js';
+import AdmZip from 'adm-zip';
+
+const STATE_METADATA_FILE_NAME: string = 'stateMetadata.txt';
 
 /**
  * Class to manage network nodes
@@ -202,7 +205,7 @@ export class NetworkNodes {
             continue;
           }
 
-          const metadataPath: string = PathEx.join(stateRoot, roundDirectory.name, 'stateMetadata.txt');
+          const metadataPath: string = PathEx.join(stateRoot, roundDirectory.name, STATE_METADATA_FILE_NAME);
           if (!fs.existsSync(metadataPath)) {
             continue;
           }
@@ -324,6 +327,57 @@ export class NetworkNodes {
     }
 
     return highestRound;
+  }
+
+  /**
+   * Determine whether a downloaded state archive was captured from a freeze state.
+   *
+   * A freeze-captured archive replays back into FREEZE_COMPLETE, while an archive
+   * captured from a node that was only stopped replays back into ACTIVE. Callers
+   * that restore an archive need to know which platform status to wait for, and
+   * the archive itself is the only source of that answer: the same
+   * `--state-file` restore can carry either kind.
+   */
+  public isFreezeStateArchive(archivePath: string): boolean {
+    try {
+      const archive: AdmZip = new AdmZip(archivePath, {readEntries: true});
+      const roundMetadataEntries: Map<string, AdmZip.IZipEntry> = new Map<string, AdmZip.IZipEntry>();
+      let roundlessMetadataEntry: AdmZip.IZipEntry | undefined;
+
+      for (const entry of archive.getEntries()) {
+        const entrySegments: string[] = entry.entryName.split('/');
+        if (entrySegments.at(-1) !== STATE_METADATA_FILE_NAME) {
+          continue;
+        }
+
+        // Archives from `consensus state download` keep the round directory
+        // (`.../<nodeId>/<realm>/<round>/stateMetadata.txt`), while a single-round
+        // archive such as the one `node add` captures has no round directory.
+        const roundName: string | undefined = entrySegments.at(-2);
+        if (roundName && /^\d+$/.test(roundName)) {
+          roundMetadataEntries.set(roundName, entry);
+        } else {
+          roundlessMetadataEntry = entry;
+        }
+      }
+
+      const highestRound: string | undefined = this.selectHighestRound(new Set<string>(roundMetadataEntries.keys()));
+      const selectedEntry: AdmZip.IZipEntry | undefined = highestRound
+        ? roundMetadataEntries.get(highestRound)
+        : roundlessMetadataEntry;
+
+      if (!selectedEntry) {
+        return false;
+      }
+
+      return this.readStateMetadataValue(selectedEntry.getData().toString('utf8'), 'FREEZE_STATE') === 'true';
+    } catch (error) {
+      // Treat an unreadable or unexpected archive as a non-freeze restore so the
+      // caller waits for ACTIVE, which is how every restore behaved before
+      // freeze-state restore was supported.
+      this.logger.debug(`unable to read saved state metadata from ${archivePath}`, error);
+      return false;
+    }
   }
 
   /**

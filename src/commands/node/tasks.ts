@@ -1597,7 +1597,13 @@ export class NodeCommandTasks {
     return {
       title: 'Upload state files network nodes',
       task: async (context_): Promise<void> => {
-        const config: NodeAddConfigClass & {stateFile?: string} = context_.config;
+        const config: NodeAddConfigClass & {stateFile?: string; restoredFromFreezeState?: boolean} = context_.config;
+        const networkNodes: NetworkNodes = container.resolve<NetworkNodes>(InjectTokens.NetworkNodes);
+        // A freeze-captured archive replays into FREEZE_COMPLETE while any other
+        // signed round replays into ACTIVE, so the caller has to know which kind
+        // every uploaded archive holds before it decides what to wait for.
+        let uploadedArchiveCount: number = 0;
+        let freezeStateArchiveCount: number = 0;
 
         for (const nodeAlias of context_.config.nodeAliases) {
           const kubeContext: Optional<string> = extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
@@ -1688,6 +1694,11 @@ export class NodeCommandTasks {
             throw new SoloErrors.validation.invalidStateZipFileName(zipFileName);
           }
 
+          uploadedArchiveCount++;
+          if (networkNodes.isFreezeStateArchive(zipFile)) {
+            freezeStateArchiveCount++;
+          }
+
           this.logger.debug(`Uploading state files to pod ${podReference.name}`);
           await container.copyTo(zipFile, `${constants.HEDERA_HAPI_PATH}/data`);
 
@@ -1744,6 +1755,13 @@ export class NodeCommandTasks {
             `chown -R hedera:hedera ${constants.HEDERA_HAPI_PATH}/data/saved`,
           ]);
         }
+
+        // Only treat the restore as a freeze restore when every node restores from
+        // a freeze round; a mixed or non-freeze set replays into ACTIVE.
+        config.restoredFromFreezeState = uploadedArchiveCount > 0 && freezeStateArchiveCount === uploadedArchiveCount;
+        this.logger.debug(
+          `restored ${freezeStateArchiveCount}/${uploadedArchiveCount} node archives from a freeze state`,
+        );
       },
       skip,
     };

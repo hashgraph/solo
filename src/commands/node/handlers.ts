@@ -23,6 +23,7 @@ import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type NodeDestroyContext} from './config-interfaces/node-destroy-context.js';
 import {type NodeAddContext} from './config-interfaces/node-add-context.js';
 import {type NodeUpdateContext} from './config-interfaces/node-update-context.js';
+import {type NodeFreezeContext} from './config-interfaces/node-freeze-context.js';
 import {type NodeUpgradeContext} from './config-interfaces/node-upgrade-context.js';
 import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
 import {DeploymentPhase} from '../../data/schema/model/remote/deployment-phase.js';
@@ -403,6 +404,46 @@ export class NodeCommandHandlers extends CommandHandler {
       skip: (context_: NodeUpgradeContext): boolean | string =>
         context_.config.skipNodeStart ? 'Skipped by --skip-node-start' : false,
     };
+  }
+
+  /**
+   * Add a skip condition to a task without discarding the one it already declares.
+   *
+   * Several start tasks carry their own skip (port forwarding, TSS, gRPC web endpoint,
+   * remote config writes), so the added condition has to be combined with the existing
+   * one rather than replace it.
+   */
+  private withAdditionalSkip(
+    task: SoloListrTask<AnyListrContext>,
+    additionalSkip: (context_: AnyListrContext) => boolean | string,
+  ): SoloListrTask<AnyListrContext> {
+    const declaredSkip: SoloListrTask<AnyListrContext>['skip'] = task.skip;
+
+    return {
+      ...task,
+      skip: async (context_: AnyListrContext): Promise<boolean | string> => {
+        const additionalSkipReason: boolean | string = additionalSkip(context_);
+        if (additionalSkipReason) {
+          return additionalSkipReason;
+        }
+
+        return typeof declaredSkip === 'function' ? await declaredSkip(context_) : (declaredSkip ?? false);
+      },
+    };
+  }
+
+  /** Run the task only when the uploaded state archive was captured from a freeze state. */
+  private onlyWhenRestoringFreezeState(task: SoloListrTask<AnyListrContext>): SoloListrTask<AnyListrContext> {
+    return this.withAdditionalSkip(task, (context_: AnyListrContext): boolean | string =>
+      context_.config.restoredFromFreezeState ? false : 'Not restoring from a freeze state',
+    );
+  }
+
+  /** Run the task unless the uploaded state archive was captured from a freeze state. */
+  private skipWhenRestoringFreezeState(task: SoloListrTask<AnyListrContext>): SoloListrTask<AnyListrContext> {
+    return this.withAdditionalSkip(task, (context_: AnyListrContext): boolean | string =>
+      context_.config.restoredFromFreezeState ? 'Restoring from a freeze state' : false,
+    );
   }
 
   private markNodesConfiguredWhenNodeStartSkipped(): SoloListrTask<NodeUpgradeContext> {
@@ -1167,44 +1208,44 @@ export class NodeCommandHandlers extends CommandHandler {
   public async start(argv: ArgvStruct): Promise<boolean> {
     argv = addFlagsToArgv(argv, NodeFlags.START_FLAGS);
     const leaseWrapper: LeaseWrapper = {lease: undefined};
-    const restoringState: boolean =
-      typeof argv[flags.stateFile.name] === 'string' && argv[flags.stateFile.name].length > 0;
-
-    const startTasks: SoloListrTask<AnyListrContext>[] = [
-      this.tasks.loadConfiguration(argv, leaseWrapper, this.leaseManager),
-      this.tasks.initialize(argv, this.configs.startConfigBuilder.bind(this.configs), leaseWrapper.lease, true, false),
-      this.validateAllNodePhases({acceptedPhases: [DeploymentPhase.CONFIGURED]}),
-      this.tasks.identifyExistingNodes(),
-      this.tasks.uploadStateFiles(({config}): boolean => config.stateFile.length === 0),
-      this.tasks.startNodes('nodeAliases'),
-      // Must precede checkNodesAndProxiesAreActive: when --debug-node-alias is set the JVM starts
-      // with suspend=y and will never reach ACTIVE until a debugger connects via this port-forward.
-      this.tasks.enableDebuggerPortForwarding(),
-    ];
-
-    if (restoringState) {
-      // A freeze-captured archive is expected to restore into FREEZE_COMPLETE.
-      // Do not require ACTIVE or run ACTIVE-only TSS/start-event tasks for it.
-      startTasks.push(
-        this.tasks.checkAllNodesAreFrozen('nodeAliases'),
-        this.tasks.checkNodeProxiesAreActive(),
-        this.changeAllNodePhases(DeploymentPhase.FROZEN),
-      );
-    } else {
-      startTasks.push(
-        this.tasks.checkNodesAndProxiesAreActive('nodeAliases'),
-        this.tasks.enablePortForwarding(true),
-        this.tasks.emitNodeStartedEvent(),
-        this.tasks.waitForTss(),
-        this.tasks.setGrpcWebEndpoint('nodeAliases', NodeSubcommandType.START),
-        this.changeAllNodePhases(DeploymentPhase.STARTED, LedgerPhase.INITIALIZED),
-        this.tasks.addNodeStakes(),
-      );
-    }
 
     await this.commandAction(
       argv,
-      startTasks,
+      [
+        this.tasks.loadConfiguration(argv, leaseWrapper, this.leaseManager),
+        this.tasks.initialize(
+          argv,
+          this.configs.startConfigBuilder.bind(this.configs),
+          leaseWrapper.lease,
+          true,
+          false,
+        ),
+        this.validateAllNodePhases({acceptedPhases: [DeploymentPhase.CONFIGURED]}),
+        this.tasks.identifyExistingNodes(),
+        this.tasks.uploadStateFiles(({config}): boolean => config.stateFile.length === 0),
+        this.tasks.startNodes('nodeAliases'),
+        // Must precede checkNodesAndProxiesAreActive: when --debug-node-alias is set the JVM starts
+        // with suspend=y and will never reach ACTIVE until a debugger connects via this port-forward.
+        this.tasks.enableDebuggerPortForwarding(),
+
+        // A freeze-captured archive replays into FREEZE_COMPLETE, so it must not wait for
+        // ACTIVE or run the ACTIVE-only TSS and start-event tasks. Every other start,
+        // including a restore from a node that was only stopped, replays into ACTIVE.
+        // Which one applies depends on the archive rather than on `--state-file` being
+        // set, so uploadStateFiles reads the archive and both groups are gated on what
+        // it found.
+        this.onlyWhenRestoringFreezeState(this.tasks.checkAllNodesAreFrozen('nodeAliases')),
+        this.onlyWhenRestoringFreezeState(this.tasks.checkNodeProxiesAreActive()),
+        this.onlyWhenRestoringFreezeState(this.changeAllNodePhases(DeploymentPhase.FROZEN)),
+
+        this.skipWhenRestoringFreezeState(this.tasks.checkNodesAndProxiesAreActive('nodeAliases')),
+        this.skipWhenRestoringFreezeState(this.tasks.enablePortForwarding(true)),
+        this.skipWhenRestoringFreezeState(this.tasks.emitNodeStartedEvent()),
+        this.skipWhenRestoringFreezeState(this.tasks.waitForTss()),
+        this.skipWhenRestoringFreezeState(this.tasks.setGrpcWebEndpoint('nodeAliases', NodeSubcommandType.START)),
+        this.skipWhenRestoringFreezeState(this.changeAllNodePhases(DeploymentPhase.STARTED, LedgerPhase.INITIALIZED)),
+        this.skipWhenRestoringFreezeState(this.tasks.addNodeStakes()),
+      ],
       constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
       'Error starting node',
       leaseWrapper.lease,
@@ -1260,6 +1301,10 @@ export class NodeCommandHandlers extends CommandHandler {
         this.tasks.identifyExistingNodes(),
         this.tasks.sendFreezeTransaction(),
         this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
+        // The drain gives the block stream time to reach the block node; the stable
+        // state wait then confirms the saved state stopped changing on disk. They
+        // cover different things, so stopping the nodes has to wait for both.
+        this.tasks.drainBlockStreamAfterFreeze<NodeFreezeContext>(),
         this.tasks.waitForFrozenStateToBeStable('existingNodeAliases'),
         this.tasks.stopNodes('existingNodeAliases'),
         this.changeAllNodePhases(DeploymentPhase.FROZEN),
