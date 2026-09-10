@@ -15,7 +15,7 @@ if command -v sha256sum >/dev/null 2>&1; then
 elif command -v shasum >/dev/null 2>&1; then
   hash_cmd=(shasum -a 256)
 elif command -v openssl >/dev/null 2>&1; then
-  hash_cmd=(openssl dgst -sha256)
+  hash_cmd=(openssl dgst -sha256 -r)
 else
   echo "No SHA-256 implementation found in container" >&2
   exit 14

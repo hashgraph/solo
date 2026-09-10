@@ -334,7 +334,7 @@ export class NetworkNodes {
   public async waitForFrozenStateToBeStable(podReference: PodReference, context?: string): Promise<void> {
     const containerReference: ContainerReference = ContainerReference.of(podReference, ROOT_CONTAINER);
     const container: Container = this.k8Factory.getK8(context).containers().readByRef(containerReference);
-    await this.waitForStableSavedState(container, podReference.name.name, false);
+    await this.waitForStableSavedState(container, podReference.name.name, true);
   }
 
   private async getState(
