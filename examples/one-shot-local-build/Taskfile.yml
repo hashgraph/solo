@@ -105,13 +105,12 @@ tasks:
       # When the cache is hit, we restore tarballs and SKIP helm dependency build entirely —
       # helm dep build for OCI repos (registry-1.docker.io/bitnamicharts) contacts Docker Hub
       # even when the tarball already exists in charts/, hitting anonymous rate-limit 429s.
-      # Skipping is safe because: same version.ts hash → same chart versions → same tarballs.
       HELM_CHART_CACHE: "${HOME}/.solo/helm-chart-cache"
     cmds:
       # Block node chart: <charts>/block-node-server
       - cmd: |
           CHART_PATH="{{.BLOCK_NODE_CHART_DIR}}/block-node-server"
-          CACHE_DIR="{{.HELM_CHART_CACHE}}/block-node-server"
+          CACHE_DIR="{{.HELM_CHART_CACHE}}/block-node-server/{{.BLOCK_NODE_VERSION}}"
           if [ -d "$CHART_PATH" ]; then
             if [ -d "$CACHE_DIR" ] && ls "$CACHE_DIR"/*.tgz >/dev/null 2>&1; then
               echo "Restoring cached helm tarballs for block-node-server (skipping helm dep build)..."
@@ -129,7 +128,7 @@ tasks:
       # Mirror node chart: <charts>/hedera-mirror
       - cmd: |
           CHART_PATH="{{.MIRROR_NODE_CHART_DIR}}/hedera-mirror"
-          CACHE_DIR="{{.HELM_CHART_CACHE}}/hedera-mirror"
+          CACHE_DIR="{{.HELM_CHART_CACHE}}/hedera-mirror/{{.MIRROR_NODE_VERSION}}"
           if [ -d "$CHART_PATH" ]; then
             if [ -d "$CACHE_DIR" ] && ls "$CACHE_DIR"/*.tgz >/dev/null 2>&1; then
               echo "Restoring cached helm tarballs for hedera-mirror (skipping helm dep build)..."
@@ -147,7 +146,7 @@ tasks:
       # Relay chart: <charts>/hedera-json-rpc
       - cmd: |
           CHART_PATH="{{.RELAY_CHART_DIR}}/hedera-json-rpc"
-          CACHE_DIR="{{.HELM_CHART_CACHE}}/hedera-json-rpc"
+          CACHE_DIR="{{.HELM_CHART_CACHE}}/hedera-json-rpc/{{.RELAY_VERSION}}"
           if [ -d "$CHART_PATH" ]; then
             if [ -d "$CACHE_DIR" ] && ls "$CACHE_DIR"/*.tgz >/dev/null 2>&1; then
               echo "Restoring cached helm tarballs for hedera-json-rpc (skipping helm dep build)..."
@@ -165,7 +164,7 @@ tasks:
       # Explorer chart: <charts> (directory used directly, no chart name suffix)
       - cmd: |
           CHART_PATH="{{.EXPLORER_CHART_DIR}}"
-          CACHE_DIR="{{.HELM_CHART_CACHE}}/hiero-mirror-node-explorer"
+          CACHE_DIR="{{.HELM_CHART_CACHE}}/hiero-mirror-node-explorer/{{.EXPLORER_VERSION}}"
           if [ -d "$CHART_PATH" ]; then
             if [ -d "$CACHE_DIR" ] && ls "$CACHE_DIR"/*.tgz >/dev/null 2>&1; then
               echo "Restoring cached helm tarballs for hiero-mirror-node-explorer (skipping helm dep build)..."

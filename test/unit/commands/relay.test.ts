@@ -22,6 +22,7 @@ interface RelayCommandInternal {
   prepareHelmChartValuesForRelay: (configuration: Record<string, unknown>) => Promise<HelmChartValues>;
   isLocalImageAvailableInDocker: (componentImage: string) => boolean;
   createOperatorSecret: (configuration: Record<string, unknown>) => Promise<string>;
+  supportsOperatorSecret: (relayReleaseTag: string) => boolean;
   k8Factory: K8Factory;
 }
 
@@ -325,6 +326,38 @@ describe('RelayCommand unit tests', (): void => {
       } catch (error) {
         expect(error).to.be.instanceOf(SoloErrors.component.relayOperatorKeyRetrievalFailed);
       }
+    });
+
+    it('only uses the operator secret for relay charts that support it', (): void => {
+      // unpinned: Helm resolves the newest published chart
+      expect(relayCommandInternal.supportsOperatorSecret('')).to.be.true;
+      expect(relayCommandInternal.supportsOperatorSecret('0.78.0')).to.be.true;
+      // pre-release qualifiers must not drop below the floor
+      expect(relayCommandInternal.supportsOperatorSecret('0.78.0-rc1')).to.be.true;
+      expect(relayCommandInternal.supportsOperatorSecret('v0.78.5')).to.be.true;
+      expect(relayCommandInternal.supportsOperatorSecret('1.0.0')).to.be.true;
+
+      expect(relayCommandInternal.supportsOperatorSecret('0.77.0')).to.be.false;
+      expect(relayCommandInternal.supportsOperatorSecret('v0.77.1')).to.be.false;
+      expect(relayCommandInternal.supportsOperatorSecret('0.60.0')).to.be.false;
+    });
+
+    it('passes the operator id and key as helm values when the chart predates existingSecret', async (): Promise<void> => {
+      sinon.stub(relayCommandInternal, 'prepareNetworkJsonString').resolves('{"127.0.0.1:50211":"0.0.3"}');
+
+      const valueArguments: string[] = await prepareRelayValueArguments(
+        relayCommandInternal,
+        createRelayConfig({
+          operatorSecretName: undefined,
+          [flags.relayReleaseTag.constName]: '0.77.0',
+        }),
+      );
+
+      expect(valueArguments).to.include('relay.config.OPERATOR_ID_MAIN=0.0.2');
+      expect(valueArguments).to.include('ws.config.OPERATOR_ID_MAIN=0.0.2');
+      expect(valueArguments).to.include('relay.config.OPERATOR_KEY_MAIN=operator-key');
+      expect(valueArguments).to.include('ws.config.OPERATOR_KEY_MAIN=operator-key');
+      expect(valueArguments.join(' ')).to.not.include('existingSecret');
     });
   });
 });

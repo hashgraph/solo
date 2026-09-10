@@ -50,6 +50,11 @@ import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
 import {optionFromFlag} from './command-helpers.js';
 import {HelmChartValues} from '../integration/helm/model/values.js';
 
+interface RelayOperatorCredentials {
+  operatorId: string;
+  operatorKey: string;
+}
+
 interface RelayDestroyConfigClass {
   chartDirectory: string;
   namespace: NamespaceName;
@@ -169,6 +174,14 @@ export class RelayCommand extends BaseCommand {
 
   private static readonly UPGRADE_CONFIGS_NAME: string = 'deployConfigs';
 
+  /**
+   * First relay chart version whose deployment templates mount the operator credentials from a
+   * pre-existing Kubernetes secret via `existingSecret`. Older charts ignore that value and read the
+   * credentials from `config.OPERATOR_ID_MAIN` / `config.OPERATOR_KEY_MAIN`, so they have to keep
+   * receiving them as Helm values.
+   */
+  private static readonly MINIMUM_VERSION_WITH_OPERATOR_SECRET: string = '0.78.0';
+
   public static readonly DEPLOY_FLAGS_LIST: CommandFlags = {
     required: [],
     optional: [
@@ -245,22 +258,26 @@ export class RelayCommand extends BaseCommand {
     ],
   };
 
-  private async prepareHelmChartValuesForRelay({
-    valuesFile,
-    nodeAliases,
-    chainId,
-    relayReleaseTag,
-    componentImage,
-    replicaCount,
-    loadBalancerEnabled,
-    operatorSecretName,
-    namespace,
-    domainName,
-    releaseName,
-    deployment,
-    mirrorNamespace,
-    mirrorNodeReleaseName,
-  }: RelayDeployConfigClass | RelayUpgradeConfigClass): Promise<HelmChartValues> {
+  private async prepareHelmChartValuesForRelay(
+    config: RelayDeployConfigClass | RelayUpgradeConfigClass,
+  ): Promise<HelmChartValues> {
+    const {
+      valuesFile,
+      nodeAliases,
+      chainId,
+      componentImage,
+      replicaCount,
+      loadBalancerEnabled,
+      operatorSecretName,
+      namespace,
+      domainName,
+      releaseName,
+      deployment,
+      mirrorNamespace,
+      mirrorNodeReleaseName,
+    }: RelayDeployConfigClass | RelayUpgradeConfigClass = config;
+    let relayReleaseTag: string = config.relayReleaseTag;
+
     const mirrorNodeUrl: string = Templates.renderMirrorNodeIngressControllerUrl(mirrorNamespace);
     const mirrorNodeWeb3Url: string = Templates.renderMirrorNodeWeb3ServiceUrl(mirrorNodeReleaseName, mirrorNamespace);
 
@@ -305,7 +322,19 @@ export class RelayCommand extends BaseCommand {
       chartValues.set('relay.service.type', 'LoadBalancer').set('ws.service.type', 'LoadBalancer');
     }
 
-    chartValues.set('relay.existingSecret', operatorSecretName).set('ws.existingSecret', operatorSecretName);
+    if (operatorSecretName) {
+      chartValues.set('relay.existingSecret', operatorSecretName).set('ws.existingSecret', operatorSecretName);
+    } else {
+      // Relay charts older than MINIMUM_VERSION_WITH_OPERATOR_SECRET ignore `existingSecret` and build
+      // their own secret from these values, so they still need the credentials passed through Helm.
+      const {operatorId, operatorKey}: RelayOperatorCredentials = await this.resolveOperatorCredentials(config);
+
+      chartValues
+        .set('relay.config.OPERATOR_ID_MAIN', operatorId)
+        .set('ws.config.OPERATOR_ID_MAIN', operatorId)
+        .set('relay.config.OPERATOR_KEY_MAIN', operatorKey)
+        .set('ws.config.OPERATOR_KEY_MAIN', operatorKey);
+    }
 
     if (!nodeAliases) {
       throw new SoloErrors.validation.missingArgument('Node IDs must be specified');
@@ -330,51 +359,53 @@ export class RelayCommand extends BaseCommand {
     return chartValues;
   }
 
-  /**
-   * Resolves the operator id/key to use for the relay (from flags, a per-account k8s secret, or the
-   * default), then stores them in a dedicated Kubernetes secret so they never need to be passed to Helm
-   * as plaintext `--set` values.
-   */
-  private async createOperatorSecret({
+  /** Resolves the operator id/key to use for the relay, from flags, a per-account k8s secret, or the default. */
+  private async resolveOperatorCredentials({
     operatorId,
     operatorKey,
     namespace,
     context,
-    releaseName,
     deployment,
-  }: RelayDeployConfigClass | RelayUpgradeConfigClass): Promise<string> {
+  }: RelayDeployConfigClass | RelayUpgradeConfigClass): Promise<RelayOperatorCredentials> {
     const operatorIdUsing: string = operatorId || this.accountManager.getOperatorAccountId(deployment).toString();
 
-    let operatorKeyUsing: string;
     if (operatorKey) {
       // use user provided operatorKey if available
-      operatorKeyUsing = operatorKey;
-    } else {
-      try {
-        const secrets: Secret[] = await this.k8Factory
-          .getK8(context)
-          .secrets()
-          .list(namespace, [`solo.hedera.com/account-id=${operatorIdUsing}`]);
-
-        if (secrets.length === 0) {
-          this.logger.info(`No k8s secret found for operator account id ${operatorIdUsing}, use default one`);
-          operatorKeyUsing = constants.OPERATOR_KEY;
-        } else {
-          this.logger.info('Using operator key from k8s secret');
-          operatorKeyUsing = Base64.decode(secrets[0].data.privateKey);
-        }
-      } catch (error) {
-        throw new SoloErrors.component.relayOperatorKeyRetrievalFailed(error);
-      }
+      return {operatorId: operatorIdUsing, operatorKey};
     }
 
-    const operatorSecretName: string = this.renderOperatorSecretName(releaseName);
+    try {
+      const secrets: Secret[] = await this.k8Factory
+        .getK8(context)
+        .secrets()
+        .list(namespace, [`solo.hedera.com/account-id=${operatorIdUsing}`]);
+
+      if (secrets.length === 0) {
+        this.logger.info(`No k8s secret found for operator account id ${operatorIdUsing}, use default one`);
+        return {operatorId: operatorIdUsing, operatorKey: constants.OPERATOR_KEY};
+      }
+
+      this.logger.info('Using operator key from k8s secret');
+      return {operatorId: operatorIdUsing, operatorKey: Base64.decode(secrets[0].data.privateKey)};
+    } catch (error) {
+      throw new SoloErrors.component.relayOperatorKeyRetrievalFailed(error);
+    }
+  }
+
+  /**
+   * Stores the resolved operator credentials in a dedicated Kubernetes secret so they never need to be
+   * passed to Helm as plaintext `--set` values.
+   */
+  private async createOperatorSecret(config: RelayDeployConfigClass | RelayUpgradeConfigClass): Promise<string> {
+    const {operatorId, operatorKey}: RelayOperatorCredentials = await this.resolveOperatorCredentials(config);
+
+    const operatorSecretName: string = this.renderOperatorSecretName(config.releaseName);
     const isOperatorSecretCreated: boolean = await this.k8Factory
-      .getK8(context)
+      .getK8(config.context)
       .secrets()
-      .createOrReplace(namespace, operatorSecretName, SecretType.OPAQUE, {
-        OPERATOR_ID_MAIN: Base64.encode(operatorIdUsing),
-        OPERATOR_KEY_MAIN: Base64.encode(operatorKeyUsing),
+      .createOrReplace(config.namespace, operatorSecretName, SecretType.OPAQUE, {
+        OPERATOR_ID_MAIN: Base64.encode(operatorId),
+        OPERATOR_KEY_MAIN: Base64.encode(operatorKey),
       });
 
     if (!isOperatorSecretCreated) {
@@ -384,9 +415,30 @@ export class RelayCommand extends BaseCommand {
     return operatorSecretName;
   }
 
+  /**
+   * Whether the relay chart resolved for this deployment mounts operator credentials from a
+   * pre-existing secret. Pre-release qualifiers are ignored so that `0.78.0-rc1` counts as `0.78.0`.
+   */
+  private supportsOperatorSecret(relayReleaseTag: string): boolean {
+    if (!relayReleaseTag) {
+      // unpinned: Helm resolves the newest published chart, which supports `existingSecret`
+      return true;
+    }
+
+    const version: SemanticVersion<string> = new SemanticVersion<string>(
+      SemanticVersion.getValidSemanticVersion(relayReleaseTag, false, 'Relay release'),
+    );
+
+    return new SemanticVersion<string>(`${version.major}.${version.minor}.${version.patch}`).greaterThanOrEqual(
+      RelayCommand.MINIMUM_VERSION_WITH_OPERATOR_SECRET,
+    );
+  }
+
   private createOperatorSecretTask(): SoloListrTask<AnyListrContext> {
     return {
       title: 'Create relay operator credentials secret',
+      skip: ({config}: RelayDeployContext | RelayUpgradeContext): boolean =>
+        !this.supportsOperatorSecret(config.relayReleaseTag),
       task: async ({config}: RelayDeployContext | RelayUpgradeContext): Promise<void> => {
         config.operatorSecretName = await this.createOperatorSecret(config);
       },
