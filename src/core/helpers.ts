@@ -607,8 +607,28 @@ export class Helpers {
     return consensusNode ? consensusNode.context : undefined;
   }
 
-  public static isKindContext(context: string | undefined): boolean {
-    return !!context?.startsWith(Helpers.KIND_CONTEXT_PREFIX);
+  /** Resolves the Kind cluster name a kubeconfig context targets, or undefined for a non-Kind context. */
+  public static kindClusterNameForContext(context: string | undefined, k8Factory?: K8Factory): string | undefined {
+    if (context?.startsWith(Helpers.KIND_CONTEXT_PREFIX)) {
+      return context.slice(Helpers.KIND_CONTEXT_PREFIX.length);
+    }
+    if (!context || !k8Factory) {
+      return undefined;
+    }
+    try {
+      // a renamed context still references the cluster entry kind wrote as `kind-<cluster-name>`
+      const clusterEntryName: string = k8Factory.default().contexts().readClusterOfContext(context);
+      if (clusterEntryName.startsWith(Helpers.KIND_CONTEXT_PREFIX)) {
+        return clusterEntryName.slice(Helpers.KIND_CONTEXT_PREFIX.length);
+      }
+    } catch {
+      // best-effort: when the kubeconfig entry cannot be read, detection falls back to the context name prefix alone
+    }
+    return undefined;
+  }
+
+  public static isKindContext(context: string | undefined, k8Factory?: K8Factory): boolean {
+    return Helpers.kindClusterNameForContext(context, k8Factory) !== undefined;
   }
 
   public static hasMultipleKubernetesContexts(consensusNodes: ConsensusNode[]): boolean {
