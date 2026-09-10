@@ -404,12 +404,43 @@ jobs:
           Write-Host "Linux patches hostPath: $linuxPatchesPath"
           "SOLO_KIND_CLUSTER_CONFIG_FILE=$renderedConfig" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      - name: Remove Preinstalled Kind
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # Solo treats KIND_VERSION in version.ts as a floor, not a pin: any kind found on PATH that
+          # is at least that version is used as-is. The runner image ships its own kind, so this job
+          # silently ran whatever version windows-latest happened to bundle, and a runner image bump
+          # from kind v0.32.0 to v0.33.0 broke `kind create cluster` against the WSL2 Docker daemon
+          # with "failed to get kubernetes version from node" (issue #5975).
+          #
+          # A fresh Windows machine has no preinstalled kind, so removing it both restores
+          # determinism and makes this compatibility gate exercise the path real users take:
+          # Solo downloads and runs its own pinned kind from $env:USERPROFILE\.solo\bin.
+          $preinstalledKind = @(
+            Get-Command kind -All -CommandType Application -ErrorAction SilentlyContinue |
+              Where-Object { $_.Source -notlike "*\.solo\bin\*" }
+          )
+
+          if ($preinstalledKind.Count -eq 0) {
+            Write-Host 'No preinstalled kind found on PATH'
+          }
+
+          foreach ($kindCommand in $preinstalledKind) {
+            Write-Host "Removing preinstalled kind: $($kindCommand.Source)"
+            Remove-Item -LiteralPath $kindCommand.Source -Force
+          }
+
       - name: One-Shot Single Deploy
         shell: pwsh
         timeout-minutes: 70
         env:
           ENABLE_IMAGE_CACHE: 'false'
         run: |
+          # Solo writes UTF-8 to stdout; without this the pwsh wrapper decodes it with the legacy
+          # ANSI code page and every box-drawing character and emoji in the log becomes mojibake.
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- one-shot single deploy --dev
 
@@ -417,24 +448,38 @@ jobs:
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics connections -d one-shot --check
 
       - name: Collect Diagnostics on Failure
         if: ${{ failure() }}
+        # Best-effort: the deploy may have died before a deployment was persisted, in which case
+        # the command exits non-zero. `; $true` does not reset $LASTEXITCODE, which is what the
+        # pwsh wrapper exits with, so the step needs continue-on-error to stop reporting a
+        # false failure.
+        continue-on-error: true
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- deployment diagnostics logs -q --dev; $true
+          npm run solo -- deployment diagnostics logs -q --dev
 
       - name: One-Shot Single Destroy
         if: always()
+        # Best-effort teardown: the runner is discarded afterwards, so a destroy failure must not
+        # turn an otherwise green run red. See the note above on why `; $true` did not achieve this.
+        continue-on-error: true
         shell: pwsh
         timeout-minutes: 15
         run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- one-shot single destroy --quiet-mode --dev; $true
+          npm run solo -- one-shot single destroy --quiet-mode --dev
 
       - name: Stage logs for upload
         if: always()
