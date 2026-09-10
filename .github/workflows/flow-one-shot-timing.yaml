@@ -173,6 +173,14 @@ jobs:
             echo "cmd=npm run solo --" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Restore Solo Bin Cache
+        id: solo-bin-cache
+        if: ${{ !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Restore Solo Image Cache
         id: solo-image-cache
         if: ${{ !cancelled() && !failure() }}
@@ -368,6 +376,13 @@ jobs:
 
           echo "==== Cold median: $(( COLD_MEDIAN / 60 ))m $(( COLD_MEDIAN % 60 ))s ===="
           echo "==== Warm median: $(( WARM_MEDIAN / 60 ))m $(( WARM_MEDIAN % 60 ))s ===="
+
+      - name: Save Solo Bin Cache
+        if: ${{ github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
 
       - name: Save Solo Image Cache
         if: ${{ github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}

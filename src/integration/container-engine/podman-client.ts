@@ -10,6 +10,8 @@ import * as constants from '../../core/constants.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {PodmanDependencyManager} from '../../core/dependency-managers/podman-dependency-manager.js';
 import {SubprocessCommandProfile} from '../../core/subprocess-command-profile.js';
+import {SubprocessEnvironment} from '../../core/subprocess-environment.js';
+import {KindProviderResolver} from './kind-provider-resolver.js';
 
 @injectable()
 export class PodmanClient {
@@ -42,7 +44,7 @@ export class PodmanClient {
       return detectedCommand;
     }
 
-    if (constants.getEnvironmentVariable('KIND_EXPERIMENTAL_PROVIDER') === constants.PODMAN) {
+    if (KindProviderResolver.current() === constants.PODMAN) {
       return PodmanClient.podmanCommand();
     }
 
@@ -56,7 +58,7 @@ export class PodmanClient {
     engineCommand: ContainerEngineCommand,
   ): Promise<void> {
     const kindArguments: string[] = ['load', 'image-archive', archivePath, '--name', clusterName];
-    const pathEnvironment: string = `${PathEx.dirname(kindExecutable)}${PathEx.delimiter}${process.env.PATH || ''}`;
+    const pathEnvironment: string = `${PathEx.dirname(kindExecutable)}${PathEx.delimiter}${SubprocessEnvironment.currentPath()}`;
     const configEnvironment: Record<string, string> = this.containerConfigEnvironment();
 
     if (PodmanClient.isSudoPodmanCommand(engineCommand)) {
@@ -97,7 +99,7 @@ export class PodmanClient {
       argumentsPrefix: [
         '-n',
         'env',
-        `PATH=${process.env.PATH || ''}`,
+        `PATH=${SubprocessEnvironment.currentPath()}`,
         ...PodmanDependencyManager.toEnvironmentArguments(this.containerConfigEnvironment()),
         constants.PODMAN,
       ],

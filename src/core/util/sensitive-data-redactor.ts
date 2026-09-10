@@ -44,17 +44,25 @@ export class SensitiveDataRedactor {
    * @returns A new array with sensitive values replaced by the redact mask
    */
   public static redactArguments(arguments_: string[], options: RedactOptions = {}): string[] {
+    const {flagsToRedactNextArgument = [], setStyleFlags = []} = options;
+
     // Split composite arguments that contain multiple key-value pairs within a single argument
     const splitArguments: string[] = [];
-    for (const argument of arguments_) {
-      if (argument.includes(' ')) {
+    for (let index: number = 0; index < arguments_.length; index++) {
+      const argument: string = arguments_[index];
+      const precedingArgument: string | undefined = arguments_[index - 1];
+      const preserveArgumentBoundaries: boolean =
+        precedingArgument !== undefined &&
+        (flagsToRedactNextArgument.includes(precedingArgument) || setStyleFlags.includes(precedingArgument));
+
+      // Preserve values paired with flags because a single spawn argument can contain literal spaces.
+      if (argument.includes(' ') && !preserveArgumentBoundaries) {
         splitArguments.push(...argument.split(' '));
       } else {
         splitArguments.push(argument);
       }
     }
 
-    const {flagsToRedactNextArgument = [], setStyleFlags = []} = options;
     const redacted: string[] = [];
 
     for (let index: number = 0; index < splitArguments.length; index++) {

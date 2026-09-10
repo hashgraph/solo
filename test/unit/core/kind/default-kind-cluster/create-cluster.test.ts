@@ -119,7 +119,7 @@ describe('DefaultKindClient - createCluster', (): void => {
     expect(argumentSpy.calledWith('wait', options.wait)).to.be.true;
 
     // Verify flags were set correctly
-    expect(flagSpy.calledWith('retain')).to.be.true;
+    expect(flagSpy.calledWith('--retain')).to.be.true;
   });
 
   it('should handle boolean options correctly', async (): Promise<void> => {
@@ -141,7 +141,7 @@ describe('DefaultKindClient - createCluster', (): void => {
     await client.createCluster(clusterName, options);
 
     // Should include options that are true
-    expect(flagSpy.calledWith('retain')).to.be.true;
+    expect(flagSpy.calledWith('--retain')).to.be.true;
 
     // Should set name as argument
     expect(argumentSpy.calledWith('name', clusterName)).to.be.true;

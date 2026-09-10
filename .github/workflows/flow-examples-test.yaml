@@ -300,6 +300,14 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: task build:compile
 
+      - name: Restore Solo Bin Cache
+        id: solo-bin-cache
+        if: ${{ !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Restore Solo Image Cache
         id: solo-image-cache
         if: ${{ !cancelled() && !failure() }}
@@ -332,7 +340,7 @@ jobs:
 
       - name: Install Kind
         if: ${{ !cancelled() && !failure() }}
-        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+        uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
         with:
           install_only: true
           version: 'v0.29.0'
@@ -501,6 +509,13 @@ jobs:
           fi
 
           echo "Task completed successfully"
+
+      - name: Save Solo Bin Cache
+        if: ${{ github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
 
       - name: Save Solo Image Cache
         if: ${{ github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
