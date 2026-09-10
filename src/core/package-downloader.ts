@@ -20,6 +20,7 @@ import {ReadStream} from 'node:fs';
 import {Hash} from 'node:crypto';
 import {ClientRequest} from 'node:http';
 import {Duration} from './time/duration.js';
+import {UrlCheckOutcome} from './url-check-outcome.js';
 
 const URL_EXISTS_TIMEOUT_ENV: string = 'PACKAGE_DOWNLOADER_URL_EXISTS_TIMEOUT_MS';
 const DOWNLOAD_CONNECT_TIMEOUT_ENV: string = 'PACKAGE_DOWNLOADER_DOWNLOAD_CONNECT_TIMEOUT_MS';
@@ -110,8 +111,9 @@ export class PackageDownloader {
     return parsedUrl.hostname === 'github.com' && parsedUrl.pathname.includes('/releases/download/');
   }
 
-  public urlExists(url: string): Promise<boolean> {
-    return new Promise<boolean>((resolve): void => {
+  /** Classifies a URL through a HEAD request: only a 404/410 response is a definitive absence, and a network failure or any other status leaves the answer inconclusive. */
+  public checkUrl(url: string): Promise<UrlCheckOutcome> {
+    return new Promise<UrlCheckOutcome>((resolve): void => {
       try {
         this.logger.debug(`Checking URL: ${url}`);
         // attempt to send a HEAD request to check URL exists
@@ -132,24 +134,30 @@ export class PackageDownloader {
           });
           request.destroy();
           if ([StatusCodes.OK, StatusCodes.MOVED_TEMPORARILY, StatusCodes.MOVED_PERMANENTLY].includes(statusCode)) {
-            resolve(true);
+            resolve(UrlCheckOutcome.EXISTS);
+          } else if ([StatusCodes.NOT_FOUND, StatusCodes.GONE].includes(statusCode)) {
+            resolve(UrlCheckOutcome.MISSING);
+          } else {
+            resolve(UrlCheckOutcome.INCONCLUSIVE);
           }
-
-          resolve(false);
         });
 
         request.on('error', (error): void => {
           this.logger.error(error);
-          resolve(false);
+          resolve(UrlCheckOutcome.INCONCLUSIVE);
           request.destroy();
         });
 
         request.end(); // make the request
       } catch (error) {
         this.logger.error(error);
-        resolve(false);
+        resolve(UrlCheckOutcome.INCONCLUSIVE);
       }
     });
+  }
+
+  public async urlExists(url: string): Promise<boolean> {
+    return (await this.checkUrl(url)) === UrlCheckOutcome.EXISTS;
   }
 
   /**
@@ -171,11 +179,15 @@ export class PackageDownloader {
       throw new SoloErrors.validation.illegalArgument(`package URL '${url}' is invalid`, url);
     }
 
-    if (!(await this.urlExists(url))) {
+    const urlCheck: UrlCheckOutcome = await this.checkUrl(url);
+    if (urlCheck === UrlCheckOutcome.MISSING) {
       if (!this.isHeadCheckOptional(url)) {
         throw new SoloErrors.system.resourceNotFound(url);
       }
       this.logger.warn(`HEAD request reported missing URL; continuing with direct download attempt: ${url}`);
+    } else if (urlCheck === UrlCheckOutcome.INCONCLUSIVE) {
+      // a transient HEAD failure (DNS, timeout, 5xx) must not fail the download outright; the retried GET decides
+      this.logger.warn(`HEAD pre-check was inconclusive; continuing with direct download attempt: ${url}`);
     }
 
     const connectTimeout: number = this.getDownloadConnectTimeout().toMillis();

@@ -16,6 +16,7 @@ import {ResourceNotFoundError} from '../../../src/core/errors/classes/system/res
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {SoloPinoLogger} from '../../../src/core/logging/solo-pino-logger.js';
 import {SoloError} from '../../../src/core/errors/solo-error.js';
+import {UrlCheckOutcome} from '../../../src/core/url-check-outcome.js';
 
 describe('PackageDownloader', (): void => {
   const testLogger: SoloPinoLogger = new SoloPinoLogger('debug', true);
@@ -65,6 +66,24 @@ describe('PackageDownloader', (): void => {
     });
   });
 
+  describe('checkUrl', (): void => {
+    it('should report EXISTS for an available URL', async (): Promise<void> => {
+      const url: string = 'https://builds.hedera.com/node/software/v0.42/build-v0.42.5.sha384';
+      await expect(downloader.checkUrl(url)).to.eventually.equal(UrlCheckOutcome.EXISTS);
+    });
+
+    it('should report MISSING when the server answers 404', async (): Promise<void> => {
+      const url: string = 'https://builds.hedera.com/node/software/v0.42/build-v0.42.5.INVALID';
+      await expect(downloader.checkUrl(url)).to.eventually.equal(UrlCheckOutcome.MISSING);
+    });
+
+    it('should report INCONCLUSIVE when the host cannot be reached', async (): Promise<void> => {
+      await expect(downloader.checkUrl('https://localhost:9/unreachable')).to.eventually.equal(
+        UrlCheckOutcome.INCONCLUSIVE,
+      );
+    });
+  });
+
   describe('fetchFile', (): void => {
     it('should fail if source URL is missing', async (): Promise<void> => {
       await expect(downloader.fetchFile('', os.tmpdir())).to.be.rejectedWith('package URL is required');
@@ -81,11 +100,15 @@ describe('PackageDownloader', (): void => {
       );
     });
 
-    it('should fail with an invalid URL', async (): Promise<void> => {
+    it('should fail without a download attempt when the HEAD check reports a missing URL', async (): Promise<void> => {
+      sandbox.stub(downloader, 'checkUrl').resolves(UrlCheckOutcome.MISSING);
+      const gotStreamStub: SinonStub = sandbox.stub(got, 'stream');
+
       await expect(downloader.fetchFile('https://localhost/INVALID_FILE', os.tmpdir())).to.be.rejectedWith(
         ResourceNotFoundError,
         'Resource not found: https://localhost/INVALID_FILE',
       );
+      expect(gotStreamStub).to.not.have.been.called;
     });
 
     it('should succeed with a valid release artifact URL', async (): Promise<void> => {
@@ -114,7 +137,7 @@ describe('PackageDownloader', (): void => {
 
       const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'downloader-'));
       const destinationPath: string = PathEx.join(temporaryDirectory, 'artifact.txt');
-      const urlExistsStub: SinonStub = sandbox.stub(downloader, 'urlExists').resolves(true);
+      const checkUrlStub: SinonStub = sandbox.stub(downloader, 'checkUrl').resolves(UrlCheckOutcome.EXISTS);
       const gotStreamStub: SinonStub = sandbox
         .stub(got, 'stream')
         .callsFake((...arguments_: unknown[]): ReturnType<typeof got.stream> => {
@@ -132,7 +155,7 @@ describe('PackageDownloader', (): void => {
         destinationPath,
       );
       expect(fs.readFileSync(destinationPath, 'utf8')).to.equal('payload');
-      expect(urlExistsStub.calledOnce).to.equal(true);
+      expect(checkUrlStub.calledOnce).to.equal(true);
       expect(gotStreamStub.calledOnce).to.equal(true);
 
       fs.rmSync(temporaryDirectory, {recursive: true, force: true});
@@ -143,7 +166,7 @@ describe('PackageDownloader', (): void => {
       const clock: SinonFakeTimers = sandbox.useFakeTimers({toFake: ['setTimeout']});
       const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'downloader-'));
       const destinationPath: string = PathEx.join(temporaryDirectory, 'artifact.txt');
-      sandbox.stub(downloader, 'urlExists').resolves(true);
+      sandbox.stub(downloader, 'checkUrl').resolves(UrlCheckOutcome.EXISTS);
       const gotStreamStub: SinonStub = sandbox.stub(got, 'stream').callsFake((): ReturnType<typeof got.stream> => {
         if (gotStreamStub.callCount < 7) {
           throw new Error(`transient failure ${gotStreamStub.callCount}`);
@@ -175,7 +198,7 @@ describe('PackageDownloader', (): void => {
     it('should continue download when GitHub release HEAD check reports missing URL', async (): Promise<void> => {
       const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'downloader-'));
       const destinationPath: string = PathEx.join(temporaryDirectory, 'artifact.txt');
-      const urlExistsStub: SinonStub = sandbox.stub(downloader, 'urlExists').resolves(false);
+      const checkUrlStub: SinonStub = sandbox.stub(downloader, 'checkUrl').resolves(UrlCheckOutcome.MISSING);
       const gotStreamStub: SinonStub = sandbox
         .stub(got, 'stream')
         .returns(Readable.from(['payload']) as ReturnType<typeof got.stream>);
@@ -187,7 +210,41 @@ describe('PackageDownloader', (): void => {
         ),
       ).to.eventually.equal(destinationPath);
       expect(fs.readFileSync(destinationPath, 'utf8')).to.equal('payload');
-      expect(urlExistsStub.calledOnce).to.equal(true);
+      expect(checkUrlStub.calledOnce).to.equal(true);
+      expect(gotStreamStub.calledOnce).to.equal(true);
+
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    });
+
+    it('should continue download when the HEAD pre-check is inconclusive', async (): Promise<void> => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'downloader-'));
+      const destinationPath: string = PathEx.join(temporaryDirectory, 'artifact.txt');
+      const checkUrlStub: SinonStub = sandbox.stub(downloader, 'checkUrl').resolves(UrlCheckOutcome.INCONCLUSIVE);
+      const gotStreamStub: SinonStub = sandbox
+        .stub(got, 'stream')
+        .returns(Readable.from(['payload']) as ReturnType<typeof got.stream>);
+
+      await expect(downloader.fetchFile('https://get.helm.sh/artifact.tar.gz', destinationPath)).to.eventually.equal(
+        destinationPath,
+      );
+      expect(fs.readFileSync(destinationPath, 'utf8')).to.equal('payload');
+      expect(checkUrlStub.calledOnce).to.equal(true);
+      expect(gotStreamStub.calledOnce).to.equal(true);
+
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    });
+
+    it('should report the download failure when both the HEAD pre-check and the download fail', async (): Promise<void> => {
+      process.env.PACKAGE_DOWNLOADER_RETRY_LIMIT = '1';
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'downloader-'));
+      const destinationPath: string = PathEx.join(temporaryDirectory, 'artifact.tar.gz');
+      sandbox.stub(downloader, 'checkUrl').resolves(UrlCheckOutcome.INCONCLUSIVE);
+      const gotStreamStub: SinonStub = sandbox.stub(got, 'stream').throws(new Error('connect ECONNREFUSED'));
+
+      await expect(downloader.fetchFile('https://get.helm.sh/artifact.tar.gz', destinationPath)).to.be.rejectedWith(
+        SoloError,
+        'Failed to download package from https://get.helm.sh/artifact.tar.gz',
+      );
       expect(gotStreamStub.calledOnce).to.equal(true);
 
       fs.rmSync(temporaryDirectory, {recursive: true, force: true});
