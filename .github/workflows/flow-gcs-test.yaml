@@ -59,8 +59,10 @@ jobs:
       - name: Check if job should be skipped
         id: check
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
         run: |
-          if [[ "${{ github.actor }}" == "dependabot[bot]" || "${{ github.event.pull_request.head.repo.fork }}" == "true" ]]; then
+          if [[ "${GITHUB_ACTOR}" == "dependabot[bot]" || "${IS_FORK}" == "true" ]]; then
             echo "run=false" >> $GITHUB_OUTPUT
           else
             echo "run=true" >> $GITHUB_OUTPUT
@@ -76,6 +78,8 @@ jobs:
       - name: Checkout Code
         if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Authenticate to Google Cloud

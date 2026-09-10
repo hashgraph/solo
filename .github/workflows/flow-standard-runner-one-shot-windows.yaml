@@ -50,6 +50,10 @@ env:
   DOCKER_HOST: tcp://localhost:2375
   ACTIONS_STEP_DEBUG: 'true'
   ACTIONS_RUNNER_DEBUG: 'true'
+  WSL_UBUNTU_VERSION: '24.4.4'
+  WSL_UBUNTU_INSTALLER_FILE: 'ubuntu-24.04.4-wsl-amd64.wsl'
+  WSL_UBUNTU_INSTALLER_URL: 'https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-wsl-amd64.wsl'
+  WSL_UBUNTU_INSTALLER_SHA256: '9b2f7730dc68227dd04a9f3e5eab86ad85caf556b8606ad94f1f29ff5c4fd3f5'
 
 jobs:
   standard-runner-one-shot-windows:
@@ -104,9 +108,11 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
-      - name: Setup Node.js 22
+      - name: Setup Node.js 24
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
@@ -121,49 +127,110 @@ jobs:
 
       - name: Build Project
         shell: pwsh
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        # npm ci can consume most of the normal five-minute step limit on a
+        # slow hosted runner, leaving no time for compilation.
+        timeout-minutes: 10
         run: |
           task build:compile
 
-      - name: Validate Ubuntu WSL cache
+      - name: Restore verified Ubuntu WSL installer cache
+        id: restore_ubuntu_wsl_installer
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ${{ runner.tool_cache }}\Ubuntu\${{ env.WSL_UBUNTU_VERSION }}\x64
+          key: ubuntu-wsl-installer-v1-${{ env.WSL_UBUNTU_VERSION }}-${{ env.WSL_UBUNTU_INSTALLER_SHA256 }}
+
+      - name: Validate restored Ubuntu WSL installer cache
+        id: validate_ubuntu_wsl_installer
         shell: pwsh
         timeout-minutes: 1
         run: |
-          $cacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE 'Ubuntu\24.4.4\x64'
-          $installerPath = Join-Path $cacheDirectory 'ubuntu-24.04.4-wsl-amd64.wsl'
-          $completeMarker = Join-Path $cacheDirectory '.complete'
-          $valid = (
-            (Test-Path -LiteralPath $installerPath) -and
-            (Test-Path -LiteralPath $completeMarker) -and
-            ((Get-Item -LiteralPath $installerPath).Length -gt 100MB)
-          )
+          $cacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE "Ubuntu\$env:WSL_UBUNTU_VERSION\x64"
+          $installerPath = Join-Path $cacheDirectory $env:WSL_UBUNTU_INSTALLER_FILE
+          $cacheHit = '${{ steps.restore_ubuntu_wsl_installer.outputs.cache-hit }}'
+          $valid = $false
+          $validationResult = 'cache miss'
 
-          if ($valid) {
-            Write-Host "Ubuntu WSL cache is valid: $installerPath"
+          if (Test-Path -LiteralPath $installerPath) {
+            $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualHash -eq $env:WSL_UBUNTU_INSTALLER_SHA256) {
+              $valid = $true
+              $validationResult = 'valid SHA-256'
+              Write-Host "Verified Ubuntu WSL installer cache: $installerPath"
+            } else {
+              $validationResult = "invalid SHA-256: $actualHash"
+            }
           } elseif (Test-Path -LiteralPath $cacheDirectory) {
-            Write-Warning "Removing incomplete Ubuntu WSL cache: $cacheDirectory"
-            Remove-Item -LiteralPath $cacheDirectory -Recurse -Force
-          } else {
-            Write-Host "Ubuntu WSL cache is not present; setup-wsl will download it."
+            $validationResult = 'installer is missing'
           }
+
+          if (-not $valid -and (Test-Path -LiteralPath $cacheDirectory)) {
+            Write-Warning "Discarding invalid Ubuntu WSL installer cache: $validationResult"
+            Remove-Item -LiteralPath $cacheDirectory -Recurse -Force
+          }
+
+          $completeMarkerPath = "$cacheDirectory.complete"
+          if ($valid) {
+            # setup-wsl's tool-cache.find() requires this sibling marker. Create
+            # it only after the installer hash has been verified so setup-wsl
+            # uses these bytes instead of removing them and restoring again.
+            New-Item -ItemType File -Path $completeMarkerPath -Force | Out-Null
+          } elseif (Test-Path -LiteralPath $completeMarkerPath) {
+            Remove-Item -LiteralPath $completeMarkerPath -Force
+          }
+
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=$($valid.ToString().ToLowerInvariant())"
+          @"
+          ## Ubuntu WSL installer cache
+
+          - GitHub Actions cache hit: $cacheHit
+          - Validation: $validationResult
+          "@ | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
+      - name: Seed verified Ubuntu WSL installer cache
+        id: seed_ubuntu_wsl_installer
+        if: ${{ success() && steps.validate_ubuntu_wsl_installer.outputs.valid != 'true' }}
+        shell: pwsh
+        timeout-minutes: 10
+        run: |
+          $cacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE "Ubuntu\$env:WSL_UBUNTU_VERSION\x64"
+          $installerPath = Join-Path $cacheDirectory $env:WSL_UBUNTU_INSTALLER_FILE
+          $completeMarkerPath = "$cacheDirectory.complete"
+          New-Item -ItemType Directory -Path $cacheDirectory -Force | Out-Null
+          Remove-Item -LiteralPath $installerPath,$completeMarkerPath -Force -ErrorAction SilentlyContinue
+
+          Invoke-WebRequest -Uri $env:WSL_UBUNTU_INSTALLER_URL -OutFile $installerPath
+          $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualHash -ne $env:WSL_UBUNTU_INSTALLER_SHA256) {
+            Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
+            throw "Seeded Ubuntu WSL installer failed SHA-256 validation: $actualHash"
+          }
+
+          New-Item -ItemType File -Path $completeMarkerPath -Force | Out-Null
+          Add-Content -Path $env:GITHUB_OUTPUT -Value 'valid=true'
+          Write-Host "Seeded verified Ubuntu WSL installer cache: $installerPath"
+
+      - name: Save seeded Ubuntu WSL installer cache
+        if: ${{ success() && github.ref == 'refs/heads/main' && steps.seed_ubuntu_wsl_installer.outputs.valid == 'true' }}
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ${{ runner.tool_cache }}\Ubuntu\${{ env.WSL_UBUNTU_VERSION }}\x64
+          key: ubuntu-wsl-installer-v1-${{ env.WSL_UBUNTU_VERSION }}-${{ env.WSL_UBUNTU_INSTALLER_SHA256 }}
 
       - name: Setup WSL2
         id: setup_wsl2
         # Kind requires Linux containers. GitHub's windows-latest runner has Docker in Windows
         # container mode with no Docker Desktop to switch it. WSL2 + Docker inside it replicates
         # what Docker Desktop does for Windows users, exposing a Linux daemon via TCP.
-        # use-cache is enabled so the distribution installer is cached across runs via
-        # actions/cache instead of re-downloaded every time — this workflow was intermittently
-        # timing out on the fresh download from a shared runner's network.
+        # The verified restore above creates setup-wsl's .complete marker so find()
+        # returns the installer before the action reaches its cache or download path.
         uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
-        continue-on-error: true
-        # A healthy setup completes in about one minute. Bound a stalled action so the
-        # recovery path can run instead of consuming the previous ten-minute timeout.
+        # A healthy setup completes in about one minute. Bound a stalled action so a
+        # distribution problem is reported promptly instead of consuming ten minutes.
         timeout-minutes: 3
         with:
           distribution: Ubuntu-24.04
           wsl-version: 2
-          # The setup-wsl cache has hung on hosted runners while resolving this distribution.
           use-cache: false
           set-as-default: true
           additional-packages: |
@@ -173,7 +240,7 @@ jobs:
             software-properties-common
 
       - name: Capture WSL2 diagnostics after setup failure
-        if: ${{ steps.setup_wsl2.outcome == 'failure' }}
+        if: ${{ !cancelled() && steps.setup_wsl2.outcome == 'failure' }}
         shell: pwsh
         continue-on-error: true
         timeout-minutes: 1
@@ -239,63 +306,6 @@ jobs:
             Tee-Object -FilePath (Join-Path $diagnosticsDirectory 'system-events.txt') |
             Format-List
           Write-Host '::endgroup::'
-
-      - name: Recover incomplete WSL2 installation
-        if: ${{ steps.setup_wsl2.outcome == 'failure' }}
-        shell: pwsh
-        # The timed-out action can leave its wsl.exe child process and a partially registered
-        # distribution behind. Remove both before retrying the installation from a clean state.
-        continue-on-error: true
-        timeout-minutes: 1
-        run: |
-          Get-Process -Name wsl -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          wsl --shutdown
-          wsl --unregister Ubuntu-24.04
-          if ($LASTEXITCODE -ne 0) {
-            Write-Warning 'Ubuntu-24.04 was not registered after the failed installation.'
-          }
-          $installerCacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE 'Ubuntu\24.4.4\x64'
-          $installerPath = Join-Path $installerCacheDirectory 'ubuntu-24.04.4-wsl-amd64.wsl'
-          if ((Test-Path -LiteralPath $installerCacheDirectory) -and -not (Test-Path -LiteralPath $installerPath)) {
-            Write-Warning "Removing incomplete Ubuntu installer cache: $installerCacheDirectory"
-            Remove-Item -LiteralPath $installerCacheDirectory -Recurse -Force -ErrorAction SilentlyContinue
-          }
-          exit 0
-
-      - name: Install Ubuntu WSL distribution fallback
-        if: ${{ steps.setup_wsl2.outcome == 'failure' }}
-        # Bypass setup-wsl's downloadTool path when the hosted tool cache is incomplete.
-        timeout-minutes: 5
-        shell: pwsh
-        run: |
-          $distributionName = 'Ubuntu-24.04'
-          $installedDistributions = @(wsl.exe --list --quiet 2>$null)
-          if ($installedDistributions -match [regex]::Escape($distributionName)) {
-            Write-Host "WSL distribution already installed: $distributionName"
-            exit 0
-          }
-
-          Write-Host "Installing $distributionName through WSL web download"
-          & "$env:SystemRoot\System32\wsl.exe" --install --web-download --distribution $distributionName --no-launch
-          if ($LASTEXITCODE -ne 0) {
-            throw "wsl.exe failed to install $distributionName with exit code $LASTEXITCODE"
-          }
-
-      - name: Retry Setup WSL2
-        if: ${{ steps.setup_wsl2.outcome == 'failure' }}
-        # Retry once after removing the process and distribution left by the timed-out setup action.
-        uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
-        timeout-minutes: 5
-        with:
-          distribution: Ubuntu-24.04
-          wsl-version: 2
-          use-cache: true
-          set-as-default: true
-          additional-packages: |
-            apt-transport-https
-            ca-certificates
-            curl
-            software-properties-common
 
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1

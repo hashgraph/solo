@@ -84,6 +84,8 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Posix Dependencies
@@ -153,12 +155,15 @@ jobs:
         id: run-e2e-tests
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          # github.event_name is read through the GITHUB_EVENT_NAME variable the runner provides.
+          CN_EDGE_VERSION_INPUT: ${{ inputs.cn-edge-version || '' }}
+          USE_EDGE_INPUT: ${{ inputs.use-edge }}
         run: |
           set -euo pipefail
           export PATH=~/.solo/bin:${PATH}
           echo SOLO_TEST_CLUSTER=solo-e2e > .env
           echo ONE_SHOT_WITH_BLOCK_NODE=true >> .env
-          CN_EDGE_VERSION="${{ inputs.cn-edge-version || '' }}"
+          CN_EDGE_VERSION="${CN_EDGE_VERSION_INPUT}"
           if [[ -n "${CN_EDGE_VERSION}" ]]; then
             echo "Using consensus node edge version: ${CN_EDGE_VERSION}"
             echo CONSENSUS_NODE_EDGE_VERSION="${CN_EDGE_VERSION}" >> .env
@@ -167,7 +172,7 @@ jobs:
             echo "No consensus node edge version specified, using default from version.ts"
           fi
           USE_EDGE="false"
-          if [[ "${{ github.event_name }}" != "pull_request" && "${{ inputs.use-edge }}" == "true" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" != "pull_request" && "${USE_EDGE_INPUT}" == "true" ]]; then
             USE_EDGE="true"
           fi
           if [[ "${USE_EDGE}" == "true" ]]; then
