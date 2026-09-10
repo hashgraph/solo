@@ -31,6 +31,7 @@ import {type KindClient} from '../../../src/integration/kind/kind-client.js';
 
 interface BaseCommandInternal {
   isLocalImageReference: (imageReference: string) => boolean;
+  kindClusterNameFromContext: (clusterContext: string) => string | undefined;
   kindLoadComponentImage: (
     componentImage: string,
     clusterContext: string,
@@ -39,11 +40,23 @@ interface BaseCommandInternal {
   logger: SoloLogger;
   remoteConfig: {getContexts: () => Context[]};
   depManager: {getExecutable: (dependency: string) => Promise<string>};
+  k8Factory: K8Factory;
   kindBuilder: {
     executable: (executable: string) => {
       build: () => Promise<KindClient>;
     };
   };
+}
+
+/** Builds a K8Factory whose default kubeconfig resolves a context to the given cluster entry names. */
+function stubK8FactoryWithClusterEntries(clusterEntriesByContext: Record<string, string>): K8Factory {
+  return {
+    default: (): unknown => ({
+      contexts: (): unknown => ({
+        readClusterOfContext: (context: string): string => clusterEntriesByContext[context] ?? '',
+      }),
+    }),
+  } as unknown as K8Factory;
 }
 
 class TestBaseCommand extends BaseCommand {
@@ -328,6 +341,14 @@ describe('BaseCommand', (): void => {
       const kindClient: KindClient = {loadDockerImage: loadDockerImageStub} as unknown as KindClient;
 
       baseCommandInternal.logger = {warn: warnStub, debug: sinon.stub()} as unknown as SoloLogger;
+      baseCommandInternal.k8Factory = stubK8FactoryWithClusterEntries({
+        'kind-first': 'kind-first',
+        'kind-second': 'kind-second',
+        'kind-stale': 'kind-stale',
+        'renamed-first': 'kind-first',
+        'renamed-second': 'kind-second',
+        'remote-cluster': 'remote-cluster-entry',
+      });
       baseCommandInternal.remoteConfig = {
         getContexts: (): Context[] => ['kind-first', 'kind-second'],
       };
@@ -420,23 +441,60 @@ describe('BaseCommand', (): void => {
 
       expect(loadDockerImageStub).to.not.have.been.called;
     });
+
+    it('should load a local image through a Kind context renamed without the kind- prefix', async (): Promise<void> => {
+      await baseCommandInternal.kindLoadComponentImage('block-node-server:0.38.0', 'renamed-first');
+
+      expect(loadDockerImageStub).to.have.been.calledOnce;
+      expect(loadDockerImageStub).to.have.been.calledWith('block-node-server:0.38.0', sinon.match.has('name', 'first'));
+      expect(warnStub).to.not.have.been.called;
+    });
+
+    it('should preload an additional Kind context renamed without the kind- prefix', async (): Promise<void> => {
+      await baseCommandInternal.kindLoadComponentImage('block-node-server:0.38.0', 'kind-first', ['renamed-second']);
+
+      expect(loadDockerImageStub).to.have.been.calledTwice;
+      expect(loadDockerImageStub).to.have.been.calledWith('block-node-server:0.38.0', sinon.match.has('name', 'first'));
+      expect(loadDockerImageStub).to.have.been.calledWith(
+        'block-node-server:0.38.0',
+        sinon.match.has('name', 'second'),
+      );
+      expect(warnStub).to.not.have.been.called;
+    });
+
+    it('should load once when an additional context resolves to the same Kind cluster', async (): Promise<void> => {
+      await baseCommandInternal.kindLoadComponentImage('block-node-server:0.38.0', 'kind-first', ['renamed-first']);
+
+      expect(loadDockerImageStub).to.have.been.calledOnce;
+      expect(loadDockerImageStub).to.have.been.calledWith('block-node-server:0.38.0', sinon.match.has('name', 'first'));
+      expect(warnStub).to.not.have.been.called;
+    });
   });
 
   describe('kindClusterNameFromContext', (): void => {
+    let baseCommandInternal: BaseCommandInternal;
+
     before((): void => {
       resetForTest();
       // @ts-expect-error - allow to create instance of abstract class
       baseCmd = new BaseCommand();
+      baseCommandInternal = baseCmd as unknown as BaseCommandInternal;
+      baseCommandInternal.k8Factory = stubK8FactoryWithClusterEntries({
+        'renamed-context': 'kind-solo-cluster',
+        'my-cluster': 'my-cluster-entry',
+      });
     });
 
     it('should strip kind- prefix from context', (): void => {
-      // @ts-expect-error - TS2445: protected method
-      expect(baseCmd.kindClusterNameFromContext('kind-solo-cluster')).to.equal('solo-cluster');
+      expect(baseCommandInternal.kindClusterNameFromContext('kind-solo-cluster')).to.equal('solo-cluster');
     });
 
-    it('should return context unchanged when no kind- prefix', (): void => {
-      // @ts-expect-error - TS2445: protected method
-      expect(baseCmd.kindClusterNameFromContext('my-cluster')).to.equal('my-cluster');
+    it('should resolve a renamed context through its kubeconfig cluster entry', (): void => {
+      expect(baseCommandInternal.kindClusterNameFromContext('renamed-context')).to.equal('solo-cluster');
+    });
+
+    it('should return undefined when neither context nor cluster entry is Kind-named', (): void => {
+      expect(baseCommandInternal.kindClusterNameFromContext('my-cluster')).to.be.undefined;
     });
   });
 
