@@ -23,4 +23,26 @@ describe('EnvironmentConfigSource', (): void => {
       process.env = environment;
     }
   });
+
+  it('ignores an environment override of the subprocess passthrough list', async (): Promise<void> => {
+    // subprocess.* controls environment filtering for external commands, so it must not be
+    // settable by the environment being filtered - otherwise anything able to set a variable
+    // could switch the filter off using the filter's own configuration (issue #5895).
+    const environment: NodeJS.ProcessEnv = process.env;
+    try {
+      process.env['SOLO_SUBPROCESS_ADDITIONAL-ENVIRONMENT-VARIABLES_HELM_0'] = 'LD_PRELOAD';
+      process.env['SOLO_TSS_READY-MAX-ATTEMPTS'] = '7';
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(
+        container.resolve<ObjectMapper>(InjectTokens.ObjectMapper),
+        'SOLO',
+      );
+      await source.load();
+
+      expect(source.properties().has('subprocess.additionalEnvironmentVariables.helm.0')).to.be.false;
+      // An unrelated key from the same source still loads, proving the filter is targeted.
+      expect(source.properties().has('tss.readyMaxAttempts')).to.be.true;
+    } finally {
+      process.env = environment;
+    }
+  });
 });

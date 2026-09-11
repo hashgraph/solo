@@ -248,6 +248,13 @@ export class K8ClientPod implements Pod {
           `persist-port-forward${persistScriptExtension}`,
         );
 
+        // The worker below runs in its own process, so it starts with no operator-configured
+        // allowlist of its own; without forwarding the parent's already-vetted names it would
+        // silently drop them the moment it re-derives its own environment for the kubectl spawn.
+        const operatorAllowlistForKubectl: string = JSON.stringify(
+          SubprocessEnvironment.getOperatorAllowlist(SubprocessCommandProfile.KUBECTL),
+        );
+
         cmd = persistCmd;
         cmdArguments = [
           ...persistRuntimeArguments,
@@ -258,6 +265,7 @@ export class K8ClientPod implements Pod {
           `${availablePort}:${podPort}`,
           constants.KUBECTL,
           this.kubectlInstallationDirectory,
+          operatorAllowlistForKubectl,
         ];
 
         // WSL2 has issues with kubectl port-forward when binding to localhost, binding to all interfaces will trigger

@@ -18,6 +18,7 @@ import {FatalErrorReporter} from './core/fatal-error-reporter.js';
 import {SilentBreak} from './core/errors/silent-break.js';
 import {ArgumentProcessor} from './argument-processor.js';
 import {VersionUpdateNotifier} from './core/version-update-notifier.js';
+import {SubprocessEnvironmentBootstrap} from './core/subprocess-environment-bootstrap.js';
 import {HomebrewDeprecationNotifier} from './core/homebrew-deprecation-notifier.js';
 import {VersionBanner} from './core/version-banner.js';
 
@@ -94,6 +95,9 @@ export async function main(argv: string[], context?: {logger: SoloLogger}): Prom
   }
 
   const logger: SoloLogger = container.resolve<SoloLogger>(InjectTokens.SoloLogger);
+
+  // Config sources load asynchronously, so this cannot happen inside the container factory.
+  await SubprocessEnvironmentBootstrap.configureFromUserConfig(logger);
 
   if (context) {
     // save the logger so that solo.ts can use it to properly flush the logs and exit

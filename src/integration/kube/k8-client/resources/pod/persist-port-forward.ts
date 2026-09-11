@@ -14,8 +14,18 @@ import {SubprocessEnvironment} from '../../../../../core/subprocess-environment.
 import {SubprocessCommandProfile} from '../../../../../core/subprocess-command-profile.js';
 
 // eslint-disable-next-line unicorn/no-unreadable-array-destructuring
-const [, , NAMESPACE, POD, CONTEXT, PORT_MAP, KUBECTL_EXECUTABLE, KUBECTL_INSTALLATION_DIRECTORY, EXTERNAL_ADDRESS] =
-  process.argv;
+const [
+  ,
+  ,
+  NAMESPACE,
+  POD,
+  CONTEXT,
+  PORT_MAP,
+  KUBECTL_EXECUTABLE,
+  KUBECTL_INSTALLATION_DIRECTORY,
+  OPERATOR_ALLOWLIST_KUBECTL,
+  EXTERNAL_ADDRESS,
+] = process.argv;
 
 if (!NAMESPACE || !POD || !CONTEXT || !PORT_MAP) {
   console.error(
@@ -24,6 +34,31 @@ if (!NAMESPACE || !POD || !CONTEXT || !PORT_MAP) {
   // eslint-disable-next-line unicorn/no-process-exit,n/no-process-exit
   process.exit(2);
 }
+
+// This process starts with no operator-configured allowlist of its own: `operatorAllowlist` is
+// process-local static state, and this script is deliberately dependency-free, so it never runs
+// the startup bootstrap that would otherwise populate it from `solo-config.yaml`. Re-seeding from
+// the parent's already-vetted names (re-validated here regardless, since configureOperatorAllowlist
+// is cheap and this value crossed a process boundary) keeps forCommand()'s later re-filtering from
+// silently dropping a variable the operator configured for `kubectl`.
+if (OPERATOR_ALLOWLIST_KUBECTL) {
+  SubprocessEnvironment.configureOperatorAllowlist(
+    {[SubprocessCommandProfile.KUBECTL]: JSON.parse(OPERATOR_ALLOWLIST_KUBECTL) as string[]},
+    (refusedEntries: string[]): void => {
+      console.error(`Refusing to forward to kubectl: ${refusedEntries.join(', ')}`);
+    },
+  );
+}
+
+// Installed for the same reason the main process installs one: an allowlist fails closed and
+// silently, and this worker performs its own independent re-filtering step (see executeKubectl)
+// that the main process's reporter cannot see into.
+SubprocessEnvironment.configureWithheldReporter((profile: SubprocessCommandProfile, withheldNames: string[]): void => {
+  console.error(`Withheld ${withheldNames.length} environment variable(s) from '${profile}' commands:`);
+  for (const line of SubprocessEnvironment.renderWithheldNames(withheldNames)) {
+    console.error(`  withheld from '${profile}': ${line}`);
+  }
+});
 
 const MIN_BACKOFF: number = 1; // seconds
 const MAX_BACKOFF: number = 60; // seconds

@@ -66,6 +66,7 @@ import {RemoteConfigRuntimeState} from '../../business/runtime-state/config/remo
 import {ComponentFactory} from '../config/remote/component-factory.js';
 import {RemoteConfigValidator} from '../config/remote/remote-config-validator.js';
 import {type ConfigProvider} from '../../data/configuration/api/config-provider.js';
+import {OptionalDefaultConfigSource} from '../../data/configuration/impl/optional-default-config-source.js';
 import {DefaultConfigSource} from '../../data/configuration/impl/default-config-source.js';
 import {SoloConfigSchema} from '../../data/schema/model/solo/solo-config-schema.js';
 import {EnvironmentAliasRegistry} from '../../data/schema/decorators/environment-alias-registry.js';
@@ -304,13 +305,26 @@ export class Container {
             objectMapper,
           );
 
+          // Operator-editable configuration in SOLO_HOME_DIR. Included so the cascade is
+          // complete for consumers that refresh the config; the subprocess allowlist is applied
+          // separately at startup by SubprocessEnvironmentBootstrap, because sources load
+          // asynchronously and this factory is synchronous.
+          const userConfigSource: OptionalDefaultConfigSource<SoloConfigSchema> =
+            new OptionalDefaultConfigSource<SoloConfigSchema>(
+              constants.DEFAULT_SOLO_CONFIG_FILE,
+              constants.SOLO_HOME_DIR,
+              new SoloConfigSchemaDefinition(objectMapper),
+              objectMapper,
+            );
+
           const provider: ConfigProvider = new LayeredConfigProvider(objectMapper);
           provider
             .builder()
             .withDefaultSources()
-            .withSources(helmChartConfigSource, tssConfigSource)
+            .withSources(helmChartConfigSource, tssConfigSource, userConfigSource)
             .withMergeSourceValues(true)
             .build();
+
           return provider;
         },
       ),

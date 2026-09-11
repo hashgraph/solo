@@ -109,3 +109,34 @@ This is useful for:
 * Testing specific components in isolation
 * Reducing resource usage during development
 * Customizing deployment for specific testing scenarios
+
+## Subprocess environment passthrough
+
+Solo does not forward this shell's environment to the external commands it runs. It builds the
+environment for `helm`, `kubectl` and friends from a per-command allowlist, so a variable a
+managed-Kubernetes credential plugin needs must be named explicitly (see
+[hiero-ledger/solo#5895](https://github.com/hiero-ledger/solo/issues/5895)).
+
+The `test-env-passthrough` task, run as part of `task test` after the network is deployed,
+demonstrates this end to end. It writes a `solo-config.yaml` declaring
+`EXAMPLE_PASSTHROUGH_ACCEPTED` for `helm` and `kubectl` only, then asserts against the
+withheld-variable names Solo records in `solo.log` that:
+
+* the declared variable reached `helm` and `kubectl`;
+* `EXAMPLE_PASSTHROUGH_CONTROL`, declared nowhere, reached neither;
+* the declared variable did **not** reach `npm`.
+
+The task fails the run if any of these does not hold, so it cannot pass silently if the feature
+regresses.
+
+It uses a throwaway `SOLO_HOME` under `.tmp/env-passthrough-home` and **never writes
+`~/.solo/solo-config.yaml`** — running an example must not overwrite your real Solo configuration.
+It can be run on its own once a cluster exists:
+
+```sh
+task deploy
+task test-env-passthrough
+```
+
+See [Subprocess Environment Filtering](https://solo.hiero.org/docs/advanced-solo-setup/subprocess-environment-filtering/)
+for the full reference, including the variable names refused regardless of configuration.

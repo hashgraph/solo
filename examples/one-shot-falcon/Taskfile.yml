@@ -169,10 +169,92 @@ tasks:
             echo "Skipping solo smoke test: not running from a git repo checkout (likely release zip)."
           fi
 
+  test-env-passthrough:
+    desc: Demonstrate subprocess.additionalEnvironmentVariables against an isolated Solo home
+    env:
+      EXAMPLE_PASSTHROUGH_ACCEPTED: "accepted-value"
+      EXAMPLE_PASSTHROUGH_CONTROL: "control-value"
+    cmds:
+      # Solo does not forward this shell's environment to the commands it runs; it builds each
+      # command's environment from a per-command allowlist, so a variable a managed-Kubernetes
+      # credential plugin needs (EKS IRSA and friends) must be named explicitly. See GitHub
+      # issue #5895.
+      #
+      # This task uses a throwaway SOLO_HOME under .tmp and never touches ~/.solo: the operator's
+      # real solo-config.yaml must not be overwritten by running an example.
+      #
+      # ACCEPTED is declared for helm and kubectl only. CONTROL is declared nowhere, so the
+      # assertions below fail if the feature silently stops working.
+      - cmd: |
+          set -eu
+          DEMO_SOLO_HOME="{{ .TEMP_DIR }}/env-passthrough-home"
+          rm -rf "${DEMO_SOLO_HOME}"
+          mkdir -p "${DEMO_SOLO_HOME}"
+          cat > "${DEMO_SOLO_HOME}/solo-config.yaml" <<'SOLO_CONFIG'
+          subprocess:
+            additionalEnvironmentVariables:
+              helm:
+                - EXAMPLE_PASSTHROUGH_ACCEPTED
+              kubectl:
+                - EXAMPLE_PASSTHROUGH_ACCEPTED
+          SOLO_CONFIG
+          # Solo refuses the file unless it, and the directories above it, are owner-only.
+          chmod 700 "${DEMO_SOLO_HOME}"
+          chmod 600 "${DEMO_SOLO_HOME}/solo-config.yaml"
+
+          # Run Solo against the cluster this example already created, with the isolated home.
+          SOLO_HOME="${DEMO_SOLO_HOME}" $SOLO_COMMAND cluster-ref config connect \
+            --cluster-ref env-passthrough-ref --context {{ .CONTEXT }}
+          SOLO_HOME="${DEMO_SOLO_HOME}" $SOLO_COMMAND cluster-ref config setup \
+            --cluster-ref env-passthrough-ref
+
+          SOLO_LOG="${DEMO_SOLO_HOME}/logs/solo.log"
+          echo "==== Verifying subprocess environment passthrough against ${SOLO_LOG} ===="
+
+          if ! grep -q "withheld from " "${SOLO_LOG}"; then
+            echo "ERROR: no withheld-variable diagnostics in ${SOLO_LOG}" >&2
+            exit 1
+          fi
+
+          # helm is guaranteed: cluster-ref config setup installs charts through it. kubectl is
+          # asserted only when present, because it is spawned by the dependency check rather than
+          # by these commands directly, and an example should not fail on an incidental detail.
+          # Exhaustive per-profile behaviour is covered by
+          # test/unit/core/subprocess-environment.test.ts, which is where it belongs.
+          for profile in helm kubectl; do
+            if ! grep -q "withheld from '\?${profile}'\?:" "${SOLO_LOG}"; then
+              if [ "${profile}" = "helm" ]; then
+                echo "ERROR: no withheld-variable diagnostics for helm; expected chart installation to spawn it" >&2
+                exit 1
+              fi
+              echo "SKIP: ${profile} was not spawned during this run"
+              continue
+            fi
+            if grep "withheld from '\?${profile}'\?:" "${SOLO_LOG}" | grep -q "EXAMPLE_PASSTHROUGH_ACCEPTED"; then
+              echo "ERROR: EXAMPLE_PASSTHROUGH_ACCEPTED was withheld from ${profile} despite being declared for it" >&2
+              exit 1
+            fi
+            if ! grep "withheld from '\?${profile}'\?:" "${SOLO_LOG}" | grep -q "EXAMPLE_PASSTHROUGH_CONTROL"; then
+              echo "ERROR: EXAMPLE_PASSTHROUGH_CONTROL should have been withheld from ${profile}" >&2
+              exit 1
+            fi
+            echo "OK: ${profile} received EXAMPLE_PASSTHROUGH_ACCEPTED and not EXAMPLE_PASSTHROUGH_CONTROL"
+          done
+
+          # Per-command containment: a variable declared for helm/kubectl must not reach npm.
+          if grep -q "withheld from '\?npm'\?:" "${SOLO_LOG}"; then
+            if ! grep "withheld from '\?npm'\?:" "${SOLO_LOG}" | grep -q "EXAMPLE_PASSTHROUGH_ACCEPTED"; then
+              echo "ERROR: EXAMPLE_PASSTHROUGH_ACCEPTED reached npm, which it was not declared for" >&2
+              exit 1
+            fi
+            echo "OK: EXAMPLE_PASSTHROUGH_ACCEPTED did not reach npm"
+          fi
+
   test:
     desc: Run deploy + refresh-recovery verification
     cmds:
       - task: deploy
+      - task: test-env-passthrough
       - task: test-refresh
       - task: verify
 

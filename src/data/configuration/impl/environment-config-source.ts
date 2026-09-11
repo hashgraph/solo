@@ -61,8 +61,39 @@ export class EnvironmentConfigSource extends LayeredConfigSource implements Conf
     }
 
     this.applyAliases();
+    this.rejectEnvironmentOverrides();
 
     this.forest = Forest.from(this.data);
+  }
+
+  /**
+   * Config key prefixes that may never be sourced from the environment.
+   *
+   * `subprocess.*` controls which environment variables Solo forwards to external commands. A
+   * setting that relaxes environment filtering must not itself be settable from the environment
+   * being filtered — otherwise `SOLO_SUBPROCESS_ADDITIONAL-ENVIRONMENT-VARIABLES=LD_PRELOAD`
+   * would let anything that can set a variable switch the filter off using the filter's own
+   * configuration. It is configurable from the config file only.
+   */
+  private static readonly ENVIRONMENT_OVERRIDE_FORBIDDEN_PREFIXES: readonly string[] = ['subprocess.'];
+
+  /**
+   * Drops any loaded key under a forbidden prefix, warning so the attempt is visible rather than
+   * silently ignored.
+   */
+  private rejectEnvironmentOverrides(): void {
+    const forbiddenKeys: string[] = [...this.data.keys()].filter((key: string): boolean =>
+      EnvironmentConfigSource.ENVIRONMENT_OVERRIDE_FORBIDDEN_PREFIXES.some((prefix: string): boolean =>
+        key.toLowerCase().startsWith(prefix),
+      ),
+    );
+    for (const key of forbiddenKeys) {
+      this.data.delete(key);
+      console.warn(
+        `Ignoring environment override for config key '${key}': this setting controls environment ` +
+          'filtering for external commands and can only be set in the Solo config file.',
+      );
+    }
   }
 
   /**

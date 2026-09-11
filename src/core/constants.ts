@@ -603,6 +603,15 @@ export const MIRROR_NODE_CHART_UPGRADE_RETRY_DELAY_SECS: number =
 export const NETWORK_DESTROY_WAIT_TIMEOUT: number = +getEnvironmentVariable('NETWORK_DESTROY_WAIT_TIMEOUT') || 120;
 
 export const DEFAULT_LOCAL_CONFIG_FILE: string = 'local-config.yaml';
+
+/**
+ * Operator-editable Solo configuration file, read from {@link SOLO_HOME_DIR}.
+ *
+ * Deliberately not `solo.yaml`: that name was used by older Solo versions for a `flags:` map and
+ * is still actively deleted by external tooling (the `solo:config:remove` task in
+ * hiero-consensus-node's CITR Taskfile), which would silently wipe an operator's settings.
+ */
+export const DEFAULT_SOLO_CONFIG_FILE: string = 'solo-config.yaml';
 export const NODE_OVERRIDE_FILE: string = 'node-overrides.yaml';
 
 export const NODES_STARTED_EVENT_TIMEOUT_MINUTES: number =
