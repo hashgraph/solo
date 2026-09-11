@@ -16,6 +16,7 @@ import {type EndToEndTestSuite} from '../end-to-end-test-suite.js';
 import {type BaseTestOptions} from './tests/base-test-options.js';
 import {main} from '../../../src/index.js';
 import {BaseCommandTest} from './tests/base-command-test.js';
+import {NetworkLoadGeneratorTest} from './tests/network-load-generator-test.js';
 import {OneShotCommandDefinition} from '../../../src/commands/command-definitions/one-shot-command-definition.js';
 import {BlockCommandDefinition} from '../../../src/commands/command-definitions/block-command-definition.js';
 import {MetricsServerImpl} from '../../../src/business/runtime-state/services/metrics-server-impl.js';
@@ -248,6 +249,13 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
         // fungible tokens, NftTransferLoadTest with -R would load those fungible tokens as NFTs
         // and produce 0 TPS (and vice versa). To avoid this cross-contamination, NftTransferLoadTest
         // does NOT use -R so it always creates its own fresh NFT tokens.
+        // NLG chart install + libsodium download get their own budget, so a slow apt mirror fails here
+        // instead of eating the first load test's timeout and surfacing as a killed exec (#5988).
+        it('Deploy Network Load Generator', async (): Promise<void> => {
+          logEvent('Deploying Network Load Generator');
+          await NetworkLoadGeneratorTest.deployChart(deploymentName);
+        }).timeout(Duration.ofMinutes(20).toMillis());
+
         it('TokenTransferLoadTest', async (): Promise<void> => {
           logEvent('Starting TokenTransferLoadTest');
           await runLoadTest(
