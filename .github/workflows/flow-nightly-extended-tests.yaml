@@ -280,4 +280,4 @@ jobs:
     # called workflows automatically and which cannot be passed explicitly.
     uses: $/.github/workflows/flow-performance-test.yaml
     with:
-      cn-edge-version: v0.75.1
+      cn-edge-version: v0.76.1

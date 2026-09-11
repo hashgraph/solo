@@ -187,7 +187,7 @@ tasks:
   test-e2e-small-memory-load:
     desc: "Runs E2E Small Memory Load test — CN with NLG v0.14.1 throttle-protected load"
     env:
-      CONSENSUS_NODE_VERSION: v0.75.1
+      CONSENSUS_NODE_VERSION: v0.76.1
       NETWORK_LOAD_GENERATOR_CHART_VERSION: "0.14.1"
     cmds:
       - "{{ .test_prefix }}=\"Mocha E2E Small Memory Load Test\"

@@ -145,6 +145,56 @@ EOF
   done
 }
 
+function get_latest_mirror_block_number ()
+{
+  local mirror_url="${1:-http://127.0.0.1:38081}"
+  local response=""
+
+  response=$(curl -sfS \
+    -H 'Cache-Control: no-cache, no-store, must-revalidate' \
+    -H 'Pragma: no-cache' \
+    -H 'Expires: 0' \
+    "${mirror_url}/api/v1/blocks?limit=1&order=desc" || true)
+
+  node -e '
+const fs = require("fs");
+const input = fs.readFileSync(0, "utf8");
+try {
+  const data = JSON.parse(input);
+  const value = Number(data.blocks?.[0]?.number);
+  console.log(Number.isFinite(value) ? value : -1);
+} catch {
+  console.log(-1);
+}
+' <<< "${response}"
+}
+
+function wait_for_mirror_block_progress ()
+{
+  local label="${1}"
+  local previous_block="${2:--1}"
+  local required_new_blocks="${3:-3}"
+  local max_attempts="${4:-120}"
+  local sleep_seconds="${5:-2}"
+  local latest_block=-1
+  local minimum_block=$((previous_block + required_new_blocks))
+
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - Waiting for mirror block progress (${label}), minimum block ${minimum_block}"
+  for ((attempt = 1; attempt <= max_attempts; attempt++)); do
+    latest_block=$(get_latest_mirror_block_number)
+    if [[ "${latest_block}" -ge "${minimum_block}" ]]; then
+      echo "$(date '+%Y-%m-%d %H:%M:%S') - Mirror block progress ready (${label}): latest block ${latest_block}"
+      return 0
+    fi
+
+    echo "Mirror block progress not ready (${label}) [attempt=${attempt}/${max_attempts}, latest=${latest_block}, minimum=${minimum_block}]"
+    sleep "${sleep_seconds}"
+  done
+
+  echo "Timed out waiting for mirror block progress (${label}); latest=${latest_block}, minimum=${minimum_block}"
+  log_and_exit 1
+}
+
 function start_sdk_test ()
 {
   realm_num="${1:-0}"

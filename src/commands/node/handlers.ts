@@ -77,6 +77,11 @@ export class NodeCommandHandlers extends CommandHandler {
   private static readonly DESTROY_CONTEXT_FILE: string = 'node-destroy.json';
   private static readonly UPDATE_CONTEXT_FILE: string = 'node-update.json';
   private static readonly UPGRADE_CONTEXT_FILE: string = 'node-upgrade.json';
+  // CN does not signal when the final block has been flushed to the block node after a freeze.
+  // Without this delay, stopNodes races the in-flight blocks and the block node may miss the
+  // last block before the freeze boundary, causing a gap in mirror node ingestion.
+  private static readonly FREEZE_BLOCK_STREAM_DRAIN_MILLISECONDS: number = 20_000;
+
   private resolveOutputDirectory(argv: ArgvStruct, fallback: string = ''): string {
     this.nodeConfigManager.update(argv);
     return this.nodeConfigManager.getFlag<string>(flags.outputDir) || fallback;

@@ -158,6 +158,65 @@ show_service_ips() {
   kubectl get svc -n "${namespace}" network-node1-svc network-node2-svc -o custom-columns=NAME:.metadata.name,CLUSTER-IP:.spec.clusterIP,CREATED:.metadata.creationTimestamp
 }
 
+get_latest_mirror_block_number() {
+  local mirror_url="${1:-http://127.0.0.1:38081}"
+  local response=""
+
+  response=$(curl -sfS \
+    -H 'Cache-Control: no-cache, no-store, must-revalidate' \
+    -H 'Pragma: no-cache' \
+    -H 'Expires: 0' \
+    "${mirror_url}/api/v1/blocks?limit=1&order=desc" || true)
+
+  node -e '
+const fs = require("fs");
+const input = fs.readFileSync(0, "utf8");
+try {
+  const data = JSON.parse(input);
+  const value = Number(data.blocks?.[0]?.number);
+  console.log(Number.isFinite(value) ? value : -1);
+} catch {
+  console.log(-1);
+}
+' <<< "${response}"
+}
+
+wait_for_mirror_block_progress() {
+  local label="${1}"
+  local previous_block="${2:--1}"
+  local max_attempts="${3:-90}"
+  local sleep_seconds="${4:-2}"
+  local latest_block=-1
+  local minimum_block=$((previous_block + 1))
+
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - Waiting for mirror block ingestion (${label}), minimum block ${minimum_block}" >&2
+  for ((attempt = 1; attempt <= max_attempts; attempt++)); do
+    latest_block=$(get_latest_mirror_block_number)
+    if [[ "${latest_block}" -ge "${minimum_block}" ]]; then
+      echo "$(date '+%Y-%m-%d %H:%M:%S') - Mirror block ingestion ready (${label}): latest block ${latest_block}" >&2
+      echo "${latest_block}"
+      return 0
+    fi
+
+    echo "Mirror block ingestion not ready (${label}) [attempt=${attempt}/${max_attempts}, latest=${latest_block}, minimum=${minimum_block}]" >&2
+    sleep "${sleep_seconds}"
+  done
+
+  echo "Timed out waiting for mirror block ingestion (${label}); latest=${latest_block}, minimum=${minimum_block}" >&2
+  return 1
+}
+
+wait_for_mirror_block_count_progress() {
+  local label="${1}"
+  local previous_block="${2:--1}"
+  local required_new_blocks="${3:-1}"
+  local max_attempts="${4:-90}"
+  local sleep_seconds="${5:-2}"
+  local minimum_previous_block=$((previous_block + required_new_blocks - 1))
+
+  wait_for_mirror_block_progress "${label}" "${minimum_previous_block}" "${max_attempts}" "${sleep_seconds}"
+}
+
 # Restart relay after upgrade and refresh port-forwards.
 refresh_relay_network_config() {
   local namespace="${1}"
@@ -703,7 +762,7 @@ echo "Upgrade to Consensus Node Version: ${TO_CONSENSUS_NODE_VERSION}"
 # TEMPORARY BYPASS:
 #   CN upgrade is disabled in this migration test until hiero-consensus-node#26498 is fixed.
 #   Current CN FREEZE_UPGRADE can reach FREEZE_COMPLETE while the freeze-boundary block is only
-#   partially delivered to BN. CN v0.75.1 then resumes at N+1 instead of replaying N, leaving
+#   partially delivered to BN. CN v0.76.1 then resumes at N+1 instead of replaying N, leaving
 #   mirror permanently stuck at N-1 because block N cannot be provided by BN.
 #
 #   Keep the CN-upgrade code below this flag so the test can be restored once CN guarantees

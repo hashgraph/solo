@@ -3,7 +3,6 @@
 import {Listr} from 'listr2';
 import {
   createAndCopyBlockNodeJsonFileForConsensusNode,
-  Helpers,
   showVersionBanner,
   sleep,
   withTimeout,
@@ -64,6 +63,7 @@ import {BlockNodeDeployedEvent} from '../core/events/event-types/block-node-depl
 import {type Container} from '../integration/kube/resources/container/container.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import yaml from 'yaml';
 
 interface BlockNodeDeployConfigClass {
@@ -443,10 +443,15 @@ export class BlockNodeCommand extends BaseCommand {
   }
 
   private shouldConfigureRsaMirrorBootstrapSource(): boolean {
-    const consensusNodeVersion: string =
-      this.remoteConfig.configuration.versions?.consensusNode?.toString() ?? versions.HEDERA_PLATFORM_VERSION;
+    const consensusNodeVersion: SemanticVersion<string> = new SemanticVersion<string>(
+      this.remoteConfig.configuration.versions?.consensusNode?.toString() || versions.HEDERA_PLATFORM_VERSION,
+    );
+    if (consensusNodeVersion.lessThan(versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS)) {
+      return false;
+    }
+
     const blockStreamMode: string = constants.getEnvironmentVariable('BLOCK_STREAM_STREAM_MODE') ?? 'BLOCKS';
-    return Helpers.requiresRsaBootstrap(consensusNodeVersion, blockStreamMode);
+    return blockStreamMode === 'BLOCKS' || blockStreamMode === 'BOTH';
   }
 
   private resolveMirrorNodeReleaseName(): string {
@@ -472,10 +477,25 @@ export class BlockNodeCommand extends BaseCommand {
       return undefined;
     }
 
-    const bootstrapJson: Optional<string> = Helpers.buildRsaAddressBookJson(consensusNodes, keysDirectory);
-    if (!bootstrapJson) {
-      return undefined;
+    const nodeAddresses: Array<{RSAPubKey: string; nodeId: number}> = [];
+    for (const consensusNode of consensusNodes) {
+      const alias: NodeAlias = consensusNode.name;
+      const publicKeyFile: string = PathEx.join(keysDirectory, Templates.renderGossipPemPublicKeyFile(alias));
+      if (!fs.existsSync(publicKeyFile)) {
+        return undefined;
+      }
+
+      const certPem: string = fs.readFileSync(publicKeyFile, 'utf8');
+      const spkiDer: Buffer = new crypto.X509Certificate(certPem).publicKey.export({
+        format: 'der',
+        type: 'spki',
+      }) as Buffer;
+      nodeAddresses.push({RSAPubKey: spkiDer.toString('hex'), nodeId: Templates.nodeIdFromNodeAlias(alias)});
     }
+
+    const bootstrapJson: string = JSON.stringify({
+      addressBooks: [{addressBook: {nodeAddress: nodeAddresses}, startBlock: '0', endBlock: '-1'}],
+    });
     const content: string = yaml.stringify({
       blockNode: {
         initContainers: [
