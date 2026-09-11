@@ -97,8 +97,12 @@ jobs:
           # Install jq (a lightweight and flexible command-line JSON processor)
           sudo apt-get update && sudo apt-get install -y jq
 
+      # setup-node caches npm downloads, and this workflow runs on both pull_request and push to
+      # main, so a pull request run can populate a cache that a later trusted run restores. Accepted
+      # (issue #5957): no release artifact is produced here, so the impact is a corrupted
+      # performance run rather than anything shipped.
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0 # zizmor: ignore[cache-poisoning]
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: 24
