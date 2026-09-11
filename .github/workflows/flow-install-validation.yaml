@@ -85,6 +85,12 @@ jobs:
             use_setup_node: true
           # Arch is rolling, so the tag cannot be pinned to a release; -Syu keeps the freshly
           # refreshed package index and the installed system from drifting apart.
+          #
+          # This is a deliberate, approved exception to the "pin every container image tag" rule in
+          # CLAUDE.md, which allows exceptions where the project has an explicit policy for that
+          # dependency type. Pinning a dated Arch snapshot while pacman -Syu refreshes the index
+          # against upstream would validate a combination no real user ever runs, defeating the
+          # purpose of this matrix row. Tracked and accepted in issue #5957.
           - distro: arch
             image: archlinux:latest
             bootstrap: 'pacman -Syu --noconfirm --needed git curl sudo ca-certificates'
@@ -100,7 +106,9 @@ jobs:
             use_setup_node: false
             podman_probe: 'apk search -x podman | grep -q podman'
     container:
-      image: ${{ matrix.image }}
+      # The arch row of the matrix above intentionally uses a floating 'latest' tag; see the comment
+      # on that row for why a rolling distribution cannot be pinned here.
+      image: ${{ matrix.image }} # zizmor: ignore[unpinned-images]
       # Images that declare no PATH in their OCI config (quay.io/rockylinux/rockylinux:9 ships
       # Env: ["container=oci"], opensuse/leap:16.0 ships Env: null) lose it entirely once an action
       # prepends to GITHUB_PATH: the runner rebuilds the exec PATH from the container's declared

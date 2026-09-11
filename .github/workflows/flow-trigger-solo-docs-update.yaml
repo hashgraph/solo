@@ -17,7 +17,15 @@
 name: "Solo Docs Update Trigger"
 
 on:
-  workflow_run:
+  # workflow_run runs in the base repository context with access to secrets, which is dangerous when
+  # a workflow consumes artifacts from the triggering run or checks out the code that produced them.
+  # This workflow does neither: it downloads no artifacts, has no actions/checkout step, and only
+  # dispatches a workflow in hiero-ledger/solo-docs once "Deploy Release Artifact" — itself limited
+  # to trusted refs — has completed successfully.
+  # Take care before adding a checkout or artifact download here: secrets.GH_ACCESS_TOKEN is a PAT
+  # and is already in scope, so either addition would turn this into a genuine privilege-escalation
+  # path. If this workflow ever needs the triggering run's output, switch to repository_dispatch.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows:
       - "Deploy Release Artifact"
     types:
