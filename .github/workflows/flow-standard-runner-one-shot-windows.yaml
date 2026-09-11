@@ -20,6 +20,11 @@ name: 'Windows One-Shot Deploy and Destroy'
 # Docker runs inside WSL2 (replicating how Docker Desktop works for Windows users) and is
 # exposed to Windows via DOCKER_HOST=tcp://localhost:2375.
 # Any PR that breaks Solo on Windows will cause this workflow to fail.
+#
+# The run covers a full install -> remove -> reinstall cycle, because failures that only appear on a
+# second deploy are invisible to a single-deploy run (see #5302). The kind cluster is deleted between
+# the two deploys: one-shot destroy leaves it running, and cluster-scoped resources surviving it
+# would let the reinstall skip the very code paths that reuse the persistent ~/.solo cache.
 
 on:
   workflow_dispatch:
@@ -512,6 +517,63 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics connections -d one-shot --check
 
+      - name: Verify Solo Cache Files Are Readable
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # Solo hardens files under ~/.solo with icacls. A grant that does not land leaves an empty
+          # DACL, which denies everyone including the owner and wedges every later deploy (#5302).
+          # Test-Path and File.Exists do not consult the DACL, so each file must actually be opened.
+          $checked = 0
+          $unreadable = @()
+          foreach ($file in Get-ChildItem -Path "$env:USERPROFILE\.solo\cache" -Recurse -File -Force) {
+            $checked++
+            try {
+              [IO.File]::Open($file.FullName, 'Open', 'Read', 'ReadWrite').Dispose()
+            } catch {
+              $unreadable += $file.FullName
+              icacls $file.FullName
+            }
+          }
+          Write-Host "Opened $checked cached file(s) under ~/.solo/cache"
+          if ($checked -eq 0) {
+            throw "No files found under ~/.solo/cache - this check is no longer guarding anything"
+          }
+          if ($unreadable.Count -gt 0) {
+            throw "Solo left unreadable files under ~/.solo/cache: $($unreadable -join ', ')"
+          }
+
+      - name: One-Shot Single Destroy
+        shell: pwsh
+        timeout-minutes: 15
+        run: |
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- one-shot single destroy --quiet-mode --dev
+
+      - name: Delete Kind Cluster
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          kind delete cluster --name solo-cluster
+
+      - name: One-Shot Single Redeploy
+        shell: pwsh
+        timeout-minutes: 70
+        env:
+          ENABLE_IMAGE_CACHE: 'false'
+        run: |
+          # The reinstall reuses the persistent ~/.solo cache the first deploy populated.
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- one-shot single deploy --dev
+
+      - name: Check Port Forwarding Still Works After Redeploy
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- deployment diagnostics connections -d one-shot --check
+
       - name: Collect Diagnostics on Failure
         if: ${{ failure() }}
         # Best-effort: the deploy may have died before a deployment was persisted, in which case
@@ -527,7 +589,7 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics logs -q --dev
 
-      - name: One-Shot Single Destroy
+      - name: One-Shot Single Destroy (Cleanup)
         if: always()
         # Best-effort teardown: the runner is discarded afterwards, so a destroy failure must not
         # turn an otherwise green run red. See the note above on why `; $true` did not achieve this.
