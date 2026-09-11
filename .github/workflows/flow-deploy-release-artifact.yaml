@@ -70,8 +70,15 @@ jobs:
         with:
           version: 1.7
 
+      # semantic-release and every plugin/helper here are exact-pinned; only their
+      # transitive dependencies are unresolved by a lockfile, which is what zizmor's
+      # adhoc-packages audit flags regardless of top-level pinning. The correct fix is a
+      # manifest + `npm ci`, but this toolchain runs inside the release pipeline, directly
+      # ahead of the publish steps that use its output (git tag, GitHub release, npm
+      # publish) — a lockfile migration here can only be verified against a real release
+      # run, not a dry run. Deferred rather than risked; revisit if this toolchain changes.
       - name: Install Semantic Release
-        run: |
+        run: | # zizmor: ignore[adhoc-packages]
           npm install -g semantic-release@25.0.2 @semantic-release/git@10.0.1 @semantic-release/github@12.0.2 @semantic-release/exec@7.1.0 gradle-semantic-release-plugin@1.7.6
           npm install -g conventional-changelog-conventionalcommits@9.1.0 @commitlint/cli@18.6.0 @commitlint/config-conventional@18.6.0
           npm install -g marked-mangle@1.1.6 marked-gfm-heading-id@3.1.2 semantic-release-conventional-commits@3.0.0
@@ -270,8 +277,12 @@ jobs:
         with:
           version: 1.7
 
+      # npm install -g npm@11.7.0 upgrades npm itself, pinned to an exact version, before
+      # npm ci runs. There is no lockfile to point at for the tool that reads the lockfile,
+      # so zizmor's adhoc-packages audit is flagging the one ad-hoc install that cannot be
+      # replaced by npm ci without a chicken-and-egg problem.
       - name: Build Production Distribution
-        run: |
+        run: | # zizmor: ignore[adhoc-packages]
           set -eo pipefail
           npm install -g npm@11.7.0
           npm ci
@@ -306,8 +317,15 @@ jobs:
             cat .jfrog/projects/npm.yaml
           echo "::endgroup::"
 
+      # semantic-release and every plugin/helper here are exact-pinned; only their
+      # transitive dependencies are unresolved by a lockfile, which is what zizmor's
+      # adhoc-packages audit flags regardless of top-level pinning. The correct fix is a
+      # manifest + `npm ci`, but this toolchain runs inside the release pipeline, directly
+      # ahead of the publish steps that use its output (git tag, GitHub release, npm
+      # publish) — a lockfile migration here can only be verified against a real release
+      # run, not a dry run. Deferred rather than risked; revisit if this toolchain changes.
       - name: Install Semantic Release
-        run: |
+        run: | # zizmor: ignore[adhoc-packages]
           npm install -g semantic-release@25.0.2 @semantic-release/git@10.0.1 @semantic-release/github@12.0.2 @semantic-release/exec@7.1.0 gradle-semantic-release-plugin@1.7.6
           npm install -g conventional-changelog-conventionalcommits@9.1.0 @commitlint/cli@18.6.0 @commitlint/config-conventional@18.6.0
           npm install -g marked-mangle@1.1.6 marked-gfm-heading-id@3.1.2 semantic-release-conventional-commits@3.0.0
@@ -558,8 +576,10 @@ jobs:
           node-version: '24'
           node-registry: 'https://registry.npmjs.org/'
 
+      # Same chicken-and-egg case as "Build Production Distribution" above: this upgrades
+      # npm itself, pinned to an exact version, before any lockfile-aware command runs.
       - name: Install NPM latest
-        run: npm install -g npm@11.7.0
+        run: npm install -g npm@11.7.0 # zizmor: ignore[adhoc-packages]
 
       - name: Resolve NPM Dist Tag
         id: dist-tag

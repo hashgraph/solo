@@ -148,14 +148,16 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.snyk-token }}
         if: ${{ inputs.enable-snyk-scan && !cancelled() && !failure() }}
-        run: npm install -g snyk snyk-to-html @wcj/html-to-markdown-cli
+        run: |
+          npm ci --prefix .github/workflows/support/snyk-tools
+          echo "${GITHUB_WORKSPACE}/.github/workflows/support/snyk-tools/node_modules/.bin" >> "${GITHUB_PATH}"
 
       - name: Snyk Scan
         id: snyk
         env:
           SNYK_TOKEN: ${{ secrets.snyk-token }}
         if: ${{ inputs.enable-snyk-scan && !cancelled() && !failure() }}
-        run: snyk test --org=release-engineering-N6EoZVZn3jw4qNuVkiG5Qs --all-projects --severity-threshold=high --json-file-output=snyk-test.json
+        run: snyk test --org=release-engineering-N6EoZVZn3jw4qNuVkiG5Qs --all-projects --exclude=snyk-tools --severity-threshold=high --json-file-output=snyk-test.json
 
       - name: Snyk Code
         id: snyk-code

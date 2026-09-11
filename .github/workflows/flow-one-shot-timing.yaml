@@ -154,10 +154,13 @@ jobs:
           version: 3.49.1
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      # @latest is the point of this step: it installs whatever is currently released so
+      # this job can time it against the from-source build below. Pinning a version here
+      # would defeat that purpose and require a workflow edit on every release.
       - name: Install Solo CLI (released)
         if: ${{ inputs.use-released-solo == true }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: npm i @hiero-ledger/solo@latest
+        run: npm i @hiero-ledger/solo@latest # zizmor: ignore[adhoc-packages]
 
       - name: Compile Project (from source)
         if: ${{ inputs.use-released-solo != true }}
