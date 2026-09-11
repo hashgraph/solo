@@ -1,0 +1,131 @@
+##
+# Copyright (C) 2022-2024 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+name: "Build SEA Binaries"
+# Builds the Solo Node.js Single Executable Application (SEA) for each supported platform.
+# The binary bundles the full solo CLI with all resources embedded so it runs without
+# a Node.js installation. Each matrix leg uploads its binary as a GitHub Actions artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      node-version:
+        description: "Node.js version"
+        type: string
+        required: false
+        default: "22"
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+  push:
+    branches:
+      - main
+      - 'release/*'
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-sea:
+    name: "SEA / ${{ matrix.os }} (${{ matrix.arch }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: hiero-solo-linux-medium
+            platform: linux
+            arch: x64
+          # Apple Silicon (arm64) runner
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+          # Intel (x64) macOS runner
+          - os: macos-15-intel
+            platform: darwin
+            arch: x64
+          # win32 is Node's fixed process.platform value for ALL Windows builds
+          # windows-latest currently resolves to a x64 runner.
+          - os: windows-latest
+            platform: win32
+            arch: x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ inputs.node-version || '22' }}
+          cache: npm
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Compile TypeScript
+        run: npx tsc
+
+      - name: Build SEA Binary
+        run: npx tsx sea/build.ts
+
+      - name: Smoke Test — solo --help / --version
+        # Verify the binary starts, resolves its embedded resources, exits cleanly, and reports
+        # the version actually embedded at build time.
+        shell: bash
+        run: |
+          set -e
+          if [[ "${{ matrix.platform }}" == "win32" ]]; then
+            BIN=$(find sea/dist -name "solo-win32-*.exe" | head -1)
+          else
+            BIN=$(find sea/dist -name "solo-${{ matrix.platform }}-*" ! -name "*.blob" ! -name "*.cjs" ! -name "*.json" | head -1)
+          fi
+          [[ -n "$BIN" ]] || { echo "no SEA binary found in sea/dist"; exit 1; }
+          [[ "${{ matrix.platform }}" == "win32" ]] || chmod +x "$BIN"
+
+          echo "Running: $BIN --help"
+          "$BIN" --help
+          echo "✓ --help exited 0"
+
+          EXPECTED=$(node -p "require('./package.json').version")
+          ACTUAL=$("$BIN" --version)
+          echo "$ACTUAL" | grep -q "$EXPECTED" || { echo "version mismatch: expected $EXPECTED, got: $ACTUAL"; exit 1; }
+          echo "✓ Smoke test passed (version $EXPECTED)"
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: solo-${{ matrix.platform }}-${{ matrix.arch }}-${{ github.sha }}
+          path: sea/dist/solo-${{ matrix.platform }}-*
+          if-no-files-found: error
+          retention-days: 7

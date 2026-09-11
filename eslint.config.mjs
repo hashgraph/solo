@@ -293,7 +293,9 @@ export default [
       'n/no-unsupported-features/node-builtins': [
         'error',
         {
-          ignores: ['fs.cpSync', 'CryptoKey', 'fetch'],
+          // node:sea is still flagged experimental by Node itself even on the versions this
+          // project targets (>=22) — there is no non-experimental SEA API to migrate to.
+          ignores: ['fs.cpSync', 'CryptoKey', 'fetch', 'sea'],
         },
       ],
       'no-prototype-builtins': 'off',

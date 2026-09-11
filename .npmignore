@@ -13,6 +13,9 @@ output/
 *.spec.ts
 *.test.ts
 
+# SEA build output
+sea/
+
 # Scripts
 Taskfile*
 examples/

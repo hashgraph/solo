@@ -10,7 +10,7 @@ import {RemoteConfigSchema} from '../../../../../../src/data/schema/model/remote
 import {LedgerPhase} from '../../../../../../src/data/schema/model/remote/ledger-phase.js';
 import {DeploymentPhase} from '../../../../../../src/data/schema/model/remote/deployment-phase.js';
 
-type MigrationCandidate = any;
+type MigrationCandidate = Record<string, unknown>;
 
 function migrateVersionPrefix(version: string): string {
   const strippedVersionPrefix: string = version.replace(/^v/, '');
@@ -22,48 +22,50 @@ function migrateVersionPrefix(version: string): string {
 }
 
 function migrateVersions(plainObject: MigrationCandidate): void {
-  plainObject.versions = {};
-  plainObject.versions.cli = migrateVersionPrefix(plainObject.metadata?.soloVersion || '0.0.0');
-  plainObject.versions.chart = migrateVersionPrefix(plainObject.metadata?.soloChartVersion || '0.0.0');
-  plainObject.versions.consensusNode = migrateVersionPrefix(
-    plainObject.metadata?.hederaPlatformVersion || plainObject.flags?.releaseTag || '0.0.0',
-  );
-  plainObject.versions.mirrorNodeChart = migrateVersionPrefix(
-    plainObject.metadata?.hederaMirrorNodeChartVersion || plainObject.flags?.mirrorNodeVersion || '0.0.0',
-  );
-  plainObject.versions.explorerChart = migrateVersionPrefix(
-    plainObject.metadata?.explorerChartVersion || plainObject.flags?.explorerVersion || '0.0.0',
-  );
-  plainObject.versions.jsonRpcRelayChart = migrateVersionPrefix(
-    plainObject.metadata?.hederaJsonRpcRelayChartVersion || plainObject.flags?.relayReleaseTag || '0.0.0',
-  );
+  const metadata: MigrationCandidate = (plainObject.metadata as MigrationCandidate) ?? {};
+  const flags: MigrationCandidate = (plainObject.flags as MigrationCandidate) ?? {};
 
-  plainObject.versions.blockNodeChart = 'v0.0.0';
+  plainObject.versions = {
+    cli: migrateVersionPrefix((metadata.soloVersion as string) || '0.0.0'),
+    chart: migrateVersionPrefix((metadata.soloChartVersion as string) || '0.0.0'),
+    consensusNode: migrateVersionPrefix(
+      (metadata.hederaPlatformVersion as string) || (flags.releaseTag as string) || '0.0.0',
+    ),
+    mirrorNodeChart: migrateVersionPrefix(
+      (metadata.hederaMirrorNodeChartVersion as string) || (flags.mirrorNodeVersion as string) || '0.0.0',
+    ),
+    explorerChart: migrateVersionPrefix(
+      (metadata.explorerChartVersion as string) || (flags.explorerVersion as string) || '0.0.0',
+    ),
+    jsonRpcRelayChart: migrateVersionPrefix(
+      (metadata.hederaJsonRpcRelayChartVersion as string) || (flags.relayReleaseTag as string) || '0.0.0',
+    ),
+    blockNodeChart: 'v0.0.0',
+  };
 }
 
 function migrateClusters(plainObject: MigrationCandidate): void {
-  const clusters: object = plainObject.clusters;
-  const clustersArray: object[] = [];
-  for (const key in clusters) {
+  const clusters: MigrationCandidate = (plainObject.clusters as MigrationCandidate) ?? {};
+  const clustersArray: unknown[] = [];
+  for (const key of Object.keys(clusters)) {
     expect(clusters[key]).to.not.be.undefined.and.to.not.be.null;
-    const cluster: object = clusters[key];
-    clustersArray.push(cluster);
+    clustersArray.push(clusters[key]);
   }
   plainObject.clusters = clustersArray;
 }
 
 function migrateHistory(plainObject: MigrationCandidate): void {
-  plainObject.history = {};
-  plainObject.history.commands = [];
-  for (const historyItem of plainObject.commandHistory) {
-    plainObject.history.commands.push(historyItem);
-  }
+  const commandHistory: unknown[] = (plainObject.commandHistory as unknown[]) ?? [];
+  plainObject.history = {commands: [...commandHistory]};
 }
 
-function migrateConsensusNodes(plainObject: MigrationCandidate): void {
-  plainObject.state.consensusNodes = [];
-  for (const plainConsensusNodeKey of Object.keys(plainObject.components?.consensusNodes)) {
-    const oldConsensusNode: MigrationCandidate = plainObject.components.consensusNodes[plainConsensusNodeKey];
+function migrateConsensusNodes(plainObject: MigrationCandidate, state: MigrationCandidate): void {
+  const components: MigrationCandidate = (plainObject.components as MigrationCandidate) ?? {};
+  const consensusNodes: MigrationCandidate = (components.consensusNodes as MigrationCandidate) ?? {};
+  const migratedConsensusNodes: unknown[] = [];
+
+  for (const plainConsensusNodeKey of Object.keys(consensusNodes)) {
+    const oldConsensusNode: MigrationCandidate = consensusNodes[plainConsensusNodeKey] as MigrationCandidate;
     let migratedState: string;
     switch (oldConsensusNode.state) {
       case 'requested': {
@@ -91,55 +93,58 @@ function migrateConsensusNodes(plainObject: MigrationCandidate): void {
         break;
       }
     }
-    const newConsensusNode: MigrationCandidate = {
-      id: oldConsensusNode.nodeId + 1,
-      namespace: oldConsensusNode.namespace,
-      cluster: oldConsensusNode.cluster,
-      phase: migratedState,
-    };
-    plainObject.state.consensusNodes.push({metadata: newConsensusNode});
+    migratedConsensusNodes.push({
+      metadata: {
+        id: (oldConsensusNode.nodeId as number) + 1,
+        namespace: oldConsensusNode.namespace,
+        cluster: oldConsensusNode.cluster,
+        phase: migratedState,
+      },
+    });
   }
+  state.consensusNodes = migratedConsensusNodes;
 }
 
-function migrateHaProxies(plainObject: MigrationCandidate): void {
-  plainObject.state.haProxies = [];
+function migrateHaProxies(state: MigrationCandidate): void {
+  state.haProxies = [];
 }
 
-function migrateEnvoyProxies(plainObject: MigrationCandidate): void {
-  plainObject.state.envoyProxies = [];
+function migrateEnvoyProxies(state: MigrationCandidate): void {
+  state.envoyProxies = [];
 }
 
-function migrateMirrorNodes(plainObject: MigrationCandidate): void {
-  plainObject.state.mirrorNodes = [];
+function migrateMirrorNodes(state: MigrationCandidate): void {
+  state.mirrorNodes = [];
 }
 
-function migrateExplorers(plainObject: MigrationCandidate): void {
-  plainObject.state.explorers = [];
+function migrateExplorers(state: MigrationCandidate): void {
+  state.explorers = [];
 }
 
-function migrateJsonRpcRelays(plainObject: MigrationCandidate): void {
-  plainObject.state.relayNodes = [];
+function migrateJsonRpcRelays(state: MigrationCandidate): void {
+  state.relayNodes = [];
 }
 
 function migrateState(plainObject: MigrationCandidate): void {
-  plainObject.state = {};
-  plainObject.state.ledgerPhase = LedgerPhase.UNINITIALIZED;
-  migrateConsensusNodes(plainObject);
-  migrateHaProxies(plainObject);
-  migrateEnvoyProxies(plainObject);
-  migrateMirrorNodes(plainObject);
-  migrateExplorers(plainObject);
-  migrateJsonRpcRelays(plainObject);
+  const state: MigrationCandidate = {ledgerPhase: LedgerPhase.UNINITIALIZED};
+  migrateConsensusNodes(plainObject, state);
+  migrateHaProxies(state);
+  migrateEnvoyProxies(state);
+  migrateMirrorNodes(state);
+  migrateExplorers(state);
+  migrateJsonRpcRelays(state);
+  plainObject.state = state;
 }
 
 function migrate(plainObject: MigrationCandidate): void {
   plainObject.schemaVersion = 0;
 
-  const meta: MigrationCandidate = plainObject.metadata;
+  const meta: MigrationCandidate = (plainObject.metadata as MigrationCandidate) ?? {};
   meta.lastUpdatedBy = {
     name: os.userInfo().username,
     hostname: os.hostname(),
   };
+  plainObject.metadata = meta;
 
   migrateClusters(plainObject);
   migrateVersions(plainObject);
@@ -165,22 +170,33 @@ function expectRemoteConfigClass(rc: RemoteConfigSchema): void {
   expect(rc.state.ledgerPhase).to.be.equal(LedgerPhase.UNINITIALIZED);
 }
 
-function expectRemoteConfigPlain(object: any): void {
+function expectRemoteConfigPlain(object: MigrationCandidate): void {
   expect(object).to.not.be.undefined.and.to.not.be.null;
-  expect(object.history.commands.length).to.be.equal(9);
-  expect(object.versions.cli).to.equal('0.34.0');
-  expect(object.versions.chart).to.equal('0.44.0');
-  expect(object.versions.consensusNode).to.equal('0.58.10');
-  expect(object.versions.mirrorNodeChart).to.equal('0.122.0');
-  expect(object.versions.explorerChart).to.equal('24.12.0');
-  expect(object.versions.jsonRpcRelayChart).to.equal('0.63.2');
-  expect(object.clusters.length).to.be.equal(1);
-  expect(object.state.consensusNodes.length).to.be.equal(4);
-  expect(object.state.consensusNodes[0].metadata.id).to.be.equal(1);
-  expect(object.state.consensusNodes[0].metadata.namespace).to.be.equal('solo-alpha-prod');
-  expect(object.state.consensusNodes[0].metadata.cluster).to.be.equal('gke-alpha-prod-us-central1');
-  expect(object.state.consensusNodes[0].metadata.phase).to.be.equal(DeploymentPhase.STARTED);
-  expect(object.state.ledgerPhase).to.be.equal(LedgerPhase.UNINITIALIZED);
+
+  const history: MigrationCandidate = object.history as MigrationCandidate;
+  expect((history.commands as unknown[]).length).to.be.equal(9);
+
+  const versions: MigrationCandidate = object.versions as MigrationCandidate;
+  expect(versions.cli).to.equal('0.34.0');
+  expect(versions.chart).to.equal('0.44.0');
+  expect(versions.consensusNode).to.equal('0.58.10');
+  expect(versions.mirrorNodeChart).to.equal('0.122.0');
+  expect(versions.explorerChart).to.equal('24.12.0');
+  expect(versions.jsonRpcRelayChart).to.equal('0.63.2');
+
+  const clusters: unknown[] = object.clusters as unknown[];
+  expect(clusters.length).to.be.equal(1);
+
+  const state: MigrationCandidate = object.state as MigrationCandidate;
+  const consensusNodes: MigrationCandidate[] = state.consensusNodes as MigrationCandidate[];
+  expect(consensusNodes.length).to.be.equal(4);
+
+  const firstConsensusNode: MigrationCandidate = consensusNodes[0].metadata as MigrationCandidate;
+  expect(firstConsensusNode.id).to.be.equal(1);
+  expect(firstConsensusNode.namespace).to.be.equal('solo-alpha-prod');
+  expect(firstConsensusNode.cluster).to.be.equal('gke-alpha-prod-us-central1');
+  expect(firstConsensusNode.phase).to.be.equal(DeploymentPhase.STARTED);
+  expect(state.ledgerPhase).to.be.equal(LedgerPhase.UNINITIALIZED);
 }
 
 describe('RemoteConfig', (): void => {

@@ -10,6 +10,7 @@ import {
 } from 'listr2';
 import path from 'node:path';
 import url from 'node:url';
+import {isSea} from 'node:sea';
 import {NamespaceName} from '../types/namespace/namespace-name.js';
 import {ContainerName} from '../integration/kube/resources/container/container-name.js';
 import {PathEx} from '../business/utils/path-ex.js';
@@ -36,7 +37,14 @@ export function getEnvironmentVariable(name: string): string | undefined {
   return undefined;
 }
 
-export const ROOT_DIR: string = PathEx.joinWithRealPath(path.dirname(url.fileURLToPath(import.meta.url)), '..', '..');
+// In SEA mode the bootstrap (sea/sea-main.template.cjs) sets SOLO_SEA_ROOT_DIR to
+// ~/.solo/sea-resources/<version>/ before any module initializes, so all
+// RESOURCES_DIR-based paths continue to resolve without code changes at each read site. Gated on
+// isSea() so a plain `npm i -g @hiero-ledger/solo` install can't have this env var silently
+// redirect where solo reads its bundled resources, CRDs, and Helm values from.
+export const ROOT_DIR: string =
+  (isSea() && process.env['SOLO_SEA_ROOT_DIR']) ||
+  PathEx.joinWithRealPath(path.dirname(url.fileURLToPath(import.meta.url)), '..', '..');
 
 // -------------------- solo related constants ---------------------------------------------------------------------
 export const SOLO_HOME_DIR: string =

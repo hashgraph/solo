@@ -30,7 +30,8 @@
     "test",
     "lint-formatter.ts",
     "scripts/docs/*.ts",
-    "scripts/*.ts"
+    "scripts/*.ts",
+    "sea"
   ],
   "ts-node": {
     "esm": true,

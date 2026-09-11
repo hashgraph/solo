@@ -235,18 +235,22 @@ export class K8ClientPod implements Pod {
       if (persist) {
         // When running via tsx (dev/test), __filename ends in .ts; use tsx to run the .ts source.
         // In a compiled build it ends in .js; use node to run the compiled .js.
+        // In a SEA binary, the script is extracted to SOLO_SEA_ROOT_DIR/scripts/ at startup.
         const isTsx: boolean = __filename.endsWith('.ts');
         const persistScriptExtension: string = isTsx ? '.ts' : '.js';
-        const useDirectNodeRuntime: boolean = isWindows;
-        let persistCmd: string = isTsx ? 'tsx' : 'node';
+        const seaRootDirectory: string | undefined = constants.getEnvironmentVariable('SOLO_SEA_ROOT_DIR');
+
+        // SEA binary cannot run external JS files (process.execPath points to the SEA itself),
+        // so fall back to 'node' from PATH. Requires node to be available on PATH in SEA mode.
+        const useDirectNodeRuntime: boolean = isWindows && !seaRootDirectory;
+        let persistCmd: string = !seaRootDirectory && isTsx ? 'tsx' : 'node';
         if (useDirectNodeRuntime) {
           persistCmd = process.execPath;
         }
         const persistRuntimeArguments: string[] = useDirectNodeRuntime && isTsx ? ['--import', 'tsx'] : [];
-        const persistPortForwardScriptPath: string = path.resolve(
-          __dirname,
-          `persist-port-forward${persistScriptExtension}`,
-        );
+        const persistPortForwardScriptPath: string = seaRootDirectory
+          ? path.join(seaRootDirectory, 'scripts', 'persist-port-forward.js')
+          : path.resolve(__dirname, `persist-port-forward${persistScriptExtension}`);
 
         cmd = persistCmd;
         cmdArguments = [
