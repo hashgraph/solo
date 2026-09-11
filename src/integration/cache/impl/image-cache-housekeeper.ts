@@ -12,8 +12,9 @@ import {PathEx} from '../../../business/utils/path-ex.js';
  * Repairs the image cache directory before a pull writes into it: entries left behind by the registry-pull
  * cache model are migrated away and files the current manifest does not list are pruned.
  *
- * Nothing here downloads, verifies or loads an archive. The handler that owns those paths calls this class
- * first and reports every file it removed, so the two concerns stay in separate files.
+ * Nothing here downloads, verifies or loads an archive, and nothing here throws for a single file: every
+ * removal, and every removal that failed, is reported through the maintenance callback so the end-of-run
+ * summary spells out what solo did on the user's behalf, and a file solo cannot delete never costs a deploy.
  */
 export class ImageCacheHousekeeper {
   /** Extension of the file holding an archive's published hash, stored next to the archive. */
@@ -22,7 +23,10 @@ export class ImageCacheHousekeeper {
   /** Extension of an image archive in the local cache. */
   public static readonly ARCHIVE_FILE_EXTENSION: string = '.tar';
 
-  public constructor(private readonly store: CacheCatalogStore) {}
+  public constructor(
+    private readonly store: CacheCatalogStore,
+    private readonly recordMaintenance: (message: string) => void,
+  ) {}
 
   /**
    * Removes the image cache entries an older Solo version wrote, so the first pull after an upgrade starts
@@ -34,6 +38,10 @@ export class ImageCacheHousekeeper {
    * therefore an entry of the old model: it cannot be verified now, it cannot be verified later, and the
    * epic requires that only verified archives are loaded into a cluster. It is deleted, and the pull that
    * follows downloads the published archive for that image in the same run.
+   *
+   * Only ever called with a manifest that resolved, for the same reason as {@link pruneStaleFiles}: without
+   * one nothing would replace the removed archive, and an archive with no manifest entry still loads, so
+   * deleting it would only cost the user a cache that works.
    *
    * The rule is the layout rather than a file name, which is what makes this safe to run on every pull:
    * every archive the new model writes gets its hash file first, so a current entry is never mistaken for a
@@ -60,8 +68,16 @@ export class ImageCacheHousekeeper {
       // fileName is a single directory entry, so the join can only ever address a file inside the image
       // cache directory itself.
       const filePath: string = PathEx.join(this.resolveImageCacheDirectory(targets), fileName);
-      await fs.rm(filePath, {force: true});
-      migrated.push(filePath);
+
+      if (
+        await this.remove(
+          filePath,
+          'Removed an image archive cached by an older version of solo, which published no hash to verify it ' +
+            'against; the published archive is downloaded in its place',
+        )
+      ) {
+        migrated.push(filePath);
+      }
     }
 
     return migrated;
@@ -92,11 +108,34 @@ export class ImageCacheHousekeeper {
       // entry.name is a single directory entry, so the join can only ever address a file inside the
       // image cache directory itself.
       const filePath: string = PathEx.join(this.resolveImageCacheDirectory(targets), entry.name);
-      await fs.rm(filePath, {force: true});
-      pruned.push(filePath);
+
+      if (await this.remove(filePath, 'Pruned stale image cache file, not listed in the manifest')) {
+        pruned.push(filePath);
+      }
     }
 
     return pruned;
+  }
+
+  /**
+   * Removes one cache file and reports the outcome either way. A missing file counts as removed; a file the
+   * process cannot delete (locked, EPERM, EACCES) is reported and left in place rather than raised, because
+   * the pull runs inside the one-shot deploy and a leftover file is not worth stopping it for.
+   *
+   * @returns whether the file is gone
+   */
+  private async remove(filePath: string, description: string): Promise<boolean> {
+    try {
+      await fs.rm(filePath, {force: true});
+    } catch (error) {
+      // best-effort: report the file solo could not delete and carry on with the rest of the cache
+      const reason: string = error instanceof Error ? error.message : String(error);
+      this.recordMaintenance(`Could not remove image cache file, left in place: ${filePath} (${reason})`);
+      return false;
+    }
+
+    this.recordMaintenance(`${description}: ${filePath}`);
+    return true;
   }
 
   /**

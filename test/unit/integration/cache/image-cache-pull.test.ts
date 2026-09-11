@@ -330,13 +330,40 @@ describe('ImageCacheHandler pull', (): void => {
     await expect(createHandler(stubDownloader({})).pull()).to.be.rejectedWith('EACCES');
   });
 
-  it('removes an archive cached by an older solo version even without a manifest', async (): Promise<void> => {
+  it('leaves an archive cached by an older solo version alone when the manifest is unavailable', async (): Promise<void> => {
+    // Nothing could replace it, and with no manifest entry the load path still accepts it.
     await fs.writeFile(archivePath, 'an archive exported from a local container engine');
     sinon.stub(CacheManifestClient, 'fetchImages').rejects(new Error('manifest not published'));
 
     await runPull(createHandler(stubDownloader({})));
 
-    expect(await exists(archivePath)).to.equal(false);
+    expect(await exists(archivePath)).to.equal(true);
+  });
+
+  it('reports a file it cannot remove and still caches the rest', async (): Promise<void> => {
+    const staleArchive: string = PathEx.join(temporaryDirectory, 'docker.io__library__busybox__1.35.0.tar');
+    await fs.writeFile(staleArchive, 'an archive from an older solo version');
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const realRm: typeof fs.rm = fs.rm;
+    sinon.stub(fs, 'rm').callsFake(async (path, options): Promise<void> => {
+      if (path === staleArchive) {
+        throw Object.assign(new Error('EPERM: operation not permitted'), {code: 'EPERM'});
+      }
+      await realRm(path, options);
+    });
+    const fetchFile: SinonStub = stubDownloader({
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}`]: ARCHIVE_CONTENTS,
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`]: ARCHIVE_HASH,
+    });
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(await exists(staleArchive)).to.equal(true);
+    expect(loggerStub.addMessageGroupMessage).to.have.been.calledWithMatch(
+      sinon.match.string,
+      sinon.match('Could not remove').and(sinon.match(staleArchive)),
+    );
+    expect(context.config.results).to.have.lengthOf(1);
   });
 
   it('finds nothing to migrate on a second run', async (): Promise<void> => {

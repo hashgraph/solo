@@ -43,7 +43,7 @@ export class ImageCacheHandler implements CacheOperationHandler {
     this.inspector = patchInject(inspector, InjectTokens.CacheHealthInspector, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.downloader = patchInject(downloader, InjectTokens.PackageDownloader, this.constructor.name);
-    this.housekeeper = new ImageCacheHousekeeper(this.store);
+    this.housekeeper = new ImageCacheHousekeeper(this.store, (message): void => this.recordMaintenance(message));
   }
 
   public getType(): CacheArtifactEnum {
@@ -73,28 +73,18 @@ export class ImageCacheHandler implements CacheOperationHandler {
    * from the CDN and the archive is accepted only when its computed SHA-256, the manifest hash, and the
    * published hash file all agree.
    *
-   * Entries left behind by the registry-pull cache model are migrated away first and files left over from an
-   * older Solo version are pruned next, so the cache only ever holds what the current manifest lists.
+   * Once the manifest has resolved, entries left behind by the registry-pull cache model are migrated away
+   * and files the manifest does not list are pruned, so the cache only ever holds what the current manifest
+   * lists. Without a manifest the cache is left exactly as it is: there is nothing to replace a removed
+   * archive with, and an archive with no manifest entry still loads.
    *
-   * Nothing here aborts the run: an image that cannot be cached is reported in the end-of-run summary and
-   * left for the cluster to pull from its registry. The one exception is a cache directory that exists but
-   * cannot be read, which is raised rather than silently skipping the housekeeping.
+   * Nothing here aborts the run: an image that cannot be cached, and a file that could not be removed, are
+   * reported in the end-of-run summary and the image is left for the cluster to pull from its registry. The
+   * one exception is a cache directory that exists but cannot be read, which is raised rather than silently
+   * skipping the housekeeping.
    */
   public async pull(): Promise<SoloListrTask<AnyListrContext>[]> {
     const targets: readonly CacheTarget[] = await this.resolveRequiredArtifacts();
-
-    // Housekeeping runs here rather than as a task in the list returned below, because the command runs
-    // those tasks concurrently: a download that started before the cache was migrated would rehash the
-    // legacy archive, report it as a corrupted cache entry and leave the image uncached for the rest of the
-    // run, instead of quietly replacing it. Doing the work up front makes the order unconditional.
-    const migrated: readonly string[] = await this.housekeeper.migrateLegacyEntries(targets);
-
-    for (const filePath of migrated) {
-      this.recordMaintenance(
-        'Removed an image archive cached by an older version of solo, which published no hash to verify it ' +
-          `against; the published archive is downloaded in its place: ${filePath}`,
-      );
-    }
 
     let manifestImages: ReadonlyMap<string, CacheManifestImage>;
     try {
@@ -104,7 +94,6 @@ export class ImageCacheHandler implements CacheOperationHandler {
       this.logger.error('Failed to read the image cache manifest:', error);
 
       return [
-        ImageCacheHandler.buildHousekeepingTask(migrated, []),
         {
           title: 'Download image archives',
           task: (_, task): void => {
@@ -117,11 +106,12 @@ export class ImageCacheHandler implements CacheOperationHandler {
       ];
     }
 
+    // Housekeeping runs here rather than as a task in the list returned below, because the command runs
+    // those tasks concurrently: a download that started before the cache was migrated would rehash the
+    // legacy archive, report it as a corrupted cache entry and leave the image uncached for the rest of the
+    // run, instead of quietly replacing it. Doing the work up front makes the order unconditional.
+    const migrated: readonly string[] = await this.housekeeper.migrateLegacyEntries(targets);
     const pruned: readonly string[] = await this.housekeeper.pruneStaleFiles(targets, manifestImages);
-
-    for (const filePath of pruned) {
-      this.recordMaintenance(`Pruned stale image cache file, not listed in the manifest: ${filePath}`);
-    }
 
     const pullTasks: SoloListrTask<AnyListrContext>[] = targets.map((target): SoloListrTask<AnyListrContext> => {
       const reference: string = `${target.name}:${target.version}`;
