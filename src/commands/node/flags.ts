@@ -304,12 +304,19 @@ export const START_FLAGS: CommandFlags = {
     flags.nodeAliasesUnparsed,
     flags.debugNodeAlias,
     flags.stateFile,
+    flags.transplant,
     flags.stakeAmounts,
     flags.forcePortForward,
     flags.externalAddress,
     flags.wrapsKeyPath,
     flags.grpcWebEndpoints,
     flags.skipGrpcWebEndpoint,
+    // The override roster --transplant writes describes the endpoints these three define. Solo does not
+    // persist what `consensus node setup` was given, so a transplant into a network that overrode them
+    // has to be given the same values again, or the roster would be written on the defaults.
+    flags.domainNames,
+    flags.gossipEndpointPort,
+    flags.serviceEndpointPort,
   ],
 };
 

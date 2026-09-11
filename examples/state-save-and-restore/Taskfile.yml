@@ -16,6 +16,11 @@ vars:
   DEPLOYMENT: "state-restore-deployment"
   NAMESPACE: "state-restore-namespace"
 
+  # Transplant Configuration
+  # A second network, keyed independently of the one above, that the saved state is transplanted into.
+  TRANSPLANT_DEPLOYMENT: "state-transplant-deployment"
+  TRANSPLANT_NAMESPACE: "state-transplant-namespace"
+
   # Cluster Configuration
   CLUSTER_NAME: "state-restore-cluster"
   CONTEXT: "kind-state-restore-cluster"
@@ -54,6 +59,10 @@ tasks:
       - cmd: echo "⏳ Waiting 10 seconds before restore..."
       - cmd: sleep 10
       - task: restore
+      - cmd: echo ""
+      - cmd: echo "⏳ Waiting 10 seconds before transplant..."
+      - cmd: sleep 10
+      - task: transplant
       - cmd: echo ""
       - cmd: echo "🎉 Complete workflow finished successfully!"
       - cmd: echo "Run 'task destroy' to clean up resources"
@@ -302,6 +311,52 @@ tasks:
       - cmd: $SOLO_COMMAND consensus network freeze --deployment {{ .DEPLOYMENT }}
       - cmd: echo "✅ Network frozen"
 
+
+  # ==================== State Transplant Tasks ====================
+
+  transplant:
+    desc: Start a separately keyed network from the saved state and verify it adopted the generated roster
+    cmds:
+      - task: deploy-transplant-target
+      - task: start-transplant
+      - task: verify-transplant
+      - cmd: echo "✅ State transplanted into a different network!"
+
+  deploy-transplant-target:
+    desc: Deploy a second network with its own keys, stopping before start
+    cmds:
+      - cmd: echo "Deploying transplant target network..."
+      - cmd: $SOLO_COMMAND deployment config create --namespace {{ .TRANSPLANT_NAMESPACE }} --deployment {{ .TRANSPLANT_DEPLOYMENT }} --realm 0 --shard 0
+      - cmd: $SOLO_COMMAND deployment cluster attach --cluster-ref {{ .CLUSTER_REF }} --deployment {{ .TRANSPLANT_DEPLOYMENT }} --num-consensus-nodes {{ .NETWORK_SIZE }}
+      # Keys are generated here rather than copied from the source, so the roster embedded in the saved
+      # state cannot match this network. That mismatch is what override-network.json has to resolve, and it
+      # is what keeps the verification below meaningful rather than vacuous.
+      - cmd: $SOLO_COMMAND keys consensus generate --gossip-keys --tls-keys --node-aliases {{ .NODE_ALIASES }} --deployment {{ .TRANSPLANT_DEPLOYMENT }}
+      - cmd: $SOLO_COMMAND consensus network deploy --deployment {{ .TRANSPLANT_DEPLOYMENT }} --node-aliases {{ .NODE_ALIASES }}
+      - cmd: $SOLO_COMMAND consensus node setup --deployment {{ .TRANSPLANT_DEPLOYMENT }} --node-aliases {{ .NODE_ALIASES }}
+      - cmd: echo "✅ Transplant target deployed"
+
+  start-transplant:
+    desc: Start the target network from the state captured on the source network
+    cmds:
+      # --transplant is what asks solo to install this network's roster as override-network.json. Without it
+      # the state's own roster is left in place, which is correct only when restoring a network's own state.
+      - cmd: |
+          $SOLO_COMMAND consensus node start --deployment {{ .TRANSPLANT_DEPLOYMENT }} \
+            --node-aliases {{ .NODE_ALIASES }} --transplant \
+            --state-file "{{ .STATE_SAVE_DIR }}/{{ .NAMESPACE }}/network-node1-0-state.zip"
+
+  verify-transplant:
+    desc: Assert the consensus node consumed the generated override-network.json
+    cmds:
+      - cmd: bash {{ .TASKFILE_DIR }}/scripts/verify-override-network.sh {{ .TRANSPLANT_NAMESPACE }} {{ .NAMESPACE }}
+
+  destroy-transplant:
+    desc: Remove the transplant target network
+    cmds:
+      - cmd: kubectl delete namespace {{ .TRANSPLANT_NAMESPACE }} --ignore-not-found=true --timeout=180s || true
+      - cmd: $SOLO_COMMAND deployment config delete --deployment {{ .TRANSPLANT_DEPLOYMENT }} -q || true
+      - cmd: echo "✅ Transplant target destroyed"
 
   destroy-database:
     desc: Destroy external database

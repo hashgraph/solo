@@ -64,6 +64,7 @@ import {NodeCommandTasks} from './node/tasks.js';
 import {ContainerName} from '../integration/kube/resources/container/container-name.js';
 import {ConsensusCommandDefinition} from './command-definitions/consensus-command-definition.js';
 import {OneShotCommandDefinition} from './command-definitions/one-shot-command-definition.js';
+import {ConsensusNodePathTemplates} from '../core/consensus-node-path-templates.js';
 
 interface UpdateAccountConfig {
   accountId: string;
@@ -833,9 +834,9 @@ export class AccountCommand extends BaseCommand {
                           'rm -rf /opt/hgcapp/recordStreams/* /opt/hgcapp/recordStreams/.[!.]* /opt/hgcapp/recordStreams/..?*; ' +
                           'rm -rf /opt/hgcapp/eventsStreams/* /opt/hgcapp/eventsStreams/.[!.]* /opt/hgcapp/eventsStreams/..?*; ' +
                           'rm -rf /opt/hgcapp/blockStreams/* /opt/hgcapp/blockStreams/.[!.]* /opt/hgcapp/blockStreams/..?*; ' +
-                          `if [ -f ${constants.HEDERA_HAPI_PATH}/data/config/.archive/genesis-network.json ]; then ` +
-                          `cp ${constants.HEDERA_HAPI_PATH}/data/config/.archive/genesis-network.json ${constants.HEDERA_HAPI_PATH}/data/config/genesis-network.json; ` +
-                          `else echo "ERROR: missing ${constants.HEDERA_HAPI_PATH}/data/config/.archive/genesis-network.json" >&2; exit 1; fi`,
+                          `if [ -f ${ConsensusNodePathTemplates.ARCHIVE_GENESIS_NETWORK_JSON} ]; then ` +
+                          `cp ${ConsensusNodePathTemplates.ARCHIVE_GENESIS_NETWORK_JSON} ${ConsensusNodePathTemplates.GENESIS_NETWORK_JSON}; ` +
+                          `else echo "ERROR: missing ${ConsensusNodePathTemplates.ARCHIVE_GENESIS_NETWORK_JSON}" >&2; exit 1; fi`,
                       ]);
                   },
                 });

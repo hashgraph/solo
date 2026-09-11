@@ -486,6 +486,9 @@ deleteme.yaml
 /test/data/proto/services/
 /test/data/proto/streams/
 /examples/running-solo-inside-cluster/.task-tmp
+# Output of the state-save-and-restore example: downloaded consensus state and a database dump, both
+# multi-megabyte and regenerated on every run.
+/examples/state-save-and-restore/saved-states/
 /.codacy/cli.sh
 /.codacy/codacy.yaml
 .task/checksum/

@@ -604,6 +604,9 @@ export const NETWORK_DESTROY_WAIT_TIMEOUT: number = +getEnvironmentVariable('NET
 
 export const DEFAULT_LOCAL_CONFIG_FILE: string = 'local-config.yaml';
 export const NODE_OVERRIDE_FILE: string = 'node-overrides.yaml';
+export const GENESIS_NETWORK_FILE: string = 'genesis-network.json';
+/** Same contents as {@link GENESIS_NETWORK_FILE}; replaces the roster carried by a restored state. */
+export const OVERRIDE_NETWORK_FILE: string = 'override-network.json';
 
 export const NODES_STARTED_EVENT_TIMEOUT_MINUTES: number =
   +getEnvironmentVariable('NODES_STARTED_EVENT_TIMEOUT_MINUTES') || 30;

@@ -1,6 +1,6 @@
 # State Save and Restore Example
 
-This example demonstrates how to save network state from a running Solo network, recreate a new network, and load the saved state with a mirror node using an external PostgreSQL database.
+This example demonstrates how to save network state from a running Solo network, recreate a new network, and load the saved state with a mirror node using an external PostgreSQL database. It then reuses that same saved state to demonstrate a **network transplant** — starting a *different*, separately keyed network from it.
 
 ## What it does
 
@@ -11,6 +11,8 @@ This example demonstrates how to save network state from a running Solo network,
 * Destroys the initial network
 * Creates a new network with the same configuration
 * Restores the saved state and database to the new network
+* Transplants the same state into a second network whose keys were generated independently, and verifies
+  that the consensus node adopted the roster Solo generated for it
 
 ## Getting This Example
 
@@ -39,7 +41,7 @@ Browse the source code and configuration files for this example in the [GitHub r
 ### Run Complete Workflow (One Command)
 
 ```bash
-task               # Run entire workflow: setup → save → restore
+task               # Run entire workflow: setup → save → restore → transplant
 task destroy       # Cleanup when done
 ```
 
@@ -49,6 +51,7 @@ task destroy       # Cleanup when done
 task setup          # 1. Deploy network with external database (5-10 min)
 task save-state     # 2. Save state and database (2-5 min)
 task restore        # 3. Recreate and restore (3-5 min)
+task transplant     # 4. Transplant the state into a separately keyed network (10-15 min)
 task destroy        # 5. Cleanup
 ```
 
@@ -109,11 +112,16 @@ This will delete the Kind cluster and clean up all resources.
 
 ## Available Tasks
 
-* `default` (or just `task`) - Run complete workflow: setup → save-state → restore
+* `default` (or just `task`) - Run complete workflow: setup → save-state → restore → transplant
 * `setup` - Deploy initial network with external PostgreSQL database
 * `save-state` - Download consensus node state and export database
 * `restore` - Recreate network and restore state with database
 * `verify-state` - Verify restored state matches original
+* `transplant` - Start a separately keyed network from the saved state and verify the generated roster
+* `deploy-transplant-target` - Deploy the transplant target network, stopping before start
+* `start-transplant` - Start the target network with `--transplant`
+* `verify-transplant` - Assert the consensus node consumed `override-network.json`
+* `destroy-transplant` - Remove the transplant target network
 * `destroy` - Delete cluster and clean up all resources
 * `clean-state` - Remove saved state files
 
@@ -179,6 +187,41 @@ The `init.sh` script sets up the PostgreSQL database with:
 6. **Mirror Node**: Deploys mirror node connected to restored database and seeds initial data
 7. **Verification**: Checks that restored state matches original
 
+### Network Transplant Process
+
+Restoring a network's own state, above, keeps the roster carried by that state. A **transplant** is the
+other case: starting a *different* network from it.
+
+A saved state embeds the address book of the network it came from — node IDs, gossip and service
+endpoints, and public keys. Started naively from that state, the target network would try to *be* the
+source network: it would gossip to endpoints that do not exist and present certificates that do not match
+its own private keys, failing with `The signing certificate does not match the signing private key`.
+
+Solo resolves this by writing `override-network.json` into `data/config`, where the consensus node looks
+for it. The file describes the roster the target network is actually running with, and it is generated
+from the live deployment rather than a snapshot, so it stays correct when nodes are added or updated.
+
+This only happens when you ask for it, with `--transplant` on `consensus node start`. That matters:
+restoring a network's own state must leave the roster in the state alone, and replacing it there forces a
+roster transition the consensus node cannot replay past. `--transplant` is the statement that the state
+came from somewhere else. Passing `--transplant` without `--state-file` is rejected rather than silently
+ignored.
+
+Because `deploy-transplant-target` generates the target network's keys independently, its roster genuinely
+differs from the one in the state. The target reaching a healthy running state is therefore only possible
+if the override was written, readable and consumed — which is what makes `verify-transplant` meaningful
+rather than vacuous. `scripts/verify-override-network.sh` asserts, against the target network's pod:
+
+1. the node logged `Parsed OVERRIDE network info` — the node itself confirming it read the file
+2. no `AccessDeniedException` for the override — it must be owned by the `hedera` user the node runs as,
+   not by root
+3. the consumed roster names the target namespace and not the source one
+4. the node is running with no signing-certificate mismatch
+
+Assertion 1 is the load-bearing one. Note that the consensus node **moves** the file into
+`data/config/.archive/<round>/override-network.json` once it has been consumed, so checking for the file
+at `data/config/override-network.json` after a successful start would fail against a working system.
+
 ## Notes
 
 * State files can be large (several GB per node) depending on network activity
@@ -221,7 +264,8 @@ ls -lh ./saved-states/
 * Initial setup: 5-10 minutes
 * State download: 2-5 minutes (depends on state size)
 * Network restoration: 3-5 minutes
-* Total workflow: ~15-20 minutes
+* Network transplant: 10-15 minutes
+* Total workflow: ~20-25 minutes
 
 ## File Sizes
 

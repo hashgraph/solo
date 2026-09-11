@@ -460,6 +460,20 @@ export class Flags {
     },
   };
 
+  public static readonly transplant: CommandFlag = {
+    constName: 'transplant',
+    name: 'transplant',
+    definition: {
+      describe:
+        'Treat the supplied state file as captured on a different network.' +
+        "\nInstalls this network's address book as override-network.json so the consensus node adopts it" +
+        " instead of the roster carried by the state. Leave unset when restoring a network's own state.",
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
   public static readonly upgradeZipFile: CommandFlag = {
     constName: 'upgradeZipFile',
     name: 'upgrade-zip-file',
@@ -2894,6 +2908,7 @@ export class Flags {
     Flags.stakeAmounts,
     Flags.stateFile,
     Flags.storageType,
+    Flags.transplant,
     Flags.gcsWriteAccessKey,
     Flags.gcsWriteSecrets,
     Flags.gcsEndpoint,
