@@ -325,6 +325,10 @@ const createHarness: (sandbox: SinonSandbox) => Promise<ExplorerHarness> = async
       };
       return (): Record<string, unknown> => ingressClassesStubs;
     })(),
+    secrets: ((): (() => Record<string, unknown>) => {
+      const secretsStubs: Record<string, unknown> = {delete: sandbox.stub().resolves(true)};
+      return (): Record<string, unknown> => secretsStubs;
+    })(),
     namespaces: (): Record<string, unknown> => ({has: sandbox.stub().resolves(true)}),
   };
 
@@ -693,6 +697,10 @@ describe('ExplorerCommand unit tests', (): void => {
     expect(uninstallStub.getCall(0).args[1]).to.equal(createReleaseName(1));
     expect(uninstallStub.getCall(1).args[1]).to.equal(ingressReleaseName);
     sinon.assert.calledOnceWithMatch(ingressClassesDeleteStub, ingressReleaseName);
+
+    const secretsClient: Record<string, unknown> = (kubernetesClient.secrets as () => Record<string, unknown>)();
+    const secretsDeleteStub: SinonStub = secretsClient.delete as SinonStub;
+    sinon.assert.calledOnceWithMatch(secretsDeleteStub, sinon.match.any, constants.EXPLORER_INGRESS_TLS_SECRET_NAME);
 
     const components: Record<string, unknown> = (harness.remoteConfig.configuration as Record<string, unknown>)
       .components as Record<string, unknown>;
