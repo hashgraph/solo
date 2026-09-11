@@ -161,6 +161,9 @@ jobs:
 
       - name: Launch Network with Prior Release ${{ steps.get-version.outputs.from_solo_version }}
         timeout-minutes: 60
+        env:
+          FROM_SOLO_VERSION: ${{ steps.get-version.outputs.from_solo_version }}
+          TO_CONSENSUS_NODE_VERSION: ${{ steps.get-version.outputs.to_consensus_node_version }}
         run: |
           export PATH=~/.solo/bin:${PATH}
           echo "Configure APT to use main Ubuntu archive (disable mirror rotation)..."
@@ -195,15 +198,15 @@ jobs:
           trap cleanup SIGTERM SIGINT
 
           .github/workflows/script/launch_network.sh \
-            "${{ steps.get-version.outputs.from_solo_version }}" \
-            "${{ steps.get-version.outputs.to_consensus_node_version }}" &
+            "${FROM_SOLO_VERSION}" \
+            "${TO_CONSENSUS_NODE_VERSION}" &
           SCRIPT_PID=$!
           wait "${SCRIPT_PID}" || RC=$?
           SCRIPT_PID=""
           trap - SIGTERM SIGINT
 
           if [[ "$RC" != "0" ]]; then
-            echo "Failed to launch network with release version ${{ steps.get-version.outputs.from_solo_version }}"
+            echo "Failed to launch network with release version ${FROM_SOLO_VERSION}"
             exit $RC
           fi
 

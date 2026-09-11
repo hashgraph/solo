@@ -423,34 +423,42 @@ jobs:
       - name: Run Example Test - ${{ matrix.example.name }}
         timeout-minutes: 45
         working-directory: ${{ steps.prepare_example.outputs.run_dir }}
+        env:
+          EXAMPLE_NAME: ${{ matrix.example.name }}
+          DISPLAY_DIR: ${{ steps.prepare_example.outputs.display_dir }}
+          USE_RELEASE_EXAMPLE_ZIP: ${{ inputs.use-release-example-zip || 'false' }}
+          RELEASED_OR_LATEST: ${{ inputs.released-or-latest || 'false' }}
+          MATRIX_ONE_SHOT_WITH_BLOCK_NODE: ${{ matrix.example.one-shot-with-block-node }}
+          MATRIX_BLOCK_NODE_ENABLED: ${{ matrix.example.block-node-enabled }}
+          EXAMPLE_DIRECTORY: ${{ matrix.example.directory }}
         run: |
           export PATH=~/.solo/bin:${PATH}
-          echo "Running example: ${{ matrix.example.name }}"
-          echo "Resolved example source: ${{ steps.prepare_example.outputs.display_dir }}"
+          echo "Running example: ${EXAMPLE_NAME}"
+          echo "Resolved example source: ${DISPLAY_DIR}"
           echo "Current directory: $(pwd)"
 
           # Export environment variables for Taskfile.
           # Release ZIP examples are not executed from the Solo repo checkout, so they must use released Solo CLI.
-          if [ "${{ inputs.use-release-example-zip || 'false' }}" = "true" ]; then
+          if [ "${USE_RELEASE_EXAMPLE_ZIP}" = "true" ]; then
             export USE_RELEASED_VERSION="true"
           else
-            export USE_RELEASED_VERSION="${{ inputs.released-or-latest || 'false' }}"
+            export USE_RELEASED_VERSION="${RELEASED_OR_LATEST}"
           fi
           echo "USE_RELEASED_VERSION: $USE_RELEASED_VERSION"
 
-          if [ "${{ matrix.example.one-shot-with-block-node }}" != "" ] && [ "${{ matrix.example.one-shot-with-block-node }}" != "null" ]; then
-            export ONE_SHOT_WITH_BLOCK_NODE="${{ matrix.example.one-shot-with-block-node }}"
+          if [ "${MATRIX_ONE_SHOT_WITH_BLOCK_NODE}" != "" ] && [ "${MATRIX_ONE_SHOT_WITH_BLOCK_NODE}" != "null" ]; then
+            export ONE_SHOT_WITH_BLOCK_NODE="${MATRIX_ONE_SHOT_WITH_BLOCK_NODE}"
             echo "ONE_SHOT_WITH_BLOCK_NODE: ${ONE_SHOT_WITH_BLOCK_NODE}"
           fi
 
-          if [ "${{ matrix.example.block-node-enabled }}" != "" ] && [ "${{ matrix.example.block-node-enabled }}" != "null" ]; then
-            export BLOCK_NODE_ENABLED="${{ matrix.example.block-node-enabled }}"
+          if [ "${MATRIX_BLOCK_NODE_ENABLED}" != "" ] && [ "${MATRIX_BLOCK_NODE_ENABLED}" != "null" ]; then
+            export BLOCK_NODE_ENABLED="${MATRIX_BLOCK_NODE_ENABLED}"
             echo "BLOCK_NODE_ENABLED: ${BLOCK_NODE_ENABLED}"
           fi
 
           # Check if Taskfile.yml exists
           if [ ! -f "Taskfile.yml" ]; then
-            echo "Warning: No Taskfile.yml found in ${{ matrix.example.directory }}"
+            echo "Warning: No Taskfile.yml found in ${EXAMPLE_DIRECTORY}"
             exit 1
           fi
 
@@ -501,7 +509,7 @@ jobs:
           echo "Always collecting deployment diagnostics logs after task completion..."
           cd ../..
           npm run solo-test -- deployment diagnostics logs -q --dev || true
-          cd "examples/${{ matrix.example.directory }}"
+          cd "examples/${EXAMPLE_DIRECTORY}"
 
           if [ "${TASK_RC}" -ne 0 ]; then
             echo "Task failed with exit code ${TASK_RC}."

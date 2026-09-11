@@ -147,10 +147,12 @@ jobs:
         id: validate_ubuntu_wsl_installer
         shell: pwsh
         timeout-minutes: 1
+        env:
+          CACHE_HIT: ${{ steps.restore_ubuntu_wsl_installer.outputs.cache-hit }}
         run: |
           $cacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE "Ubuntu\$env:WSL_UBUNTU_VERSION\x64"
           $installerPath = Join-Path $cacheDirectory $env:WSL_UBUNTU_INSTALLER_FILE
-          $cacheHit = '${{ steps.restore_ubuntu_wsl_installer.outputs.cache-hit }}'
+          $cacheHit = $env:CACHE_HIT
           $valid = $false
           $validationResult = 'cache miss'
 

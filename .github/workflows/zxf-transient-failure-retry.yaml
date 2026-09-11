@@ -22,7 +22,15 @@
 name: 'ZXF: Transient Failure Retry'
 
 on:
-  workflow_run:
+  # workflow_run is required here, not incidental: GitHub only exposes a completed upstream
+  # run's jobs and logs through this trigger, and the retry endpoint needs the run ID from
+  # its payload. The trigger is only dangerous when a workflow checks out or executes the
+  # triggering run's code, or restores its artifacts, with the elevated token that comes
+  # with it - this workflow does neither. It has no actions/checkout step, downloads no
+  # artifacts, and only reads job metadata and text logs through the API (matched against
+  # fixed regexes, never executed) before calling the rerun-failed-jobs endpoint with the
+  # default, minimally-scoped github.token. Do not add a checkout step here.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows:
       - 'PR Checks'
       - 'Test Examples'

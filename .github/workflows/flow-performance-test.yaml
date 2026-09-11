@@ -365,17 +365,21 @@ jobs:
       - name: Write Runner Resource Usage to Workflow Summary
         if: ${{ !cancelled() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          CHART_GENERATED: ${{ steps.generate-chart.outputs.chart_generated }}
+          GENERATED_CHART_FILE: ${{ steps.generate-chart.outputs.chart_file }}
+          GENERATED_MERMAID_FILE: ${{ steps.generate-chart.outputs.mermaid_file }}
         run: |
           echo "## Runner Resource Usage — Performance Test" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ steps.generate-chart.outputs.chart_generated }}" == "true" ]]; then
-            CHART_FILE="${{ steps.generate-chart.outputs.chart_file }}"
+          if [[ "${CHART_GENERATED}" == "true" ]]; then
+            CHART_FILE="${GENERATED_CHART_FILE}"
             if [[ -f "$CHART_FILE" ]]; then
               echo '```' >> $GITHUB_STEP_SUMMARY
               cat "$CHART_FILE" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
             fi
-            MERMAID_FILE="${{ steps.generate-chart.outputs.mermaid_file }}"
+            MERMAID_FILE="${GENERATED_MERMAID_FILE}"
             if [[ -n "$MERMAID_FILE" && -f "$MERMAID_FILE" ]]; then
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "### Pod Memory Distribution by Category" >> $GITHUB_STEP_SUMMARY
@@ -393,13 +397,15 @@ jobs:
         env:
           LOG_FILE: "${{ steps.log-metrics.outputs.solo_log_dir }}/log_file.md"
           JSON_INPUT: "${{ toJSON(fromJSON(steps.log-metrics.outputs.json_log)) }}"
+          CHART_GENERATED: ${{ steps.generate-chart.outputs.chart_generated }}
+          GENERATED_CHART_FILE: ${{ steps.generate-chart.outputs.chart_file }}
         run: |
           echo "## Log Metrics - Performance Test" >> $LOG_FILE
           echo "" >> $LOG_FILE
 
           # Add ASCII resource chart if available
-          if [[ "${{ steps.generate-chart.outputs.chart_generated }}" == "true" ]]; then
-            CHART_FILE="${{ steps.generate-chart.outputs.chart_file }}"
+          if [[ "${CHART_GENERATED}" == "true" ]]; then
+            CHART_FILE="${GENERATED_CHART_FILE}"
             if [[ -f "$CHART_FILE" ]]; then
               echo "<details>" >> $LOG_FILE
               echo "<summary>📊 Runner Resource Usage</summary>" >> $LOG_FILE
@@ -426,15 +432,19 @@ jobs:
       - name: Write Log Metrics to Workflow Summary
         if: ${{ !cancelled() && steps.log-metrics-file.conclusion == 'success' }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          LOG_METRICS_FILE: ${{ steps.log-metrics-file.outputs.log_file }}
         run: |
-          cat "${{ steps.log-metrics-file.outputs.log_file }}" >> $GITHUB_STEP_SUMMARY
+          cat "${LOG_METRICS_FILE}" >> $GITHUB_STEP_SUMMARY
 
       - name: Read Pod Memory Category Table
         id: pod-categories
         if: ${{ !cancelled() && steps.generate-chart.outputs.categories_file != '' }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          GENERATED_CATEGORIES_FILE: ${{ steps.generate-chart.outputs.categories_file }}
         run: |
-          CATEGORIES_FILE="${{ steps.generate-chart.outputs.categories_file }}"
+          CATEGORIES_FILE="${GENERATED_CATEGORIES_FILE}"
           if [[ -f "$CATEGORIES_FILE" ]]; then
             {
               echo "content<<EOF_CATEGORIES"

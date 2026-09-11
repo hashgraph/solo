@@ -108,9 +108,11 @@ jobs:
       - name: Create Bucket Name and Prefix
         if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          JOB_ID: ${{ steps.jobs.outputs.job_id }}
         run: |
           export BUCKET_NAME="solo-ci-test-streams"
-          export PREFIX=${{ steps.jobs.outputs.job_id }}
+          export PREFIX="${JOB_ID}"
 
           echo "BUCKET_NAME=${BUCKET_NAME}" >> $GITHUB_ENV
           echo "PREFIX=${PREFIX}" >> $GITHUB_ENV          
@@ -231,9 +233,10 @@ jobs:
         if: ${{ steps.check.outputs.run == 'true' && always() && (matrix.storageType == 'gcs_only' || matrix.storageType == 'aws_only') }}
         continue-on-error: true
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          PROJECT_ID: ${{ vars.GCP_S3_PROJECT_ID }}
+          JOB_PREFIX: ${{ steps.jobs.outputs.job_id }}
         run: |
-          PROJECT_ID="${{ vars.GCP_S3_PROJECT_ID }}"
-          JOB_PREFIX="${{ steps.jobs.outputs.job_id }}"
 
           # Guardrails: never allow accidental bucket-root cleanup.
           if [[ -z "${JOB_PREFIX}" ]]; then
