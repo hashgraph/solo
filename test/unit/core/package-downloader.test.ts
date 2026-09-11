@@ -2,7 +2,7 @@
 
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
-import sinon, {type SinonSandbox, type SinonStub} from 'sinon';
+import sinon, {type SinonFakeTimers, type SinonSandbox, type SinonStub} from 'sinon';
 import {Readable} from 'node:stream';
 import got, {type OptionsInit} from 'got';
 
@@ -30,6 +30,7 @@ describe('PackageDownloader', (): void => {
     delete process.env.PACKAGE_DOWNLOADER_URL_EXISTS_TIMEOUT_MS;
     delete process.env.PACKAGE_DOWNLOADER_DOWNLOAD_CONNECT_TIMEOUT_MS;
     delete process.env.PACKAGE_DOWNLOADER_DOWNLOAD_RESPONSE_TIMEOUT_MS;
+    delete process.env.PACKAGE_DOWNLOADER_RETRY_LIMIT;
     sandbox.restore();
   });
 
@@ -133,6 +134,40 @@ describe('PackageDownloader', (): void => {
       expect(fs.readFileSync(destinationPath, 'utf8')).to.equal('payload');
       expect(urlExistsStub.calledOnce).to.equal(true);
       expect(gotStreamStub.calledOnce).to.equal(true);
+
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    });
+
+    it('should retry transient download failures with capped exponential backoff', async (): Promise<void> => {
+      process.env.PACKAGE_DOWNLOADER_RETRY_LIMIT = '7';
+      const clock: SinonFakeTimers = sandbox.useFakeTimers({toFake: ['setTimeout']});
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'downloader-'));
+      const destinationPath: string = PathEx.join(temporaryDirectory, 'artifact.txt');
+      sandbox.stub(downloader, 'urlExists').resolves(true);
+      const gotStreamStub: SinonStub = sandbox.stub(got, 'stream').callsFake((): ReturnType<typeof got.stream> => {
+        if (gotStreamStub.callCount < 7) {
+          throw new Error(`transient failure ${gotStreamStub.callCount}`);
+        }
+        return Readable.from(['payload']) as ReturnType<typeof got.stream>;
+      });
+
+      const pendingFetch: Promise<string> = downloader.fetchFile('https://example.com/artifact.txt', destinationPath);
+      pendingFetch.catch((): void => {
+        // suppress unhandled rejection warnings while the fake clock is advanced; awaited below
+      });
+
+      const expectedDelays: number[] = [2000, 4000, 8000, 16_000, 32_000, 32_000];
+      let expectedAttempts: number = 1;
+      for (const delay of expectedDelays) {
+        await clock.tickAsync(delay - 1);
+        expect(gotStreamStub.callCount).to.equal(expectedAttempts);
+        await clock.tickAsync(1);
+        expectedAttempts++;
+        expect(gotStreamStub.callCount).to.equal(expectedAttempts);
+      }
+
+      await expect(pendingFetch).to.eventually.equal(destinationPath);
+      expect(fs.readFileSync(destinationPath, 'utf8')).to.equal('payload');
 
       fs.rmSync(temporaryDirectory, {recursive: true, force: true});
     });

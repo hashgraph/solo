@@ -92,7 +92,7 @@ jobs:
           version: "v3.12.3" # helm version
 
       - name: Setup Kind
-        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+        uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           install_only: true
@@ -142,6 +142,14 @@ jobs:
             echo "To Consensus Node Version: ${TO_CN_INPUT}"
             echo "from_solo_version=${FROM_INPUT}" >> $GITHUB_OUTPUT
             echo "to_consensus_node_version=${TO_CN_INPUT}" >> $GITHUB_OUTPUT
+
+      - name: Restore Solo Bin Cache
+        id: solo-bin-cache
+        if: ${{ !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
 
       - name: Restore Solo Image Cache
         id: solo-image-cache
@@ -198,6 +206,13 @@ jobs:
             echo "Failed to launch network with release version ${{ steps.get-version.outputs.from_solo_version }}"
             exit $RC
           fi
+
+      - name: Save Solo Bin Cache
+        if: ${{ github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
 
       - name: Save Solo Image Cache
         if: ${{ github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}

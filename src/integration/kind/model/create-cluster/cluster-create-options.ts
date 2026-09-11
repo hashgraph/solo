@@ -63,7 +63,7 @@ export class ClusterCreateOptions implements Options {
       builder.argument('name', this._name);
     }
     if (this._retain) {
-      builder.flag('retain');
+      builder.flag('--retain');
     }
     if (this._wait) {
       builder.argument('wait', this._wait);

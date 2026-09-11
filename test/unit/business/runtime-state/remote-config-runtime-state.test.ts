@@ -31,13 +31,25 @@ import {type Context} from '../../../../src/types/index.js';
 const namespace: NamespaceName = NamespaceName.of('solo');
 const remoteConfigMap: ConfigMap = {name: 'solo-remote-config'} as unknown as ConfigMap;
 
+/** Kubeconfig cluster entry lookup for the stubbed K8Factory; a context defaults to an equally-named entry. */
+function stubReadClusterOfContext(clusterEntriesByContext: Record<string, string>): (context: string) => string {
+  return (context: string): string => clusterEntriesByContext[context] ?? context;
+}
+
 /**
  * Builds a runtime state over a stubbed ConfigMap read and a stubbed container engine. Only those two
  * dependencies are exercised; the rest are non-null so they are not resolved from the container.
  */
-function buildRuntimeState(read: SinonStub, resumeStoppedClusterNode: SinonStub): RemoteConfigRuntimeState {
+function buildRuntimeState(
+  read: SinonStub,
+  resumeStoppedClusterNode: SinonStub,
+  clusterEntriesByContext: Record<string, string> = {},
+): RemoteConfigRuntimeState {
   const k8Factory: K8Factory = {
     getK8: (): unknown => ({configMaps: (): unknown => ({read})}),
+    default: (): unknown => ({
+      contexts: (): unknown => ({readClusterOfContext: stubReadClusterOfContext(clusterEntriesByContext)}),
+    }),
   } as unknown as K8Factory;
 
   return new RemoteConfigRuntimeState(
@@ -97,6 +109,9 @@ describe('RemoteConfigRuntimeState', (): void => {
     const k8Factory: K8Factory = {
       getK8: (): {configMaps: () => {read: sinon.SinonStub}} => ({
         configMaps: (): {read: sinon.SinonStub} => ({read: readStub}),
+      }),
+      default: (): unknown => ({
+        contexts: (): unknown => ({readClusterOfContext: stubReadClusterOfContext({})}),
       }),
     } as unknown as K8Factory;
 
@@ -251,6 +266,20 @@ describe('RemoteConfigRuntimeState', (): void => {
       namespace,
       'kind-solo',
     );
+
+    expect(exists).to.be.true;
+    expect(resumeStoppedClusterNode).to.have.been.calledOnceWithExactly('solo');
+    expect(read).to.have.been.calledTwice;
+  });
+
+  it('should resume a stopped kind cluster reached through a renamed context', async (): Promise<void> => {
+    read.onFirstCall().rejects(new Error('connect ECONNREFUSED 127.0.0.1:52810'));
+    read.onSecondCall().resolves(remoteConfigMap);
+    resumeStoppedClusterNode.resolves(ClusterNodeResumeOutcome.RESUMED);
+
+    const exists: boolean = await buildRuntimeState(read, resumeStoppedClusterNode, {
+      'solo-renamed': 'kind-solo',
+    }).remoteConfigExists(namespace, 'solo-renamed');
 
     expect(exists).to.be.true;
     expect(resumeStoppedClusterNode).to.have.been.calledOnceWithExactly('solo');

@@ -538,9 +538,10 @@ export class Flags {
     name: 'component-image',
     definition: {
       describe:
-        'Docker image override. Accepts a registry reference (e.g. ghcr.io/hiero-ledger/block-node-server:0.36.0) ' +
-        'or a local reference (e.g. block-node-server:0.36.0-SNAPSHOT). ' +
-        'Local images found in Docker are automatically loaded into the Kind cluster.',
+        'Docker image override. Supports a published registry reference (e.g. ghcr.io/hiero-ledger/component:1.2.3), ' +
+        'a locally built image (e.g. component:1.2.3), or a Kind-attached local registry ' +
+        '(e.g. localhost:5001/component:1.2.3). Locally available images are loaded into every target Kind ' +
+        'cluster and use pullPolicy: Never. For non-Kind targets, publish the image to a registry reachable by the cluster.',
       defaultValue: '',
       type: 'string',
       alias: 'relay-image',
