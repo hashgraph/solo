@@ -27,8 +27,13 @@ on:
     - cron: "0 */4 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: read
+# Deliberately empty: every job here that needs write access authenticates with the
+# secrets.GH_ACCESS_TOKEN PAT explicitly (see repo-token/github-token inputs below), not the
+# ambient GITHUB_TOKEN, so no job depends on permissions granted here. zizmor flagged the
+# previous contents/pull-requests/issues grants as unused, workflow-level excessive permissions
+# (https://docs.zizmor.sh/audits/#excessive-permissions). The zizmor-scan job below declares its
+# own minimal job-level permissions for the one thing that does use the ambient token.
+permissions: {}
 
 defaults:
   run:
@@ -53,6 +58,57 @@ jobs:
         with:
           repo-token: ${{ secrets.GH_ACCESS_TOKEN }}
           configuration-path: ".github/auto_assign.yaml"
+
+  zizmor-scan:
+    name: "Zizmor Workflow Scan"
+    # Only re-scan when a PR's diff can actually change: opening, reopening, or pushing new
+    # commits. labeled/unlabeled/edited/ready_for_review/converted_to_draft don't touch file
+    # content, so re-running the scan on them would be wasted work.
+    if: >-
+      github.event_name == 'pull_request' &&
+      contains(fromJSON('["opened", "reopened", "synchronize"]'), github.event.action)
+    runs-on: hiero-solo-linux-medium
+    # Deliberately narrower than the workflow-level permissions above: this job hands the
+    # checked-out repository to a third-party container (zizmor), so it gets read-only access
+    # and none of the write scopes the other jobs need, limiting the blast radius if that
+    # container were ever compromised upstream.
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      # Uses the GitHub API (via the read-only default token) to list changed files, so no
+      # checkout is needed just to decide whether a scan is warranted.
+      - name: Detect CI/CD Workflow Changes
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            ci-cd:
+              - '.github/workflows/**'
+              - '.github/actions/**'
+
+      - name: Checkout Code
+        if: steps.filter.outputs.ci-cd == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # No secrets/tokens are passed to zizmor beyond the default read-only github.token, and
+      # both the action and the zizmor CLI version it installs are pinned to immutable
+      # references (commit SHA / exact release, never a floating tag) so a future compromise
+      # of either upstream project can't silently change what code runs here.
+      - name: Run zizmor
+        if: steps.filter.outputs.ci-cd == 'true'
+        uses: zizmorcore/zizmor-action@70fb788f84895a7701f5643d103d587e460b5c99 # v0.6.3
+        with:
+          version: "1.30.0"
+          advanced-security: false
+          annotations: true
 
   pr-automation:
     name: "PR Automation"

@@ -1,0 +1,286 @@
+# Baseline of pre-existing zizmor findings, captured 2026-08-31 when the zizmor-scan job
+# (.github/workflows/zxf-prs-automation.yaml) was introduced. These are suppressed here so the
+# new check starts clean and only fails on genuinely new findings — the underlying issues below
+# are tracked for remediation in https://github.com/hiero-ledger/solo/issues/5931, NOT fixed.
+# Composite action findings (.github/actions/**) can't be listed here; see the inline
+# `# zizmor: ignore[...]` comments in solo-image-cache/action.yaml instead.
+rules:
+  adhoc-packages:
+    ignore:
+      - flow-deploy-release-artifact.yaml:80
+      - flow-deploy-release-artifact.yaml:81
+      - flow-deploy-release-artifact.yaml:82
+      - flow-deploy-release-artifact.yaml:279
+      - flow-deploy-release-artifact.yaml:314
+      - flow-deploy-release-artifact.yaml:315
+      - flow-deploy-release-artifact.yaml:316
+      - flow-deploy-release-artifact.yaml:562
+      - flow-gcs-test.yaml:142
+      - flow-ledger-reset-warm-start-timing.yaml:95
+      - flow-one-shot-timing.yaml:155
+      - flow-standard-runner-one-shot.yaml:168
+      - zxc-code-analysis.yaml:150
+  artipacked:
+    ignore:
+      - flow-build-application.yaml:60
+      - flow-codeql-analysis.yaml:61
+      - flow-examples-test.yaml:129
+      - flow-examples-test.yaml:193
+      - flow-gcs-bucket-reaper.yaml:41
+      - flow-gcs-test.yaml:74
+      - flow-install-validation-runtime.yaml:54
+      - flow-install-validation.yaml:135
+      - flow-ledger-reset-warm-start-timing.yaml:67
+      - flow-migration-test.yaml:76
+      - flow-nightly-extended-tests.yaml:58
+      - flow-nightly-extended-tests.yaml:93
+      - flow-nightly-extended-tests.yaml:128
+      - flow-one-shot-interrupt-destroy.yaml:70
+      - flow-one-shot-timing.yaml:127
+      - flow-performance-test.yaml:86
+      - flow-pull-request-checks.yaml:68
+      - flow-standard-runner-one-shot-windows.yaml:103
+      - flow-standard-runner-one-shot.yaml:91
+      - zxc-check-production-overrides.yaml:48
+      - zxc-code-style.yaml:59
+      - zxc-docs-automation.yaml:46
+      - zxc-docs-automation.yaml:140
+      - zxc-e2e-test.yaml:249
+      - zxc-hugo-build.yaml:83
+      - zxc-hugo-publish.yaml:73
+      - zxc-unit-test.yaml:71
+  cache-poisoning:
+    ignore:
+      - flow-codeql-analysis.yaml:68
+      - flow-examples-test.yaml:198
+      - flow-examples-test.yaml:225
+      - flow-examples-test.yaml:264
+      - flow-examples-test.yaml:308
+      - flow-performance-test.yaml:100
+  dangerous-triggers:
+    ignore:
+      - flow-pull-request-formatting.yaml:18
+      - flow-trigger-solo-docs-update.yaml:19
+  excessive-permissions:
+    ignore:
+      - flow-build-application.yaml:17
+      - flow-build-application.yaml:50
+      - flow-build-application.yaml:79
+      - flow-build-application.yaml:85
+      - flow-build-application.yaml:95
+      - flow-build-application.yaml:126
+      - flow-deploy-release-artifact.yaml:42
+      - flow-deploy-release-artifact.yaml:43
+      - flow-deploy-release-artifact.yaml:44
+      - flow-deploy-release-artifact.yaml:45
+      - flow-deploy-release-artifact.yaml:46
+      - flow-deploy-release-artifact.yaml:47
+      - flow-examples-test.yaml:111
+      - flow-hugo-publish.yaml:40
+      - flow-hugo-publish.yaml:41
+      - flow-hugo-publish.yaml:42
+      - flow-nightly-extended-tests.yaml:40
+      - flow-nightly-extended-tests.yaml:41
+      - flow-pull-request-checks.yaml:39
+      - flow-pull-request-checks.yaml:41
+      - flow-pull-request-checks.yaml:42
+      - flow-pull-request-checks.yaml:43
+      - flow-pull-request-checks.yaml:44
+  secrets-inherit:
+    ignore:
+      - flow-nightly-extended-tests.yaml:256
+      - flow-nightly-extended-tests.yaml:263
+      - flow-nightly-extended-tests.yaml:270
+  self-repository:
+    ignore:
+      - flow-build-application.yaml:81
+      - flow-build-application.yaml:87
+      - flow-build-application.yaml:98
+      - flow-build-application.yaml:128
+      - flow-deploy-release-artifact.yaml:651
+      - flow-deploy-release-artifact.yaml:683
+      - flow-deploy-release-artifact.yaml:698
+      - flow-deploy-release-artifact.yaml:716
+      - flow-examples-test.yaml:293
+      - flow-examples-test.yaml:494
+      - flow-gcs-test.yaml:152
+      - flow-gcs-test.yaml:196
+      - flow-hugo-publish.yaml:141
+      - flow-hugo-publish.yaml:151
+      - flow-hugo-publish.yaml:164
+      - flow-hugo-publish.yaml:179
+      - flow-hugo-publish.yaml:196
+      - flow-hugo-publish.yaml:208
+      - flow-ledger-reset-warm-start-timing.yaml:114
+      - flow-ledger-reset-warm-start-timing.yaml:301
+      - flow-migration-test.yaml:148
+      - flow-migration-test.yaml:203
+      - flow-nightly-extended-tests.yaml:176
+      - flow-nightly-extended-tests.yaml:205
+      - flow-nightly-extended-tests.yaml:256
+      - flow-nightly-extended-tests.yaml:263
+      - flow-nightly-extended-tests.yaml:270
+      - flow-one-shot-interrupt-destroy.yaml:98
+      - flow-one-shot-interrupt-destroy.yaml:119
+      - flow-one-shot-timing.yaml:174
+      - flow-one-shot-timing.yaml:363
+      - flow-performance-test.yaml:140
+      - flow-performance-test.yaml:286
+      - flow-pull-request-checks.yaml:89
+      - flow-pull-request-checks.yaml:95
+      - flow-pull-request-checks.yaml:101
+      - flow-pull-request-checks.yaml:112
+      - flow-pull-request-checks.yaml:144
+      - flow-pull-request-checks.yaml:160
+      - flow-pull-request-checks.yaml:177
+      - flow-standard-runner-one-shot.yaml:120
+      - zxc-e2e-test.yaml:349
+      - zxc-e2e-test.yaml:535
+  template-injection:
+    ignore:
+      - flow-deploy-release-artifact.yaml:134
+      - flow-deploy-release-artifact.yaml:139
+      - flow-deploy-release-artifact.yaml:155
+      - flow-deploy-release-artifact.yaml:196
+      - flow-deploy-release-artifact.yaml:210
+      - flow-deploy-release-artifact.yaml:281
+      - flow-deploy-release-artifact.yaml:283
+      - flow-deploy-release-artifact.yaml:365
+      - flow-deploy-release-artifact.yaml:391
+      - flow-deploy-release-artifact.yaml:457
+      - flow-deploy-release-artifact.yaml:497
+      - flow-deploy-release-artifact.yaml:576
+      - flow-deploy-release-artifact.yaml:582
+      - flow-deploy-release-artifact.yaml:609
+      - flow-deploy-release-artifact.yaml:614
+      - flow-deploy-release-artifact.yaml:631
+      - flow-deploy-release-artifact.yaml:636
+      - flow-deploy-release-artifact.yaml:672
+      - flow-deploy-release-artifact.yaml:673
+      - flow-deploy-release-artifact.yaml:675
+      - flow-deploy-release-artifact.yaml:677
+      - flow-examples-test.yaml:137
+      - flow-examples-test.yaml:141
+      - flow-examples-test.yaml:408
+      - flow-gcs-test.yaml:61
+      - flow-gcs-test.yaml:107
+      - flow-gcs-test.yaml:216
+      - flow-gcs-test.yaml:217
+      - flow-hugo-publish.yaml:73
+      - flow-hugo-publish.yaml:75
+      - flow-hugo-publish.yaml:76
+      - flow-hugo-publish.yaml:81
+      - flow-hugo-publish.yaml:98
+      - flow-hugo-publish.yaml:113
+      - flow-ledger-reset-warm-start-timing.yaml:130
+      - flow-ledger-reset-warm-start-timing.yaml:131
+      - flow-ledger-reset-warm-start-timing.yaml:132
+      - flow-ledger-reset-warm-start-timing.yaml:133
+      - flow-ledger-reset-warm-start-timing.yaml:134
+      - flow-ledger-reset-warm-start-timing.yaml:163
+      - flow-ledger-reset-warm-start-timing.yaml:188
+      - flow-ledger-reset-warm-start-timing.yaml:191
+      - flow-ledger-reset-warm-start-timing.yaml:195
+      - flow-ledger-reset-warm-start-timing.yaml:199
+      - flow-ledger-reset-warm-start-timing.yaml:200
+      - flow-ledger-reset-warm-start-timing.yaml:203
+      - flow-ledger-reset-warm-start-timing.yaml:206
+      - flow-ledger-reset-warm-start-timing.yaml:209
+      - flow-ledger-reset-warm-start-timing.yaml:236
+      - flow-ledger-reset-warm-start-timing.yaml:237
+      - flow-ledger-reset-warm-start-timing.yaml:310
+      - flow-ledger-reset-warm-start-timing.yaml:311
+      - flow-ledger-reset-warm-start-timing.yaml:312
+      - flow-ledger-reset-warm-start-timing.yaml:313
+      - flow-ledger-reset-warm-start-timing.yaml:314
+      - flow-ledger-reset-warm-start-timing.yaml:315
+      - flow-ledger-reset-warm-start-timing.yaml:316
+      - flow-ledger-reset-warm-start-timing.yaml:317
+      - flow-ledger-reset-warm-start-timing.yaml:318
+      - flow-ledger-reset-warm-start-timing.yaml:366
+      - flow-ledger-reset-warm-start-timing.yaml:372
+      - flow-ledger-reset-warm-start-timing.yaml:373
+      - flow-ledger-reset-warm-start-timing.yaml:374
+      - flow-ledger-reset-warm-start-timing.yaml:375
+      - flow-ledger-reset-warm-start-timing.yaml:376
+      - flow-ledger-reset-warm-start-timing.yaml:377
+      - flow-ledger-reset-warm-start-timing.yaml:378
+      - flow-ledger-reset-warm-start-timing.yaml:379
+      - flow-ledger-reset-warm-start-timing.yaml:380
+      - flow-ledger-reset-warm-start-timing.yaml:381
+      - flow-ledger-reset-warm-start-timing.yaml:382
+      - flow-ledger-reset-warm-start-timing.yaml:444
+      - flow-migration-test.yaml:189
+      - flow-migration-test.yaml:190
+      - flow-one-shot-timing.yaml:190
+      - flow-one-shot-timing.yaml:191
+      - flow-one-shot-timing.yaml:192
+      - flow-one-shot-timing.yaml:193
+      - flow-one-shot-timing.yaml:194
+      - flow-one-shot-timing.yaml:223
+      - flow-one-shot-timing.yaml:248
+      - flow-one-shot-timing.yaml:255
+      - flow-one-shot-timing.yaml:259
+      - flow-one-shot-timing.yaml:260
+      - flow-one-shot-timing.yaml:263
+      - flow-one-shot-timing.yaml:266
+      - flow-one-shot-timing.yaml:269
+      - flow-one-shot-timing.yaml:296
+      - flow-one-shot-timing.yaml:297
+      - flow-one-shot-timing.yaml:372
+      - flow-one-shot-timing.yaml:373
+      - flow-one-shot-timing.yaml:374
+      - flow-one-shot-timing.yaml:375
+      - flow-one-shot-timing.yaml:376
+      - flow-one-shot-timing.yaml:377
+      - flow-one-shot-timing.yaml:378
+      - flow-one-shot-timing.yaml:379
+      - flow-one-shot-timing.yaml:380
+      - flow-one-shot-timing.yaml:434
+      - flow-one-shot-timing.yaml:435
+      - flow-one-shot-timing.yaml:436
+      - flow-one-shot-timing.yaml:437
+      - flow-one-shot-timing.yaml:438
+      - flow-one-shot-timing.yaml:439
+      - flow-one-shot-timing.yaml:440
+      - flow-one-shot-timing.yaml:441
+      - flow-one-shot-timing.yaml:442
+      - flow-one-shot-timing.yaml:443
+      - flow-one-shot-timing.yaml:444
+      - flow-one-shot-timing.yaml:506
+      - flow-one-shot-timing.yaml:524
+      - flow-performance-test.yaml:154
+      - flow-performance-test.yaml:348
+      - flow-performance-test.yaml:349
+      - flow-performance-test.yaml:355
+      - flow-performance-test.yaml:378
+      - flow-performance-test.yaml:379
+      - flow-performance-test.yaml:407
+      - flow-performance-test.yaml:414
+      - zxc-code-style.yaml:129
+      - zxc-e2e-test.yaml:363
+      - zxc-e2e-test.yaml:366
+      - zxc-e2e-test.yaml:449
+      - zxc-e2e-test.yaml:453
+      - zxc-e2e-test.yaml:460
+      - zxc-e2e-test.yaml:462
+      - zxc-e2e-test.yaml:465
+      - zxc-e2e-test.yaml:479
+      - zxc-e2e-test.yaml:515
+      - zxc-e2e-test.yaml:580
+      - zxc-e2e-test.yaml:610
+      - zxc-e2e-test.yaml:614
+      - zxc-e2e-test.yaml:615
+      - zxc-e2e-test.yaml:647
+      - zxc-e2e-test.yaml:702
+      - zxc-e2e-test.yaml:703
+      - zxc-hugo-build.yaml:69
+      - zxc-hugo-build.yaml:135
+      - zxc-hugo-publish.yaml:109
+  unpinned-images:
+    ignore:
+      - flow-install-validation.yaml:103
+  unsound-condition:
+    ignore:
+      - flow-performance-test.yaml:74
+      - flow-pull-request-checks.yaml:181
