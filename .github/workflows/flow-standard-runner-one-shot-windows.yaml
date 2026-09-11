@@ -342,7 +342,7 @@ jobs:
             # IPv4 because the WSL2 NAT has no IPv6 route and each v6 attempt burns a timeout, and
             # bound each fetch so a bad connection fails fast and retries instead of sitting in
             # apt's default 120-second connect timeout.
-            grep -rl 'ubuntu.com' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null | xargs -r sed -i -E 's#http://(archive|security)\.ubuntu\.com/ubuntu#http://azure.archive.ubuntu.com/ubuntu#'
+            grep -rl -e 'archive.ubuntu.com' -e 'security.ubuntu.com' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null | xargs -r sed -i -e 's|http://archive.ubuntu.com/ubuntu|http://azure.archive.ubuntu.com/ubuntu|' -e 's|http://security.ubuntu.com/ubuntu|http://azure.archive.ubuntu.com/ubuntu|'
             printf 'Acquire::ForceIPv4 "true";\nAcquire::Retries "5";\nAcquire::http::Timeout "30";\n' > /etc/apt/apt.conf.d/99-solo-ci
             mkdir -p /etc/apt/keyrings
             cp $WORKSPACE/.github/workflows/resources/docker-apt-public-gpg-key.key /etc/apt/keyrings/docker.asc
