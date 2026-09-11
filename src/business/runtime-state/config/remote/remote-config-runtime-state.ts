@@ -77,9 +77,6 @@ interface VersionField {
 export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
   private static readonly SOLO_REMOTE_CONFIGMAP_DATA_KEY: string = 'remote-config-data';
 
-  /** Kind names the kubeconfig context it writes `kind-<cluster-name>`. */
-  private static readonly KIND_CONTEXT_PREFIX: string = 'kind-';
-
   /** How long to wait for a resumed kind cluster's API: 30 attempts every 2 seconds, so at most a minute. */
   private static readonly KIND_RESUME_MAX_ATTEMPTS: number = 30;
   private static readonly KIND_RESUME_RETRY_INTERVAL: Duration = Duration.ofSeconds(2);
@@ -341,15 +338,16 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
       }
 
       // A kind cluster runs on this machine, so a failure there is a local problem rather than a cluster solo
-      // cannot reach — and the usual local problem is a node container that is simply stopped. Kind names its
-      // kubeconfig context `kind-<cluster-name>`, the same heuristic the one-shot deploy orchestrator uses.
+      // cannot reach — and the usual local problem is a node container that is simply stopped. Detection
+      // follows the `kind-<cluster-name>` names kind writes into the kubeconfig, including renamed contexts.
       // Either way the original failure is kept as the cause so the real reason (context down, RBAC denial,
       // API error) reaches the error output and the logs.
-      if (!context.startsWith(RemoteConfigRuntimeState.KIND_CONTEXT_PREFIX)) {
+      const kindClusterName: string | undefined = Helpers.kindClusterNameForContext(context, this.k8Factory);
+      if (kindClusterName === undefined) {
         throw new SoloErrors.system.clusterUnreachable(context, error);
       }
 
-      configMap = await this.resumeKindClusterAndRead(namespace, context, error);
+      configMap = await this.resumeKindClusterAndRead(namespace, kindClusterName, context, error);
     }
     if (!configMap) {
       throw new SoloErrors.system.resourceNotFound(
@@ -372,11 +370,16 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
    * failure is reported unchanged, so this never turns an unrelated API failure into a long wait.
    *
    * @param namespace - the namespace holding the remote config ConfigMap.
+   * @param clusterName - the kind cluster name the failed context targets.
    * @param context - the kind kubeconfig context the read failed against.
    * @param cause - the failure that triggered the recovery attempt.
    */
-  private async resumeKindClusterAndRead(namespace: NamespaceName, context: Context, cause: Error): Promise<ConfigMap> {
-    const clusterName: string = context.slice(RemoteConfigRuntimeState.KIND_CONTEXT_PREFIX.length);
+  private async resumeKindClusterAndRead(
+    namespace: NamespaceName,
+    clusterName: string,
+    context: Context,
+    cause: Error,
+  ): Promise<ConfigMap> {
     const outcome: ClusterNodeResumeOutcome = await this.containerEngine.resumeStoppedClusterNode(clusterName);
 
     if (outcome === ClusterNodeResumeOutcome.ENGINE_UNAVAILABLE) {
@@ -479,7 +482,10 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
     try {
       await this.load(this.namespace, context);
     } catch (error) {
-      if (RemoteConfigRuntimeState.isMissingRemoteConfigError(error) && Helpers.isKindContext(context)) {
+      if (
+        RemoteConfigRuntimeState.isMissingRemoteConfigError(error) &&
+        Helpers.isKindContext(context, this.k8Factory)
+      ) {
         throw new SoloErrors.config.remoteConfigMissingOnKindCluster(
           deploymentName,
           this.namespace?.name,
