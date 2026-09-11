@@ -22,6 +22,13 @@ export interface Contexts {
   readCurrentNamespace(): NamespaceName;
 
   /**
+   * Read the name of the cluster entry a context references in the kubeconfig
+   * @param context - the context name
+   * @returns the cluster entry name, or an empty string when the context is unknown
+   */
+  readClusterOfContext(context: string): string;
+
+  /**
    * Set the current context in the kubeconfig
    * @param context - the context name to set
    */
