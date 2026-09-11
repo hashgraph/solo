@@ -8,7 +8,9 @@ import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
 import {type K8} from '../../../../src/integration/kube/k8.js';
 import {HelmChartValues} from '../../../../src/integration/helm/model/values.js';
 import {SemanticVersion} from '../../../../src/business/utils/semantic-version.js';
-import {type NamespaceName} from '../../../../src/types/namespace/namespace-name.js';
+import {NamespaceName} from '../../../../src/types/namespace/namespace-name.js';
+import {type LocalConfigRuntimeState} from '../../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
+import {type Deployment} from '../../../../src/business/runtime-state/config/local/deployment.js';
 import {type Pod} from '../../../../src/integration/kube/resources/pod/pod.js';
 import {ContainerReference} from '../../../../src/integration/kube/resources/container/container-reference.js';
 import {type Containers} from '../../../../src/integration/kube/resources/container/containers.js';
@@ -28,7 +30,19 @@ export class NetworkLoadGeneratorTest {
    * This mirrors the deployment logic in RapidFireCommand.deployNlgChart(); rapid-fire skips its own
    * deploy step when it finds the chart already installed.
    */
-  public static async deployChart(kubeContext: string, namespace: NamespaceName): Promise<void> {
+  public static async deployChart(deploymentName: string): Promise<void> {
+    const localConfig: LocalConfigRuntimeState = container.resolve<LocalConfigRuntimeState>(
+      InjectTokens.LocalConfigRuntimeState,
+    );
+    await localConfig.load();
+    const deployment: Deployment = localConfig.configuration.deploymentByName(deploymentName);
+    const namespace: NamespaceName = NamespaceName.of(deployment.namespace);
+    // Resolve the context from the deployment's cluster reference, as rapid-fire does. The suite's
+    // contexts[] come from SOLO_TEST_CLUSTER, which one-shot ignores when it creates its own kind cluster.
+    const kubeContext: string = localConfig.configuration.clusterRefs
+      .get(deployment.clusters.get(0).toString())
+      .toString();
+
     const chartManager: ChartManager = container.resolve<ChartManager>(InjectTokens.ChartManager);
     const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
     const k8Instance: K8 = k8Factory.getK8(kubeContext);

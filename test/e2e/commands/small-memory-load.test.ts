@@ -84,7 +84,7 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
 
           // Phase 2: Pre-deploy NLG chart (bypassing rapid-fire to allow file copy before test start)
           testLogger.info(`${testName}: deploying NLG chart`);
-          await NetworkLoadGeneratorTest.deployChart(context, NamespaceName.of(await getNamespaceFromDeployment()));
+          await NetworkLoadGeneratorTest.deployChart(deploymentName);
           testLogger.info(`${testName}: NLG chart deployed`);
 
           // Phase 3: Copy throttles.json into NLG pod

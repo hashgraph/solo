@@ -17,7 +17,6 @@ import {type BaseTestOptions} from './tests/base-test-options.js';
 import {main} from '../../../src/index.js';
 import {BaseCommandTest} from './tests/base-command-test.js';
 import {NetworkLoadGeneratorTest} from './tests/network-load-generator-test.js';
-import {NamespaceName} from '../../../src/types/namespace/namespace-name.js';
 import {OneShotCommandDefinition} from '../../../src/commands/command-definitions/one-shot-command-definition.js';
 import {BlockCommandDefinition} from '../../../src/commands/command-definitions/block-command-definition.js';
 import {MetricsServerImpl} from '../../../src/business/runtime-state/services/metrics-server-impl.js';
@@ -254,7 +253,7 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
         // instead of eating the first load test's timeout and surfacing as a killed exec (#5988).
         it('Deploy Network Load Generator', async (): Promise<void> => {
           logEvent('Deploying Network Load Generator');
-          await NetworkLoadGeneratorTest.deployChart(contexts[0], NamespaceName.of(await getNamespaceFromDeployment()));
+          await NetworkLoadGeneratorTest.deployChart(deploymentName);
         }).timeout(Duration.ofMinutes(20).toMillis());
 
         it('TokenTransferLoadTest', async (): Promise<void> => {
