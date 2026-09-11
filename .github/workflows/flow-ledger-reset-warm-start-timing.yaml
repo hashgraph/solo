@@ -209,7 +209,7 @@ jobs:
               echo ""
             fi
             echo "blockNode:"
-            echo "  --chart-version: \"${{ steps.versions.outputs.bn-version }}\""
+            echo "  --block-node-version: \"${{ steps.versions.outputs.bn-version }}\""
             echo "  --release-tag: \"${{ steps.versions.outputs.cn-version }}\""
             echo ""
             echo "mirrorNode:"

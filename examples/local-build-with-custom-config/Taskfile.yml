@@ -79,7 +79,7 @@ tasks:
       - cmd: |
           export BLOCK_NODE_RELEASE_TAG=$(grep "'BLOCK_NODE_VERSION'" {{ .ROOT_DIR }}/version.ts | sed -E "s/.*'([^']+)';/\1/")
           $SOLO_COMMAND block node add --deployment {{ .DEPLOYMENT }} --release-tag {{ .CN_VERSION }} \
-          --chart-version $BLOCK_NODE_RELEASE_TAG {{ .BLOCK_NODE_VALUE_FILE_FLAG }}
+          --block-node-version $BLOCK_NODE_RELEASE_TAG {{ .BLOCK_NODE_VALUE_FILE_FLAG }}
 
       # Solo node keys
       - cmd: |

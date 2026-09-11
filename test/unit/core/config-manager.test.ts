@@ -147,29 +147,23 @@ describe('ConfigManager', (): void => {
       expect(cm.getFlag(flags.releaseTag)).to.equal('v0.73.0');
     });
 
-    it('should synchronize relay and block-node version flags in both directions', (): void => {
+    it('should synchronize relay version flags in both directions', (): void => {
       const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
 
       const argvLegacy: Argv = Argv.initializeEmpty();
       argvLegacy.setArg(flags.relayReleaseTag, '0.77.0');
-      argvLegacy.setArg(flags.blockNodeChartVersion, '0.33.0');
       cm.update(argvLegacy.build());
 
       expect(cm.getFlag(flags.relayVersion)).to.equal('0.77.0');
       expect(cm.getFlag(flags.relayReleaseTag)).to.equal('0.77.0');
-      expect(cm.getFlag(flags.blockNodeVersion)).to.equal('0.33.0');
-      expect(cm.getFlag(flags.blockNodeChartVersion)).to.equal('0.33.0');
 
       cm.reset();
       const argvCanonical: Argv = Argv.initializeEmpty();
       argvCanonical.setArg(flags.relayVersion, '0.78.0');
-      argvCanonical.setArg(flags.blockNodeVersion, '0.34.0');
       cm.update(argvCanonical.build());
 
       expect(cm.getFlag(flags.relayVersion)).to.equal('0.78.0');
       expect(cm.getFlag(flags.relayReleaseTag)).to.equal('0.78.0');
-      expect(cm.getFlag(flags.blockNodeVersion)).to.equal('0.34.0');
-      expect(cm.getFlag(flags.blockNodeChartVersion)).to.equal('0.34.0');
     });
 
     it('should not redefine config properties when legacy and canonical flags share the same constName', (): void => {

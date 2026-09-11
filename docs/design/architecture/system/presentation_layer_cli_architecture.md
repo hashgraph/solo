@@ -765,7 +765,7 @@ solo block node logs --deployment <name> --id <id>
 ###### Syntax
 
 ```bash
-solo block node add --deployment <name> --cluster-ref <name> [--chart-version <semver>] [--enable-ingress] [--domain-name <name>] [--values-file <path>]
+solo block node add --deployment <name> --cluster-ref <name> [--block-node-version <semver>] [--enable-ingress] [--domain-name <name>] [--values-file <path>]
 ```
 
 ###### Flags
@@ -774,7 +774,7 @@ solo block node add --deployment <name> --cluster-ref <name> [--chart-version <s
 |--------------------|---------|----------|-----------------------------------------------|------------------|-----------------------------------------------------------------------------------------------------------|
 | `--deployment`     | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |                  | The name of an existing deployment which was created via the deployment config create command.            |
 | `--cluster-ref`    | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |                  | The name of an existing cluster reference which was created via the "cluster-ref config connect" command. |
-| `--chart-version`  | semver  | No       | Any SemVer compatible string                  |                  | The version of the Block Node helm chart to be used.                                                      |
+| `--block-node-version` | semver | No     | Any SemVer compatible string                  |                  | The version of the Block Node helm chart to be used.                                                      |
 | `--enable-ingress` | boolean | No       | `true` (present) or `false` (absent)          | `false` (absent) | Enable ingress support for the block node instance.                                                       |
 | `--domain-name`    | string  | No       | Any RFC-1034 compliant string                 |                  | The domain name to be used for ingress support.                                                           |
 | `--values-file`    | path    | No       | Any valid existing file path                  |                  | A Helm values file used to override the computed defaults.                                                |
@@ -788,7 +788,7 @@ solo block node add --deployment <name> --cluster-ref <name> [--chart-version <s
 ###### Syntax
 
 ```bash
-solo block node upgrade --deployment <name> --id <id> --chart-version <semver>
+solo block node upgrade --deployment <name> --id <id> --upgrade-version <semver>
 ```
 
 ###### Flags
@@ -797,7 +797,7 @@ solo block node upgrade --deployment <name> --id <id> --chart-version <semver>
 |-------------------|---------|----------|-----------------------------------------------|---------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
 | `--deployment`    | string  | Yes      | Any string matching the regex: `[a-z0-9\-_]+` |               | The name of an existing deployment which was created via the deployment config create command.                                                |
 | `--id`            | integer | Yes      | Any integer value `>= 0`                      |               | The unique identifier of the block node instance to upgrade.                                                                                  |
-| `--chart-version` | semver  | No       | Any SemVer compatible string                  |               | The Block Node helm chart version to which the instance should be upgraded. This version must be greater than the currently deployed version. |
+| `--upgrade-version` | semver | No      | Any SemVer compatible string                  |               | The Block Node helm chart version to which the instance should be upgraded. This version must be greater than the currently deployed version. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>

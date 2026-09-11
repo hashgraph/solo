@@ -546,7 +546,7 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
           case ComponentTypes.BlockNode: {
             this.updateComponentVersion(
               componentType,
-              new SemanticVersion<string>(flags.blockNodeChartVersion.definition.defaultValue as string),
+              new SemanticVersion<string>(flags.blockNodeVersion.definition.defaultValue as string),
             );
             break;
           }

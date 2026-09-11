@@ -80,7 +80,7 @@ const textPromptFlags: CommandFlag[] = [
   Flags.ecdsaPrivateKey,
   Flags.explorerTlsHostName,
   Flags.soloChartVersion,
-  Flags.blockNodeChartVersion,
+  Flags.blockNodeVersion,
   Flags.localBuildPath,
   Flags.accountId,
   Flags.fileId,

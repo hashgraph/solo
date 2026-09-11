@@ -51,7 +51,6 @@ export class ConfigManager {
     const aliasMappings: LegacyVersionAliasMapping[] = [
       {canonical: flags.consensusNodeVersion, legacy: flags.releaseTag},
       {canonical: flags.relayVersion, legacy: flags.relayReleaseTag},
-      {canonical: flags.blockNodeVersion, legacy: flags.blockNodeChartVersion},
     ];
 
     for (const {canonical, legacy} of aliasMappings) {
@@ -72,7 +71,6 @@ export class ConfigManager {
     const aliasMappings: LegacyVersionAliasMapping[] = [
       {canonical: flags.consensusNodeVersion, legacy: flags.releaseTag},
       {canonical: flags.relayVersion, legacy: flags.relayReleaseTag},
-      {canonical: flags.blockNodeVersion, legacy: flags.blockNodeChartVersion},
     ];
 
     for (const {canonical, legacy} of aliasMappings) {

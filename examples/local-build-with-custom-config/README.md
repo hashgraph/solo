@@ -36,7 +36,7 @@ Browse the source code and configuration files for this example in the [GitHub r
 
 ### Component Version Control
 
-* **Block Node**: `BLOCK_NODE_RELEASE_TAG` - Helm chart version (e.g., "--chart-version v0.18.0")
+* **Block Node**: `BLOCK_NODE_RELEASE_TAG` - Helm chart version (e.g., "--block-node-version v0.18.0")
 * **Mirror Node**: `MIRROR_NODE_VERSION_FLAG` - Version flag (e.g., "--mirror-node-version v0.136.1")
 * **Relay**: `RELAY_RELEASE_FLAG` - Release flag (e.g., "--relay-release 0.70.1")
 * **Explorer**: `EXPLORER_VERSION_FLAG` - Version flag (e.g., "--explorer-version 25.0.0")

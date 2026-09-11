@@ -85,11 +85,9 @@ sections:
   - name: blockNode
     flagsFrom: block.add
     overrides:
-      chart-version: ${config.chartVersion}
+      block-node-version: ${config.chartVersion}
       enable-ingress: ${default}
       debug: ${config.enableDevChartMode}
-    extraKeys:
-      chart-version: ${config.chartVersion}
 
   # Explorer deployment configuration.
   - name: explorerNode

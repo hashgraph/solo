@@ -105,7 +105,7 @@ tasks:
       # Must deploy block node before deploying consensus network due to dependency
       - cmd: |
           $SOLO_COMMAND block node add --deployment {{ .DEPLOYMENT }} --release-tag {{ .PREV_CN_VERSION }} \
-          --chart-version {{ .PREV_BLOCK_VERSION }}
+          --block-node-version {{ .PREV_BLOCK_VERSION }}
 
       - cmd: |
           $SOLO_COMMAND consensus network deploy --deployment {{ .DEPLOYMENT }} --pvcs true --node-aliases {{ .NODE_IDENTIFIERS }} \

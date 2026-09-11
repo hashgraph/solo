@@ -19,7 +19,7 @@ function createDefaultConfig(overrides: Partial<FalconPrepareConfig> = {}): Falc
     releaseTag: Flags.releaseTag.definition.defaultValue as string,
     mirrorNodeVersion: Flags.mirrorNodeVersion.definition.defaultValue as string,
     relayReleaseTag: Flags.relayReleaseTag.definition.defaultValue as string,
-    chartVersion: Flags.blockNodeChartVersion.definition.defaultValue as string,
+    chartVersion: Flags.blockNodeVersion.definition.defaultValue as string,
     explorerVersion: Flags.explorerVersion.definition.defaultValue as string,
     soloChartVersion: Flags.soloChartVersion.definition.defaultValue as string,
     loadBalancerEnabled: Flags.loadBalancerEnabled.definition.defaultValue as boolean,
@@ -65,7 +65,7 @@ describe('DefaultOneShotCommand.generateFalconValuesYaml', (): void => {
     expectFlagValue(parsed.setup, Flags.releaseTag, Flags.releaseTag.definition.defaultValue);
     expectFlagValue(parsed.mirrorNode, Flags.mirrorNodeVersion, Flags.mirrorNodeVersion.definition.defaultValue);
     expectFlagValue(parsed.relayNode, Flags.relayReleaseTag, Flags.relayReleaseTag.definition.defaultValue);
-    expectFlagValue(parsed.blockNode, Flags.blockNodeChartVersion, Flags.blockNodeChartVersion.definition.defaultValue);
+    expectFlagValue(parsed.blockNode, Flags.blockNodeVersion, Flags.blockNodeVersion.definition.defaultValue);
     expectFlagValue(parsed.explorerNode, Flags.explorerVersion, Flags.explorerVersion.definition.defaultValue);
     expectFlagValue(parsed.network, Flags.soloChartVersion, Flags.soloChartVersion.definition.defaultValue);
     expectFlagValue(parsed.explorerNode, Flags.soloChartVersion, Flags.soloChartVersion.definition.defaultValue);

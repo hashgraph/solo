@@ -231,7 +231,6 @@ export class BlockNodeCommand extends BaseCommand {
     optional: [
       flags.deployment,
       // Keep legacy flag visible as a separate deprecated option.
-      flags.blockNodeChartVersion,
       flags.blockNodeVersion,
       flags.blockNodeChartDirectory,
       flags.blockNodeTssOverlay,
