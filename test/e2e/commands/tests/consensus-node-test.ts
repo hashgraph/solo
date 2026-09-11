@@ -105,7 +105,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
 
     // Allow version-pinned setup in E2E tests even when local-build mode is off.
     if (localBuildReleaseTag) {
-      argv.push(optionFromFlag(Flags.releaseTag), localBuildReleaseTag);
+      argv.push(optionFromFlag(Flags.consensusNodeVersion), localBuildReleaseTag);
     }
     argvPushGlobalFlags(argv, testName, true);
     return argv;
@@ -166,7 +166,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
       argv.push(
         optionFromFlag(Flags.localBuildPath),
         options.localBuildPath,
-        optionFromFlag(Flags.releaseTag),
+        optionFromFlag(Flags.consensusNodeVersion),
         options.localBuildReleaseTag,
       );
     }
@@ -237,7 +237,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
       argv.push(
         optionFromFlag(Flags.localBuildPath),
         localBuildPath,
-        optionFromFlag(Flags.releaseTag),
+        optionFromFlag(Flags.consensusNodeVersion),
         localBuildReleaseTag,
       );
     }
@@ -313,7 +313,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
       argv.push(
         optionFromFlag(Flags.localBuildPath),
         localBuildPath,
-        optionFromFlag(Flags.releaseTag),
+        optionFromFlag(Flags.consensusNodeVersion),
         localBuildReleaseTag,
       );
     }
@@ -359,7 +359,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
       argv.push(
         optionFromFlag(Flags.localBuildPath),
         localBuildPath,
-        optionFromFlag(Flags.releaseTag),
+        optionFromFlag(Flags.consensusNodeVersion),
         localBuildReleaseTag,
       );
     }

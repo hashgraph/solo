@@ -106,22 +106,15 @@ export class DeployArgvBuilders {
     }
 
     const consensusNodeVersionFlag: string = optionFromFlag(Flags.consensusNodeVersion);
-    const legacyReleaseTagFlag: string = optionFromFlag(Flags.releaseTag);
     const blockNodeConfiguration: AnyObject = {...config.blockNodeConfiguration};
     const consensusVersionOverride: unknown =
       blockNodeConfiguration[consensusNodeVersionFlag] ??
-      blockNodeConfiguration[legacyReleaseTagFlag] ??
-      blockNodeConfiguration.releaseTag ??
       blockNodeConfiguration.consensusNodeVersion ??
-      blockNodeConfiguration['consensus-node-version'] ??
-      blockNodeConfiguration['--releaseTag'];
+      blockNodeConfiguration['consensus-node-version'];
     if (blockNodeConfiguration[consensusNodeVersionFlag] === undefined && consensusVersionOverride !== undefined) {
       blockNodeConfiguration[consensusNodeVersionFlag] = consensusVersionOverride;
     }
 
-    delete blockNodeConfiguration[legacyReleaseTagFlag];
-    delete blockNodeConfiguration['--releaseTag'];
-    delete blockNodeConfiguration.releaseTag;
     delete blockNodeConfiguration.consensusNodeVersion;
     delete blockNodeConfiguration['consensus-node-version'];
 

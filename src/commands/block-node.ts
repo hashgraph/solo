@@ -245,8 +245,6 @@ export class BlockNodeCommand extends BaseCommand {
       flags.enableIngress,
       flags.quiet,
       flags.valuesFile,
-      // Keep deprecated legacy flag accepted for backward compatibility.
-      flags.releaseTag,
       flags.consensusNodeVersion,
       flags.imageTag,
       flags.componentImage,

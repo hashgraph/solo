@@ -49,7 +49,6 @@ export class ConfigManager {
 
   private applyLegacyVersionArgAliases(argv: ArgvStruct): void {
     const aliasMappings: LegacyVersionAliasMapping[] = [
-      {canonical: flags.consensusNodeVersion, legacy: flags.releaseTag},
       {canonical: flags.relayVersion, legacy: flags.relayReleaseTag},
       {canonical: flags.blockNodeVersion, legacy: flags.blockNodeChartVersion},
     ];
@@ -70,7 +69,6 @@ export class ConfigManager {
 
   private applyLegacyVersionConfigAliases(activeConfig: AnyObject): void {
     const aliasMappings: LegacyVersionAliasMapping[] = [
-      {canonical: flags.consensusNodeVersion, legacy: flags.releaseTag},
       {canonical: flags.relayVersion, legacy: flags.relayReleaseTag},
       {canonical: flags.blockNodeVersion, legacy: flags.blockNodeChartVersion},
     ];

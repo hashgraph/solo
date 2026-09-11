@@ -280,7 +280,7 @@ Desired-state vs. actual-state reconciliation:
 
 - A `solo one-shot status` command that reports per-component health against the deployment's desired configuration.
 - Health-aware guards: replace "chart installed → skip" with "chart installed AND healthy → skip". Unhealthy resources become a recovery target, not a skip.
-- Config drift detection: compare the deployed component versions against the user's current `--release-tag` and friends.
+- Config drift detection: compare the deployed component versions against the user's current `--consensus-node-version` and friends.
 - Integration with `DiagnosticsAnalyzer` so a re-run after failure can fix the root cause (image pull error → retry pull; OOM → adjust resources; etc.) rather than skip past it.
 
 Open questions for a Phase 3 RFC: implicit convergence in `deploy` vs. an explicit `converge` command; version upgrade strategy; how aggressive drift correction should be by default.

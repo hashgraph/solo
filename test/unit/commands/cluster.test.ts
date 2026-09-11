@@ -64,7 +64,7 @@ const sandbox: SinonSandbox = sinon.createSandbox();
 
 argv.setArg(flags.namespace, namespace.name);
 argv.setArg(flags.deployment, `${namespace.name}-deployment`);
-argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
+argv.setArg(flags.consensusNodeVersion, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1');
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);

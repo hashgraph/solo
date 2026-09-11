@@ -49,7 +49,7 @@ const namespace: NamespaceName = NamespaceName.of(testName);
 const argv: Argv = Argv.getDefaultArgv(namespace);
 const realK8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);
 
-argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
+argv.setArg(flags.consensusNodeVersion, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1');
 argv.setArg(flags.deployment, 'deployment');
 argv.setArg(flags.generateGossipKeys, true);
@@ -60,7 +60,7 @@ argv.setArg(flags.force, true);
 argv.setArg(flags.clusterSetupNamespace, constants.SOLO_SETUP_NAMESPACE.name);
 argv.setArg(flags.chartDirectory, undefined);
 if (new SemanticVersion<string>(version.HEDERA_PLATFORM_VERSION).lessThan('v0.61.0')) {
-  argv.setArg(flags.releaseTag, 'v0.61.0');
+  argv.setArg(flags.consensusNodeVersion, 'v0.61.0');
 }
 
 describe('NetworkCommand unit tests', (): void => {

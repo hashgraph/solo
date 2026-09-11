@@ -27,7 +27,9 @@ export async function update(): Promise<void> {
   fs.mkdirSync(TARGET_DIR, {recursive: true});
 
   const CONSENSUS_NODE_VERSION: string = process.argv[2];
-  const CONSENSUS_NODE_FLAG: string = CONSENSUS_NODE_VERSION ? `--release-tag ${CONSENSUS_NODE_VERSION}` : '';
+  const CONSENSUS_NODE_FLAG: string = CONSENSUS_NODE_VERSION
+    ? `--consensus-node-version ${CONSENSUS_NODE_VERSION}`
+    : '';
 
   process.env.SOLO_CLUSTER_NAME = 'solo';
   process.env.SOLO_NAMESPACE = 'solo';

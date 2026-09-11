@@ -114,20 +114,18 @@ describe('buildBlockNodeArgv', (): void => {
     expect(blockNodeConfiguration[valuesFileFlagName]).to.equal(originalFile);
   });
 
-  it('maps legacy release-tag keys to consensus-node-version and drops unsupported keys', (): void => {
+  it('forwards the consensus node version and drops the non-flag key spellings', (): void => {
     const blockNodeConfiguration: AnyObject = {
-      [optionFromFlag(Flags.releaseTag)]: 'v0.73.0',
-      releaseTag: 'v0.73.0',
-      '--releaseTag': 'v0.73.0',
+      consensusNodeVersion: 'v0.73.0',
+      'consensus-node-version': 'v0.73.0',
     };
     const argv: string[] = DeployArgvBuilders.buildBlockNodeArgv(makeConfig({blockNodeConfiguration}));
 
     const consensusNodeVersionIndex: number = argv.indexOf(optionFromFlag(Flags.consensusNodeVersion));
     expect(consensusNodeVersionIndex).to.be.greaterThan(-1);
     expect(argv[consensusNodeVersionIndex + 1]).to.equal('v0.73.0');
-    expect(argv).to.not.include(optionFromFlag(Flags.releaseTag));
-    expect(argv).to.not.include('releaseTag');
-    expect(argv).to.not.include('--releaseTag');
+    expect(argv).to.not.include('consensusNodeVersion');
+    expect(argv).to.not.include('consensus-node-version');
   });
 });
 

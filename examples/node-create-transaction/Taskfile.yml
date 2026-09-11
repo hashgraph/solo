@@ -92,12 +92,12 @@ tasks:
 
       - cmd: |
           # Solo consensus network deploy
-          $SOLO_COMMAND consensus network deploy --deployment {{ .SOLO_DEPLOYMENT }} --release-tag {{ .CN_VERSION }} \
+          $SOLO_COMMAND consensus network deploy --deployment {{ .SOLO_DEPLOYMENT }} --consensus-node-version {{ .CN_VERSION }} \
           --pvcs {{.APPLICATION_PROPERTIES_FLAG}} --dev
 
       - cmd: |
           # Solo consensus node setup
-          $SOLO_COMMAND consensus node setup --deployment {{ .SOLO_DEPLOYMENT }} --release-tag {{ .CN_VERSION }} \
+          $SOLO_COMMAND consensus node setup --deployment {{ .SOLO_DEPLOYMENT }} --consensus-node-version {{ .CN_VERSION }} \
           {{.LOCAL_BUILD_FLAG}} --dev
 
       - cmd: |
@@ -121,7 +121,7 @@ tasks:
       - cmd: |
           # Solo consensus dev-node-add prepare
           $SOLO_COMMAND consensus dev-node-add prepare --deployment {{ .SOLO_DEPLOYMENT }} --gossip-keys true --tls-keys true \
-          --release-tag {{ .CN_VERSION }} --output-dir {{ .PREPARE_OUTPUT_DIR }} --pvcs --dev \
+          --consensus-node-version {{ .CN_VERSION }} --output-dir {{ .PREPARE_OUTPUT_DIR }} --pvcs --dev \
           --cluster-ref {{ .SOLO_CLUSTER_REF }}
 
       - cmd: |

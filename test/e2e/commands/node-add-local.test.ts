@@ -35,7 +35,7 @@ describe('Node add with hedera local build', (): void => {
   argv.setArg(flags.stakeAmounts, '1500,1');
   argv.setArg(flags.generateGossipKeys, true);
   argv.setArg(flags.generateTlsKeys, true);
-  argv.setArg(flags.releaseTag, TEST_UPGRADE_FROM_VERSION);
+  argv.setArg(flags.consensusNodeVersion, TEST_UPGRADE_FROM_VERSION);
   argv.setArg(flags.namespace, namespace.name);
   argv.setArg(flags.force, true);
   argv.setArg(flags.persistentVolumeClaims, true);

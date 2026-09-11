@@ -264,19 +264,19 @@ jobs:
           VALUES_FILE="/tmp/one-shot-timing-values.yaml"
           {
             echo "network:"
-            echo "  --release-tag: \"${{ steps.versions.outputs.cn-version }}\""
+            echo "  --consensus-node-version: \"${{ steps.versions.outputs.cn-version }}\""
             echo "  --tss: \"true\""
             echo ""
             if [ "${{ inputs.use-local-build }}" = "true" ]; then
               CN_REPO_DIR="${GITHUB_WORKSPACE}/../hiero-consensus-node"
               echo "setup:"
               echo "  --local-build-path: \"${CN_REPO_DIR}/hedera-node/data\""
-              echo "  --release-tag: \"${{ steps.versions.outputs.cn-version }}\""
+              echo "  --consensus-node-version: \"${{ steps.versions.outputs.cn-version }}\""
               echo ""
             fi
             echo "blockNode:"
             echo "  --chart-version: \"${{ steps.versions.outputs.bn-version }}\""
-            echo "  --release-tag: \"${{ steps.versions.outputs.cn-version }}\""
+            echo "  --consensus-node-version: \"${{ steps.versions.outputs.cn-version }}\""
             echo ""
             echo "mirrorNode:"
             echo "  --mirror-node-version: \"${{ steps.versions.outputs.mn-version }}\""

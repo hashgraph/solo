@@ -36,22 +36,17 @@ sections:
       debug-node-alias: ${config.debugNodeAlias}
       load-balancer: ${config.loadBalancerEnabled}
       pvcs: ${default}
-      release-tag: ${config.releaseTag}
+      consensus-node-version: ${config.releaseTag}
       service-monitor: ${default}
       pod-log: ${default}
-    # Legacy key kept for backward compatibility when release-tag is not in the flag-list.
-    extraKeys:
-      release-tag: ${config.releaseTag}
 
   # Setup configuration for consensus nodes.
   - name: setup
     flagsFrom: node.setup
     overrides:
-      release-tag: ${config.releaseTag}
+      consensus-node-version: ${config.releaseTag}
       local-build-path: ${config.localBuildPath}
       debug: ${config.enableDevChartMode}
-    extraKeys:
-      release-tag: ${config.releaseTag}
 
   # Consensus node start configuration.
   - name: consensusNode

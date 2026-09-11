@@ -104,14 +104,14 @@ tasks:
       # Deploy block node with previous version
       # Must deploy block node before deploying consensus network due to dependency
       - cmd: |
-          $SOLO_COMMAND block node add --deployment {{ .DEPLOYMENT }} --release-tag {{ .PREV_CN_VERSION }} \
+          $SOLO_COMMAND block node add --deployment {{ .DEPLOYMENT }} --consensus-node-version {{ .PREV_CN_VERSION }} \
           --chart-version {{ .PREV_BLOCK_VERSION }}
 
       - cmd: |
           $SOLO_COMMAND consensus network deploy --deployment {{ .DEPLOYMENT }} --pvcs true --node-aliases {{ .NODE_IDENTIFIERS }} \
-          --release-tag {{ .PREV_CN_VERSION }}
+          --consensus-node-version {{ .PREV_CN_VERSION }}
 
-      - cmd: $SOLO_COMMAND consensus node setup --node-aliases {{ .NODE_IDENTIFIERS }} --deployment {{ .DEPLOYMENT }} --release-tag {{ .PREV_CN_VERSION }}
+      - cmd: $SOLO_COMMAND consensus node setup --node-aliases {{ .NODE_IDENTIFIERS }} --deployment {{ .DEPLOYMENT }} --consensus-node-version {{ .PREV_CN_VERSION }}
 
       - cmd: $SOLO_COMMAND consensus node start --deployment {{ .DEPLOYMENT }} --node-aliases {{ .NODE_IDENTIFIERS }}
 

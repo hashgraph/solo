@@ -57,9 +57,9 @@ export class NetworkTest extends BaseCommandTest {
     }
 
     if (releaseTagOverride) {
-      argv.push(optionFromFlag(Flags.releaseTag), releaseTagOverride);
+      argv.push(optionFromFlag(Flags.consensusNodeVersion), releaseTagOverride);
     } else if (enableLocalBuildPathTesting) {
-      argv.push(optionFromFlag(Flags.releaseTag), localBuildReleaseTag);
+      argv.push(optionFromFlag(Flags.consensusNodeVersion), localBuildReleaseTag);
     }
     argvPushGlobalFlags(argv, testName, true, true);
     return argv;

@@ -66,7 +66,7 @@ const testSystemAccounts: number[][] = [[3, 5]];
 const argv: Argv = Argv.getDefaultArgv(namespace);
 argv.setArg(flags.forcePortForward, true);
 argv.setArg(flags.namespace, namespace.name);
-argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
+argv.setArg(flags.consensusNodeVersion, HEDERA_PLATFORM_VERSION_TAG);
 argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2');
 argv.setArg(flags.generateGossipKeys, true);
 argv.setArg(flags.generateTlsKeys, true);

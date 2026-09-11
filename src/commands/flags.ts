@@ -470,25 +470,6 @@ export class Flags {
     },
   };
 
-  public static readonly releaseTag: CommandFlag = {
-    constName: 'releaseTag',
-    name: 'release-tag',
-    definition: {
-      describe: `Consensus node release tag (e.g. ${version.HEDERA_PLATFORM_VERSION})`,
-      alias: 't',
-      defaultValue: version.HEDERA_PLATFORM_VERSION,
-      type: 'string',
-      deprecated: {since: '0.85.0', removalIssue: 5387, replacement: '--consensus-node-version'},
-      promptText: 'Enter release version: ',
-    },
-    prompt: async function promptReleaseTag(
-      task: SoloListrTaskWrapper<AnyListrContext>,
-      input: string,
-    ): Promise<string> {
-      return await Flags.prompt('input', task, input, Flags.releaseTag);
-    },
-  };
-
   public static readonly upgradeVersion: CommandFlag = {
     constName: 'upgradeVersion',
     name: 'upgrade-version',
@@ -2738,8 +2719,15 @@ export class Flags {
     name: 'consensus-node-version',
     definition: {
       describe: 'Consensus node version to deploy (e.g. v0.73.0 or 0.73.0).',
-      defaultValue: '',
+      defaultValue: version.HEDERA_PLATFORM_VERSION,
       type: 'string',
+      promptText: 'Enter consensus node version: ',
+    },
+    prompt: async function promptConsensusNodeVersion(
+      task: SoloListrTaskWrapper<AnyListrContext>,
+      input: string,
+    ): Promise<string> {
+      return await Flags.prompt('input', task, input, Flags.consensusNodeVersion);
     },
   };
 
@@ -2882,7 +2870,6 @@ export class Flags {
     Flags.componentImage,
     Flags.relayReleaseTag,
     Flags.relayVersion,
-    Flags.releaseTag,
     Flags.consensusNodeVersion,
     Flags.upgradeVersion,
     Flags.freezeBlockDrainSeconds,
@@ -3015,7 +3002,7 @@ export class Flags {
 
   public static readonly DEFAULT_FLAGS: CommandFlags = {
     required: [],
-    optional: [Flags.namespace, Flags.cacheDir, Flags.releaseTag, Flags.debugMode, Flags.quiet],
+    optional: [Flags.namespace, Flags.cacheDir, Flags.consensusNodeVersion, Flags.debugMode, Flags.quiet],
   };
 
   /**

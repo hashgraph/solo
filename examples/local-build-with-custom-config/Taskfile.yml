@@ -78,7 +78,7 @@ tasks:
       # Solo block node add
       - cmd: |
           export BLOCK_NODE_RELEASE_TAG=$(grep "'BLOCK_NODE_VERSION'" {{ .ROOT_DIR }}/version.ts | sed -E "s/.*'([^']+)';/\1/")
-          $SOLO_COMMAND block node add --deployment {{ .DEPLOYMENT }} --release-tag {{ .CN_VERSION }} \
+          $SOLO_COMMAND block node add --deployment {{ .DEPLOYMENT }} --consensus-node-version {{ .CN_VERSION }} \
           --chart-version $BLOCK_NODE_RELEASE_TAG {{ .BLOCK_NODE_VALUE_FILE_FLAG }}
 
       # Solo node keys
@@ -101,7 +101,7 @@ tasks:
           --values-file {{ .USER_WORKING_DIR }}/init-containers-values.yaml \
           --settings-txt {{ .USER_WORKING_DIR }}/settings.txt \
           --log4j2-xml {{ .USER_WORKING_DIR }}/log4j2.xml \
-          --release-tag {{ .CN_VERSION }} \
+          --consensus-node-version {{ .CN_VERSION }} \
           --application-properties {{ .USER_WORKING_DIR }}/application.properties
 
       # Solo node setup

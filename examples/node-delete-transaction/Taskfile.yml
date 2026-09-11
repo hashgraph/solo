@@ -91,12 +91,12 @@ tasks:
 
       - cmd: |
           # Solo consensus network deploy
-          $SOLO_COMMAND consensus network deploy --deployment {{ .SOLO_DEPLOYMENT }} --release-tag {{ .CN_VERSION }} \
+          $SOLO_COMMAND consensus network deploy --deployment {{ .SOLO_DEPLOYMENT }} --consensus-node-version {{ .CN_VERSION }} \
           --pvcs {{.APPLICATION_PROPERTIES_FLAG}} --dev
 
       - cmd: |
           # Solo consensus node setup
-          $SOLO_COMMAND consensus node setup --deployment {{ .SOLO_DEPLOYMENT }} --release-tag {{ .CN_VERSION }} \
+          $SOLO_COMMAND consensus node setup --deployment {{ .SOLO_DEPLOYMENT }} --consensus-node-version {{ .CN_VERSION }} \
           {{.LOCAL_BUILD_FLAG}} --dev
 
       - cmd: |

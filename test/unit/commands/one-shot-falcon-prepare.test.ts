@@ -16,7 +16,7 @@ import {OneShotCommandDefinition} from '../../../src/commands/command-definition
 function createDefaultConfig(overrides: Partial<FalconPrepareConfig> = {}): FalconPrepareConfig {
   return {
     numberOfConsensusNodes: 1,
-    releaseTag: Flags.releaseTag.definition.defaultValue as string,
+    releaseTag: Flags.consensusNodeVersion.definition.defaultValue as string,
     mirrorNodeVersion: Flags.mirrorNodeVersion.definition.defaultValue as string,
     relayReleaseTag: Flags.relayReleaseTag.definition.defaultValue as string,
     chartVersion: Flags.blockNodeChartVersion.definition.defaultValue as string,
@@ -61,8 +61,8 @@ describe('DefaultOneShotCommand.generateFalconValuesYaml', (): void => {
       expect(section[optionFromFlag(flag)], `${optionFromFlag(flag)} in section`).to.equal(expected);
     }
 
-    expectFlagValue(parsed.network, Flags.releaseTag, Flags.releaseTag.definition.defaultValue);
-    expectFlagValue(parsed.setup, Flags.releaseTag, Flags.releaseTag.definition.defaultValue);
+    expectFlagValue(parsed.network, Flags.consensusNodeVersion, Flags.consensusNodeVersion.definition.defaultValue);
+    expectFlagValue(parsed.setup, Flags.consensusNodeVersion, Flags.consensusNodeVersion.definition.defaultValue);
     expectFlagValue(parsed.mirrorNode, Flags.mirrorNodeVersion, Flags.mirrorNodeVersion.definition.defaultValue);
     expectFlagValue(parsed.relayNode, Flags.relayReleaseTag, Flags.relayReleaseTag.definition.defaultValue);
     expectFlagValue(parsed.blockNode, Flags.blockNodeChartVersion, Flags.blockNodeChartVersion.definition.defaultValue);
@@ -80,8 +80,8 @@ describe('DefaultOneShotCommand.generateFalconValuesYaml', (): void => {
     const output: string = DefaultOneShotCommand.generateFalconValuesYaml(config);
     const parsed: Record<string, Record<string, string>> = yaml.parse(output);
 
-    expect(parsed.network[optionFromFlag(Flags.releaseTag)]).to.equal('v0.99.0');
-    expect(parsed.setup[optionFromFlag(Flags.releaseTag)]).to.equal('v0.99.0');
+    expect(parsed.network[optionFromFlag(Flags.consensusNodeVersion)]).to.equal('v0.99.0');
+    expect(parsed.setup[optionFromFlag(Flags.consensusNodeVersion)]).to.equal('v0.99.0');
     expect(parsed.mirrorNode[optionFromFlag(Flags.mirrorNodeVersion)]).to.equal('v0.200.0');
     expect(parsed.relayNode[optionFromFlag(Flags.relayReleaseTag)]).to.equal('0.50.0');
   });

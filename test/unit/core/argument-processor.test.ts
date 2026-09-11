@@ -330,8 +330,17 @@ describe('ArgumentProcessor', (): void => {
       expect(process.exitCode).to.not.equal(1);
     });
 
-    it('should accept deprecated --release-tag for block node add and still show help', async (): Promise<void> => {
-      const argv: string[] = ['node', 'solo.ts', 'block', 'node', 'add', '--release-tag', 'v0.66.0', '--help'];
+    it('should accept --consensus-node-version for block node add and still show help', async (): Promise<void> => {
+      const argv: string[] = [
+        'node',
+        'solo.ts',
+        'block',
+        'node',
+        'add',
+        '--consensus-node-version',
+        'v0.66.0',
+        '--help',
+      ];
       process.exitCode = undefined;
 
       try {
@@ -342,7 +351,7 @@ describe('ArgumentProcessor', (): void => {
 
       const output: string = consoleOutput.join('\n');
       expect(output).to.include('block node add');
-      expect(output).to.include('--release-tag');
+      expect(output).to.include('--consensus-node-version');
       expect(output).to.not.include('Unknown arguments');
       expect(process.exitCode).to.not.equal(1);
     });

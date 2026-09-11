@@ -18,7 +18,7 @@ network:
   --log4j2-xml: ""
   --pvcs: false
   --quiet-mode: false
-  --release-tag: "${SOLO_RELEASE_TAG}"
+  --consensus-node-version: "${SOLO_RELEASE_TAG}"
   --settings-txt: ""
   --values-file: ""
   --grpc-tls-certificate-path: ""
@@ -52,7 +52,7 @@ network:
 # Setup configuration for consensus nodes
 setup:
   --cache-dir: ""
-  --release-tag: "${SOLO_RELEASE_TAG}"
+  --consensus-node-version: "${SOLO_RELEASE_TAG}"
   --app: ""
   --app-config: ""
   --quiet-mode: false
@@ -123,7 +123,7 @@ relayNode:
 blockNode:
   --chart-dir: ""
   --block-node-chart-version: ""
-  --release-tag: "${SOLO_RELEASE_TAG_NO_V}"
+  --consensus-node-version: "${SOLO_RELEASE_TAG_NO_V}"
   --image-tag: ""
   --values-file: ""
   --enable-ingress: false

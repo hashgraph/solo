@@ -574,7 +574,7 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
           case ComponentTypes.ConsensusNode: {
             this.updateComponentVersion(
               componentType,
-              new SemanticVersion<string>(flags.releaseTag.definition.defaultValue as string),
+              new SemanticVersion<string>(flags.consensusNodeVersion.definition.defaultValue as string),
             );
             break;
           }

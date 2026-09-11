@@ -317,7 +317,7 @@ export function endToEndTestSuite(
     // eslint-disable-next-line unicorn/no-this-outside-of-class
     this.bail(true); // stop on first failure, nothing else will matter if network doesn't come up correctly
 
-    describe(`Bootstrap network for test [release ${argv.getArg(flags.releaseTag)}]`, (): void => {
+    describe(`Bootstrap network for test [release ${argv.getArg(flags.consensusNodeVersion)}]`, (): void => {
       before(async (): Promise<void> => {
         testLogger.showUser(`------------------------- START: bootstrap (${testName}) ----------------------------`);
       });

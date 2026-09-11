@@ -19,7 +19,7 @@ export class NodeVersionMismatchSoloError extends SoloError {
       code: ErrorCodeRegistry.NODE_VERSION_MISMATCH,
       troubleshootingSteps:
         'Check the saved version: solo deployment config info --deployment <name>\n' +
-        'Use the same version: solo consensus node setup --release-tag <savedVersion>\n' +
+        'Use the same version: solo consensus node setup --consensus-node-version <savedVersion>\n' +
         'Or upgrade the network first: solo consensus network upgrade --upgrade-version <version>',
     });
   }

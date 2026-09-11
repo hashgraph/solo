@@ -136,7 +136,6 @@ export class NetworkCommand extends BaseCommand {
       flags.quiet,
       // Keep the legacy flag visible in help as deprecated while canonical parsing
       // uses --consensus-node-version.
-      flags.releaseTag,
       flags.consensusNodeVersion,
       flags.settingTxt,
       flags.networkDeploymentValuesFile,

@@ -21,7 +21,7 @@ import {TEST_UPGRADE_TO_VERSION} from '../../../version-test.js';
 
 export function testSeparateNodeUpgrade(argv: Argv, bootstrapResp: BootstrapResponse, namespace: NamespaceName): void {
   argv.setArg(flags.nodeAliasesUnparsed, 'node1,node2');
-  argv.setArg(flags.releaseTag, HEDERA_PLATFORM_VERSION_TAG);
+  argv.setArg(flags.consensusNodeVersion, HEDERA_PLATFORM_VERSION_TAG);
 
   const zipFile: string = 'upgrade.zip';
 

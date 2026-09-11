@@ -45,7 +45,7 @@ export class BlockNodeTest extends BaseCommandTest {
     );
 
     if (enableLocalBuildPathTesting) {
-      argv.push(optionFromFlag(Flags.releaseTag), localBuildReleaseTag);
+      argv.push(optionFromFlag(Flags.consensusNodeVersion), localBuildReleaseTag);
     }
 
     if (nodeAliases !== undefined && nodeAliases.length > 0) {

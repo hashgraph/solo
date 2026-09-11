@@ -31,17 +31,17 @@ describe('ConfigManager', (): void => {
     it('should update string flag value', (): void => {
       const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
       const argv: Argv = Argv.initializeEmpty();
-      argv.setArg(flags.releaseTag, 'v0.42.5');
+      argv.setArg(flags.consensusNodeVersion, 'v0.42.5');
 
       cm.update(argv.build());
-      expect(cm.getFlag(flags.releaseTag)).to.equal(argv.getArg<string>(flags.releaseTag));
+      expect(cm.getFlag(flags.consensusNodeVersion)).to.equal(argv.getArg<string>(flags.consensusNodeVersion));
 
       // ensure non-string values are converted to string
       cm.reset();
-      argv.setArg(flags.releaseTag, true);
+      argv.setArg(flags.consensusNodeVersion, true);
       cm.update(argv.build());
-      expect(cm.getFlag(flags.releaseTag)).not.to.equal(argv.getArg<string>(flags.releaseTag));
-      expect(cm.getFlag(flags.releaseTag)).to.equal(`${argv.getArg<string>(flags.releaseTag)}`);
+      expect(cm.getFlag(flags.consensusNodeVersion)).not.to.equal(argv.getArg<string>(flags.consensusNodeVersion));
+      expect(cm.getFlag(flags.consensusNodeVersion)).to.equal(`${argv.getArg<string>(flags.consensusNodeVersion)}`);
     });
 
     it('should update number flag value', (): void => {
@@ -119,34 +119,6 @@ describe('ConfigManager', (): void => {
   });
 
   describe('legacy and canonical version flag synchronization', (): void => {
-    it('should expose canonical config property when only legacy argv flag is provided', (): void => {
-      const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-      const argv: Argv = Argv.initializeEmpty();
-      argv.setArg(flags.releaseTag, 'v0.73.0');
-      cm.update(argv.build());
-
-      const config: {releaseTag: string} = cm.getConfig('legacy-to-canonical', [flags.consensusNodeVersion]) as {
-        releaseTag: string;
-      };
-      expect(config.releaseTag).to.equal('v0.73.0');
-      expect(cm.getFlag(flags.consensusNodeVersion)).to.equal('v0.73.0');
-      expect(cm.getFlag(flags.releaseTag)).to.equal('v0.73.0');
-    });
-
-    it('should expose legacy config property when only canonical argv flag is provided', (): void => {
-      const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
-      const argv: Argv = Argv.initializeEmpty();
-      argv.setArg(flags.consensusNodeVersion, 'v0.73.0');
-      cm.update(argv.build());
-
-      const config: {releaseTag: string} = cm.getConfig('canonical-to-legacy', [flags.releaseTag]) as {
-        releaseTag: string;
-      };
-      expect(config.releaseTag).to.equal('v0.73.0');
-      expect(cm.getFlag(flags.consensusNodeVersion)).to.equal('v0.73.0');
-      expect(cm.getFlag(flags.releaseTag)).to.equal('v0.73.0');
-    });
-
     it('should synchronize relay and block-node version flags in both directions', (): void => {
       const cm: ConfigManager = container.resolve(InjectTokens.ConfigManager);
 

@@ -94,12 +94,12 @@ tasks:
 
       - cmd: |
           # Solo consensus network deploy
-          $SOLO_COMMAND consensus network deploy --deployment {{ .SOLO_DEPLOYMENT }} --release-tag {{ .CN_VERSION }} \
+          $SOLO_COMMAND consensus network deploy --deployment {{ .SOLO_DEPLOYMENT }} --consensus-node-version {{ .CN_VERSION }} \
           --pvcs {{.APPLICATION_PROPERTIES_FLAG}} --dev
 
       - cmd: |
           # Solo consensus node setup
-          $SOLO_COMMAND consensus node setup --deployment {{ .SOLO_DEPLOYMENT }} --release-tag {{ .CN_VERSION }} \
+          $SOLO_COMMAND consensus node setup --deployment {{ .SOLO_DEPLOYMENT }} --consensus-node-version {{ .CN_VERSION }} \
           {{.LOCAL_BUILD_FLAG}} --dev
 
       - cmd: |
@@ -120,7 +120,7 @@ tasks:
       - cmd: |
           # Solo consensus dev-node-update prepare
           $SOLO_COMMAND consensus dev-node-update prepare --deployment {{ .SOLO_DEPLOYMENT }} --node-alias node2 \
-          --release-tag {{ .CN_VERSION }} --output-dir {{ .PREPARE_OUTPUT_DIR }} --dev --new-account-number 0.0.5
+          --consensus-node-version {{ .CN_VERSION }} --output-dir {{ .PREPARE_OUTPUT_DIR }} --dev --new-account-number 0.0.5
 
       - cmd: |
           # SDK NodeUpdateTransaction
