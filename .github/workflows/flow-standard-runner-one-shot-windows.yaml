@@ -228,19 +228,18 @@ jobs:
         # The verified restore above creates setup-wsl's .complete marker so find()
         # returns the installer before the action reaches its cache or download path.
         uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
-        # A healthy setup completes in about one minute. Bound a stalled action so a
+        # A healthy setup completes in well under a minute. Bound a stalled action so a
         # distribution problem is reported promptly instead of consuming ten minutes.
+        # Keep this step off the network: `additional-packages` would run `apt-get update`
+        # inside this budget, and a slow Ubuntu mirror alone blew it three runs in a row
+        # (issue #5985). The Ubuntu WSL image already ships ca-certificates and curl; every
+        # apt call this job needs lives in "Install Docker in WSL2" with its own timeout.
         timeout-minutes: 3
         with:
           distribution: Ubuntu-24.04
           wsl-version: 2
           use-cache: false
           set-as-default: true
-          additional-packages: |
-            apt-transport-https
-            ca-certificates
-            curl
-            software-properties-common
 
       - name: Capture WSL2 diagnostics after setup failure
         if: ${{ !cancelled() && steps.setup_wsl2.outcome == 'failure' }}
@@ -335,17 +334,26 @@ jobs:
             echo "::group::Memory (free -h):"
             free -h
             echo "::endgroup::"
-            # Ubuntu 24.04 uses iptables-nft by default which prevents Docker from starting in WSL2.
-            # iptables must be installed before alternatives can be switched.
-            echo "::group::Adding Docker APT Repository"
-            apt-get install -y -q iptables
-            update-alternatives --set iptables /usr/sbin/iptables-legacy
-            update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+            echo "::group::Configuring APT"
+            # GitHub-hosted runners live in Azure; archive.ubuntu.com from there is the mirror that
+            # stalled or timed out in issue #5985. Use the in-network Azure mirror, as GitHub's own
+            # Ubuntu runner images do, and bound each fetch so a bad connection fails fast and
+            # retries instead of sitting in apt's default 120-second connect timeout.
+            grep -rl 'archive.ubuntu.com' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null | xargs -r sed -i 's|http://archive.ubuntu.com/ubuntu|http://azure.archive.ubuntu.com/ubuntu|'
+            printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\n' > /etc/apt/apt.conf.d/99-solo-ci
             mkdir -p /etc/apt/keyrings
             cp $WORKSPACE/.github/workflows/resources/docker-apt-public-gpg-key.key /etc/apt/keyrings/docker.asc
             chmod 644 /etc/apt/keyrings/docker.asc
             echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu noble stable" > /etc/apt/sources.list.d/docker.list
+            # The fresh WSL image has no package lists yet; this is the job's only apt-get update.
             apt-get update -q
+            echo "::endgroup::"
+            echo "::group::Switching iptables to legacy"
+            # Ubuntu 24.04 uses iptables-nft by default which prevents Docker from starting in WSL2.
+            # iptables must be installed before alternatives can be switched.
+            apt-get install -y -q iptables
+            update-alternatives --set iptables /usr/sbin/iptables-legacy
+            update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
             echo "::endgroup::"
             echo "::group::Installing Docker Engine"
             apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin
