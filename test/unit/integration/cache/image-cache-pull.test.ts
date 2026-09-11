@@ -237,4 +237,46 @@ describe('ImageCacheHandler pull', (): void => {
     expect(await exists(archivePath)).to.equal(false);
     expect(loggerStub.addMessageGroupMessage).to.have.been.called;
   });
+
+  it('prunes archives and hash files the manifest does not list', async (): Promise<void> => {
+    const staleArchive: string = PathEx.join(temporaryDirectory, 'docker.io__library__busybox__1.35.0.tar');
+    await fs.writeFile(staleArchive, 'an archive from an older solo version');
+    await fs.writeFile(`${staleArchive}.sha256`, 'a'.repeat(64));
+    await fs.writeFile(archivePath, ARCHIVE_CONTENTS);
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+
+    await runPull(createHandler(stubDownloader({})));
+
+    expect(await exists(staleArchive)).to.equal(false);
+    expect(await exists(`${staleArchive}.sha256`)).to.equal(false);
+    // the manifest-listed archive is kept
+    expect(await exists(archivePath)).to.equal(true);
+    expect(loggerStub.addMessageGroupMessage).to.have.been.calledWithMatch(
+      sinon.match.string,
+      sinon.match(staleArchive),
+    );
+  });
+
+  it('prunes nothing when the manifest is unavailable', async (): Promise<void> => {
+    const staleArchive: string = PathEx.join(temporaryDirectory, 'docker.io__library__busybox__1.35.0.tar');
+    await fs.writeFile(staleArchive, 'an archive from an older solo version');
+    sinon.stub(CacheManifestClient, 'fetchImages').rejects(new Error('manifest not published'));
+
+    await runPull(createHandler(stubDownloader({})));
+
+    expect(await exists(staleArchive)).to.equal(true);
+  });
+
+  it('leaves files that are not image cache entries alone', async (): Promise<void> => {
+    const unrelatedFile: string = PathEx.join(temporaryDirectory, 'cache-catalog.json');
+    const unrelatedDirectory: string = PathEx.join(temporaryDirectory, 'nested.tar');
+    await fs.writeFile(unrelatedFile, '{}');
+    await fs.mkdir(unrelatedDirectory);
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+
+    await runPull(createHandler(stubDownloader({})));
+
+    expect(await exists(unrelatedFile)).to.equal(true);
+    expect(await exists(unrelatedDirectory)).to.equal(true);
+  });
 });
