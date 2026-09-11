@@ -139,6 +139,7 @@ export const ErrorCodeRegistry: Record<string, string> = {
   SDK_CLIENT_NO_HEALTHY_NODES: 'SOLO-3092',
   NODE_KEY_LOAD_FAILED: 'SOLO-3093',
   NODE_CONTAINER_CRASHED: 'SOLO-3094',
+  RELAY_OPERATOR_SECRET_CREATION_FAILED: 'SOLO-3095',
 
   // 4xxx - Validation: User input, flags, IDs, formatting
   MISSING_ARGUMENT: 'SOLO-4001',

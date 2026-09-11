@@ -116,6 +116,7 @@ import {RelayDestroyFailedSoloError} from './classes/component/relay-destroy-fai
 import {RelayNotRunningSoloError} from './classes/component/relay-not-running-solo-error.js';
 import {RelayNotReadySoloError} from './classes/component/relay-not-ready-solo-error.js';
 import {RelayOperatorKeyRetrievalFailedSoloError} from './classes/component/relay-operator-key-retrieval-failed-solo-error.js';
+import {RelayOperatorSecretCreationFailedSoloError} from './classes/component/relay-operator-secret-creation-failed-solo-error.js';
 import {MirrorNodeDeployFailedSoloError} from './classes/component/mirror-node-deploy-failed-solo-error.js';
 import {MirrorNodeUpgradeFailedSoloError} from './classes/component/mirror-node-upgrade-failed-solo-error.js';
 import {MirrorNodeDestroyFailedSoloError} from './classes/component/mirror-node-destroy-failed-solo-error.js';
@@ -441,6 +442,7 @@ export class SoloErrors {
     readonly relayNotRunning: typeof RelayNotRunningSoloError;
     readonly relayNotReady: typeof RelayNotReadySoloError;
     readonly relayOperatorKeyRetrievalFailed: typeof RelayOperatorKeyRetrievalFailedSoloError;
+    readonly relayOperatorSecretCreationFailed: typeof RelayOperatorSecretCreationFailedSoloError;
     readonly mirrorNodeDeployFailed: typeof MirrorNodeDeployFailedSoloError;
     readonly mirrorNodeUpgradeFailed: typeof MirrorNodeUpgradeFailedSoloError;
     readonly mirrorNodeDestroyFailed: typeof MirrorNodeDestroyFailedSoloError;
@@ -534,6 +536,7 @@ export class SoloErrors {
     relayNotRunning: RelayNotRunningSoloError,
     relayNotReady: RelayNotReadySoloError,
     relayOperatorKeyRetrievalFailed: RelayOperatorKeyRetrievalFailedSoloError,
+    relayOperatorSecretCreationFailed: RelayOperatorSecretCreationFailedSoloError,
     mirrorNodeDeployFailed: MirrorNodeDeployFailedSoloError,
     mirrorNodeUpgradeFailed: MirrorNodeUpgradeFailedSoloError,
     mirrorNodeDestroyFailed: MirrorNodeDestroyFailedSoloError,
