@@ -73,12 +73,15 @@ export class OsPackageManager {
 
     for (const candidate of candidates) {
       const type: LinuxPackageManagerType | undefined = OsPackageManager.DISTRIBUTION_PACKAGE_MANAGERS[candidate];
-      if (type) {
+      // Trust the mapping only when its binary is actually installed: RHEL/CentOS <= 7 and
+      // Amazon Linux 2 match the dnf entries via ID/ID_LIKE but ship only yum (#5355), so a
+      // mapped-but-absent manager falls through to the binary probe below.
+      if (type && OsPackageManager.isCommandAvailable(type)) {
         return OsPackageManager.createManagerByType(type);
       }
     }
 
-    // os-release did not identify a known distribution; fall back to probing for an installed binary.
+    // os-release matched nothing (or the mapped manager is not installed); probe for an installed binary.
     for (const type of OsPackageManager.FALLBACK_PROBE_ORDER) {
       if (OsPackageManager.isCommandAvailable(type)) {
         return OsPackageManager.createManagerByType(type);

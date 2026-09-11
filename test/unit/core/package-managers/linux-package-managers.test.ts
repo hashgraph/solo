@@ -35,11 +35,12 @@ const managerCases: Array<{
   {
     name: 'DnfPackageManager',
     create: (): LinuxPackageManager => new DnfPackageManager(),
-    // Fedora/RHEL 8+ ships iptables as `iptables-nft`; the manager maps it explicitly.
-    install: ['dnf', 'install', '-y', 'git', 'iptables-nft'],
-    uninstall: ['dnf', 'remove', '-y', 'git', 'iptables-nft'],
+    // Plain `iptables` on purpose: EL8 ships it literally and has no `iptables-nft`, while
+    // Fedora/EL9+ resolve it through `iptables-nft`'s `Provides: iptables` (#5355).
+    install: ['dnf', 'install', '-y', 'git', 'iptables'],
+    uninstall: ['dnf', 'remove', '-y', 'git', 'iptables'],
     update: ['dnf', 'makecache'],
-    upgrade: ['dnf', 'upgrade', '-y', 'git', 'iptables-nft'],
+    upgrade: ['dnf', 'upgrade', '-y', 'git', 'iptables'],
     version: ['dnf', '--version'],
   },
   {

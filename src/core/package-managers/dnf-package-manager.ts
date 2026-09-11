@@ -5,15 +5,14 @@ import {LinuxPackageManager} from './linux-package-manager.js';
 
 /**
  * Package manager for RPM-based distributions that ship dnf (Fedora, RHEL, Rocky, AlmaLinux, ...).
+ *
+ * Dependencies keep their plain upstream names on purpose: EL8 ships a real `iptables` package and
+ * has no `iptables-nft`, while on Fedora and EL9+ `iptables-nft` carries `Provides: iptables`, so
+ * `dnf install iptables` resolves to the right package on every release. A hard-coded
+ * `iptables` -> `iptables-nft` rewrite breaks EL8 (#5355) — do not reintroduce one.
  */
 @injectable()
 export class DnfPackageManager extends LinuxPackageManager {
-  // On Fedora/RHEL 8+ there is no package literally named `iptables`; `iptables-nft` carries
-  // `Provides: iptables`. Install it explicitly rather than relying on that provides-resolution.
-  protected override resolveDependencies(dependencies: string[]): string[] {
-    return dependencies.map((dependency: string): string => (dependency === 'iptables' ? 'iptables-nft' : dependency));
-  }
-
   protected installCommand(dependencies: string[]): string[] {
     return ['dnf', 'install', '-y', ...dependencies];
   }
