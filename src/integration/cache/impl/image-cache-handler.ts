@@ -25,6 +25,7 @@ import {pipeline as streamPipeline} from 'node:stream/promises';
 import {type PackageDownloader} from '../../../core/package-downloader.js';
 import {CacheManifestClient} from './cache-manifest-client.js';
 import {type CacheManifestImage} from '../models/impl/cache-manifest-image.js';
+import {SoloErrors} from '../../../core/errors/solo-errors.js';
 
 export class ImageCacheHandler implements CacheOperationHandler {
   /** Extension of the file holding an archive's published hash, stored next to the archive. */
@@ -359,9 +360,18 @@ export class ImageCacheHandler implements CacheOperationHandler {
     return hash.digest('hex');
   }
 
+  /**
+   * Loads the cached image archives into the cluster.
+   *
+   * Every archive is rehashed and checked against the manifest immediately before it is handed to the
+   * container engine, so an archive that was corrupted or altered after it was downloaded never reaches the
+   * cluster.
+   */
   public async load(target: string): Promise<SoloListrTask<AnyListrContext>[]> {
     const items: readonly CachedItem[] = await this.resolveExpectedCachedItems();
     const loadedImages: ReadonlySet<string> = await this.resolveLoadedClusterImages(target);
+    const manifestImages: ReadonlyMap<string, CacheManifestImage> = await this.resolveManifestImagesForLoad();
+
     return items.map((item): SoloListrTask<AnyListrContext> => {
       const name: string = `${item.target.name}:${item.target.version}`;
 
@@ -379,6 +389,8 @@ export class ImageCacheHandler implements CacheOperationHandler {
             return;
           }
 
+          await this.assertArchiveMatchesManifest(name, item.localPath, manifestImages.get(name));
+
           try {
             await this.engine.loadImageArchiveIntoCluster(item.localPath, target);
           } catch (error) {
@@ -392,6 +404,60 @@ export class ImageCacheHandler implements CacheOperationHandler {
         },
       };
     });
+  }
+
+  /**
+   * Fetches the manifest for the load path. A manifest that cannot be fetched or parsed yields an empty map
+   * rather than an exception: the archives on disk were verified when they were pulled, and refusing to load
+   * them because github.com is unreachable would take a cluster down over a network blip.
+   */
+  private async resolveManifestImagesForLoad(): Promise<ReadonlyMap<string, CacheManifestImage>> {
+    try {
+      return await ImageCacheHandler.fetchManifestImages();
+    } catch (error) {
+      this.logger.debug(
+        'Unable to read the image cache manifest; cached archives will be loaded without re-validation: ' +
+          ImageCacheHandler.getErrorMessage(error),
+      );
+
+      return new Map<string, CacheManifestImage>();
+    }
+  }
+
+  /**
+   * Rehashes a cached archive and compares it against the hash the manifest publishes for the image, so an
+   * archive that was corrupted or tampered with after it was downloaded is never loaded into the cluster.
+   *
+   * With no manifest entry for the image there is no trusted hash to compare against and the archive is
+   * loaded as it is. That is the deliberate choice: no Solo release publishes a `cache-manifest.json` yet, an
+   * image can legitimately be absent from the manifest (a component version supplied by a flag, for example),
+   * and treating "nothing to compare against" as a failure would make loading impossible rather than safer.
+   * The archive still had to be written by `solo cache image pull`, which is the only path that writes into
+   * the cache and verifies everything it writes.
+   *
+   * @throws CacheArchiveHashMismatchSoloError when the archive does not match the manifest hash
+   */
+  private async assertArchiveMatchesManifest(
+    image: string,
+    archivePath: string,
+    manifestImage: CacheManifestImage | undefined,
+  ): Promise<void> {
+    if (!manifestImage) {
+      this.logger.debug(`No manifest hash for ${image}; loading ${archivePath} without re-validation.`);
+      return;
+    }
+
+    const computed: string = await ImageCacheHandler.computeSha256(archivePath);
+
+    if (computed === manifestImage.sha256) {
+      return;
+    }
+
+    // Discarded before the error is raised so the next `solo cache image pull` downloads it again instead of
+    // rehashing the same bad archive and failing the load a second time.
+    await this.discardArchive(archivePath);
+
+    throw new SoloErrors.system.cacheArchiveHashMismatch(image, archivePath, manifestImage.sha256, computed);
   }
 
   private async resolveLoadedClusterImages(clusterName: string): Promise<ReadonlySet<string>> {
