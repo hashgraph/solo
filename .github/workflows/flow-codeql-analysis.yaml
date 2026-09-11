@@ -65,9 +65,16 @@ jobs:
 
       # The CodeQL TypeScript extractor requires Node.js on the PATH, which the
       # self-hosted runners do not provide by default.
+      #
+      # setup-node caches npm downloads, and this workflow runs on both pull_request and push to
+      # main, so in principle a pull request run could populate a cache that a later trusted run
+      # restores. The risk is accepted here (issue #5957) because no release artifact is produced.
+      # Note this is the sharpest instance of the audit in this repository: a poisoned cache in a
+      # security scanner could suppress findings, so revisit this if CodeQL results ever become a
+      # release gate rather than advisory.
       - name: Setup Node
         if: ${{ matrix.language == 'javascript-typescript' }}
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0 # zizmor: ignore[cache-poisoning]
         with:
           node-version: 24
 
