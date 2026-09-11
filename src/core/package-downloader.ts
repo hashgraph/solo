@@ -28,7 +28,9 @@ const DOWNLOAD_RETRY_LIMIT_ENV: string = 'PACKAGE_DOWNLOADER_RETRY_LIMIT';
 const DEFAULT_URL_EXISTS_TIMEOUT: Duration = Duration.ofSeconds(5);
 const DEFAULT_DOWNLOAD_CONNECT_TIMEOUT: Duration = Duration.ofSeconds(10);
 const DEFAULT_DOWNLOAD_RESPONSE_TIMEOUT: Duration = Duration.ofMinutes(2);
-const DEFAULT_DOWNLOAD_RETRY_LIMIT: number = 3;
+const DEFAULT_DOWNLOAD_RETRY_LIMIT: number = 6;
+const DOWNLOAD_RETRY_BASE_DELAY: Duration = Duration.ofSeconds(2);
+const DOWNLOAD_RETRY_MAX_DELAY: Duration = Duration.ofSeconds(32);
 
 @injectable()
 export class PackageDownloader {
@@ -191,7 +193,11 @@ export class PackageDownloader {
           fs.rmSync(destinationPath);
         }
         if (attempt < retryLimit) {
-          const delayMs: number = 2000 * attempt;
+          // capped exponential backoff so a transient upstream outage (e.g. a GitHub 5xx blip) can pass
+          const delayMs: number = Math.min(
+            DOWNLOAD_RETRY_BASE_DELAY.toMillis() * 2 ** (attempt - 1),
+            DOWNLOAD_RETRY_MAX_DELAY.toMillis(),
+          );
           this.logger.warn(`Download attempt ${attempt}/${retryLimit} failed, retrying in ${delayMs}ms: ${url}`, error);
           await new Promise<void>((resolve): void => {
             setTimeout(resolve, delayMs);
