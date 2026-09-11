@@ -111,7 +111,6 @@ import {ContainerEngineResourceInspector} from '../../integration/container-engi
 import {DefaultCacheHandlerRegistry} from '../../integration/cache/impl/default-cache-handler-registry.js';
 import {DefaultCacheHealthInspector} from '../../integration/cache/impl/default-cache-health-inspector.js';
 import {FileSystemCacheCatalogStore} from '../../integration/cache/impl/file-system-cache-catalog-store.js';
-import {CraneDependencyManager} from '../dependency-managers/crane-dependency-manager.js';
 
 export type InstanceOverrides = Map<symbol, SingletonContainer | ValueContainer>;
 
@@ -158,7 +157,6 @@ export class Container {
       new SingletonContainer(InjectTokens.GvproxyDependencyManager, GvproxyDependencyManager),
       new SingletonContainer(InjectTokens.NetavarkDependencyManager, NetavarkDependencyManager),
       new SingletonContainer(InjectTokens.AardvarkDnsDependencyManager, AardvarkDnsDependencyManager),
-      new SingletonContainer(InjectTokens.CraneDependencyManager, CraneDependencyManager),
       new SingletonContainer(InjectTokens.ChartManager, ChartManager),
       new SingletonContainer(InjectTokens.ConfigManager, ConfigManager),
       new SingletonContainer(InjectTokens.AccountManager, AccountManager),
@@ -252,7 +250,6 @@ export class Container {
       new ValueContainer(InjectTokens.KindInstallationDirectory, PathEx.join(constants.SOLO_HOME_DIR, 'bin')),
       new ValueContainer(InjectTokens.KubectlInstallationDirectory, PathEx.join(constants.SOLO_HOME_DIR, 'bin')),
       new ValueContainer(InjectTokens.PodmanInstallationDirectory, PathEx.join(constants.SOLO_HOME_DIR, 'bin')),
-      new ValueContainer(InjectTokens.CraneInstallationDirectory, PathEx.join(constants.SOLO_HOME_DIR, 'bin')),
       new ValueContainer(
         InjectTokens.PodmanDependenciesInstallationDirectory,
         PathEx.join(constants.SOLO_HOME_DIR, 'bin/podman-helpers'),
@@ -269,7 +266,6 @@ export class Container {
       new ValueContainer(InjectTokens.GvproxyVersion, version.GVPROXY_VERSION),
       new ValueContainer(InjectTokens.NetavarkVersion, version.NETAVARK_VERSION),
       new ValueContainer(InjectTokens.AardvarkDnsVersion, version.AARDVARK_DNS_VERSION),
-      new ValueContainer(InjectTokens.CraneVersion, version.CRANE_VERSION),
       new ValueContainer(InjectTokens.SystemAccounts, constants.SYSTEM_ACCOUNTS),
       new ValueContainer(InjectTokens.CacheDir, cacheDirectory),
       new ValueContainer(InjectTokens.LocalConfigFileName, constants.DEFAULT_LOCAL_CONFIG_FILE),

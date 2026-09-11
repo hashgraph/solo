@@ -17,6 +17,21 @@ import {ClusterNodeResumeOutcome} from '../../../../src/integration/container-en
 import {type SoloListrTask} from '../../../../src/types/index.js';
 import {type AnyListrContext} from '../../../../src/types/aliases.js';
 
+const target: {type: CacheArtifactEnum; name: string; version: string; source: string | undefined} = {
+  type: CacheArtifactEnum.IMAGE,
+  name: 'docker.io/library/busybox',
+  version: '1.36.1',
+  source: undefined,
+};
+
+const store: CacheCatalogStore = {
+  save: async (): Promise<void> => undefined,
+  load: async (): Promise<never> => ({items: []}) as never,
+  exists: async (): Promise<boolean> => true,
+  clear: async (): Promise<void> => undefined,
+  resolvePath: (): string => '/tmp/busybox.tar',
+};
+
 // Runs the per-image load subtasks the way the command's Listr does.
 async function runReturnedLoadTasks(handler: ImageCacheHandler, clusterName: string): Promise<void> {
   const tasks: readonly SoloListrTask<AnyListrContext>[] = await handler.load(clusterName);
@@ -25,210 +40,60 @@ async function runReturnedLoadTasks(handler: ImageCacheHandler, clusterName: str
   }
 }
 
+function createEngine(overrides: Partial<ContainerEngineClient> = {}): ContainerEngineClient {
+  return {
+    loadImageArchiveIntoCluster: async (): Promise<void> => undefined,
+    removeImage: async (): Promise<void> => undefined,
+    listLoadedImagesInCluster: async (): Promise<readonly string[]> => [],
+    resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
+    ...overrides,
+  };
+}
+
 describe('ImageCacheHandler pull', (): void => {
-  const mirrorRegistryEnvironmentVariable: string = 'KIND_DOCKER_REGISTRY_MIRRORS';
-  const defaultMirrorRegistry: string = 'mirror.gcr.io';
-  const configuredMirrorRegistry: string = 'custom.registry.example.com';
-  let previousMirrorRegistry: string | undefined;
-
-  const target: {
-    type: CacheArtifactEnum;
-    name: string;
-    version: string;
-    source: string | undefined;
-  } = {
-    type: CacheArtifactEnum.IMAGE,
-    name: 'docker.io/library/busybox',
-    version: '1.36.1',
-    source: undefined,
-  };
-
-  const store: CacheCatalogStore = {
-    save: async (): Promise<void> => undefined,
-    load: async (): Promise<never> => ({items: []}) as never,
-    exists: async (): Promise<boolean> => true,
-    clear: async (): Promise<void> => undefined,
-    resolvePath: (): string => '/tmp/busybox.tar',
-  };
-
   const inspector: CacheHealthInspector = {
     exists: async (): Promise<boolean> => false,
     getSize: async (): Promise<number> => 0,
     filterExisting: async (paths: readonly string[]): Promise<readonly string[]> => paths,
   };
 
-  const logger: SoloLogger = {
-    setDevMode: (): void => undefined,
-    isDevMode: (): boolean => false,
-    nextTraceId: (): void => undefined,
-    setLogBinding: (): void => undefined,
-    addLogBindings: (): void => undefined,
-    clearLogBindings: (): void => undefined,
-    prepMeta: (meta?: object): object => meta ?? {},
-    showUser: (): void => undefined,
-    showUserUnlessOneShot: (): void => undefined,
-    beginDeferredUserOutput: (): void => undefined,
-    flushDeferredUserOutput: (): void => undefined,
-    showUserError: (): void => undefined,
-    error: (): void => undefined,
-    warn: (): void => undefined,
-    info: (): void => undefined,
-    debug: (): void => undefined,
-    showList: (): void => undefined,
-    showListIfNotEmpty: (): void => undefined,
-    showJSON: (): void => undefined,
-    addMessageGroup: (): void => undefined,
-    getMessageGroup: (): string[] => [],
-    addMessageGroupMessage: (): void => undefined,
-    showMessageGroup: (): void => undefined,
-    getMessageGroupKeys: (): string[] => [],
-    showAllMessageGroups: (): void => undefined,
-    flush: (callback: (error?: Error) => void): void => callback(),
-  };
+  let loggerStub: sinon.SinonStubbedInstance<SoloPinoLogger>;
+  let logger: SoloLogger;
 
   beforeEach((): void => {
-    previousMirrorRegistry = process.env[mirrorRegistryEnvironmentVariable];
-    process.env[mirrorRegistryEnvironmentVariable] = configuredMirrorRegistry;
+    loggerStub = sinon.createStubInstance(SoloPinoLogger);
+    loggerStub.getMessageGroupKeys.returns([]);
+    logger = loggerStub as unknown as SoloLogger;
   });
 
   afterEach((): void => {
-    if (previousMirrorRegistry === undefined) {
-      delete process.env[mirrorRegistryEnvironmentVariable];
-    } else {
-      process.env[mirrorRegistryEnvironmentVariable] = previousMirrorRegistry;
-    }
+    sinon.restore();
   });
 
-  it('should fail when saveImage fails due to rate limiting', async (): Promise<void> => {
-    const rateLimitCause: Error = new Error('TOOMANYREQUESTS: You have reached your unauthenticated pull rate limit.');
-    const rateLimitError: Error = new Error('crane pull failed', {cause: rateLimitCause});
-    const saveImageStub: SinonStub = sinon.stub().rejects(rateLimitError);
-    const engine: ContainerEngineClient = {
-      pullImage: async (): Promise<void> => undefined,
-      saveImage: async (): Promise<void> => undefined,
-      saveImageArchive: saveImageStub,
-      loadImage: async (): Promise<void> => undefined,
-      loadImageArchiveIntoCluster: async (): Promise<void> => undefined,
-      removeImage: async (): Promise<void> => undefined,
-      listLoadedImagesInCluster: async (): Promise<readonly string[]> => [],
-      resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
-    };
-
-    const provider: StaticCacheTargetProvider = new StaticCacheTargetProvider([target]);
-    const handler: ImageCacheHandler = new ImageCacheHandler(engine, provider, store, inspector, logger);
-
-    const subtasks: readonly SoloListrTask<AnyListrContext>[] = await handler.pull();
-    const context: {config: {results: unknown[]}} = {config: {results: []}};
-
-    await expect(subtasks[0].task(context as never, {title: 'task'} as never)).to.be.rejectedWith('crane pull failed');
-
-    expect(saveImageStub).to.have.been.calledThrice;
-    expect(saveImageStub.firstCall.args[0]).to.equal(`${configuredMirrorRegistry}/library/busybox:1.36.1`);
-    expect(saveImageStub.secondCall.args[0]).to.equal('docker.io/library/busybox:1.36.1');
-    expect(saveImageStub.thirdCall.args[0]).to.equal('registry-1.docker.io/library/busybox:1.36.1');
-    expect(context.config.results).to.have.lengthOf(0);
-  });
-
-  it('should continue without registering cached result when saveImage fails without rate limiting', async (): Promise<void> => {
-    const saveImageStub: SinonStub = sinon.stub().rejects(new Error('temporary network failure'));
-    const engine: ContainerEngineClient = {
-      pullImage: async (): Promise<void> => undefined,
-      saveImage: async (): Promise<void> => undefined,
-      saveImageArchive: saveImageStub,
-      loadImage: async (): Promise<void> => undefined,
-      loadImageArchiveIntoCluster: async (): Promise<void> => undefined,
-      removeImage: async (): Promise<void> => undefined,
-      listLoadedImagesInCluster: async (): Promise<readonly string[]> => [],
-      resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
-    };
-
-    const provider: StaticCacheTargetProvider = new StaticCacheTargetProvider([target]);
-    const handler: ImageCacheHandler = new ImageCacheHandler(engine, provider, store, inspector, logger);
-
-    const subtasks: readonly SoloListrTask<AnyListrContext>[] = await handler.pull();
-    const context: {config: {results: unknown[]}} = {config: {results: []}};
-
-    await subtasks[0].task(context as never, {title: 'task'} as never);
-
-    expect(saveImageStub).to.have.been.calledThrice;
-    expect(context.config.results).to.have.lengthOf(0);
-  });
-
-  it('should use the first kind-config mirror by default when no mirror override is set', async (): Promise<void> => {
-    delete process.env[mirrorRegistryEnvironmentVariable];
-
-    const saveImageStub: SinonStub = sinon.stub().resolves();
-    const engine: ContainerEngineClient = {
-      pullImage: async (): Promise<void> => undefined,
-      saveImage: async (): Promise<void> => undefined,
-      saveImageArchive: saveImageStub,
-      loadImage: async (): Promise<void> => undefined,
-      loadImageArchiveIntoCluster: async (): Promise<void> => undefined,
-      removeImage: async (): Promise<void> => undefined,
-      listLoadedImagesInCluster: async (): Promise<readonly string[]> => [],
-      resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
-    };
-
-    const provider: StaticCacheTargetProvider = new StaticCacheTargetProvider([target]);
-    const handler: ImageCacheHandler = new ImageCacheHandler(engine, provider, store, inspector, logger);
-
-    const subtasks: readonly SoloListrTask<AnyListrContext>[] = await handler.pull();
-    const context: {config: {results: unknown[]}} = {config: {results: []}};
-
-    await subtasks[0].task(context as never, {title: 'task'} as never);
-
-    expect(saveImageStub).to.have.been.calledOnceWithExactly(
-      `${defaultMirrorRegistry}/library/busybox:1.36.1`,
-      '/tmp/busybox.tar',
+  // Registry pulls were removed; until the CDN download lands, pull must add nothing to the cache and
+  // must report that plainly rather than failing the run.
+  it('caches nothing and records why', async (): Promise<void> => {
+    const handler: ImageCacheHandler = new ImageCacheHandler(
+      createEngine(),
+      new StaticCacheTargetProvider([target]),
+      store,
+      inspector,
+      logger,
     );
-    expect(context.config.results).to.have.lengthOf(1);
-  });
-
-  it('should register cached result when saveImage succeeds', async (): Promise<void> => {
-    const saveImageStub: SinonStub = sinon.stub().resolves();
-    const engine: ContainerEngineClient = {
-      pullImage: async (): Promise<void> => undefined,
-      saveImage: async (): Promise<void> => undefined,
-      saveImageArchive: saveImageStub,
-      loadImage: async (): Promise<void> => undefined,
-      loadImageArchiveIntoCluster: async (): Promise<void> => undefined,
-      removeImage: async (): Promise<void> => undefined,
-      listLoadedImagesInCluster: async (): Promise<readonly string[]> => [],
-      resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
-    };
-
-    const provider: StaticCacheTargetProvider = new StaticCacheTargetProvider([target]);
-    const handler: ImageCacheHandler = new ImageCacheHandler(engine, provider, store, inspector, logger);
 
     const subtasks: readonly SoloListrTask<AnyListrContext>[] = await handler.pull();
     const context: {config: {results: unknown[]}} = {config: {results: []}};
 
+    expect(subtasks).to.have.lengthOf(1);
+
     await subtasks[0].task(context as never, {title: 'task'} as never);
 
-    expect(saveImageStub).to.have.been.calledOnceWithExactly(
-      `${configuredMirrorRegistry}/library/busybox:1.36.1`,
-      '/tmp/busybox.tar',
-    );
-    expect(context.config.results).to.have.lengthOf(1);
+    expect(context.config.results).to.have.lengthOf(0);
+    expect(loggerStub.addMessageGroupMessage).to.have.been.called;
   });
 });
 
 describe('ImageCacheHandler load', (): void => {
-  const target: {type: CacheArtifactEnum; name: string; version: string; source: string | undefined} = {
-    type: CacheArtifactEnum.IMAGE,
-    name: 'docker.io/library/busybox',
-    version: '1.36.1',
-    source: undefined,
-  };
-
-  const store: CacheCatalogStore = {
-    save: async (): Promise<void> => undefined,
-    load: async (): Promise<never> => ({items: []}) as never,
-    exists: async (): Promise<boolean> => true,
-    clear: async (): Promise<void> => undefined,
-    resolvePath: (): string => '/tmp/busybox.tar',
-  };
-
   const inspector: CacheHealthInspector = {
     exists: async (): Promise<boolean> => true,
     getSize: async (): Promise<number> => 0,
@@ -250,19 +115,8 @@ describe('ImageCacheHandler load', (): void => {
 
   it('loads each cached archive into the cluster', async (): Promise<void> => {
     const loadArchiveStub: SinonStub = sinon.stub().resolves();
-    const engine: ContainerEngineClient = {
-      pullImage: async (): Promise<void> => undefined,
-      saveImage: async (): Promise<void> => undefined,
-      saveImageArchive: async (): Promise<void> => undefined,
-      loadImage: async (): Promise<void> => undefined,
-      loadImageArchiveIntoCluster: loadArchiveStub,
-      removeImage: async (): Promise<void> => undefined,
-      listLoadedImagesInCluster: async (): Promise<readonly string[]> => [],
-      resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
-    };
-
     const handler: ImageCacheHandler = new ImageCacheHandler(
-      engine,
+      createEngine({loadImageArchiveIntoCluster: loadArchiveStub}),
       new StaticCacheTargetProvider([target]),
       store,
       inspector,
@@ -276,19 +130,11 @@ describe('ImageCacheHandler load', (): void => {
 
   it('skips loading an archive already present in the cluster', async (): Promise<void> => {
     const loadArchiveStub: SinonStub = sinon.stub().resolves();
-    const engine: ContainerEngineClient = {
-      pullImage: async (): Promise<void> => undefined,
-      saveImage: async (): Promise<void> => undefined,
-      saveImageArchive: async (): Promise<void> => undefined,
-      loadImage: async (): Promise<void> => undefined,
-      loadImageArchiveIntoCluster: loadArchiveStub,
-      removeImage: async (): Promise<void> => undefined,
-      listLoadedImagesInCluster: async (): Promise<readonly string[]> => ['docker.io/library/busybox:1.36.1'],
-      resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
-    };
-
     const handler: ImageCacheHandler = new ImageCacheHandler(
-      engine,
+      createEngine({
+        loadImageArchiveIntoCluster: loadArchiveStub,
+        listLoadedImagesInCluster: async (): Promise<readonly string[]> => ['docker.io/library/busybox:1.36.1'],
+      }),
       new StaticCacheTargetProvider([target]),
       store,
       inspector,
@@ -302,21 +148,13 @@ describe('ImageCacheHandler load', (): void => {
 
   it('loads the archive when listing the cluster images fails', async (): Promise<void> => {
     const loadArchiveStub: SinonStub = sinon.stub().resolves();
-    const engine: ContainerEngineClient = {
-      pullImage: async (): Promise<void> => undefined,
-      saveImage: async (): Promise<void> => undefined,
-      saveImageArchive: async (): Promise<void> => undefined,
-      loadImage: async (): Promise<void> => undefined,
-      loadImageArchiveIntoCluster: loadArchiveStub,
-      removeImage: async (): Promise<void> => undefined,
-      listLoadedImagesInCluster: async (): Promise<readonly string[]> => {
-        throw new Error('cluster unreachable');
-      },
-      resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
-    };
-
     const handler: ImageCacheHandler = new ImageCacheHandler(
-      engine,
+      createEngine({
+        loadImageArchiveIntoCluster: loadArchiveStub,
+        listLoadedImagesInCluster: async (): Promise<readonly string[]> => {
+          throw new Error('cluster unreachable');
+        },
+      }),
       new StaticCacheTargetProvider([target]),
       store,
       inspector,
@@ -329,19 +167,8 @@ describe('ImageCacheHandler load', (): void => {
   });
 
   it('records a failure and never throws when a load fails', async (): Promise<void> => {
-    const engine: ContainerEngineClient = {
-      pullImage: async (): Promise<void> => undefined,
-      saveImage: async (): Promise<void> => undefined,
-      saveImageArchive: async (): Promise<void> => undefined,
-      loadImage: async (): Promise<void> => undefined,
-      loadImageArchiveIntoCluster: sinon.stub().rejects(new Error('unrecognized image format')),
-      removeImage: async (): Promise<void> => undefined,
-      listLoadedImagesInCluster: async (): Promise<readonly string[]> => [],
-      resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
-    };
-
     const handler: ImageCacheHandler = new ImageCacheHandler(
-      engine,
+      createEngine({loadImageArchiveIntoCluster: sinon.stub().rejects(new Error('unrecognized image format'))}),
       new StaticCacheTargetProvider([target]),
       store,
       inspector,

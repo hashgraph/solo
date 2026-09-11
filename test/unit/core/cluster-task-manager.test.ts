@@ -15,7 +15,6 @@ import {type KindDependencyManager} from '../../../src/core/dependency-managers/
 import {type PodmanDependencyManager} from '../../../src/core/dependency-managers/podman-dependency-manager.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {type GitClient} from '../../../src/integration/git/git-client.js';
-import {type ContainerEngineClient} from '../../../src/integration/container-engine/container-engine-client.js';
 
 function getConfigFilePath(manager: ClusterTaskManager, useSmallMemoryCluster: boolean): string {
   return (
@@ -36,7 +35,6 @@ function createClusterTaskManager(): ClusterTaskManager {
     {} as unknown as DependencyManager,
     '/tmp/kind',
     {} as unknown as GitClient,
-    {} as unknown as ContainerEngineClient,
   );
 }
 
