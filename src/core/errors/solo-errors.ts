@@ -292,6 +292,8 @@ import {ContainerOperationFailedSoloError} from './classes/system/container-oper
 import {PostgresPodNotFoundSoloError} from './classes/system/postgres-pod-not-found-solo-error.js';
 import {InitSystemFilesFailedSoloError} from './classes/system/init-system-files-failed-solo-error.js';
 import {CacheProviderNotConfiguredSoloError} from './classes/system/cache-provider-not-configured-solo-error.js';
+import {CacheManifestDownloadFailedSoloError} from './classes/system/cache-manifest-download-failed-solo-error.js';
+import {CacheManifestInvalidSoloError} from './classes/system/cache-manifest-invalid-solo-error.js';
 import {PodTerminationTimeoutSoloError} from './classes/system/pod-termination-timeout-solo-error.js';
 import {TimeoutSoloError} from './classes/system/timeout-solo-error.js';
 import {ClusterRoleCheckFailedSoloError} from './classes/system/cluster-role-check-failed-solo-error.js';
@@ -829,6 +831,8 @@ export class SoloErrors {
     readonly postgresPodNotFound: typeof PostgresPodNotFoundSoloError;
     readonly initSystemFilesFailed: typeof InitSystemFilesFailedSoloError;
     readonly cacheProviderNotConfigured: typeof CacheProviderNotConfiguredSoloError;
+    readonly cacheManifestDownloadFailed: typeof CacheManifestDownloadFailedSoloError;
+    readonly cacheManifestInvalid: typeof CacheManifestInvalidSoloError;
     readonly podTerminationTimeout: typeof PodTerminationTimeoutSoloError;
     readonly timeout: typeof TimeoutSoloError;
     readonly clusterRoleCheckFailed: typeof ClusterRoleCheckFailedSoloError;
@@ -916,6 +920,8 @@ export class SoloErrors {
     postgresPodNotFound: PostgresPodNotFoundSoloError,
     initSystemFilesFailed: InitSystemFilesFailedSoloError,
     cacheProviderNotConfigured: CacheProviderNotConfiguredSoloError,
+    cacheManifestDownloadFailed: CacheManifestDownloadFailedSoloError,
+    cacheManifestInvalid: CacheManifestInvalidSoloError,
     podTerminationTimeout: PodTerminationTimeoutSoloError,
     timeout: TimeoutSoloError,
     clusterRoleCheckFailed: ClusterRoleCheckFailedSoloError,
