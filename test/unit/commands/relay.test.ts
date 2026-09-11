@@ -144,6 +144,25 @@ describe('RelayCommand unit tests', (): void => {
     expect(valueArguments).to.include('ws.image.tag=7');
   });
 
+  it('should use a Never pull policy for an available Kind-attached local registry image', async (): Promise<void> => {
+    const relayCommandInternal: RelayCommandInternal = relayCommand as unknown as RelayCommandInternal;
+    sinon.restore();
+    sinon.stub(relayCommandInternal, 'isLocalImageAvailableInDocker').returns(true);
+    sinon.stub(relayCommandInternal, 'prepareNetworkJsonString').resolves('{"127.0.0.1:50211":"0.0.3"}');
+
+    const valueArguments: string[] = await prepareRelayValueArguments(
+      relayCommandInternal,
+      createRelayConfig({
+        [flags.componentImage.constName]: 'localhost:5001/hiero-json-rpc-relay:0.61.0',
+      }),
+    );
+
+    expect(valueArguments).to.include('relay.image.registry=localhost:5001');
+    expect(valueArguments).to.include('relay.image.repository=hiero-json-rpc-relay');
+    expect(valueArguments).to.include('relay.image.pullPolicy=Never');
+    expect(valueArguments).to.include('ws.image.pullPolicy=Never');
+  });
+
   it('should set relay and ws service type to LoadBalancer when load balancer is enabled', async (): Promise<void> => {
     const relayCommandInternal: RelayCommandInternal = relayCommand as unknown as RelayCommandInternal;
 

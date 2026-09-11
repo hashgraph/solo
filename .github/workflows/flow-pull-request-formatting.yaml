@@ -17,7 +17,13 @@
 name: "PR Formatting"
 on:
   workflow_dispatch:
-  pull_request_target:
+  # pull_request_target is required here, not incidental: the title check posts a commit status,
+  # and a plain pull_request trigger does not grant statuses: write for pull requests opened from
+  # forks. The trigger is only dangerous when a workflow checks out or executes the pull request's
+  # code with the elevated token — this workflow has no actions/checkout step at all and reads only
+  # the pull request title from the event payload, so there is no path for untrusted code to run.
+  # Do not add a checkout step here; use a separate pull_request-triggered workflow if one is needed.
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     types:
       - opened
       - reopened

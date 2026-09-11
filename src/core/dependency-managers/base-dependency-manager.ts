@@ -10,6 +10,7 @@ import {PathEx} from '../../business/utils/path-ex.js';
 import {OperatingSystem} from '../../business/utils/operating-system.js';
 import path from 'node:path';
 import {SemanticVersion} from '../../business/utils/semantic-version.js';
+import {SubprocessEnvironment} from '../subprocess-environment.js';
 
 /**
  * Base class for dependency managers that download and manage CLI tools
@@ -122,7 +123,7 @@ export abstract class BaseDependencyManager extends ShellRunner {
       ? [`${this.executableName}.exe`, `${this.executableName}.cmd`, this.executableName]
       : [this.executableName];
 
-    const pathDirectories: string[] = (process.env.PATH ?? '').split(path.delimiter).filter(Boolean);
+    const pathDirectories: string[] = SubprocessEnvironment.currentPath().split(path.delimiter).filter(Boolean);
     this.logger.debug(`Searching PATH for ${this.executableName}: [${pathDirectories.join(', ')}]`);
 
     for (const directory of pathDirectories) {
