@@ -5,8 +5,12 @@ import {
   type CoreV1Api,
   type KubeConfig,
   Metrics,
+  PatchStrategy,
   type PodMetricsList,
+  setHeaderOptions,
   V1Container,
+  type V1ContainerStatus,
+  type V1EphemeralContainer,
   V1ExecAction,
   V1ObjectMeta,
   V1Pod,
@@ -17,6 +21,7 @@ import {
   type V1Volume,
 } from '@kubernetes/client-node';
 import {type Pods} from '../../../resources/pod/pods.js';
+import {type EphemeralContainerSpec} from '../../../resources/pod/ephemeral-container-spec.js';
 import {NamespaceName} from '../../../../../types/namespace/namespace-name.js';
 import {PodReference} from '../../../resources/pod/pod-reference.js';
 import {type Pod} from '../../../resources/pod/pod.js';
@@ -713,6 +718,87 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     }
 
     return containerLogs.join('\n\n');
+  }
+
+  public async hasVolume(podReference: PodReference, volumeName: string): Promise<boolean> {
+    const namespace: string = podReference.namespace.toString();
+    const name: string = podReference.name.toString();
+    try {
+      const pod: V1Pod = await this.kubeClient.readNamespacedPod({name, namespace});
+      return (pod.spec?.volumes ?? []).some((volume): boolean => volume.name === volumeName);
+    } catch (error) {
+      KubeApiResponse.throwError(error, ResourceOperation.READ, ResourceType.POD, podReference.namespace, name);
+    }
+  }
+
+  public async addEphemeralContainer(
+    podReference: PodReference,
+    ephemeralContainer: EphemeralContainerSpec,
+    maxAttempts: number = constants.PODS_RUNNING_MAX_ATTEMPTS,
+    delay: number = constants.PODS_RUNNING_DELAY,
+  ): Promise<void> {
+    const namespace: string = podReference.namespace.toString();
+    const name: string = podReference.name.toString();
+    const containerName: string = ephemeralContainer.name;
+
+    // Harden for restricted Pod Security Standards; runAsNonRoot/runAsUser are inherited from the target pod.
+    const v1EphemeralContainer: V1EphemeralContainer = {
+      name: containerName,
+      image: ephemeralContainer.image,
+      command: ephemeralContainer.command,
+      volumeMounts: ephemeralContainer.volumeMounts.map((mount): {name: string; mountPath: string} => ({
+        name: mount.name,
+        mountPath: mount.mountPath,
+      })),
+      securityContext: {
+        allowPrivilegeEscalation: false,
+        capabilities: {drop: ['ALL']},
+        seccompProfile: {type: 'RuntimeDefault'},
+      },
+    };
+
+    try {
+      // Strategic-merge patch of the ephemeralcontainers subresource appends the container to the running pod.
+      await this.kubeClient.patchNamespacedPodEphemeralcontainers(
+        {
+          name,
+          namespace,
+          body: {spec: {ephemeralContainers: [v1EphemeralContainer]}} as V1Pod,
+        },
+        setHeaderOptions('Content-Type', PatchStrategy.StrategicMergePatch),
+      );
+    } catch (error) {
+      KubeApiResponse.throwError(error, ResourceOperation.UPDATE, ResourceType.POD, podReference.namespace, name);
+    }
+
+    for (let attempt: number = 0; attempt < maxAttempts; attempt++) {
+      const pod: V1Pod = await this.kubeClient.readNamespacedPod({name, namespace});
+      const status: V1ContainerStatus | undefined = pod.status?.ephemeralContainerStatuses?.find(
+        (entry): boolean => entry.name === containerName,
+      );
+
+      if (status?.state?.running) {
+        return;
+      }
+      if (status?.state?.terminated) {
+        throw new KubeError(
+          `Ephemeral container '${containerName}' in pod ${name} terminated before becoming ready ` +
+            `(reason: ${status.state.terminated.reason ?? 'unknown'}, exitCode: ${status.state.terminated.exitCode})`,
+        );
+      }
+      const waitingReason: string | undefined = status?.state?.waiting?.reason;
+      if (waitingReason && K8ClientPods.FATAL_WAITING_REASONS.has(waitingReason)) {
+        throw new KubeError(
+          `Ephemeral container '${containerName}' in pod ${name} failed to start (reason: ${waitingReason})`,
+        );
+      }
+
+      await sleep(Duration.ofMillis(delay));
+    }
+
+    throw new KubeError(
+      `Ephemeral container '${containerName}' in pod ${name} did not become ready after ${maxAttempts} attempts`,
+    );
   }
 
   public async readDescribe(podReference: PodReference): Promise<string> {

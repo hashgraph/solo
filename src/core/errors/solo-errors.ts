@@ -119,6 +119,7 @@ import {RelayOperatorKeyRetrievalFailedSoloError} from './classes/component/rela
 import {MirrorNodeDeployFailedSoloError} from './classes/component/mirror-node-deploy-failed-solo-error.js';
 import {MirrorNodeUpgradeFailedSoloError} from './classes/component/mirror-node-upgrade-failed-solo-error.js';
 import {MirrorNodeDestroyFailedSoloError} from './classes/component/mirror-node-destroy-failed-solo-error.js';
+import {MirrorNodeJfrCollectionFailedSoloError} from './classes/component/mirror-node-jfr-collection-failed-solo-error.js';
 import {MirrorNodeOperatorKeyRetrievalFailedSoloError} from './classes/component/mirror-node-operator-key-retrieval-failed-solo-error.js';
 import {OneShotDeployFailedSoloError} from './classes/component/one-shot-deploy-failed-solo-error.js';
 import {OneShotDestroyFailedSoloError} from './classes/component/one-shot-destroy-failed-solo-error.js';
@@ -444,6 +445,7 @@ export class SoloErrors {
     readonly mirrorNodeDeployFailed: typeof MirrorNodeDeployFailedSoloError;
     readonly mirrorNodeUpgradeFailed: typeof MirrorNodeUpgradeFailedSoloError;
     readonly mirrorNodeDestroyFailed: typeof MirrorNodeDestroyFailedSoloError;
+    readonly mirrorNodeJfrCollectionFailed: typeof MirrorNodeJfrCollectionFailedSoloError;
     readonly mirrorNodeOperatorKeyRetrievalFailed: typeof MirrorNodeOperatorKeyRetrievalFailedSoloError;
     readonly oneShotDeployFailed: typeof OneShotDeployFailedSoloError;
     readonly oneShotDestroyFailed: typeof OneShotDestroyFailedSoloError;
@@ -537,6 +539,7 @@ export class SoloErrors {
     mirrorNodeDeployFailed: MirrorNodeDeployFailedSoloError,
     mirrorNodeUpgradeFailed: MirrorNodeUpgradeFailedSoloError,
     mirrorNodeDestroyFailed: MirrorNodeDestroyFailedSoloError,
+    mirrorNodeJfrCollectionFailed: MirrorNodeJfrCollectionFailedSoloError,
     mirrorNodeOperatorKeyRetrievalFailed: MirrorNodeOperatorKeyRetrievalFailedSoloError,
     oneShotDeployFailed: OneShotDeployFailedSoloError,
     oneShotDestroyFailed: OneShotDestroyFailedSoloError,

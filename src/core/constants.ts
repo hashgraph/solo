@@ -143,6 +143,17 @@ export const MIRROR_NODE_CHART_URL: string =
 export const MIRROR_NODE_CHART: string = 'hedera-mirror';
 export const MIRROR_NODE_RELEASE_NAME: string = 'mirror';
 export const MIRROR_NODE_PINGER_TPS: number = +getEnvironmentVariable('MIRROR_NODE_PINGER_TPS') || 5;
+
+// In-pod JFR repository path `mirror node collect-jfr` reads from (a dedicated volume, mirrors the block node output dir); enforced by mirror-node-values.test.ts.
+export const MIRROR_NODE_JFR_REPOSITORY_DIRECTORY: string = '/opt/hiero/mirror-node/output/jfr';
+
+// Pod-level volume name (defined by mirror-node-perf-values.yaml) that carries the JFR recording; enforced by mirror-node-values.test.ts.
+export const MIRROR_NODE_JFR_VOLUME_NAME: string = 'jfr';
+
+// The mirror importer image is distroless (no shell/tar), so `mirror node collect-jfr` attaches this ephemeral
+// helper container — which shares the JFR volume and provides sh + tar — to consolidate and download the recording.
+export const MIRROR_NODE_JFR_COLLECTOR_CONTAINER_NAME: ContainerName = ContainerName.of('jfr-collector');
+export const MIRROR_NODE_JFR_COLLECTOR_IMAGE: string = 'busybox:1.36.1';
 export const PROMETHEUS_STACK_CHART_URL: string =
   getEnvironmentVariable('PROMETHEUS_STACK_CHART_URL') ?? 'https://prometheus-community.github.io/helm-charts';
 export const PROMETHEUS_STACK_CHART: string = 'kube-prometheus-stack';

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {type EphemeralContainerSpec} from './ephemeral-container-spec.js';
 import {type NamespaceName} from '../../../../types/namespace/namespace-name.js';
 import {type PodReference} from './pod-reference.js';
 import {type Pod} from './pod.js';
@@ -156,6 +157,31 @@ export interface Pods {
    * @returns logs as a single string
    */
   readLogs(podReference: PodReference, timestamps?: boolean): Promise<string>;
+
+  /**
+   * Report whether the pod declares a volume with the given name in its spec.
+   * @param podReference - the reference to the pod
+   * @param volumeName - the pod-level volume name to look for
+   * @returns true if the pod has a volume with that name, false otherwise
+   */
+  hasVolume(podReference: PodReference, volumeName: string): Promise<boolean>;
+
+  /**
+   * Attach an ephemeral (debug) container to a running pod and wait until it reports Running.
+   * Enables reading or extracting files from a distroless target container that has no shell, by
+   * sharing one of the pod's volumes with a helper image that does. Ephemeral containers cannot be
+   * removed; they terminate when the pod does.
+   * @param podReference - the pod to attach the ephemeral container to
+   * @param ephemeralContainer - the ephemeral container specification (name, image, command, volumeMounts)
+   * @param maxAttempts - maximum status-poll attempts before failing
+   * @param delay - delay in milliseconds between status polls
+   */
+  addEphemeralContainer(
+    podReference: PodReference,
+    ephemeralContainer: EphemeralContainerSpec,
+    maxAttempts?: number,
+    delay?: number,
+  ): Promise<void>;
 
   /**
    * Build a describe-like textual report for a pod, including pod details and related events.

@@ -1,0 +1,23 @@
+# JFR overlay for the mirror node importer (perf tests); records to a dedicated disk volume, repository path enforced by mirror-node-values.test.ts.
+importer:
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  # Dedicated writable volume for JFR output (the importer's root filesystem is read-only), mirroring the block node output dir.
+  volumeMounts:
+    jfr:
+      mountPath: /opt/hiero/mirror-node/output/jfr
+  volumes:
+    jfr:
+      emptyDir:
+        sizeLimit: 1Gi
+  env:
+    JAVA_TOOL_OPTIONS: >-
+      -Xms256m
+      -Xmx1g
+      -XX:FlightRecorderOptions=repository=/opt/hiero/mirror-node/output/jfr,maxchunksize=1m
+      -XX:StartFlightRecording=name=mirror-importer,settings=profile,disk=true,maxsize=100m,maxage=30m,dumponexit=true,filename=/opt/hiero/mirror-node/output/jfr/recording.jfr
