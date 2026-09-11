@@ -93,6 +93,15 @@ jobs:
             // ref, a compile error - from being retried, which only burns runners and hides the bug.
             const rules = [
               {
+                // Uploading logs and coverage goes through GitHub's artifact service, so a name
+                // that will not resolve fails the step after the toolkit's own five attempts.
+                description: 'artifact service could not be reached',
+                stepPrefixes: [],
+                required:
+                  /Failed to (Create|Finalize|Delete)Artifact[^\n]*after \d+ attempts[^\n]*(EAI_AGAIN|ENOTFOUND|ECONNRESET|ETIMEDOUT|socket hang up|502|503|504)/,
+                forbidden: /error TS\d{4}/,
+              },
+              {
                 // `go install` verifies every module against the checksum database, so a failure
                 // from sum.golang.org or the module proxy stops the build even though nothing is
                 // wrong with the module itself. A genuine mismatch reports "SECURITY ERROR:
@@ -166,6 +175,18 @@ jobs:
             const stepRanOutOfTime = (stepName, log) =>
               new RegExp(`The action '${escapeForRegExp(stepName)}' has timed out after \\d+ minutes?`).test(log);
 
+            // A step wrapped in an action that spawns a child process - `step-security/retry`, for
+            // one - is killed without the message above when its budget expires, so the log alone
+            // cannot see it. What remains is the timing: the runner stops the step on the exact
+            // second its `timeout-minutes` budget ends, which is why a whole number of minutes is
+            // the signal. `Setup Posix Dependencies` failed this way three times in 48 hours, each
+            // at exactly 300 seconds, while no failure on a step outside this list landed on a
+            // minute boundary at all.
+            const stepHitAnExactBudget = (step) => {
+              const seconds = (Date.parse(step.completed_at) - Date.parse(step.started_at)) / 1000;
+              return Number.isInteger(seconds) && seconds >= 120 && seconds % 60 === 0;
+            };
+
             const readJobLog = async (jobId) => {
               try {
                 const response = await github.rest.actions.downloadJobLogsForWorkflowRun({
@@ -215,15 +236,15 @@ jobs:
             for (const job of failedJobs) {
               // Rule prefixes compare lower case, but the timeout error quotes the step name
               // exactly as written, so the original casing has to survive.
-              const failedSteps = (job.steps ?? []).filter(step => step.conclusion === 'failure').map(step => step.name);
-              const failedStepNames = failedSteps.map(name => name.toLowerCase());
+              const failedSteps = (job.steps ?? []).filter(step => step.conclusion === 'failure');
+              const failedStepNames = failedSteps.map(step => step.name.toLowerCase());
 
               const candidates = rules.filter(rule =>
                 rule.stepPrefixes.length === 0 ||
                 failedStepNames.some(name => rule.stepPrefixes.some(prefix => name.startsWith(prefix))));
 
               const retryableSteps = failedSteps.filter(
-                name => retryableStepPattern.test(name) && !longRunningStepPattern.test(name));
+                step => retryableStepPattern.test(step.name) && !longRunningStepPattern.test(step.name));
 
               if (candidates.length === 0 && retryableSteps.length === 0) {
                 continue;
@@ -240,9 +261,10 @@ jobs:
                 continue;
               }
 
-              const timedOutStep = retryableSteps.find(name => stepRanOutOfTime(name, log));
+              const timedOutStep = retryableSteps.find(
+                step => stepRanOutOfTime(step.name, log) || stepHitAnExactBudget(step));
               if (timedOutStep && !settledFailurePattern.test(log)) {
-                reasons.push(`${job.name}: '${timedOutStep}' exceeded its time budget`);
+                reasons.push(`${job.name}: '${timedOutStep.name}' exceeded its time budget`);
               }
             }
 
