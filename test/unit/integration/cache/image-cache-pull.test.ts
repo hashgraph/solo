@@ -54,12 +54,25 @@ function manifestImage(sha256: string = ARCHIVE_HASH): CacheManifestImage {
   );
 }
 
-async function runPull(handler: ImageCacheHandler): Promise<{config: {results: unknown[]}}> {
+/**
+ * Runs the pull subtasks one at a time, or all at once the way `solo cache image pull` starts them
+ * (`CACHE_IMAGE_MAX_CONCURRENCY`) when `concurrent` is set.
+ */
+async function runPull(
+  handler: ImageCacheHandler,
+  concurrent: boolean = false,
+): Promise<{config: {results: unknown[]}}> {
   const subtasks: readonly SoloListrTask<AnyListrContext>[] = await handler.pull();
   const context: {config: {results: unknown[]}} = {config: {results: []}};
+  const run: (subtask: SoloListrTask<AnyListrContext>) => Promise<void> = (subtask): Promise<void> =>
+    subtask.task(context as never, {title: subtask.title} as never) as Promise<void>;
 
-  for (const subtask of subtasks) {
-    await subtask.task(context as never, {title: subtask.title} as never);
+  if (concurrent) {
+    await Promise.all(subtasks.map((subtask): Promise<void> => run(subtask)));
+  } else {
+    for (const subtask of subtasks) {
+      await run(subtask);
+    }
   }
 
   return context;
@@ -290,6 +303,31 @@ describe('ImageCacheHandler pull', (): void => {
     expect(await fs.readFile(archivePath, 'utf8')).to.equal(ARCHIVE_CONTENTS);
     expect(await exists(hashPath)).to.equal(true);
     expect(context.config.results).to.have.lengthOf(1);
+  });
+
+  it('replaces an archive cached by an older solo version when the subtasks run concurrently', async (): Promise<void> => {
+    // The command starts every subtask at once; migration must already be done by then, or the download
+    // subtask rehashes the legacy archive and reports it as corrupted instead of replacing it.
+    await fs.writeFile(archivePath, 'an archive exported from a local container engine');
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}`]: ARCHIVE_CONTENTS,
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`]: ARCHIVE_HASH,
+    });
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile), true);
+
+    expect(loggerStub.warn).to.not.have.been.called;
+    expect(fetchFile).to.have.been.calledTwice;
+    expect(await fs.readFile(archivePath, 'utf8')).to.equal(ARCHIVE_CONTENTS);
+    expect(context.config.results).to.have.lengthOf(1);
+  });
+
+  it('raises a cache directory that cannot be read instead of silently skipping housekeeping', async (): Promise<void> => {
+    sinon.stub(fs, 'readdir').rejects(Object.assign(new Error('EACCES: permission denied'), {code: 'EACCES'}));
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+
+    await expect(createHandler(stubDownloader({})).pull()).to.be.rejectedWith('EACCES');
   });
 
   it('removes an archive cached by an older solo version even without a manifest', async (): Promise<void> => {
