@@ -418,7 +418,7 @@ export abstract class BaseCommand extends ShellRunner {
   }
 
   protected async kindLoadComponentImageArchive(componentImageArchive: string, clusterContext: Context): Promise<void> {
-    const targetContexts: Context[] = this.getKindTargetContexts(
+    const kindClusterNames: string[] = this.getKindClusterNames(
       componentImageArchive,
       flags.componentImageArchive.name,
       clusterContext,
@@ -426,8 +426,7 @@ export abstract class BaseCommand extends ShellRunner {
     const kindExecutable: string = await this.depManager.getExecutable(constants.KIND);
     const kindClient: KindClient = await this.kindBuilder.executable(kindExecutable).build();
 
-    for (const targetContext of targetContexts) {
-      const kindClusterName: string = this.kindClusterNameFromContext(targetContext);
+    for (const kindClusterName of kindClusterNames) {
       this.logger.debug(`Loading image archive '${componentImageArchive}' into Kind cluster '${kindClusterName}'`);
       await kindClient.loadImageArchive(
         componentImageArchive,
@@ -436,24 +435,30 @@ export abstract class BaseCommand extends ShellRunner {
     }
   }
 
-  private getKindTargetContexts(
-    componentImageSource: string,
-    sourceFlagName: string,
-    clusterContext: Context,
-  ): Context[] {
-    const additionalKindContexts: Context[] = this.remoteConfig
-      .getContexts()
-      .filter((context: Context): boolean => context.startsWith('kind-') && context !== clusterContext);
-    const targetContexts: Context[] = [...new Set<Context>([clusterContext, ...additionalKindContexts])];
-    const nonKindContexts: Context[] = targetContexts.filter(
-      (context: Context): boolean => !context.startsWith('kind-'),
-    );
+  /**
+   * Resolves every target context (the required cluster plus any additional contexts from the
+   * remote config) to its Kind cluster name, deduplicated. Throws if any target context is not a
+   * Kind cluster, since an archive can only be loaded into Kind and has no registry fallback.
+   */
+  private getKindClusterNames(componentImageSource: string, sourceFlagName: string, clusterContext: Context): string[] {
+    const targetContexts: Context[] = [...new Set<Context>([clusterContext, ...this.remoteConfig.getContexts()])];
+
+    const nonKindContexts: Context[] = [];
+    const kindClusterNames: Set<string> = new Set<string>();
+    for (const context of targetContexts) {
+      const kindClusterName: string | undefined = this.kindClusterNameFromContext(context);
+      if (kindClusterName === undefined) {
+        nonKindContexts.push(context);
+        continue;
+      }
+      kindClusterNames.add(kindClusterName);
+    }
 
     if (nonKindContexts.length > 0) {
       throw this.nonKindTargetContextsError(componentImageSource, sourceFlagName, nonKindContexts);
     }
 
-    return targetContexts;
+    return [...kindClusterNames];
   }
 
   private nonKindTargetContextsError(

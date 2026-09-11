@@ -509,6 +509,43 @@ describe('BaseCommand', (): void => {
       }
     });
 
+    it('should load an image archive once through a renamed context that resolves to an already-covered Kind cluster', async (): Promise<void> => {
+      const baseCommandInternal: BaseCommandInternal = baseCmd as unknown as BaseCommandInternal;
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-component-image-archive-test-'));
+      const componentImageArchive: string = PathEx.join(temporaryDirectory, 'block-node-server.tar');
+      fs.writeFileSync(componentImageArchive, 'image archive');
+
+      try {
+        const loadImageArchiveStub: SinonStub = sinon.stub().resolves();
+        const kindClient: KindClient = {loadImageArchive: loadImageArchiveStub} as unknown as KindClient;
+
+        baseCommandInternal.k8Factory = stubK8FactoryWithClusterEntries({
+          'kind-first': 'kind-first',
+          'kind-second': 'kind-second',
+          'renamed-first': 'kind-first',
+        });
+        baseCommandInternal.remoteConfig = {
+          getContexts: (): Context[] => ['renamed-first', 'kind-second'],
+        };
+        baseCommandInternal.depManager = {
+          getExecutable: async (): Promise<string> => 'kind',
+        };
+        baseCommandInternal.kindBuilder = {
+          executable: (): {build: () => Promise<KindClient>} => ({
+            build: async (): Promise<KindClient> => kindClient,
+          }),
+        };
+
+        await baseCommandInternal.kindLoadComponentImageArchive(componentImageArchive, 'kind-first');
+
+        expect(loadImageArchiveStub).to.have.been.calledTwice;
+        expect(loadImageArchiveStub).to.have.been.calledWith(componentImageArchive, sinon.match.has('name', 'first'));
+        expect(loadImageArchiveStub).to.have.been.calledWith(componentImageArchive, sinon.match.has('name', 'second'));
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
     it('should reject an image archive when the selected target context is not a Kind cluster', async (): Promise<void> => {
       const baseCommandInternal: BaseCommandInternal = baseCmd as unknown as BaseCommandInternal;
       baseCommandInternal.remoteConfig = {
