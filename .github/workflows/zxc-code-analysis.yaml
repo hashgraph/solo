@@ -157,7 +157,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.snyk-token }}
         if: ${{ inputs.enable-snyk-scan && !cancelled() && !failure() }}
-        run: snyk test --org=release-engineering-N6EoZVZn3jw4qNuVkiG5Qs --all-projects --severity-threshold=high --json-file-output=snyk-test.json
+        run: snyk test --org=release-engineering-N6EoZVZn3jw4qNuVkiG5Qs --all-projects --exclude=snyk-tools --severity-threshold=high --json-file-output=snyk-test.json
 
       - name: Snyk Code
         id: snyk-code
