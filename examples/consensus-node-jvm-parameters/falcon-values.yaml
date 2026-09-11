@@ -121,7 +121,6 @@ network:
 #  --chart-dir: ""
 #  --block-node-chart-version: ""
 #  --release-tag: ""
-#  --image-tag: ""
 #  --values-file: ""
 #  --enable-ingress: false
 #  --domain-name: ""

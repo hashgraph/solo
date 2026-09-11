@@ -80,7 +80,6 @@ interface BlockNodeDeployConfigClass {
   quiet: boolean;
   valuesFile: Optional<string>;
   releaseTag: string;
-  imageTag: Optional<string>;
   componentImage: Optional<string>;
   namespace: NamespaceName;
   context: string;
@@ -248,7 +247,6 @@ export class BlockNodeCommand extends BaseCommand {
       // Keep deprecated legacy flag accepted for backward compatibility.
       flags.releaseTag,
       flags.consensusNodeVersion,
-      flags.imageTag,
       flags.componentImage,
       flags.priorityMapping,
     ],
@@ -891,12 +889,6 @@ export class BlockNodeCommand extends BaseCommand {
               false,
               'Block node chart version',
             );
-
-            // --image-tag is kept for backwards compatibility; normalize it to componentImage
-            // so downstream chart-values and kind-load logic has a single code path.
-            if (!config.componentImage && config.imageTag) {
-              config.componentImage = `${constants.BLOCK_NODE_IMAGE_NAME}:${config.imageTag}`;
-            }
 
             config.livenessCheckPort = this.getLivenessCheckPortNumber(config.chartVersion, config.componentImage);
 

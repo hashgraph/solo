@@ -124,7 +124,6 @@ blockNode:
   --chart-dir: ""
   --block-node-chart-version: ""
   --release-tag: "${SOLO_RELEASE_TAG_NO_V}"
-  --image-tag: ""
   --values-file: ""
   --enable-ingress: false
   --domain-name: ""

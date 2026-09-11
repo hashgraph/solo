@@ -522,17 +522,6 @@ export class Flags {
     prompt: undefined,
   };
 
-  public static readonly imageTag: CommandFlag = {
-    constName: 'imageTag',
-    name: 'image-tag',
-    definition: {
-      describe: 'Overrides the Docker image tag (e.g. 0.36.0-SNAPSHOT).',
-      defaultValue: '',
-      type: 'string',
-      deprecated: {since: '0.85.0', removalIssue: 5385, replacement: '--component-image'},
-    },
-  };
-
   public static readonly componentImage: CommandFlag = {
     constName: 'componentImage',
     name: 'component-image',
@@ -2878,7 +2867,6 @@ export class Flags {
     Flags.privateKey,
     Flags.quiet,
     Flags.output,
-    Flags.imageTag,
     Flags.componentImage,
     Flags.relayReleaseTag,
     Flags.relayVersion,
