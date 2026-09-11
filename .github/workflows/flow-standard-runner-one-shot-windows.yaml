@@ -45,6 +45,18 @@ env:
   DOCKER_HOST: tcp://localhost:2375
   ACTIONS_STEP_DEBUG: 'true'
   ACTIONS_RUNNER_DEBUG: 'true'
+  WSL_UBUNTU_VERSION: '24.4.4'
+  WSL_UBUNTU_INSTALLER_FILE: 'ubuntu-24.04.4-wsl-amd64.wsl'
+  WSL_UBUNTU_INSTALLER_URL: 'https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-wsl-amd64.wsl'
+  WSL_UBUNTU_INSTALLER_SHA256: '9b2f7730dc68227dd04a9f3e5eab86ad85caf556b8606ad94f1f29ff5c4fd3f5'
+  # Windows-side Docker CLI. Kind shells out to whichever `docker` is on PATH to talk to the WSL2
+  # daemon over DOCKER_HOST, so the runner image's bundled client is a silent, unpinned input to
+  # this job. Image 20260907.229 rolled it 29.1.5 -> 29.7.2 and `docker exec` started returning an
+  # empty stdout stream over tcp://localhost:2375 (issue #5975). 29.1.5 is the last version this
+  # workflow was observed green on; bump it deliberately, with a run to prove it.
+  WINDOWS_DOCKER_CLI_VERSION: '29.1.5'
+  WINDOWS_DOCKER_CLI_URL: 'https://download.docker.com/win/static/stable/x86_64/docker-29.1.5.zip'
+  WINDOWS_DOCKER_CLI_SHA256: '2c4d7ac136334cb67d11392f7df610590a805936176d76c417010591c8dd2c14'
 
 jobs:
   standard-runner-one-shot-windows:
@@ -99,9 +111,11 @@ jobs:
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
-      - name: Setup Node.js 22
+      - name: Setup Node.js 24
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
@@ -116,49 +130,110 @@ jobs:
 
       - name: Build Project
         shell: pwsh
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        # npm ci can consume most of the normal five-minute step limit on a
+        # slow hosted runner, leaving no time for compilation.
+        timeout-minutes: 10
         run: |
           task build:compile
 
-      - name: Validate Ubuntu WSL cache
+      - name: Restore verified Ubuntu WSL installer cache
+        id: restore_ubuntu_wsl_installer
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ${{ runner.tool_cache }}\Ubuntu\${{ env.WSL_UBUNTU_VERSION }}\x64
+          key: ubuntu-wsl-installer-v1-${{ env.WSL_UBUNTU_VERSION }}-${{ env.WSL_UBUNTU_INSTALLER_SHA256 }}
+
+      - name: Validate restored Ubuntu WSL installer cache
+        id: validate_ubuntu_wsl_installer
         shell: pwsh
         timeout-minutes: 1
         run: |
-          $cacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE 'Ubuntu\24.4.4\x64'
-          $installerPath = Join-Path $cacheDirectory 'ubuntu-24.04.4-wsl-amd64.wsl'
-          $completeMarker = Join-Path $cacheDirectory '.complete'
-          $valid = (
-            (Test-Path -LiteralPath $installerPath) -and
-            (Test-Path -LiteralPath $completeMarker) -and
-            ((Get-Item -LiteralPath $installerPath).Length -gt 100MB)
-          )
+          $cacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE "Ubuntu\$env:WSL_UBUNTU_VERSION\x64"
+          $installerPath = Join-Path $cacheDirectory $env:WSL_UBUNTU_INSTALLER_FILE
+          $cacheHit = '${{ steps.restore_ubuntu_wsl_installer.outputs.cache-hit }}'
+          $valid = $false
+          $validationResult = 'cache miss'
 
-          if ($valid) {
-            Write-Host "Ubuntu WSL cache is valid: $installerPath"
+          if (Test-Path -LiteralPath $installerPath) {
+            $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualHash -eq $env:WSL_UBUNTU_INSTALLER_SHA256) {
+              $valid = $true
+              $validationResult = 'valid SHA-256'
+              Write-Host "Verified Ubuntu WSL installer cache: $installerPath"
+            } else {
+              $validationResult = "invalid SHA-256: $actualHash"
+            }
           } elseif (Test-Path -LiteralPath $cacheDirectory) {
-            Write-Warning "Removing incomplete Ubuntu WSL cache: $cacheDirectory"
-            Remove-Item -LiteralPath $cacheDirectory -Recurse -Force
-          } else {
-            Write-Host "Ubuntu WSL cache is not present; setup-wsl will download it."
+            $validationResult = 'installer is missing'
           }
+
+          if (-not $valid -and (Test-Path -LiteralPath $cacheDirectory)) {
+            Write-Warning "Discarding invalid Ubuntu WSL installer cache: $validationResult"
+            Remove-Item -LiteralPath $cacheDirectory -Recurse -Force
+          }
+
+          $completeMarkerPath = "$cacheDirectory.complete"
+          if ($valid) {
+            # setup-wsl's tool-cache.find() requires this sibling marker. Create
+            # it only after the installer hash has been verified so setup-wsl
+            # uses these bytes instead of removing them and restoring again.
+            New-Item -ItemType File -Path $completeMarkerPath -Force | Out-Null
+          } elseif (Test-Path -LiteralPath $completeMarkerPath) {
+            Remove-Item -LiteralPath $completeMarkerPath -Force
+          }
+
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "valid=$($valid.ToString().ToLowerInvariant())"
+          @"
+          ## Ubuntu WSL installer cache
+
+          - GitHub Actions cache hit: $cacheHit
+          - Validation: $validationResult
+          "@ | Add-Content -Path $env:GITHUB_STEP_SUMMARY
+
+      - name: Seed verified Ubuntu WSL installer cache
+        id: seed_ubuntu_wsl_installer
+        if: ${{ success() && steps.validate_ubuntu_wsl_installer.outputs.valid != 'true' }}
+        shell: pwsh
+        timeout-minutes: 10
+        run: |
+          $cacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE "Ubuntu\$env:WSL_UBUNTU_VERSION\x64"
+          $installerPath = Join-Path $cacheDirectory $env:WSL_UBUNTU_INSTALLER_FILE
+          $completeMarkerPath = "$cacheDirectory.complete"
+          New-Item -ItemType Directory -Path $cacheDirectory -Force | Out-Null
+          Remove-Item -LiteralPath $installerPath,$completeMarkerPath -Force -ErrorAction SilentlyContinue
+
+          Invoke-WebRequest -Uri $env:WSL_UBUNTU_INSTALLER_URL -OutFile $installerPath
+          $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualHash -ne $env:WSL_UBUNTU_INSTALLER_SHA256) {
+            Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
+            throw "Seeded Ubuntu WSL installer failed SHA-256 validation: $actualHash"
+          }
+
+          New-Item -ItemType File -Path $completeMarkerPath -Force | Out-Null
+          Add-Content -Path $env:GITHUB_OUTPUT -Value 'valid=true'
+          Write-Host "Seeded verified Ubuntu WSL installer cache: $installerPath"
+
+      - name: Save seeded Ubuntu WSL installer cache
+        if: ${{ success() && github.ref == 'refs/heads/main' && steps.seed_ubuntu_wsl_installer.outputs.valid == 'true' }}
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ${{ runner.tool_cache }}\Ubuntu\${{ env.WSL_UBUNTU_VERSION }}\x64
+          key: ubuntu-wsl-installer-v1-${{ env.WSL_UBUNTU_VERSION }}-${{ env.WSL_UBUNTU_INSTALLER_SHA256 }}
 
       - name: Setup WSL2
         id: setup_wsl2
         # Kind requires Linux containers. GitHub's windows-latest runner has Docker in Windows
         # container mode with no Docker Desktop to switch it. WSL2 + Docker inside it replicates
         # what Docker Desktop does for Windows users, exposing a Linux daemon via TCP.
-        # use-cache is enabled so the distribution installer is cached across runs via
-        # actions/cache instead of re-downloaded every time — this workflow was intermittently
-        # timing out on the fresh download from a shared runner's network.
+        # The verified restore above creates setup-wsl's .complete marker so find()
+        # returns the installer before the action reaches its cache or download path.
         uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
-        continue-on-error: true
-        # A healthy setup completes in about one minute. Bound a stalled action so the
-        # recovery path can run instead of consuming the previous ten-minute timeout.
+        # A healthy setup completes in about one minute. Bound a stalled action so a
+        # distribution problem is reported promptly instead of consuming ten minutes.
         timeout-minutes: 3
         with:
           distribution: Ubuntu-24.04
           wsl-version: 2
-          # The setup-wsl cache has hung on hosted runners while resolving this distribution.
           use-cache: false
           set-as-default: true
           additional-packages: |
@@ -168,7 +243,7 @@ jobs:
             software-properties-common
 
       - name: Capture WSL2 diagnostics after setup failure
-        if: ${{ steps.setup_wsl2.outcome == 'failure' }}
+        if: ${{ !cancelled() && steps.setup_wsl2.outcome == 'failure' }}
         shell: pwsh
         continue-on-error: true
         timeout-minutes: 1
@@ -235,63 +310,6 @@ jobs:
             Format-List
           Write-Host '::endgroup::'
 
-      - name: Recover incomplete WSL2 installation
-        if: ${{ steps.setup_wsl2.outcome == 'failure' }}
-        shell: pwsh
-        # The timed-out action can leave its wsl.exe child process and a partially registered
-        # distribution behind. Remove both before retrying the installation from a clean state.
-        continue-on-error: true
-        timeout-minutes: 1
-        run: |
-          Get-Process -Name wsl -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          wsl --shutdown
-          wsl --unregister Ubuntu-24.04
-          if ($LASTEXITCODE -ne 0) {
-            Write-Warning 'Ubuntu-24.04 was not registered after the failed installation.'
-          }
-          $installerCacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE 'Ubuntu\24.4.4\x64'
-          $installerPath = Join-Path $installerCacheDirectory 'ubuntu-24.04.4-wsl-amd64.wsl'
-          if ((Test-Path -LiteralPath $installerCacheDirectory) -and -not (Test-Path -LiteralPath $installerPath)) {
-            Write-Warning "Removing incomplete Ubuntu installer cache: $installerCacheDirectory"
-            Remove-Item -LiteralPath $installerCacheDirectory -Recurse -Force -ErrorAction SilentlyContinue
-          }
-          exit 0
-
-      - name: Install Ubuntu WSL distribution fallback
-        if: ${{ steps.setup_wsl2.outcome == 'failure' }}
-        # Bypass setup-wsl's downloadTool path when the hosted tool cache is incomplete.
-        timeout-minutes: 5
-        shell: pwsh
-        run: |
-          $distributionName = 'Ubuntu-24.04'
-          $installedDistributions = @(wsl.exe --list --quiet 2>$null)
-          if ($installedDistributions -match [regex]::Escape($distributionName)) {
-            Write-Host "WSL distribution already installed: $distributionName"
-            exit 0
-          }
-
-          Write-Host "Installing $distributionName through WSL web download"
-          & "$env:SystemRoot\System32\wsl.exe" --install --web-download --distribution $distributionName --no-launch
-          if ($LASTEXITCODE -ne 0) {
-            throw "wsl.exe failed to install $distributionName with exit code $LASTEXITCODE"
-          }
-
-      - name: Retry Setup WSL2
-        if: ${{ steps.setup_wsl2.outcome == 'failure' }}
-        # Retry once after removing the process and distribution left by the timed-out setup action.
-        uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
-        timeout-minutes: 5
-        with:
-          distribution: Ubuntu-24.04
-          wsl-version: 2
-          use-cache: true
-          set-as-default: true
-          additional-packages: |
-            apt-transport-https
-            ca-certificates
-            curl
-            software-properties-common
-
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
@@ -346,6 +364,30 @@ jobs:
           sudo -n -E -- bash /tmp/install-docker.sh
           ss -tlnp | grep 2375
 
+      - name: Pin Windows Docker CLI
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # See the WINDOWS_DOCKER_CLI_* note at the top of this workflow. Install the pinned client
+          # ahead of the runner's bundled one on PATH so kind, Solo and this workflow all use it.
+          $installDirectory = Join-Path $env:RUNNER_TEMP "docker-cli-$env:WINDOWS_DOCKER_CLI_VERSION"
+          $archivePath = Join-Path $env:RUNNER_TEMP "docker-cli-$env:WINDOWS_DOCKER_CLI_VERSION.zip"
+          Invoke-WebRequest -Uri $env:WINDOWS_DOCKER_CLI_URL -OutFile $archivePath
+
+          $actualHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actualHash -ne $env:WINDOWS_DOCKER_CLI_SHA256) {
+            throw "Docker CLI archive failed SHA-256 validation: expected $env:WINDOWS_DOCKER_CLI_SHA256, got $actualHash"
+          }
+
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $installDirectory -Force
+          # The archive also carries dockerd.exe, which this job never runs — the daemon lives in WSL2.
+          $clientDirectory = Join-Path $installDirectory 'docker'
+          Remove-Item -LiteralPath (Join-Path $clientDirectory 'dockerd.exe') -Force -ErrorAction SilentlyContinue
+
+          Add-Content -Path $env:GITHUB_PATH -Value $clientDirectory
+          $env:PATH = "$clientDirectory$([System.IO.Path]::PathSeparator)$env:PATH"
+          docker --version
+
       - name: Forward Docker TCP Port from WSL2 to Windows
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
@@ -358,6 +400,32 @@ jobs:
           netsh interface portproxy show all
           Start-Sleep -Seconds 5
           docker info
+
+      - name: Verify Docker Exec Round-Trip From Windows
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # `kind create cluster` reads /kind/version out of the node container with a plain
+          # `docker exec`. When that stream comes back empty over the Windows -> WSL2 TCP hop, kind
+          # fails four minutes later with the opaque "file should only be one line, got 0 lines"
+          # (issue #5975). Probe the same round-trip here so a broken transport is reported in
+          # seconds, against the transport rather than against Solo.
+          $probeContainer = 'solo-docker-exec-probe'
+          docker rm --force $probeContainer 2>$null | Out-Null
+          docker run --detach --name $probeContainer busybox:1.36.1 sleep 120 | Out-Null
+
+          try {
+            $probeOutput = @(docker exec $probeContainer cat /etc/hostname)
+          } finally {
+            docker rm --force $probeContainer 2>$null | Out-Null
+            # The probe's verdict is $probeOutput, not whether the throwaway container cleaned up.
+            $global:LASTEXITCODE = 0
+          }
+
+          Write-Host "docker exec returned $($probeOutput.Count) line(s): $($probeOutput -join '|')"
+          if ($probeOutput.Count -ne 1 -or [string]::IsNullOrWhiteSpace($probeOutput[0])) {
+            throw "docker exec returned an empty stdout stream over $env:DOCKER_HOST. Kind cannot create a cluster through this transport."
+          }
 
       - name: Render Kind Config for WSL Docker Daemon
         shell: pwsh
@@ -394,12 +462,44 @@ jobs:
           Write-Host "Linux patches hostPath: $linuxPatchesPath"
           "SOLO_KIND_CLUSTER_CONFIG_FILE=$renderedConfig" | Out-File -FilePath $env:GITHUB_ENV -Append
 
+      - name: Remove Preinstalled Kind
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # Solo treats KIND_VERSION in version.ts as a floor, not a pin: any kind found on PATH that
+          # is at least that version is used as-is. The runner image ships its own kind, so this job
+          # silently ran whatever version windows-latest happened to bundle — v0.32.0 or v0.33.0
+          # depending on the draw.
+          #
+          # Kind's version is not what broke issue #5975 (the failure reproduces on the pinned
+          # v0.29.0), but a fresh Windows machine has no preinstalled kind either. Removing it makes
+          # this compatibility gate exercise the path real users take — Solo downloads and runs its
+          # own pinned kind from $env:USERPROFILE\.solo\bin — and keeps the runner image from
+          # substituting an untested version behind our back.
+          $preinstalledKind = @(
+            Get-Command kind -All -CommandType Application -ErrorAction SilentlyContinue |
+              Where-Object { $_.Source -notlike "*\.solo\bin\*" }
+          )
+
+          if ($preinstalledKind.Count -eq 0) {
+            Write-Host 'No preinstalled kind found on PATH'
+          }
+
+          foreach ($kindCommand in $preinstalledKind) {
+            Write-Host "Removing preinstalled kind: $($kindCommand.Source)"
+            Remove-Item -LiteralPath $kindCommand.Source -Force
+          }
+
       - name: One-Shot Single Deploy
         shell: pwsh
         timeout-minutes: 70
         env:
           ENABLE_IMAGE_CACHE: 'false'
         run: |
+          # Solo writes UTF-8 to stdout; without this the pwsh wrapper decodes it with the legacy
+          # ANSI code page and every box-drawing character and emoji in the log becomes mojibake.
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- one-shot single deploy --dev
 
@@ -407,24 +507,38 @@ jobs:
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics connections -d one-shot --check
 
       - name: Collect Diagnostics on Failure
         if: ${{ failure() }}
+        # Best-effort: the deploy may have died before a deployment was persisted, in which case
+        # the command exits non-zero. `; $true` does not reset $LASTEXITCODE, which is what the
+        # pwsh wrapper exits with, so the step needs continue-on-error to stop reporting a
+        # false failure.
+        continue-on-error: true
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- deployment diagnostics logs -q --dev; $true
+          npm run solo -- deployment diagnostics logs -q --dev
 
       - name: One-Shot Single Destroy
         if: always()
+        # Best-effort teardown: the runner is discarded afterwards, so a destroy failure must not
+        # turn an otherwise green run red. See the note above on why `; $true` did not achieve this.
+        continue-on-error: true
         shell: pwsh
         timeout-minutes: 15
         run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- one-shot single destroy --quiet-mode --dev; $true
+          npm run solo -- one-shot single destroy --quiet-mode --dev
 
       - name: Stage logs for upload
         if: always()

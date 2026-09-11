@@ -573,13 +573,13 @@ jobs:
           # Publish those to the channel tag for their line instead, matching the
           # release-<major>.<minor>.x tags already on the registry for earlier lines.
           # The default branch keeps "latest".
-          if [[ "${{ github.ref_name }}" =~ ^release/([0-9]+)\.([0-9]+)$ ]]; then
+          if [[ "${GITHUB_REF_NAME}" =~ ^release/([0-9]+)\.([0-9]+)$ ]]; then
             NPM_DIST_TAG="release-${BASH_REMATCH[1]}.${BASH_REMATCH[2]}.x"
           else
             NPM_DIST_TAG="latest"
           fi
 
-          echo "Publishing from '${{ github.ref_name }}' to dist-tag '${NPM_DIST_TAG}'"
+          echo "Publishing from '${GITHUB_REF_NAME}' to dist-tag '${NPM_DIST_TAG}'"
           echo "npm-dist-tag=${NPM_DIST_TAG}" >> "${GITHUB_OUTPUT}"
 
       - name: Download Hiero-Ledger NPM Package Artifact
@@ -665,16 +665,20 @@ jobs:
 
       - name: Set Inputs
         id: set-inputs
+        env:
+          # github.ref is read below through the GITHUB_REF variable the runner already provides.
+          DRY_RUN_ENABLED_INPUT: ${{ inputs.dry-run-enabled }}
+          RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
           set -eo pipefail
-          if [[ "${{ inputs.dry-run-enabled }}" == "true" ]]; then
-            echo "Dry run enabled, setting ref to `github.ref` since tag won't exist."
-            echo "tag_ref=${{ github.ref }}" >> $GITHUB_OUTPUT
-            echo "tag_ref=${{ github.ref }}"
+          if [[ "${DRY_RUN_ENABLED_INPUT}" == "true" ]]; then
+            echo 'Dry run enabled, setting ref to `github.ref` since tag will not exist.'
+            echo "tag_ref=${GITHUB_REF}" >> $GITHUB_OUTPUT
+            echo "tag_ref=${GITHUB_REF}"
           else
-            echo "Dry run not enabled, setting ref to 'refs/tags/v${{ needs.prepare-release.outputs.version }}'."
-            echo "tag_ref=refs/tags/v${{ needs.prepare-release.outputs.version }}" >> $GITHUB_OUTPUT
-            echo "tag_ref=refs/tags/v${{ needs.prepare-release.outputs.version }}"
+            echo "Dry run not enabled, setting ref to 'refs/tags/v${RELEASE_VERSION}'."
+            echo "tag_ref=refs/tags/v${RELEASE_VERSION}" >> $GITHUB_OUTPUT
+            echo "tag_ref=refs/tags/v${RELEASE_VERSION}"
           fi
 
   # Do a Hugo build for the docs site for the release branch
