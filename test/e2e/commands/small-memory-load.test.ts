@@ -18,21 +18,14 @@ import {type EndToEndTestSuite} from '../end-to-end-test-suite.js';
 import {type BaseTestOptions} from './tests/base-test-options.js';
 import {main} from '../../../src/index.js';
 import {BaseCommandTest} from './tests/base-command-test.js';
+import {NetworkLoadGeneratorTest} from './tests/network-load-generator-test.js';
 import {OneShotCommandDefinition} from '../../../src/commands/command-definitions/one-shot-command-definition.js';
 import {MetricsServerImpl} from '../../../src/business/runtime-state/services/metrics-server-impl.js';
 import * as constants from '../../../src/core/constants.js';
 import {Flags} from '../../../src/commands/flags.js';
 import {type LocalConfigRuntimeState} from '../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
 import {type Deployment} from '../../../src/business/runtime-state/config/local/deployment.js';
-import {type ChartManager} from '../../../src/core/chart-manager.js';
-import {HelmChartValues} from '../../../src/integration/helm/model/values.js';
-import {
-  HEDERA_PLATFORM_VERSION,
-  MINIMUM_HIERO_PLATFORM_VERSION_FOR_NETWORK_LOAD_GENERATOR,
-  NETWORK_LOAD_GENERATOR_CHART_VERSION_AFTER_CN_72,
-  NETWORK_LOAD_GENERATOR_CHART_VERSION_BEFORE_CN_72,
-} from '../../../version.js';
-import {SemanticVersion} from '../../../src/business/utils/semantic-version.js';
+
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
 import {ContainerReference} from '../../../src/integration/kube/resources/container/container-reference.js';
 import {type Containers} from '../../../src/integration/kube/resources/container/containers.js';
@@ -91,7 +84,7 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
 
           // Phase 2: Pre-deploy NLG chart (bypassing rapid-fire to allow file copy before test start)
           testLogger.info(`${testName}: deploying NLG chart`);
-          await deployNlgChart(context);
+          await NetworkLoadGeneratorTest.deployChart(context, NamespaceName.of(await getNamespaceFromDeployment()));
           testLogger.info(`${testName}: NLG chart deployed`);
 
           // Phase 3: Copy throttles.json into NLG pod
@@ -207,77 +200,6 @@ function soloRapidFire(testNameArgument: string, performanceTest: string, argume
   );
   argvPushGlobalFlags(argv, testNameArgument);
   return argv;
-}
-
-/**
- * Deploy the NLG Helm chart directly (bypassing rapid-fire) so we can copy
- * the throttles.json file into the pod before any load test starts.
- *
- * This mirrors the deployment logic in RapidFireCommand.deployNlgChart().
- */
-async function deployNlgChart(kubeContext: string): Promise<void> {
-  const chartManager: ChartManager = container.resolve<ChartManager>(InjectTokens.ChartManager);
-  const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
-  const k8Instance: K8 = k8Factory.getK8(kubeContext);
-
-  const namespaceName: string = await getNamespaceFromDeployment();
-  const namespaceObject: NamespaceName = NamespaceName.of(namespaceName);
-
-  // Build values argument with HAProxy pod IPs (same as rapid-fire does)
-  const chartValues: HelmChartValues = new HelmChartValues().file(constants.RAPID_FIRE_VALUES_FILE);
-
-  const haproxyPods: Pod[] = await k8Instance.pods().list(namespaceObject, ['solo.hedera.com/type=haproxy']);
-
-  const port: number = constants.GRPC_PORT;
-  const networkProperties: string[] = haproxyPods.map((pod: Pod): string => {
-    const accountId: string = pod.labels['solo.hedera.com/account-id'] ?? 'unknown';
-    // eslint-disable-next-line unicorn/prefer-string-raw
-    return `${pod.podIp}\\:${port}=${accountId}`;
-  });
-
-  for (const [index, row] of networkProperties.entries()) {
-    chartValues.setLiteral(`loadGenerator.properties[${index}]`, row);
-  }
-
-  // Install NLG Helm chart
-  await chartManager.install(
-    namespaceObject,
-    constants.NETWORK_LOAD_GENERATOR_RELEASE_NAME,
-    constants.NETWORK_LOAD_GENERATOR_CHART,
-    constants.NETWORK_LOAD_GENERATOR_CHART_URL,
-    new SemanticVersion(HEDERA_PLATFORM_VERSION).greaterThanOrEqual(
-      new SemanticVersion(MINIMUM_HIERO_PLATFORM_VERSION_FOR_NETWORK_LOAD_GENERATOR),
-    )
-      ? NETWORK_LOAD_GENERATOR_CHART_VERSION_AFTER_CN_72
-      : NETWORK_LOAD_GENERATOR_CHART_VERSION_BEFORE_CN_72,
-    chartValues,
-    kubeContext,
-  );
-
-  // Wait for NLG pod readiness
-  await k8Instance
-    .pods()
-    .waitForReadyStatus(
-      namespaceObject,
-      constants.NETWORK_LOAD_GENERATOR_POD_LABELS,
-      constants.NETWORK_LOAD_GENERATOR_POD_RUNNING_MAX_ATTEMPTS,
-      constants.NETWORK_LOAD_GENERATOR_POD_RUNNING_DELAY,
-    );
-
-  // Install libsodium in NLG pod (required dependency)
-  const nlgPods: Pod[] = await k8Instance.pods().list(namespaceObject, constants.NETWORK_LOAD_GENERATOR_POD_LABELS);
-
-  const k8Containers: Containers = k8Instance.containers();
-  for (const pod of nlgPods) {
-    const containerReference: ContainerReference = ContainerReference.of(
-      pod.podReference,
-      constants.NETWORK_LOAD_GENERATOR_CONTAINER,
-    );
-    const nlgContainer: Container = k8Containers.readByRef(containerReference);
-    await nlgContainer.execContainer('apt-get update -qq');
-    await nlgContainer.execContainer('apt-get install -y libsodium23');
-    await nlgContainer.execContainer('apt-get clean -qq');
-  }
 }
 
 /**
