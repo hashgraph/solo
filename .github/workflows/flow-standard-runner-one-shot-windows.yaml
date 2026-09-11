@@ -335,12 +335,15 @@ jobs:
             free -h
             echo "::endgroup::"
             echo "::group::Configuring APT"
-            # GitHub-hosted runners live in Azure; archive.ubuntu.com from there is the mirror that
-            # stalled or timed out in issue #5985. Use the in-network Azure mirror, as GitHub's own
-            # Ubuntu runner images do, and bound each fetch so a bad connection fails fast and
-            # retries instead of sitting in apt's default 120-second connect timeout.
-            grep -rl 'archive.ubuntu.com' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null | xargs -r sed -i 's|http://archive.ubuntu.com/ubuntu|http://azure.archive.ubuntu.com/ubuntu|'
-            printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\n' > /etc/apt/apt.conf.d/99-solo-ci
+            # GitHub-hosted runners live in Azure; archive.ubuntu.com and security.ubuntu.com from
+            # there are the hosts that stalled or timed out in issue #5985 (the Azure mirror served
+            # every index in one second while security.ubuntu.com alone took two minutes). Use the
+            # in-network Azure mirror for both pockets, as Azure's own Ubuntu images do, stay on
+            # IPv4 because the WSL2 NAT has no IPv6 route and each v6 attempt burns a timeout, and
+            # bound each fetch so a bad connection fails fast and retries instead of sitting in
+            # apt's default 120-second connect timeout.
+            grep -rl 'ubuntu.com' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null | xargs -r sed -i -E 's#http://(archive|security)\.ubuntu\.com/ubuntu#http://azure.archive.ubuntu.com/ubuntu#'
+            printf 'Acquire::ForceIPv4 "true";\nAcquire::Retries "5";\nAcquire::http::Timeout "30";\n' > /etc/apt/apt.conf.d/99-solo-ci
             mkdir -p /etc/apt/keyrings
             cp $WORKSPACE/.github/workflows/resources/docker-apt-public-gpg-key.key /etc/apt/keyrings/docker.asc
             chmod 644 /etc/apt/keyrings/docker.asc
