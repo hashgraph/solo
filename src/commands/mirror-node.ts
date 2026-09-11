@@ -34,6 +34,8 @@ import {type NamespaceName} from '../types/namespace/namespace-name.js';
 import {PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {Pod} from '../integration/kube/resources/pod/pod.js';
 import {type Pods} from '../integration/kube/resources/pod/pods.js';
+import {KubePodNotFoundError} from '../integration/kube/errors/kube-pod-not-found-error.js';
+import {KubePodNotReadyError} from '../integration/kube/errors/kube-pod-not-ready-error.js';
 import chalk from 'chalk';
 import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
@@ -1231,10 +1233,28 @@ export class MirrorNodeCommand extends BaseCommand {
             constants.MIRROR_NODE_IMPORTER_DETECT_MAX_ATTEMPTS,
             constants.MIRROR_NODE_IMPORTER_DETECT_DELAY,
           );
-        } catch {
-          // importer disabled via custom values — no schema build to wait for
-          this.logger.info(`No importer pod found for release ${config.releaseName}; skipping mirror node schema wait`);
-          return;
+        } catch (error: Error | unknown) {
+          if (error instanceof KubePodNotFoundError) {
+            // No importer pod exists at all, so the importer was disabled via custom values and
+            // there is no schema to wait for.
+            this.logger.info(
+              `No importer pod found for release ${config.releaseName}; skipping mirror node schema wait`,
+            );
+            return;
+          }
+
+          if (!(error instanceof KubePodNotReadyError)) {
+            throw error;
+          }
+
+          // The detect window above is deliberately short because it only answers "does an importer
+          // exist". A pod that exists but has not reached Running within it is simply starting
+          // slowly, which is normal on a loaded node, so fall through to the readiness wait below:
+          // that one allows far longer and is where a genuinely stuck importer has to surface.
+          // Returning here instead would report a broken importer as a successful deploy.
+          this.logger.info(
+            `Importer pod for release ${config.releaseName} is not running yet; waiting for it to become ready`,
+          );
         }
 
         await pods.waitForReadyStatus(

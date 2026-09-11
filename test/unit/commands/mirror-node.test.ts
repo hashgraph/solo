@@ -9,6 +9,9 @@ import os from 'node:os';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror-node.js';
 import * as constants from '../../../src/core/constants.js';
+import {KubePodNotFoundError} from '../../../src/integration/kube/errors/kube-pod-not-found-error.js';
+import {KubePodNotReadyError} from '../../../src/integration/kube/errors/kube-pod-not-ready-error.js';
+import {KubePodReadinessFailedError} from '../../../src/integration/kube/errors/kube-pod-readiness-failed-error.js';
 import * as versions from '../../../version.js';
 import {resetForTest} from '../../test-container.js';
 import {HelmChartValues} from '../../../src/integration/helm/model/values.js';
@@ -663,8 +666,10 @@ describe('MirrorNodeCommand unit tests', (): void => {
     });
 
     it('should skip the schema wait when no importer pod appears', async (): Promise<void> => {
+      // An absent importer is what waitForRunningPhase reports as KubePodNotFoundError, and it is
+      // the only case that means "disabled via custom values" rather than "broken".
       const podsStub: MirrorNodeSchemaWaitPodsStub = {
-        waitForRunningPhase: sinon.stub().rejects(new Error('no pods found')),
+        waitForRunningPhase: sinon.stub().rejects(new KubePodNotFoundError('labels:app=importer')),
         waitForReadyStatus: sinon.stub().resolves([{}]),
       };
       const mirrorNodeCommandInternal: MirrorNodeCommandInternal = stubImporterPods(mirrorNodeCommand, podsStub);
@@ -672,6 +677,71 @@ describe('MirrorNodeCommand unit tests', (): void => {
       const task: SoloListrTask<MirrorNodeSchemaWaitTaskContext> =
         mirrorNodeCommandInternal.waitForMirrorNodeSchemaTask();
       await (task.task as (context: MirrorNodeSchemaWaitTaskContext) => Promise<void>)(schemaWaitContext);
+
+      expect(podsStub.waitForReadyStatus.called).to.equal(false);
+    });
+
+    it('should still wait for readiness when the importer exists but is not running yet', async (): Promise<void> => {
+      // The detect window is only 30s, so an importer that is still Pending is starting slowly, not
+      // broken. It must fall through to the schema readiness wait rather than failing the deploy.
+      const podsStub: MirrorNodeSchemaWaitPodsStub = {
+        waitForRunningPhase: sinon
+          .stub()
+          .rejects(new KubePodNotReadyError('labels:app=importer', 'mirror-1-importer-abc', 'Pending', [])),
+        waitForReadyStatus: sinon.stub().resolves([{}]),
+      };
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal = stubImporterPods(mirrorNodeCommand, podsStub);
+
+      const task: SoloListrTask<MirrorNodeSchemaWaitTaskContext> =
+        mirrorNodeCommandInternal.waitForMirrorNodeSchemaTask();
+      await (task.task as (context: MirrorNodeSchemaWaitTaskContext) => Promise<void>)(schemaWaitContext);
+
+      expect(podsStub.waitForReadyStatus.calledOnce).to.equal(true);
+      expect(podsStub.waitForReadyStatus.firstCall.args[2]).to.equal(constants.MIRROR_NODE_SCHEMA_READY_MAX_ATTEMPTS);
+    });
+
+    it('should surface a stuck importer instead of reporting a successful deploy', async (): Promise<void> => {
+      // The readiness wait is where a genuinely broken importer has to fail; swallowing it here is
+      // what previously turned an importer that never started into a green deployment.
+      const readinessFailure: KubePodReadinessFailedError = new KubePodReadinessFailedError(
+        'solo',
+        ['app.kubernetes.io/component=importer'],
+        new KubePodNotReadyError('labels:app=importer', 'mirror-1-importer-abc', 'Pending', []),
+      );
+      const podsStub: MirrorNodeSchemaWaitPodsStub = {
+        waitForRunningPhase: sinon.stub().resolves([{}]),
+        waitForReadyStatus: sinon.stub().rejects(readinessFailure),
+      };
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal = stubImporterPods(mirrorNodeCommand, podsStub);
+
+      const task: SoloListrTask<MirrorNodeSchemaWaitTaskContext> =
+        mirrorNodeCommandInternal.waitForMirrorNodeSchemaTask();
+
+      try {
+        await (task.task as (context: MirrorNodeSchemaWaitTaskContext) => Promise<void>)(schemaWaitContext);
+        expect.fail('Expected the schema wait to reject');
+      } catch (error: Error | unknown) {
+        expect(error).to.equal(readinessFailure);
+      }
+    });
+
+    it('should propagate an unexpected failure from the importer detection', async (): Promise<void> => {
+      const unexpected: Error = new Error('connection refused');
+      const podsStub: MirrorNodeSchemaWaitPodsStub = {
+        waitForRunningPhase: sinon.stub().rejects(unexpected),
+        waitForReadyStatus: sinon.stub().resolves([{}]),
+      };
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal = stubImporterPods(mirrorNodeCommand, podsStub);
+
+      const task: SoloListrTask<MirrorNodeSchemaWaitTaskContext> =
+        mirrorNodeCommandInternal.waitForMirrorNodeSchemaTask();
+
+      try {
+        await (task.task as (context: MirrorNodeSchemaWaitTaskContext) => Promise<void>)(schemaWaitContext);
+        expect.fail('Expected the schema wait to reject');
+      } catch (error: Error | unknown) {
+        expect(error).to.equal(unexpected);
+      }
 
       expect(podsStub.waitForReadyStatus.called).to.equal(false);
     });

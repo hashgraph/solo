@@ -32,6 +32,7 @@ export class InjectTokens {
   public static RemoteConfigRuntimeState: symbol = Symbol.for('RemoteConfigRuntimeState');
   public static ClusterChecks: symbol = Symbol.for('ClusterChecks');
   public static NetworkNodes: symbol = Symbol.for('NetworkNodes');
+  public static PvcMountVerifier: symbol = Symbol.for('PvcMountVerifier');
   public static AccountCommand: symbol = Symbol.for('AccountCommand');
   public static FileCommand: symbol = Symbol.for('FileCommand');
   public static ClusterCommand: symbol = Symbol.for('ClusterCommand');

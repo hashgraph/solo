@@ -30,6 +30,7 @@ import {K8ClientPodCondition} from './k8-client-pod-condition.js';
 import {type PodCondition} from '../../../resources/pod/pod-condition.js';
 import {K8ClientContainerStatus} from './k8-client-container-status.js';
 import {type ContainerStatus} from '../../../resources/pod/container-status.js';
+import {type PodVolumeMount} from '../../../resources/pod/pod-volume-mount.js';
 import {ShellRunner} from '../../../../../core/shell-runner.js';
 import {SubprocessCommandProfile} from '../../../../../core/subprocess-command-profile.js';
 import {SubprocessEnvironment} from '../../../../../core/subprocess-environment.js';
@@ -62,6 +63,7 @@ export class K8ClientPod implements Pod {
     public readonly deletionTimestamp?: Date,
     public readonly phase?: string,
     public readonly allContainerStatuses?: ContainerStatus[],
+    public readonly persistentVolumeClaimMounts?: PodVolumeMount[],
   ) {
     this.logger = container.resolve(InjectTokens.SoloLogger);
   }
@@ -427,6 +429,42 @@ export class K8ClientPod implements Pod {
     return v1Pod;
   }
 
+  /**
+   * Joins `spec.volumes` to every container's `volumeMounts` so each claim is paired with the paths
+   * it is actually mounted on. A claim declared in `spec.volumes` but mounted by no container is
+   * omitted, since there is nothing to verify for it.
+   */
+  private static resolvePersistentVolumeClaimMounts(v1Pod: V1Pod): PodVolumeMount[] {
+    const claimNameByVolumeName: Map<string, string> = new Map<string, string>();
+    for (const volume of v1Pod.spec?.volumes ?? []) {
+      const claimName: string | undefined = volume.persistentVolumeClaim?.claimName;
+      if (claimName) {
+        claimNameByVolumeName.set(volume.name, claimName);
+      }
+    }
+
+    if (claimNameByVolumeName.size === 0) {
+      return [];
+    }
+
+    const mounts: PodVolumeMount[] = [];
+    for (const podContainer of [...(v1Pod.spec?.initContainers ?? []), ...(v1Pod.spec?.containers ?? [])]) {
+      for (const volumeMount of podContainer.volumeMounts ?? []) {
+        const claimName: string | undefined = claimNameByVolumeName.get(volumeMount.name);
+        if (claimName) {
+          mounts.push({
+            claimName,
+            volumeName: volumeMount.name,
+            containerName: podContainer.name,
+            mountPath: volumeMount.mountPath,
+          });
+        }
+      }
+    }
+
+    return mounts;
+  }
+
   public static fromV1Pod(
     v1Pod: V1Pod,
     pods: Pods,
@@ -462,6 +500,7 @@ export class K8ClientPod implements Pod {
       v1Pod.metadata.deletionTimestamp ? new Date(v1Pod.metadata.deletionTimestamp) : undefined,
       v1Pod.status?.phase,
       allContainerStatuses,
+      K8ClientPod.resolvePersistentVolumeClaimMounts(v1Pod),
     );
   }
 }

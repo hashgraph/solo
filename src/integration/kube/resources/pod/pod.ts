@@ -4,6 +4,7 @@ import {type PodReference} from './pod-reference.js';
 import {type ContainerName} from '../container/container-name.js';
 import {type PodCondition} from './pod-condition.js';
 import {type ContainerStatus} from './container-status.js';
+import {type PodVolumeMount} from './pod-volume-mount.js';
 
 export interface Pod {
   /**
@@ -66,6 +67,13 @@ export interface Pod {
    * Used to inspect non-recoverable error states without exposing @kubernetes/client-node types.
    */
   readonly allContainerStatuses?: ContainerStatus[];
+
+  /**
+   * Every PersistentVolumeClaim-backed volume mount of the pod, resolved from the pod's volumes and
+   * its containers' volume mounts. Empty when the pod has no claim-backed storage, which is itself
+   * meaningful: it means the workload is running on ephemeral container storage.
+   */
+  readonly persistentVolumeClaimMounts?: PodVolumeMount[];
 
   /**
    * Get a pod by name and namespace, will check every 1 second until the pod is no longer found.

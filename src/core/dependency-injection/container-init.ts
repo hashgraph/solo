@@ -27,6 +27,7 @@ import {mkdirSync} from 'node:fs';
 import os from 'node:os';
 import * as version from '../../../version.js';
 import {NetworkNodes} from '../network-nodes.js';
+import {PvcMountVerifier} from '../pvc-mount-verifier.js';
 import {ClusterChecks} from '../cluster-checks.js';
 import {InjectTokens} from './inject-tokens.js';
 import {K8ClientFactory} from '../../integration/kube/k8-client/k8-client-factory.js';
@@ -171,6 +172,7 @@ export class Container {
       new SingletonContainer(InjectTokens.RemoteConfigRuntimeState, RemoteConfigRuntimeState),
       new SingletonContainer(InjectTokens.ClusterChecks, ClusterChecks),
       new SingletonContainer(InjectTokens.NetworkNodes, NetworkNodes),
+      new SingletonContainer(InjectTokens.PvcMountVerifier, PvcMountVerifier),
       new SingletonContainer(InjectTokens.NpmClient, NpmClient),
       new SingletonContainer(InjectTokens.Middlewares, Middlewares),
       new SingletonContainer(InjectTokens.HelpRenderer, HelpRenderer),

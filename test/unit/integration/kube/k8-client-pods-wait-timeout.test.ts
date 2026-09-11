@@ -215,4 +215,192 @@ describe('K8ClientPods wait timeout errors', (): void => {
     expect(translated.message).to.include('volume mount diagnostic');
     expect(translated.message).to.include('hgcapp-data-saved-network-node1-0" is Pending');
   });
+  it('waitForRunningPhase reports a volume-caused FailedScheduling event on the pod', async (): Promise<void> => {
+    listNamespacedPodStub.resolves({items: [buildPendingPodWithPvcVolume()]});
+    listNamespacedPersistentVolumeClaimStub.resolves({
+      items: [{metadata: {name: 'hgcapp-data-saved-network-node1-0'}, status: {phase: 'Bound'}}],
+    });
+    listNamespacedEventStub.resolves({
+      items: [
+        {
+          reason: 'FailedScheduling',
+          involvedObject: {name: 'network-node1-0'},
+          message: '0/3 nodes are available: 1 node(s) had volume node affinity conflict.',
+          lastTimestamp: new Date('2026-08-20T10:00:00Z'),
+        },
+      ],
+    });
+
+    try {
+      await pods.waitForRunningPhase(NamespaceName.of('solo'), ['app.kubernetes.io/name=network-node'], 2, 0);
+      expect.fail('Expected waitForRunningPhase to reject');
+    } catch (error: Error | unknown) {
+      expect((error as KubePodNotReadyError).volumeMountDiagnostic).to.include('volume node affinity conflict');
+    }
+  });
+
+  it('waitForRunningPhase ignores a FailedScheduling event that is not about a volume', async (): Promise<void> => {
+    listNamespacedPodStub.resolves({items: [buildPendingPodWithPvcVolume()]});
+    listNamespacedPersistentVolumeClaimStub.resolves({
+      items: [{metadata: {name: 'hgcapp-data-saved-network-node1-0'}, status: {phase: 'Bound'}}],
+    });
+    listNamespacedEventStub.resolves({
+      items: [
+        {
+          reason: 'FailedScheduling',
+          involvedObject: {name: 'network-node1-0'},
+          message: '0/3 nodes are available: 3 Insufficient cpu.',
+          lastTimestamp: new Date('2026-08-20T10:00:00Z'),
+        },
+      ],
+    });
+
+    try {
+      await pods.waitForRunningPhase(NamespaceName.of('solo'), ['app.kubernetes.io/name=network-node'], 2, 0);
+      expect.fail('Expected waitForRunningPhase to reject');
+    } catch (error: Error | unknown) {
+      expect((error as KubePodNotReadyError).volumeMountDiagnostic).to.be.undefined;
+    }
+  });
+
+  it('waitForRunningPhase reports the newest volume event regardless of list order', async (): Promise<void> => {
+    listNamespacedPodStub.resolves({items: [buildPendingPodWithPvcVolume()]});
+    listNamespacedEventStub.resolves({
+      items: [
+        {
+          reason: 'FailedMount',
+          involvedObject: {name: 'network-node1-0'},
+          message: 'stale failure from an earlier deploy',
+          lastTimestamp: new Date('2026-08-20T09:00:00Z'),
+        },
+        {
+          reason: 'FailedMount',
+          involvedObject: {name: 'network-node1-0'},
+          message: 'current failure',
+          lastTimestamp: new Date('2026-08-20T11:00:00Z'),
+        },
+        {
+          reason: 'FailedMount',
+          involvedObject: {name: 'network-node1-0'},
+          message: 'another stale failure',
+          lastTimestamp: new Date('2026-08-20T10:00:00Z'),
+        },
+      ],
+    });
+
+    try {
+      await pods.waitForRunningPhase(NamespaceName.of('solo'), ['app.kubernetes.io/name=network-node'], 2, 0);
+      expect.fail('Expected waitForRunningPhase to reject');
+    } catch (error: Error | unknown) {
+      const diagnostic: string = (error as KubePodNotReadyError).volumeMountDiagnostic;
+      expect(diagnostic).to.include('current failure');
+      expect(diagnostic).to.not.include('stale failure');
+    }
+  });
+
+  it('waitForRunningPhase explains a never-created pod with a namespace-wide volume sweep', async (): Promise<void> => {
+    listNamespacedPodStub.resolves({items: []});
+    listNamespacedPersistentVolumeClaimStub.resolves({
+      items: [
+        {metadata: {name: 'hgcapp-data-saved-network-node1-0'}, status: {phase: 'Pending'}},
+        {metadata: {name: 'hgcapp-event-streams-network-node1-0'}, status: {phase: 'Pending'}},
+      ],
+    });
+    listNamespacedEventStub.resolves({
+      items: [
+        {
+          reason: 'ProvisioningFailed',
+          involvedObject: {name: 'hgcapp-data-saved-network-node1-0'},
+          message: 'failed to provision volume with StorageClass "local-path": no space left on device',
+          lastTimestamp: new Date('2026-08-20T10:00:00Z'),
+        },
+      ],
+    });
+
+    try {
+      await pods.waitForRunningPhase(NamespaceName.of('solo'), ['app.kubernetes.io/name=network-node'], 2, 0);
+      expect.fail('Expected waitForRunningPhase to reject');
+    } catch (error: Error | unknown) {
+      expect(error).to.be.instanceOf(KubePodNotFoundError);
+      const notFoundError: KubePodNotFoundError = error as KubePodNotFoundError;
+      expect(notFoundError.volumeMountDiagnostic).to.include('hgcapp-data-saved-network-node1-0" is Pending');
+      expect(notFoundError.volumeMountDiagnostic).to.include('ProvisioningFailed');
+      expect(notFoundError.message).to.include('volume mount diagnostic');
+    }
+  });
+
+  it('waitForRunningPhase caps the number of individually named unbound claims', async (): Promise<void> => {
+    listNamespacedPodStub.resolves({items: []});
+    listNamespacedPersistentVolumeClaimStub.resolves({
+      items: Array.from({length: 9}, (_: unknown, index: number): object => ({
+        metadata: {name: `claim-${index}`},
+        status: {phase: 'Pending'},
+      })),
+    });
+
+    try {
+      await pods.waitForRunningPhase(NamespaceName.of('solo'), ['app.kubernetes.io/name=network-node'], 2, 0);
+      expect.fail('Expected waitForRunningPhase to reject');
+    } catch (error: Error | unknown) {
+      expect((error as KubePodNotFoundError).volumeMountDiagnostic).to.include('(+4 more unbound claim(s))');
+    }
+  });
+
+  it('KubePodReadinessFailedError carries the volume mount diagnostic of its cause', (): void => {
+    const cause: KubePodNotReadyError = new KubePodNotReadyError(
+      'labels:app=network-node',
+      'network-node1-0',
+      'Pending',
+      [],
+      'PVC "hgcapp-data-saved-network-node1-0" is Pending',
+    );
+
+    const readinessError: KubePodReadinessFailedError = new KubePodReadinessFailedError(
+      'solo',
+      ['solo.hedera.com/type=network-node'],
+      cause,
+    );
+
+    expect(readinessError.volumeMountDiagnostic).to.include('hgcapp-data-saved-network-node1-0" is Pending');
+    expect(readinessError.podName).to.equal('network-node1-0');
+  });
+
+  it('KubeErrorTranslator translates a readiness failure into a pod-not-ready SoloError', (): void => {
+    const cause: KubePodNotReadyError = new KubePodNotReadyError(
+      'labels:app=network-node',
+      'network-node1-0',
+      'Pending',
+      [],
+      'PVC "hgcapp-data-saved-network-node1-0" is Pending',
+    );
+    const readinessError: KubePodReadinessFailedError = new KubePodReadinessFailedError(
+      'solo',
+      ['solo.hedera.com/type=network-node'],
+      cause,
+    );
+
+    const translated: SoloError | undefined = KubeErrorTranslator.tryTranslate(readinessError);
+
+    expect(translated).to.be.instanceOf(SoloErrors.system.podNotReady);
+    expect(translated.message).to.include('volume mount diagnostic');
+    expect(translated.message).to.include('network-node1-0');
+  });
+
+  it('KubeErrorTranslator translates a readiness failure with no observed pod into pod-not-found', (): void => {
+    const cause: KubePodNotFoundError = new KubePodNotFoundError(
+      'labels:solo.hedera.com/type=network-node',
+      undefined,
+      'PVC "hgcapp-data-saved-network-node1-0" is Pending',
+    );
+    const readinessError: KubePodReadinessFailedError = new KubePodReadinessFailedError(
+      'solo',
+      ['solo.hedera.com/type=network-node'],
+      cause,
+    );
+
+    const translated: SoloError | undefined = KubeErrorTranslator.tryTranslate(readinessError);
+
+    expect(translated).to.be.instanceOf(SoloErrors.system.podNotFound);
+    expect(translated.message).to.include('volume mount diagnostic');
+  });
 });

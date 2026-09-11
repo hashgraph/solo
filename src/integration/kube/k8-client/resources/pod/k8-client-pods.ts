@@ -63,13 +63,40 @@ export class K8ClientPods extends K8ClientBase implements Pods {
   private static readonly FATAL_TERMINATED_REASONS: ReadonlySet<string> = new Set(['OOMKilled']);
 
   /**
-   * Event reasons that indicate a stuck volume attach/mount rather than an application-level
-   * startup failure (e.g. a slow or stuck storage backend on the node).
+   * Event reasons that indicate a volume provisioning, binding, attach, or mount problem rather
+   * than an application-level startup failure. These come from five different controllers, and a
+   * given storage backend only produces a subset: the scheduler emits FailedScheduling (volume
+   * node affinity conflict, unbound immediate claims), the persistent volume controller emits
+   * FailedBinding, an external provisioner emits ProvisioningFailed on the claim itself, the
+   * attach/detach controller emits FailedAttachVolume, and kubelet emits FailedMount.
    */
   private static readonly VOLUME_MOUNT_EVENT_REASONS: ReadonlySet<string> = new Set([
     'FailedMount',
     'FailedAttachVolume',
+    'FailedBinding',
+    'ProvisioningFailed',
+    'VolumeBindingFailed',
+    'FailedScheduling',
   ]);
+
+  /**
+   * Event reasons from {@link VOLUME_MOUNT_EVENT_REASONS} that are also emitted for entirely
+   * unrelated causes, so they only count as a volume diagnostic when the message names a volume.
+   * FailedScheduling covers every unsatisfiable scheduling constraint (insufficient CPU or memory,
+   * taints, pod anti-affinity), and reporting one of those as a volume problem would be worse than
+   * reporting nothing.
+   */
+  private static readonly MESSAGE_QUALIFIED_EVENT_REASONS: ReadonlySet<string> = new Set(['FailedScheduling']);
+
+  /** Matches the scheduler and binder wording for a volume-caused rejection. */
+  private static readonly VOLUME_EVENT_MESSAGE_PATTERN: RegExp = /volume|persistentvolumeclaim/i;
+
+  /**
+   * Upper bound on unbound claims named individually in a diagnostic. A namespace-wide sweep can
+   * see every claim of every consensus node (13 per node), and an unbounded list would bury the
+   * rest of the error message.
+   */
+  private static readonly MAX_REPORTED_CLAIMS: number = 5;
 
   private static readonly FATAL_ERROR_RETRY_THRESHOLD: number = 3;
 
@@ -181,37 +208,75 @@ export class K8ClientPods extends K8ClientBase implements Pods {
     return K8ClientPods.NON_RECOVERABLE_IMAGE_PULL_PATTERNS.some((pattern): boolean => pattern.test(message));
   }
 
+  /** True when the event is a volume-caused failure, including the message-qualified reasons. */
+  private static isVolumeEvent(event: CoreV1Event): boolean {
+    const reason: string = event.reason ?? '';
+    if (!K8ClientPods.VOLUME_MOUNT_EVENT_REASONS.has(reason)) {
+      return false;
+    }
+    if (K8ClientPods.MESSAGE_QUALIFIED_EVENT_REASONS.has(reason)) {
+      return K8ClientPods.VOLUME_EVENT_MESSAGE_PATTERN.test(event.message ?? '');
+    }
+    return true;
+  }
+
+  /**
+   * Effective time of an event, used to pick the most recent one. The API returns events in no
+   * guaranteed order, and a namespace can hold events from earlier deploys, so relying on list
+   * position would report a stale failure. `lastTimestamp` is unset on events written through the
+   * events.k8s.io API, which use `eventTime` instead.
+   */
+  private static eventTimestamp(event: CoreV1Event): number {
+    const candidate: Date | undefined =
+      event.lastTimestamp ?? event.eventTime ?? event.firstTimestamp ?? event.metadata?.creationTimestamp;
+    return candidate ? new Date(candidate).getTime() : 0;
+  }
+
   /**
    * Best-effort diagnostic for a pod that never reached the required state: inspects the
-   * PersistentVolumeClaims the pod depends on and any FailedMount/FailedAttachVolume events, so a
-   * stuck or slow volume attach/mount (e.g. an mdadm-backed storage class with variable RAID
-   * resync latency) is distinguishable from a generic readiness timeout. Returns undefined when
-   * the pod has no PVC-backed volumes or nothing anomalous is found.
+   * PersistentVolumeClaims involved and any volume provisioning/binding/attach/mount events, so a
+   * stuck or slow volume (e.g. an mdadm-backed storage class with variable RAID resync latency, or
+   * a node-pinned local volume whose node no longer fits the pod) is distinguishable from a generic
+   * readiness timeout.
+   *
+   * When `pod` is undefined the pod was never created — a StatefulSet whose claim cannot be
+   * provisioned never creates one — so there are no claim names to narrow by and every claim in the
+   * namespace is inspected instead. Returns undefined when the pod has no PVC-backed volumes or
+   * nothing anomalous is found.
    */
-  private async buildVolumeMountDiagnostic(
-    namespace: NamespaceName,
-    pod: V1Pod | undefined,
-  ): Promise<string | undefined> {
+  private async buildVolumeMountDiagnostic(namespace: NamespaceName, pod?: V1Pod): Promise<string | undefined> {
     const claimNames: string[] = (pod?.spec?.volumes ?? [])
       .map((volume: V1Volume): string | undefined => volume.persistentVolumeClaim?.claimName)
       .filter(Boolean);
 
-    if (claimNames.length === 0) {
+    // With no observed pod there is nothing to narrow by, so sweep the whole namespace.
+    const inspectEveryClaim: boolean = !pod;
+
+    if (!inspectEveryClaim && claimNames.length === 0) {
       return undefined;
     }
 
+    const claimNameSet: ReadonlySet<string> = new Set(claimNames);
     const diagnosticParts: string[] = [];
 
     try {
       const pvcList: V1PersistentVolumeClaimList = await this.kubeClient.listNamespacedPersistentVolumeClaim({
         namespace: namespace.name,
       });
+      const unboundClaims: string[] = [];
       for (const pvc of pvcList.items ?? []) {
         const pvcName: string = pvc.metadata?.name ?? '';
         const phase: string = pvc.status?.phase ?? 'Unknown';
-        if (claimNames.includes(pvcName) && phase !== 'Bound') {
-          diagnosticParts.push(`PVC "${pvcName}" is ${phase}`);
+        if ((inspectEveryClaim || claimNameSet.has(pvcName)) && phase !== 'Bound') {
+          unboundClaims.push(`"${pvcName}" is ${phase}`);
         }
+      }
+      if (unboundClaims.length > 0) {
+        const reported: string[] = unboundClaims.slice(0, K8ClientPods.MAX_REPORTED_CLAIMS);
+        const remaining: number = unboundClaims.length - reported.length;
+        diagnosticParts.push(
+          `PVC ${reported.join(', ')}${remaining > 0 ? ` (+${remaining} more unbound claim(s))` : ''}`,
+        );
       }
     } catch {
       // best-effort diagnostic only; a PVC lookup failure must not mask the original readiness timeout
@@ -224,12 +289,19 @@ export class K8ClientPods extends K8ClientBase implements Pods {
       const relevantNames: ReadonlySet<string> = new Set([pod?.metadata?.name ?? '', ...claimNames]);
       const volumeEvents: CoreV1Event[] = (eventList.items ?? []).filter(
         (event: CoreV1Event): boolean =>
-          K8ClientPods.VOLUME_MOUNT_EVENT_REASONS.has(event.reason ?? '') &&
-          relevantNames.has(event.involvedObject?.name ?? ''),
+          K8ClientPods.isVolumeEvent(event) &&
+          (inspectEveryClaim || relevantNames.has(event.involvedObject?.name ?? '')),
       );
-      const latestEvent: CoreV1Event | undefined = volumeEvents.at(-1);
+      let latestEvent: CoreV1Event | undefined;
+      for (const event of volumeEvents) {
+        if (!latestEvent || K8ClientPods.eventTimestamp(event) >= K8ClientPods.eventTimestamp(latestEvent)) {
+          latestEvent = event;
+        }
+      }
       if (latestEvent) {
-        diagnosticParts.push(`event ${latestEvent.reason}: ${latestEvent.message ?? ''}`);
+        const involvedObjectName: string = latestEvent.involvedObject?.name ?? '';
+        const subject: string = inspectEveryClaim && involvedObjectName ? ` on ${involvedObjectName}` : '';
+        diagnosticParts.push(`event ${latestEvent.reason}${subject}: ${latestEvent.message ?? ''}`);
       }
     } catch {
       // best-effort diagnostic only; an event lookup failure must not mask the original readiness timeout
@@ -539,7 +611,11 @@ export class K8ClientPods extends K8ClientBase implements Pods {
             ),
           );
         } else {
-          return reject(new KubePodNotFoundError(`labels:${labelSelector}`));
+          // No pod was ever observed. A StatefulSet whose PersistentVolumeClaim cannot be
+          // provisioned never creates its pod, so a namespace-wide volume sweep is the only way to
+          // explain "no pod found" instead of leaving the storage backend unmentioned.
+          const volumeMountDiagnostic: string | undefined = await this.buildVolumeMountDiagnostic(namespace);
+          return reject(new KubePodNotFoundError(`labels:${labelSelector}`, undefined, volumeMountDiagnostic));
         }
       };
 
