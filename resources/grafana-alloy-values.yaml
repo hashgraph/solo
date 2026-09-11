@@ -1,0 +1,22 @@
+# Grafana Alloy log collector installed by `solo cluster-ref config setup --grafana-alloy`.
+# A single replica tails every pod matched by a PodLogs custom resource (created by
+# `solo network deploy --enable-monitoring-support`) through the Kubernetes API, so a
+# DaemonSet is unnecessary and would ship each log line once per cluster node.
+controller:
+  type: statefulset
+  replicas: 1
+
+alloy:
+  configMap:
+    # Loki is installed by the same setup task into the same namespace, so the
+    # namespace-local `loki` Service name resolves regardless of the namespace chosen
+    # via --cluster-setup-namespace.
+    content: |
+      loki.source.podlogs "solo" {
+        forward_to = [loki.write.solo.receiver]
+      }
+      loki.write "solo" {
+        endpoint {
+          url = "http://loki:3100/loki/api/v1/push"
+        }
+      }

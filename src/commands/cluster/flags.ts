@@ -19,6 +19,7 @@ export const SETUP_FLAGS: CommandFlags = {
     flags.chartDirectory,
     flags.clusterRef,
     flags.clusterSetupNamespace,
+    flags.deployGrafanaAlloy,
     flags.deployMinio,
     flags.deployMetricsServer,
     flags.deployPrometheusStack,

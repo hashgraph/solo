@@ -69,6 +69,18 @@ export class SoloHelmChartTargetProvider implements CacheTargetProvider {
         version.MINIO_OPERATOR_VERSION,
         constants.MINIO_OPERATOR_CHART_URL,
       ),
+      new CacheTarget(
+        CacheArtifactEnum.HELM_CHART,
+        constants.GRAFANA_ALLOY_CHART,
+        version.GRAFANA_ALLOY_VERSION,
+        constants.GRAFANA_ALLOY_CHART_URL,
+      ),
+      new CacheTarget(
+        CacheArtifactEnum.HELM_CHART,
+        constants.LOKI_CHART,
+        version.LOKI_VERSION,
+        constants.LOKI_CHART_URL,
+      ),
       // The haproxy-ingress chart name equals its release name, which is what `ChartManager` passes as chartName.
       new CacheTarget(
         CacheArtifactEnum.HELM_CHART,

@@ -26,6 +26,7 @@ import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
 import {type ClusterReferenceResetContext} from '../../../src/commands/cluster/config-interfaces/cluster-reference-reset-context.js';
 import {type SoloListrTaskWrapper, type SoloListrTask} from '../../../src/types/index.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
+import {type ConfigMaps} from '../../../src/integration/kube/resources/config-map/config-maps.js';
 import {type HelmChartValues} from '../../../src/integration/helm/model/values.js';
 import {type ReleaseItem} from '../../../src/integration/helm/model/release/release-item.js';
 import {type ClusterChecks} from '../../../src/core/cluster-checks.js';
@@ -103,7 +104,7 @@ describe('ClusterCommand unit tests', (): void => {
       sandbox.stub(options.chartManager, 'install').returns(true);
 
       // Simple mock for installPodMonitorRole to avoid cluster connection
-      sandbox.stub(ClusterCommandTasks.prototype, 'installPodMonitorRole' as any).returns({
+      sandbox.stub(ClusterCommandTasks.prototype, 'installPodMonitorRole').returns({
         title: 'Install pod-monitor-role ClusterRole',
         task: async (): Promise<void> => {},
       });
@@ -159,6 +160,35 @@ describe('ClusterCommand unit tests', (): void => {
       ]);
 
       argv.setArg(flags.deployPrometheusStack, false);
+    });
+
+    it('Installs Loki, Grafana Alloy, and the Grafana datasource when --grafana-alloy is set', async (): Promise<void> => {
+      argv.setArg(flags.deployGrafanaAlloy, true);
+      const configMapsStub: {createOrReplace: sinon.SinonStub} = {createOrReplace: sandbox.stub().resolves(true)};
+      sandbox.stub(K8Client.prototype, 'configMaps').returns(configMapsStub as unknown as ConfigMaps);
+
+      const clusterCommandHandlers: ClusterCommandHandlers = container.resolve(ClusterCommandHandlers);
+      await clusterCommandHandlers.setup(argv.build());
+
+      const lokiInstallArguments: unknown[] = options.chartManager.install.args.find(
+        (installArguments: unknown[]): boolean => installArguments[1] === constants.LOKI_RELEASE_NAME,
+      );
+      expect(lokiInstallArguments, 'expected a Loki chart install').to.not.equal(undefined);
+      expect(lokiInstallArguments[2]).to.equal(constants.LOKI_CHART);
+      expect(lokiInstallArguments[4]).to.equal(version.LOKI_VERSION);
+
+      const alloyInstallArguments: unknown[] = options.chartManager.install.args.find(
+        (installArguments: unknown[]): boolean => installArguments[1] === constants.GRAFANA_ALLOY_RELEASE_NAME,
+      );
+      expect(alloyInstallArguments, 'expected a Grafana Alloy chart install').to.not.equal(undefined);
+      expect(alloyInstallArguments[2]).to.equal(constants.GRAFANA_ALLOY_CHART);
+      expect(alloyInstallArguments[4]).to.equal(version.GRAFANA_ALLOY_VERSION);
+
+      expect(configMapsStub.createOrReplace.calledOnce).to.equal(true);
+      expect(configMapsStub.createOrReplace.args[0][1]).to.equal(constants.LOKI_GRAFANA_DATASOURCE_CONFIGMAP_NAME);
+      expect(configMapsStub.createOrReplace.args[0][2]).to.deep.equal({grafana_datasource: '1'});
+
+      argv.setArg(flags.deployGrafanaAlloy, false);
     });
   });
 

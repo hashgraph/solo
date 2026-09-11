@@ -42,6 +42,10 @@ export const PROMETHEUS_STACK_VERSION: string =
   constants.getEnvironmentVariable('PROMETHEUS_STACK_VERSION') || '52.0.1';
 export const GRAFANA_PODLOGS_CRD_VERSION: string =
   constants.getEnvironmentVariable('GRAFANA_PODLOGS_CRD_VERSION') || 'v1.11.3';
+// Chart 1.4.0 ships Alloy v1.11.3 — the same app version as GRAFANA_PODLOGS_CRD_VERSION and the
+// pre-cached grafana/alloy image used by the consensus node sidecar.
+export const GRAFANA_ALLOY_VERSION: string = constants.getEnvironmentVariable('GRAFANA_ALLOY_VERSION') || '1.4.0';
+export const LOKI_VERSION: string = constants.getEnvironmentVariable('LOKI_VERSION') || '7.1.0';
 export const PROMETHEUS_OPERATOR_CRDS_VERSION: string =
   constants.getEnvironmentVariable('PROMETHEUS_OPERATOR_CRDS_VERSION') || '24.0.2';
 

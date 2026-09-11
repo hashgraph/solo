@@ -36,11 +36,23 @@ import {RemoteConfigRuntimeState} from '../../business/runtime-state/config/remo
 import {type OneShotState} from '../../core/one-shot-state.js';
 import * as versions from '../../../version.js';
 import {K8} from '../../integration/kube/k8.js';
+import {type ConfigMaps} from '../../integration/kube/resources/config-map/config-maps.js';
 import {HelmChartValues} from '../../integration/helm/model/values.js';
 import {Flags} from '../flags.js';
 
 @injectable()
 export class ClusterCommandTasks {
+  // Grafana datasource provisioning payload pointing at the namespace-local Loki Service
+  // installed alongside it by `cluster-ref config setup --grafana-alloy`.
+  private static readonly LOKI_GRAFANA_DATASOURCE_CONTENT: string =
+    'apiVersion: 1\n' +
+    'datasources:\n' +
+    '  - name: Loki\n' +
+    '    type: loki\n' +
+    '    access: proxy\n' +
+    '    url: http://loki:3100\n' +
+    '    isDefault: false\n';
+
   public constructor(
     @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
     @inject(InjectTokens.LocalConfigRuntimeState) private readonly localConfig: LocalConfigRuntimeState,
@@ -338,6 +350,108 @@ export class ClusterCommandTasks {
     };
   }
 
+  public installLoki(): SoloListrTask<ClusterReferenceSetupContext> {
+    return {
+      title: 'Install Loki chart',
+      task: async (context_): Promise<void> => {
+        const clusterSetupNamespace: NamespaceName = context_.config.clusterSetupNamespace;
+
+        const isLokiInstalled: boolean = await this.chartManager.isChartInstalled(
+          clusterSetupNamespace,
+          constants.LOKI_RELEASE_NAME,
+          context_.config.context,
+        );
+
+        if (isLokiInstalled) {
+          this.logger.showUserUnlessOneShot('⏭️  Loki chart already installed, skipping');
+        } else {
+          try {
+            await this.chartManager.install(
+              clusterSetupNamespace,
+              constants.LOKI_RELEASE_NAME,
+              constants.LOKI_CHART,
+              constants.LOKI_CHART,
+              versions.LOKI_VERSION,
+              new HelmChartValues().file(constants.LOKI_VALUES_FILE),
+              context_.config.context,
+            );
+            this.logger.showUserUnlessOneShot('✅ Loki chart installed successfully');
+          } catch (error) {
+            this.logger.debug('Error installing Loki chart', error);
+            try {
+              await this.chartManager.uninstall(
+                clusterSetupNamespace,
+                constants.LOKI_RELEASE_NAME,
+                context_.config.context,
+              );
+            } catch (uninstallError) {
+              this.logger.showUserError(uninstallError);
+            }
+            throw new SoloErrors.deployment.lokiInstallFailed(error);
+          }
+        }
+
+        // The label makes the Grafana sidecar from kube-prometheus-stack load Loki as a datasource.
+        await this.k8Factory
+          .getK8(context_.config.context)
+          .configMaps()
+          .createOrReplace(
+            clusterSetupNamespace,
+            constants.LOKI_GRAFANA_DATASOURCE_CONFIGMAP_NAME,
+            {grafana_datasource: '1'},
+            {'loki-datasource.yaml': ClusterCommandTasks.LOKI_GRAFANA_DATASOURCE_CONTENT},
+          );
+      },
+      skip: ({config: {deployGrafanaAlloy}}): boolean => !deployGrafanaAlloy,
+    };
+  }
+
+  public installGrafanaAlloy(): SoloListrTask<ClusterReferenceSetupContext> {
+    return {
+      title: 'Install Grafana Alloy chart',
+      task: async (context_): Promise<void> => {
+        const clusterSetupNamespace: NamespaceName = context_.config.clusterSetupNamespace;
+
+        const isGrafanaAlloyInstalled: boolean = await this.chartManager.isChartInstalled(
+          clusterSetupNamespace,
+          constants.GRAFANA_ALLOY_RELEASE_NAME,
+          context_.config.context,
+        );
+
+        if (isGrafanaAlloyInstalled) {
+          this.logger.showUserUnlessOneShot('⏭️  Grafana Alloy chart already installed, skipping');
+          return;
+        }
+
+        try {
+          await this.chartManager.install(
+            clusterSetupNamespace,
+            constants.GRAFANA_ALLOY_RELEASE_NAME,
+            constants.GRAFANA_ALLOY_CHART,
+            constants.GRAFANA_ALLOY_CHART,
+            versions.GRAFANA_ALLOY_VERSION,
+            new HelmChartValues().file(constants.GRAFANA_ALLOY_VALUES_FILE),
+            context_.config.context,
+          );
+          this.logger.showUserUnlessOneShot('✅ Grafana Alloy chart installed successfully');
+        } catch (error) {
+          this.logger.debug('Error installing Grafana Alloy chart', error);
+          try {
+            await this.chartManager.uninstall(
+              clusterSetupNamespace,
+              constants.GRAFANA_ALLOY_RELEASE_NAME,
+              context_.config.context,
+            );
+          } catch (uninstallError) {
+            this.logger.showUserError(uninstallError);
+          }
+          throw new SoloErrors.deployment.grafanaAlloyInstallFailed(error);
+        }
+      },
+      skip: ({config: {deployGrafanaAlloy}}): boolean => !deployGrafanaAlloy,
+    };
+  }
+
   public installMetricsServer(): SoloListrTask<ClusterReferenceSetupContext> {
     return {
       title: 'Install metrics-server chart',
@@ -492,6 +606,10 @@ export class ClusterCommandTasks {
           subtasks.push(this.installPrometheusStack());
         }
 
+        if (context_.config.deployGrafanaAlloy) {
+          subtasks.push(this.installLoki(), this.installGrafanaAlloy());
+        }
+
         if (context_.config.deployMetricsServer) {
           subtasks.push(this.installMetricsServer());
         }
@@ -601,6 +719,51 @@ export class ClusterCommandTasks {
     };
   }
 
+  public uninstallGrafanaAlloy(): SoloListrTask<ClusterReferenceResetContext> {
+    return {
+      title: 'Uninstall Grafana Alloy chart',
+      task: async ({config: {clusterSetupNamespace, context}}): Promise<void> => {
+        const isGrafanaAlloyInstalled: boolean = await this.chartManager.isChartInstalled(
+          clusterSetupNamespace,
+          constants.GRAFANA_ALLOY_RELEASE_NAME,
+          context,
+        );
+
+        if (isGrafanaAlloyInstalled) {
+          await this.chartManager.uninstall(clusterSetupNamespace, constants.GRAFANA_ALLOY_RELEASE_NAME, context);
+          this.logger.showUserUnlessOneShot('✅ Grafana Alloy chart uninstalled successfully');
+        } else {
+          this.logger.showUserUnlessOneShot('⏭️  Grafana Alloy chart not installed, skipping');
+        }
+      },
+    };
+  }
+
+  public uninstallLoki(): SoloListrTask<ClusterReferenceResetContext> {
+    return {
+      title: 'Uninstall Loki chart',
+      task: async ({config: {clusterSetupNamespace, context}}): Promise<void> => {
+        const configMaps: ConfigMaps = this.k8Factory.getK8(context).configMaps();
+        if (await configMaps.exists(clusterSetupNamespace, constants.LOKI_GRAFANA_DATASOURCE_CONFIGMAP_NAME)) {
+          await configMaps.delete(clusterSetupNamespace, constants.LOKI_GRAFANA_DATASOURCE_CONFIGMAP_NAME);
+        }
+
+        const isLokiInstalled: boolean = await this.chartManager.isChartInstalled(
+          clusterSetupNamespace,
+          constants.LOKI_RELEASE_NAME,
+          context,
+        );
+
+        if (isLokiInstalled) {
+          await this.chartManager.uninstall(clusterSetupNamespace, constants.LOKI_RELEASE_NAME, context);
+          this.logger.showUserUnlessOneShot('✅ Loki chart uninstalled successfully');
+        } else {
+          this.logger.showUserUnlessOneShot('⏭️  Loki chart not installed, skipping');
+        }
+      },
+    };
+  }
+
   public uninstallMetricsServer(): SoloListrTask<ClusterReferenceResetContext> {
     return {
       title: 'Uninstall metrics-server chart',
@@ -652,6 +815,8 @@ export class ClusterCommandTasks {
         return task.newListr(
           [
             this.uninstallMetricsServer(),
+            this.uninstallGrafanaAlloy(),
+            this.uninstallLoki(),
             this.uninstallPrometheusStack(),
             this.uninstallMinioOperator(),
             this.uninstallPodMonitorRole(),

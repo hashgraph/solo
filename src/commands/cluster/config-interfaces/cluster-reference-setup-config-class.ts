@@ -6,6 +6,7 @@ import {type ClusterReferenceName} from '../../../types/index.js';
 export interface ClusterReferenceSetupConfigClass {
   chartDirectory: string;
   clusterSetupNamespace: NamespaceName;
+  deployGrafanaAlloy: boolean;
   deployMinio: boolean;
   deployMetricsServer: boolean;
   deployPrometheusStack: boolean;

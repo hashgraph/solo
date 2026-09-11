@@ -151,6 +151,18 @@ export const SOLO_SERVICE_MONITOR_NAME: string = 'solo-service-monitor';
 
 export const POD_MONITOR_ROLE: string = 'pod-monitor-role';
 
+export const GRAFANA_ALLOY_CHART_URL: string =
+  getEnvironmentVariable('GRAFANA_ALLOY_CHART_URL') ?? 'https://grafana.github.io/helm-charts';
+export const GRAFANA_ALLOY_CHART: string = 'alloy';
+export const GRAFANA_ALLOY_RELEASE_NAME: string = 'grafana-alloy';
+
+export const LOKI_CHART_URL: string =
+  getEnvironmentVariable('LOKI_CHART_URL') ?? 'https://grafana.github.io/helm-charts';
+export const LOKI_CHART: string = 'loki';
+// The Loki release name yields the `loki` Service that the Alloy and Grafana datasource values reference.
+export const LOKI_RELEASE_NAME: string = 'loki';
+export const LOKI_GRAFANA_DATASOURCE_CONFIGMAP_NAME: string = 'loki-grafana-datasource';
+
 export const MINIO_OPERATOR_CHART_URL: string =
   getEnvironmentVariable('MINIO_OPERATOR_CHART_URL') ?? 'https://operator.min.io/';
 export const MINIO_OPERATOR_CHART: string = 'operator';
@@ -249,7 +261,9 @@ export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
   .set(PROMETHEUS_RELEASE_NAME, PROMETHEUS_STACK_CHART_URL)
   .set(MINIO_OPERATOR_RELEASE_NAME, MINIO_OPERATOR_CHART_URL)
   .set(METRICS_SERVER_RELEASE_NAME, METRICS_SERVER_CHART_URL)
-  .set(INGRESS_CONTROLLER_RELEASE_NAME, INGRESS_CONTROLLER_CHART_URL);
+  .set(INGRESS_CONTROLLER_RELEASE_NAME, INGRESS_CONTROLLER_CHART_URL)
+  .set(GRAFANA_ALLOY_CHART, GRAFANA_ALLOY_CHART_URL)
+  .set(LOKI_CHART, LOKI_CHART_URL);
 
 export const MIRROR_INGRESS_CLASS_NAME: string = 'mirror-ingress-class';
 export const MIRROR_INGRESS_CONTROLLER: string = 'mirror-ingress-controller';
@@ -354,6 +368,8 @@ export const ONE_SHOT_CONSENSUS_GRPC_NODE_PORT: number = 30_007;
 export const ONE_SHOT_CONSENSUS_GRPC_HOST_PORT: number = 35_211;
 export const BLOCK_NODE_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'block-node-values.yaml');
 export const BLOCK_NODE_SOLO_DEV_FILE: string = BLOCK_NODE_VALUES_FILE;
+export const GRAFANA_ALLOY_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'grafana-alloy-values.yaml');
+export const LOKI_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'loki-values.yaml');
 export const BLOCK_NODE_MESSAGING_WORKAROUND_FILE: string = PathEx.joinWithRealPath(
   RESOURCES_DIR,
   'block-node-messaging-workaround.yaml',
