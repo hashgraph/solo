@@ -178,8 +178,6 @@ export class RelayCommand extends BaseCommand {
       flags.operatorId,
       flags.operatorKey,
       flags.quiet,
-      // Keep legacy flag visible as a separate deprecated option.
-      flags.relayReleaseTag,
       flags.relayVersion,
       flags.componentImage,
       flags.replicaCount,
@@ -209,8 +207,6 @@ export class RelayCommand extends BaseCommand {
       flags.operatorId,
       flags.operatorKey,
       flags.quiet,
-      // Keep legacy flag visible as a separate deprecated option.
-      flags.relayReleaseTag,
       flags.relayVersion,
       flags.componentImage,
       flags.replicaCount,
@@ -826,7 +822,7 @@ export class RelayCommand extends BaseCommand {
 
               config.relayReleaseTag = UpgradeVersionResolver.resolveFromFlags(
                 this.configManager,
-                [flags.relayVersion, flags.relayReleaseTag],
+                [flags.relayVersion],
                 config.relayReleaseTag,
                 currentRelayVersion,
                 HEDERA_JSON_RPC_RELAY_VERSION,

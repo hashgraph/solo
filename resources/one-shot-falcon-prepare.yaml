@@ -74,12 +74,10 @@ sections:
   - name: relayNode
     flagsFrom: relay.deploy
     overrides:
-      relay-release: ${config.relayReleaseTag}
+      relay-version: ${config.relayReleaseTag}
       replica-count: ${default}
       force-port-forward: ${config.forcePortForward}
       mirror-node-id: null
-    extraKeys:
-      relay-release: ${config.relayReleaseTag}
 
   # Block node deployment configuration.
   - name: blockNode

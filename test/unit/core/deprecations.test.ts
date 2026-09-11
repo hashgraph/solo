@@ -36,23 +36,23 @@ describe('Deprecations', (): void => {
 
   describe('formatDeprecationMessage', (): void => {
     it('includes the feature, versions, replacement, and tracking issue', (): void => {
-      const deprecation: Deprecation = {since: '0.84.0', removalIssue: 5181, replacement: '--relay-version'};
-      const message: string = Deprecations.formatDeprecationMessage('--relay-release', deprecation);
-      expect(message).to.contain("'--relay-release' is deprecated since v0.84.0 and will be removed in v0.90.0.");
-      expect(message).to.contain("Use '--relay-version' instead.");
+      const deprecation: Deprecation = {since: '0.84.0', removalIssue: 5181, replacement: '--consensus-node-version'};
+      const message: string = Deprecations.formatDeprecationMessage('--release-tag', deprecation);
+      expect(message).to.contain("'--release-tag' is deprecated since v0.84.0 and will be removed in v0.90.0.");
+      expect(message).to.contain("Use '--consensus-node-version' instead.");
     });
 
     it('omits the replacement clause when no replacement is given', (): void => {
       const deprecation: Deprecation = {since: '0.84.0', removalIssue: 5181};
-      const message: string = Deprecations.formatDeprecationMessage('--relay-release', deprecation);
+      const message: string = Deprecations.formatDeprecationMessage('--release-tag', deprecation);
       expect(message).to.not.contain('Use ');
     });
 
     it('names the command a scoped deprecation applies to', (): void => {
       const deprecation: Deprecation = {since: '0.84.0', removalIssue: 5181};
-      const message: string = Deprecations.formatDeprecationMessage('--relay-release', deprecation, 'relay node add');
+      const message: string = Deprecations.formatDeprecationMessage('--release-tag', deprecation, 'relay node add');
       expect(message).to.contain(
-        "'--relay-release' is deprecated for 'relay node add' since v0.84.0 and will be removed in v0.90.0.",
+        "'--release-tag' is deprecated for 'relay node add' since v0.84.0 and will be removed in v0.90.0.",
       );
     });
   });
@@ -123,9 +123,9 @@ describe('Deprecations', (): void => {
 
   describe('formatHelpMarker', (): void => {
     it('renders a compact marker with version window, replacement, and issue', (): void => {
-      const deprecation: Deprecation = {since: '0.84.0', removalIssue: 5181, replacement: '--relay-version'};
+      const deprecation: Deprecation = {since: '0.84.0', removalIssue: 5181, replacement: '--consensus-node-version'};
       expect(Deprecations.formatHelpMarker(deprecation)).to.equal(
-        'since v0.84.0, removal v0.90.0, use --relay-version',
+        'since v0.84.0, removal v0.90.0, use --consensus-node-version',
       );
     });
   });

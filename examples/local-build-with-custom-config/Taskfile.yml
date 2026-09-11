@@ -25,7 +25,7 @@ vars:
   LOCAL_BUILD_FLAG: "--local-build-path {{.CN_LOCAL_BUILD_PATH}}"
 
   CN_VERSION: '{{default "v0.75.1" .CONSENSUS_NODE_VERSION}}'
-  RELAY_RELEASE_FLAG: "--relay-release 0.70.1"
+  RELAY_RELEASE_FLAG: "--relay-version 0.70.1"
   MIRROR_NODE_VERSION_FLAG: "--mirror-node-version v0.149.0"
   EXPLORER_VERSION_FLAG: "--explorer-version 25.0.0"
 

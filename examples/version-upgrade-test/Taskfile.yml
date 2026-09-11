@@ -125,7 +125,7 @@ tasks:
       # Deploy relay with previous version
       - cmd: |
           $SOLO_COMMAND relay node add --deployment {{ .DEPLOYMENT }} --node-aliases {{ .NODE_IDENTIFIERS }} \
-          --relay-release {{ .PREV_RELAY_VERSION }}
+          --relay-version {{ .PREV_RELAY_VERSION }}
 
       # Deploy explorer with previous version
       - cmd: |

@@ -103,7 +103,7 @@ network:
 #relayNode:
 #  --cache-dir: ""
 #  --chart-dir: ""
-#  --relay-release: ""
+#  --relay-version: ""
 #  --values-file: ""
 #  --node-aliases: ""
 #  --replica-count: 1

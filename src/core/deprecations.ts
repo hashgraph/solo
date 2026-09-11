@@ -56,7 +56,7 @@ export class Deprecations {
 
   /**
    * Builds the canonical warning shown to the user whenever a deprecated feature is used.
-   * @param feature - the deprecated feature's identifier, e.g. `--relay-release`
+   * @param feature - the deprecated feature's identifier, e.g. `--release-tag`
    * @param deprecation - the structured deprecation metadata
    * @param commandScope - the command the deprecation applies to, for a deprecation scoped to specific
    *   commands; omitted for a feature that is deprecated outright

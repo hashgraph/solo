@@ -7,7 +7,7 @@ import {type Deprecation} from './deprecation.js';
  * human-readable identifier and kind with its structured {@link Deprecation} metadata.
  */
 export interface RegisteredDeprecation {
-  /** Identifier of the deprecated feature, e.g. `--relay-release` or `deployment refresh port-forwards`. */
+  /** Identifier of the deprecated feature, e.g. `--release-tag` or `deployment refresh port-forwards`. */
   feature: string;
 
   /** Whether the deprecated feature is a flag, a command group, or a leaf subcommand. */

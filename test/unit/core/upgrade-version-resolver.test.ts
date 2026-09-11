@@ -102,9 +102,9 @@ describe('UpgradeVersionResolver.resolveFromFlags', (): void => {
   it('should use the flag value when the user supplied either of multiple tracked flags', (): void => {
     const remoteConfigVersion: SemanticVersion<string> = new SemanticVersion('0.152.0');
     const configManager: SinonStubbedInstance<ConfigManager> = sandbox.createStubInstance(ConfigManager);
-    const versionFlags: CommandFlag[] = [flags.relayVersion, flags.relayReleaseTag];
+    const versionFlags: CommandFlag[] = [flags.relayVersion, flags.upgradeVersion];
     configManager.wasFlagProvidedByUser.withArgs(flags.relayVersion).returns(false);
-    configManager.wasFlagProvidedByUser.withArgs(flags.relayReleaseTag).returns(true);
+    configManager.wasFlagProvidedByUser.withArgs(flags.upgradeVersion).returns(true);
 
     const resolved: string = UpgradeVersionResolver.resolveFromFlags(
       configManager,

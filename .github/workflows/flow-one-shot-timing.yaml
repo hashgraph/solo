@@ -282,7 +282,7 @@ jobs:
             echo "  --mirror-node-version: \"${{ steps.versions.outputs.mn-version }}\""
             echo ""
             echo "relayNode:"
-            echo "  --relay-release: \"${{ steps.versions.outputs.relay-version }}\""
+            echo "  --relay-version: \"${{ steps.versions.outputs.relay-version }}\""
             echo ""
             echo "explorerNode:"
             echo "  --explorer-version: \"${{ steps.versions.outputs.explorer-version }}\""

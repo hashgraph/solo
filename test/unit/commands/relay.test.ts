@@ -33,7 +33,7 @@ const createRelayConfig: (overrides?: Record<string, unknown>) => Record<string,
   [flags.valuesFile.constName]: '',
   nodeAliases: ['node1'],
   [flags.chainId.constName]: '',
-  [flags.relayReleaseTag.constName]: '',
+  [flags.relayVersion.constName]: '',
   [flags.componentImage.constName]: '',
   [flags.replicaCount.constName]: 1,
   [flags.operatorId.constName]: '0.0.2',
@@ -61,7 +61,7 @@ describe('RelayCommand unit tests', (): void => {
     sinon.restore();
   });
 
-  it('should apply relayReleaseTag to relay and ws image tags', async (): Promise<void> => {
+  it('should apply the relay version to relay and ws image tags', async (): Promise<void> => {
     const relayCommandInternal: RelayCommandInternal = relayCommand as unknown as RelayCommandInternal;
 
     sinon.stub(relayCommandInternal, 'prepareNetworkJsonString').resolves('{"127.0.0.1:50211":"0.0.3"}');
@@ -69,7 +69,7 @@ describe('RelayCommand unit tests', (): void => {
     const valueArguments: string[] = await prepareRelayValueArguments(
       relayCommandInternal,
       createRelayConfig({
-        [flags.relayReleaseTag.constName]: '0.77.0',
+        [flags.relayVersion.constName]: '0.77.0',
       }),
     );
 

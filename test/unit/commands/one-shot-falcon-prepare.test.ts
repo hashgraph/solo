@@ -18,7 +18,7 @@ function createDefaultConfig(overrides: Partial<FalconPrepareConfig> = {}): Falc
     numberOfConsensusNodes: 1,
     releaseTag: Flags.releaseTag.definition.defaultValue as string,
     mirrorNodeVersion: Flags.mirrorNodeVersion.definition.defaultValue as string,
-    relayReleaseTag: Flags.relayReleaseTag.definition.defaultValue as string,
+    relayReleaseTag: Flags.relayVersion.definition.defaultValue as string,
     chartVersion: Flags.blockNodeChartVersion.definition.defaultValue as string,
     explorerVersion: Flags.explorerVersion.definition.defaultValue as string,
     soloChartVersion: Flags.soloChartVersion.definition.defaultValue as string,
@@ -64,7 +64,7 @@ describe('DefaultOneShotCommand.generateFalconValuesYaml', (): void => {
     expectFlagValue(parsed.network, Flags.releaseTag, Flags.releaseTag.definition.defaultValue);
     expectFlagValue(parsed.setup, Flags.releaseTag, Flags.releaseTag.definition.defaultValue);
     expectFlagValue(parsed.mirrorNode, Flags.mirrorNodeVersion, Flags.mirrorNodeVersion.definition.defaultValue);
-    expectFlagValue(parsed.relayNode, Flags.relayReleaseTag, Flags.relayReleaseTag.definition.defaultValue);
+    expectFlagValue(parsed.relayNode, Flags.relayVersion, Flags.relayVersion.definition.defaultValue);
     expectFlagValue(parsed.blockNode, Flags.blockNodeChartVersion, Flags.blockNodeChartVersion.definition.defaultValue);
     expectFlagValue(parsed.explorerNode, Flags.explorerVersion, Flags.explorerVersion.definition.defaultValue);
     expectFlagValue(parsed.network, Flags.soloChartVersion, Flags.soloChartVersion.definition.defaultValue);
@@ -83,7 +83,7 @@ describe('DefaultOneShotCommand.generateFalconValuesYaml', (): void => {
     expect(parsed.network[optionFromFlag(Flags.releaseTag)]).to.equal('v0.99.0');
     expect(parsed.setup[optionFromFlag(Flags.releaseTag)]).to.equal('v0.99.0');
     expect(parsed.mirrorNode[optionFromFlag(Flags.mirrorNodeVersion)]).to.equal('v0.200.0');
-    expect(parsed.relayNode[optionFromFlag(Flags.relayReleaseTag)]).to.equal('0.50.0');
+    expect(parsed.relayNode[optionFromFlag(Flags.relayVersion)]).to.equal('0.50.0');
   });
 
   it('should apply mirror ingress setting', (): void => {
