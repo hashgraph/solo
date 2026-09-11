@@ -596,8 +596,10 @@ jobs:
       - name: Generate ASCII Resource Chart
         id: generate-chart
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          JSON_LOG: ${{ steps.log-metrics.outputs.json_log }}
         run: |
-          echo "json_log=${{ steps.log-metrics.outputs.json_log }}"
+          echo "json_log=${JSON_LOG}"
           METRICS_FILE="$HOME/.solo/logs/runner-metrics.jsonl"
           CHART_FILE="$HOME/.solo/logs/runner-metrics-ascii.txt"
 
@@ -627,13 +629,15 @@ jobs:
           LOG_FILE: "${{ steps.log-metrics.outputs.solo_log_dir }}/log_file.md"
           JSON_INPUT: "${{ toJSON(fromJSON(steps.log-metrics.outputs.json_log)) }}"
           CUSTOM_JOB_LABEL_INPUT: ${{ inputs.custom-job-label }}
+          CHART_GENERATED: ${{ steps.generate-chart.outputs.chart_generated }}
+          GENERATED_CHART_FILE: ${{ steps.generate-chart.outputs.chart_file }}
         run: |
           echo "## Log Metrics - ${CUSTOM_JOB_LABEL_INPUT}" >> $LOG_FILE
           echo "" >> $LOG_FILE
 
           # Add ASCII resource chart if available
-          if [[ "${{ steps.generate-chart.outputs.chart_generated }}" == "true" ]]; then
-            CHART_FILE="${{ steps.generate-chart.outputs.chart_file }}"
+          if [[ "${CHART_GENERATED}" == "true" ]]; then
+            CHART_FILE="${GENERATED_CHART_FILE}"
             if [[ -f "$CHART_FILE" ]]; then
               echo "<details>" >> $LOG_FILE
               echo "<summary>📊 Runner Resource Usage</summary>" >> $LOG_FILE
@@ -664,8 +668,10 @@ jobs:
       - name: Write Log Metrics to Workflow Summary
         if: ${{ !cancelled() && steps.log-metrics-file.conclusion == 'success' }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          LOG_METRICS_FILE: ${{ steps.log-metrics-file.outputs.log_file }}
         run: |
-          cat "${{ steps.log-metrics-file.outputs.log_file }}" >> $GITHUB_STEP_SUMMARY
+          cat "${LOG_METRICS_FILE}" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
