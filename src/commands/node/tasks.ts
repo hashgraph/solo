@@ -2489,11 +2489,21 @@ export class NodeCommandTasks {
           ),
         );
 
-        // Only a network that came up entirely frozen skips the ACTIVE-only follow-up work; a
-        // mixed result is reported so the operator can see which node disagreed.
-        context_.config.restoredFromFreezeState = statuses.every(
-          (status: string): boolean => status === frozenStatusName,
+        const statusByNodeAlias: Record<string, string> = Object.fromEntries(
+          nodeAliases.map((nodeAlias: NodeAlias, index: number): [string, string] => [nodeAlias, statuses[index]]),
         );
+
+        // Only a network that came up entirely frozen skips the ACTIVE-only follow-up work. A
+        // mixed result means the nodes disagree on whether the restore replays back into a
+        // freeze, so fail fast here instead of letting the ACTIVE-only checks run and burn their
+        // own timeout against a node that can never reach ACTIVE without a fresh start.
+        const allFrozen: boolean = statuses.every((status: string): boolean => status === frozenStatusName);
+        const allActive: boolean = statuses.every((status: string): boolean => status !== frozenStatusName);
+        if (!allFrozen && !allActive) {
+          throw new SoloErrors.component.nodeRestoreStatusMismatch(statusByNodeAlias);
+        }
+
+        context_.config.restoredFromFreezeState = allFrozen;
 
         const statusSummary: string = nodeAliases
           .map((nodeAlias: NodeAlias, index: number): string => `${nodeAlias}=${statuses[index]}`)

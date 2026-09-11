@@ -24,9 +24,11 @@ import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
 import {SoloErrors} from './errors/solo-errors.js';
 import {Zippy} from './zippy.js';
 import {PcesTrimmer} from './pces-trimmer.js';
-import AdmZip from 'adm-zip';
 
 const STATE_METADATA_FILE_NAME: string = 'stateMetadata.txt';
+
+// Must match the stderr text `wait-for-stable-saved-state.sh` prints before exiting 14.
+const NO_HASH_TOOL_STDERR: string = 'No SHA-256 implementation found in container';
 
 /**
  * Class to manage network nodes
@@ -330,57 +332,6 @@ export class NetworkNodes {
   }
 
   /**
-   * Determine whether a downloaded state archive was captured from a freeze state.
-   *
-   * A freeze-captured archive replays back into FREEZE_COMPLETE, while an archive
-   * captured from a node that was only stopped replays back into ACTIVE. Callers
-   * that restore an archive need to know which platform status to wait for, and
-   * the archive itself is the only source of that answer: the same
-   * `--state-file` restore can carry either kind.
-   */
-  public isFreezeStateArchive(archivePath: string): boolean {
-    try {
-      const archive: AdmZip = new AdmZip(archivePath, {readEntries: true});
-      const roundMetadataEntries: Map<string, AdmZip.IZipEntry> = new Map<string, AdmZip.IZipEntry>();
-      let roundlessMetadataEntry: AdmZip.IZipEntry | undefined;
-
-      for (const entry of archive.getEntries()) {
-        const entrySegments: string[] = entry.entryName.split('/');
-        if (entrySegments.at(-1) !== STATE_METADATA_FILE_NAME) {
-          continue;
-        }
-
-        // Archives from `consensus state download` keep the round directory
-        // (`.../<nodeId>/<realm>/<round>/stateMetadata.txt`), while a single-round
-        // archive such as the one `node add` captures has no round directory.
-        const roundName: string | undefined = entrySegments.at(-2);
-        if (roundName && /^\d+$/.test(roundName)) {
-          roundMetadataEntries.set(roundName, entry);
-        } else {
-          roundlessMetadataEntry = entry;
-        }
-      }
-
-      const highestRound: string | undefined = this.selectHighestRound(new Set<string>(roundMetadataEntries.keys()));
-      const selectedEntry: AdmZip.IZipEntry | undefined = highestRound
-        ? roundMetadataEntries.get(highestRound)
-        : roundlessMetadataEntry;
-
-      if (!selectedEntry) {
-        return false;
-      }
-
-      return this.readStateMetadataValue(selectedEntry.getData().toString('utf8'), 'FREEZE_STATE') === 'true';
-    } catch (error) {
-      // Treat an unreadable or unexpected archive as a non-freeze restore so the
-      // caller waits for ACTIVE, which is how every restore behaved before
-      // freeze-state restore was supported.
-      this.logger.debug(`unable to read saved state metadata from ${archivePath}`, error);
-      return false;
-    }
-  }
-
-  /**
    * Wait for a fully signed freeze state before a freeze workflow stops the node.
    * A FROZEN platform status alone is not enough: stopping immediately can leave
    * the archive with only a non-freeze state and misaligned PCES replay data.
@@ -506,6 +457,13 @@ export class NetworkNodes {
           }
         }
       } catch (error) {
+        const message: string = error instanceof Error ? error.message : String(error);
+        if (message.includes(NO_HASH_TOOL_STDERR)) {
+          // Permanent for this image, not a transient "not stable yet" condition: retrying
+          // for the remaining attempts cannot succeed, so fail fast with a clear cause.
+          throw new SoloErrors.system.savedStateHashToolMissing(podName);
+        }
+
         // The script exits non-zero until a qualifying signed round exists or the
         // saved-state tree stops changing across polls.
         this.logger.debug(`[state-download] ${podName}: saved state not stable yet`, error);

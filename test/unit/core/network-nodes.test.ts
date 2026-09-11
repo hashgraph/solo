@@ -101,4 +101,26 @@ describe('NetworkNodes', (): void => {
       fs.rmSync(temporaryDirectory, {recursive: true, force: true});
     }
   });
+
+  it('should fail fast when the pod has no SHA-256 tool instead of retrying until the timeout', async (): Promise<void> => {
+    const execContainerStub: sinon.SinonStub = sinon.stub();
+    execContainerStub.onFirstCall().resolves('');
+    execContainerStub.onSecondCall().rejects(new Error('No SHA-256 implementation found in container'));
+
+    const containerStub: {copyTo: sinon.SinonStub; execContainer: sinon.SinonStub} = {
+      copyTo: sinon.stub().resolves(true),
+      execContainer: execContainerStub,
+    };
+    const networkNodesInternal: {k8Factory: unknown} = networkNodes as unknown as {k8Factory: unknown};
+    networkNodesInternal.k8Factory = {
+      getK8: (): unknown => ({
+        containers: (): unknown => ({readByRef: (): unknown => containerStub}),
+      }),
+    };
+
+    await expect(networkNodes.waitForFrozenStateToBeStable(podReference)).to.be.rejectedWith(
+      "Pod 'network-node1-0' has no sha256sum, shasum, or openssl",
+    );
+    expect(execContainerStub).to.have.been.calledTwice;
+  });
 });
