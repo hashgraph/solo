@@ -14,4 +14,6 @@ export interface NodeStartConfigClass extends NodeCommonConfigWithNodeAliases, C
   stagingDir: string;
   forcePortForward: Optional<boolean>;
   grpcWebEndpoints: string;
+  /** Set by checkAllNodesAreActiveOrFrozen: true when every node settled in FREEZE_COMPLETE rather than ACTIVE. */
+  restoredFromFreezeState?: boolean;
 }

@@ -38,6 +38,8 @@ import {RemoteConfig} from '../business/runtime-state/config/remote/remote-confi
 import {type DeploymentStateSchema} from '../data/schema/model/remote/deployment-state-schema.js';
 import {type BlockNodeStateSchema} from '../data/schema/model/remote/state/block-node-state-schema.js';
 import {type ConsensusNodeStateSchema} from '../data/schema/model/remote/state/consensus-node-state-schema.js';
+import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
+import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {type MirrorNodeStateSchema} from '../data/schema/model/remote/state/mirror-node-state-schema.js';
 import {type RelayNodeStateSchema} from '../data/schema/model/remote/state/relay-node-state-schema.js';
 import {type DeploymentName} from '../types/index.js';
@@ -416,12 +418,45 @@ export class BackupRestoreCommand extends BaseCommand {
           title: 'Download Node State Files',
           task: async (_, task): Promise<void> => {
             const networkNodes: NetworkNodes = container.resolve<NetworkNodes>(InjectTokens.NetworkNodes);
+            const nodePhases: Map<NodeAlias, DeploymentPhase> = new Map();
             for (const node of consensusNodes) {
               const nodeAlias: NodeAlias = node.name;
               const context: Context = extractContextFromConsensusNodes(nodeAlias, consensusNodes);
               const clusterReference: string = node.cluster; // Get cluster ref from node metadata
               const statesDirectory: string = PathEx.join(outputDirectory, 'states', clusterReference);
-              await networkNodes.getStatesFromPod(namespace, nodeAlias, context, statesDirectory);
+              const nodeComponent: ConsensusNodeStateSchema = this.remoteConfig.configuration.components.getComponent(
+                ComponentTypes.ConsensusNode,
+                Templates.renderComponentIdFromNodeAlias(nodeAlias),
+              );
+              const deploymentPhase: DeploymentPhase = nodeComponent.metadata.phase;
+              nodePhases.set(nodeAlias, deploymentPhase);
+              // Passing the phase lets state download prefer a fully signed freeze round over a
+              // stale non-freeze round when the network was just frozen (see "Freeze network"
+              // above); otherwise the archive's preconsensus-events stream can outrun the selected
+              // round and replay straight back into the freeze when the backup is later restored.
+              await networkNodes.getStatesFromPod(namespace, nodeAlias, context, statesDirectory, deploymentPhase);
+            }
+            for (const clusterReference of new Set(consensusNodes.map((node): string => node.cluster))) {
+              const clusterNodes: ConsensusNode[] = consensusNodes.filter(
+                (node): boolean => node.cluster === clusterReference,
+              );
+              const statesDirectory: string = PathEx.join(outputDirectory, 'states', clusterReference);
+              const clusterNodeAliases: NodeAlias[] = clusterNodes.map((node): NodeAlias => node.name);
+              const allNodesFrozen: boolean = clusterNodeAliases.every(
+                (nodeAlias: NodeAlias): boolean => nodePhases.get(nodeAlias) === DeploymentPhase.FROZEN,
+              );
+              await networkNodes.normalizeDownloadedStateArchives(
+                namespace,
+                clusterNodeAliases,
+                statesDirectory,
+                allNodesFrozen ? DeploymentPhase.FROZEN : undefined,
+                // This backup/restore workflow resumes the restored network as a live, active
+                // deployment rather than leaving it frozen, so any preconsensus event beyond the
+                // selected round (e.g. the freeze transaction the network reaches moments later)
+                // must be trimmed; otherwise replaying it on restart pins the node in
+                // FREEZE_COMPLETE instead of ACTIVE.
+                true,
+              );
             }
             task.title = `Download Node State Files: ${consensusNodes.length} node(s) completed`;
           },

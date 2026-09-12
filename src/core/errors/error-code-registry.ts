@@ -139,6 +139,7 @@ export const ErrorCodeRegistry: Record<string, string> = {
   SDK_CLIENT_NO_HEALTHY_NODES: 'SOLO-3092',
   NODE_KEY_LOAD_FAILED: 'SOLO-3093',
   NODE_CONTAINER_CRASHED: 'SOLO-3094',
+  NODE_RESTORE_STATUS_MISMATCH: 'SOLO-3095',
 
   // 4xxx - Validation: User input, flags, IDs, formatting
   MISSING_ARGUMENT: 'SOLO-4001',
@@ -307,6 +308,7 @@ export const ErrorCodeRegistry: Record<string, string> = {
   POD_NOT_READY: 'SOLO-5081',
   PORT_FORWARD_STOP_FAILED: 'SOLO-5082',
   SOLO_LOGS_DIRECTORY_NOT_WRITABLE: 'SOLO-5083',
+  SAVED_STATE_HASH_TOOL_MISSING: 'SOLO-5084',
 
   // 9xxx - Internal: Unexpected bugs, unimplemented paths
   TIMEOUT: 'SOLO-9001',

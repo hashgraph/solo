@@ -526,6 +526,13 @@ export const NETWORK_NODE_GRPC_READINESS_DELAY: number =
 export const NETWORK_NODE_GRPC_READINESS_REQUIRED_SUCCESSES: number =
   +getEnvironmentVariable('NETWORK_NODE_GRPC_READINESS_REQUIRED_SUCCESSES') || 3;
 
+// Saved State Stability Checks
+export const STATE_DOWNLOAD_STABLE_MAX_ATTEMPTS: number =
+  +getEnvironmentVariable('STATE_DOWNLOAD_STABLE_MAX_ATTEMPTS') || 180;
+export const STATE_DOWNLOAD_STABLE_DELAY: number = +getEnvironmentVariable('STATE_DOWNLOAD_STABLE_DELAY') || 2000;
+export const STATE_DOWNLOAD_STABLE_POLLS_REQUIRED: number =
+  +getEnvironmentVariable('STATE_DOWNLOAD_STABLE_POLLS_REQUIRED') || 3;
+
 export const NETWORK_PROXY_MAX_ATTEMPTS: number = +getEnvironmentVariable('NETWORK_PROXY_MAX_ATTEMPTS') || 300;
 export const NETWORK_PROXY_DELAY: number = +getEnvironmentVariable('NETWORK_PROXY_DELAY') || 2000;
 export const PODS_READY_MAX_ATTEMPTS: number = +getEnvironmentVariable('PODS_READY_MAX_ATTEMPTS') || 300;

@@ -167,6 +167,7 @@ import {DeploymentStateSchema} from '../../data/schema/model/remote/deployment-s
 import {type BaseStateSchema} from '../../data/schema/model/remote/state/base-state-schema.js';
 import {type BlockNodeStateSchema} from '../../data/schema/model/remote/state/block-node-state-schema.js';
 import {ComponentStateMetadataSchema} from '../../data/schema/model/remote/state/component-state-metadata-schema.js';
+import {ConsensusNodeStateSchema} from '../../data/schema/model/remote/state/consensus-node-state-schema.js';
 import net from 'node:net';
 import {type NodeConnectionsContext} from './config-interfaces/node-connections-context.js';
 import {TDirectoryData} from '../../integration/kube/t-directory-data.js';
@@ -2464,6 +2465,108 @@ export class NodeCommandTasks {
     };
   }
 
+  /**
+   * Wait for every node to settle on a terminal startup status, ACTIVE or FREEZE_COMPLETE, and
+   * record on the config which one a state restore landed in.
+   *
+   * A restore cannot predict the status from the archive. The snapshot round is often an
+   * ordinary signed round (this consensus node version reports `SIGNING_WEIGHT_SUM: 0` for
+   * freeze states, so a freeze round is never selected as fully signed), yet the preconsensus
+   * events replayed on top of it still carry the freeze transaction and put the node back into
+   * FREEZE_COMPLETE. Whether that happens depends on how far the retained event stream runs
+   * past the snapshot, so observe the status the nodes actually reach instead of inferring it.
+   */
+  public checkAllNodesAreActiveOrFrozen(nodeAliasesProperty: string): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Check all nodes are ACTIVE or FREEZE_COMPLETE',
+      task: async (context_, task): Promise<void> => {
+        const nodeAliases: NodeAliases = context_.config[nodeAliasesProperty];
+        const frozenStatusName: string = NodeStatusEnums[NodeStatusCodes.FREEZE_COMPLETE];
+
+        const statuses: string[] = await Promise.all(
+          nodeAliases.map((nodeAlias: NodeAlias): Promise<string> =>
+            this.waitForActiveOrFrozenStatus(context_, nodeAlias),
+          ),
+        );
+
+        const statusByNodeAlias: Record<string, string> = Object.fromEntries(
+          nodeAliases.map((nodeAlias: NodeAlias, index: number): [string, string] => [nodeAlias, statuses[index]]),
+        );
+
+        // Only a network that came up entirely frozen skips the ACTIVE-only follow-up work. A
+        // mixed result means the nodes disagree on whether the restore replays back into a
+        // freeze, so fail fast here instead of letting the ACTIVE-only checks run and burn their
+        // own timeout against a node that can never reach ACTIVE without a fresh start.
+        const allFrozen: boolean = statuses.every((status: string): boolean => status === frozenStatusName);
+        const allActive: boolean = statuses.every((status: string): boolean => status !== frozenStatusName);
+        if (!allFrozen && !allActive) {
+          throw new SoloErrors.component.nodeRestoreStatusMismatch(statusByNodeAlias);
+        }
+
+        context_.config.restoredFromFreezeState = allFrozen;
+
+        const statusSummary: string = nodeAliases
+          .map((nodeAlias: NodeAlias, index: number): string => `${nodeAlias}=${statuses[index]}`)
+          .join(', ');
+        task.title = `Check all nodes are ACTIVE or FREEZE_COMPLETE - ${chalk.green(statusSummary)}`;
+      },
+    };
+  }
+
+  private async waitForActiveOrFrozenStatus(context_: AnyListrContext, nodeAlias: NodeAlias): Promise<string> {
+    const maxAttempts: number = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS;
+    const acceptedStatusNames: string[] = [
+      NodeStatusEnums[NodeStatusCodes.ACTIVE],
+      NodeStatusEnums[NodeStatusCodes.FREEZE_COMPLETE],
+    ];
+    const context: string = extractContextFromConsensusNodes(nodeAlias, this.remoteConfig.getConsensusNodes());
+    const podReference: PodReference = PodReference.of(
+      context_.config.namespace,
+      Templates.renderNetworkPodName(nodeAlias),
+    );
+    const networkNodes: NetworkNodes = container.resolve<NetworkNodes>(InjectTokens.NetworkNodes);
+
+    for (let attempt: number = 0; attempt < maxAttempts; attempt++) {
+      const status: string = await networkNodes.getNetworkNodePlatformStatusName(podReference, context);
+      if (acceptedStatusNames.includes(status)) {
+        this.logger.debug(`[state-restore] ${nodeAlias}: reached ${status} after ${attempt + 1} attempt(s)`);
+        return status;
+      }
+
+      await sleep(Duration.ofMillis(constants.NETWORK_NODE_ACTIVE_DELAY));
+    }
+
+    throw new SoloErrors.component.nodeNotReady(nodeAlias, acceptedStatusNames.join(' or '), maxAttempts, maxAttempts);
+  }
+
+  public waitForFrozenStateToBeStable(nodeAliasesProperty: string): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Wait for frozen state files to stabilize',
+      task: (context_, task): SoloListr<AnyListrContext> => {
+        const nodeAliases: NodeAliases = context_.config[nodeAliasesProperty];
+        const subTasks: SoloListrTask<AnyListrContext>[] = nodeAliases.map(
+          (nodeAlias): SoloListrTask<AnyListrContext> => ({
+            title: `Wait for stable frozen state: ${chalk.yellow(nodeAlias)}`,
+            task: async (): Promise<void> => {
+              const context: string = extractContextFromConsensusNodes(
+                nodeAlias,
+                this.remoteConfig.getConsensusNodes(),
+              );
+              const podReference: PodReference = PodReference.of(
+                context_.config.namespace,
+                Templates.renderNetworkPodName(nodeAlias),
+              );
+              await container
+                .resolve<NetworkNodes>(InjectTokens.NetworkNodes)
+                .waitForFrozenStateToBeStable(podReference, context);
+            },
+          }),
+        );
+        return task.newListr(subTasks, {concurrent: true, rendererOptions: {collapseSubtasks: false}});
+      },
+    };
+  }
+
   public checkNodeProxiesAreActive(): SoloListrTask<NodeStartContext | NodeRefreshContext | NodeRestartContext> {
     return {
       title: 'Check node proxies are ACTIVE',
@@ -3472,12 +3575,43 @@ export class NodeCommandTasks {
     return {
       title: 'Get node states',
       task: async (context_): Promise<void> => {
+        const networkNodes: NetworkNodes = container.resolve<NetworkNodes>(InjectTokens.NetworkNodes);
+        const nodePhases: DeploymentPhase[] = [];
         for (const nodeAlias of context_.config.nodeAliases) {
           const context: string = extractContextFromConsensusNodes(nodeAlias, context_.config.consensusNodes);
-          await container
-            .resolve<NetworkNodes>(InjectTokens.NetworkNodes)
-            .getStatesFromPod(context_.config.namespace, nodeAlias, context);
+          const nodeComponent: ConsensusNodeStateSchema = this.remoteConfig.configuration.components.getComponent(
+            ComponentTypes.ConsensusNode,
+            Templates.renderComponentIdFromNodeAlias(nodeAlias),
+          );
+          const deploymentPhase: DeploymentPhase = nodeComponent.metadata.phase;
+
+          if (![DeploymentPhase.FROZEN, DeploymentPhase.STOPPED].includes(deploymentPhase)) {
+            throw new SoloErrors.validation.illegalArgument(
+              `Consensus node ${nodeAlias} must be in phase '${DeploymentPhase.FROZEN}' or '${DeploymentPhase.STOPPED}' before downloading saved state.`,
+            );
+          }
+
+          nodePhases.push(deploymentPhase);
+          await networkNodes.getStatesFromPod(
+            context_.config.namespace,
+            nodeAlias,
+            context,
+            undefined,
+            deploymentPhase,
+          );
         }
+
+        // Normalize all downloaded archives together so every node restores from
+        // the same signed round instead of independently selecting a boundary.
+        const allNodesFrozen: boolean = nodePhases.every(
+          (phase: DeploymentPhase): boolean => phase === DeploymentPhase.FROZEN,
+        );
+        await networkNodes.normalizeDownloadedStateArchives(
+          context_.config.namespace,
+          context_.config.nodeAliases,
+          undefined,
+          allNodesFrozen ? DeploymentPhase.FROZEN : undefined,
+        );
       },
     };
   }
