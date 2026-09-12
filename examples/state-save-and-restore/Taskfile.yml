@@ -280,9 +280,14 @@ tasks:
             exit 1
           fi
       - cmd: mkdir -p "{{ .SOLO_CACHE_KEYS_DIR }}"
-      - cmd: find "{{ .SOLO_CACHE_KEYS_DIR }}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-      - cmd: cp "{{ .SAVED_KEYS_DIR }}"/* "{{ .SOLO_CACHE_KEYS_DIR }}/"
-      - cmd: chmod 600 "{{ .SOLO_CACHE_KEYS_DIR }}"/*
+      # The Solo key cache is shared by every deployment on the machine, so only the files
+      # this example saved are written or chmod'ed; copying over them is enough to restore
+      # the network and any other deployment's key material is left untouched.
+      - cmd: |
+          for saved_key_file in "{{ .SAVED_KEYS_DIR }}"/*; do
+            cp "${saved_key_file}" "{{ .SOLO_CACHE_KEYS_DIR }}/"
+            chmod 600 "{{ .SOLO_CACHE_KEYS_DIR }}/$(basename "${saved_key_file}")"
+          done
       - cmd: echo "✅ Restored consensus key material to {{ .SOLO_CACHE_KEYS_DIR }}"
 
   generate-override-network:
