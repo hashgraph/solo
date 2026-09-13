@@ -93,6 +93,7 @@ export class FilePermissions {
       // `/inheritance:r` drops all inherited ACEs (removing the broad BUILTIN\Users access that is the
       // Windows analogue of group/other), and `/grant:r` replaces any existing grant for the user.
       execFileSync('icacls', [targetPath, '/inheritance:r', '/grant:r', `${principal}:${permissions}`], {
+        shell: false,
         stdio: 'ignore',
         env: SubprocessEnvironment.forCommand(SubprocessCommandProfile.GENERIC),
       });

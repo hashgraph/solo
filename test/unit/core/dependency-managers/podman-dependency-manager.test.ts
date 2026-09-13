@@ -14,6 +14,7 @@ import {PodmanDependencyManager as PodmanDependencyManagerClass} from '../../../
 import {OperatingSystem} from '../../../../src/business/utils/operating-system.js';
 import {PathEx} from '../../../../src/business/utils/path-ex.js';
 import * as constants from '../../../../src/core/constants.js';
+import {SubprocessEnvironment} from '../../../../src/core/subprocess-environment.js';
 
 describe('PodmanDependencyManager', (): void => {
   let podmanDependencyManager: PodmanDependencyManager;
@@ -155,6 +156,34 @@ describe('PodmanDependencyManager', (): void => {
       await expect(podmanDependencyManager.setupConfig()).to.be.rejectedWith(
         'runtimeBinaryDirectory is required to configure rootful podman',
       );
+    });
+  });
+
+  describe('setupConfig in virtual-machine mode', (): void => {
+    beforeEach((): void => {
+      sinon.stub(OperatingSystem, 'isLinux').returns(false);
+
+      const templatesDirectory: string = PathEx.join(cacheDirectory, 'templates', 'podman');
+      fs.mkdirSync(templatesDirectory, {recursive: true});
+      fs.copyFileSync(
+        PathEx.join(constants.RESOURCES_DIR, 'templates', 'podman', 'containers.conf'),
+        PathEx.join(templatesDirectory, 'containers.conf'),
+      );
+    });
+
+    afterEach((): void => {
+      SubprocessEnvironment.resetForTesting();
+    });
+
+    it('should register CONTAINERS_CONF as session state instead of mutating process.env', async (): Promise<void> => {
+      const previousValue: string | undefined = process.env.CONTAINERS_CONF;
+
+      await podmanDependencyManager.setupConfig();
+
+      expect(SubprocessEnvironment.sessionVariable('CONTAINERS_CONF')).to.equal(
+        PathEx.join(configDirectory, 'containers.conf'),
+      );
+      expect(process.env.CONTAINERS_CONF).to.equal(previousValue);
     });
   });
 });

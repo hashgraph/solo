@@ -18,7 +18,7 @@ import {type SoloLogger} from './logging/solo-logger.js';
 import {type Duration} from './time/duration.js';
 import {type NodeAddConfigClass} from '../commands/node/config-interfaces/node-add-config-class.js';
 import {type ConsensusNode} from './model/consensus-node.js';
-import {type Optional, type ReleaseNameData} from '../types/index.js';
+import {type Optional} from '../types/index.js';
 import {NamespaceName} from '../types/namespace/namespace-name.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import chalk from 'chalk';
@@ -26,7 +26,6 @@ import {type ConfigManager} from './config-manager.js';
 import {Flags as flags} from '../commands/flags.js';
 import {type Realm, type Shard} from './../types/index.js';
 import {execFileSync} from 'node:child_process';
-import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import yaml from 'yaml';
 import {type ConfigMap} from '../integration/kube/resources/config-map/config-map.js';
 import {type K8} from '../integration/kube/k8.js';
@@ -608,8 +607,28 @@ export class Helpers {
     return consensusNode ? consensusNode.context : undefined;
   }
 
-  public static isKindContext(context: string | undefined): boolean {
-    return !!context?.startsWith(Helpers.KIND_CONTEXT_PREFIX);
+  /** Resolves the Kind cluster name a kubeconfig context targets, or undefined for a non-Kind context. */
+  public static kindClusterNameForContext(context: string | undefined, k8Factory?: K8Factory): string | undefined {
+    if (context?.startsWith(Helpers.KIND_CONTEXT_PREFIX)) {
+      return context.slice(Helpers.KIND_CONTEXT_PREFIX.length);
+    }
+    if (!context || !k8Factory) {
+      return undefined;
+    }
+    try {
+      // a renamed context still references the cluster entry kind wrote as `kind-<cluster-name>`
+      const clusterEntryName: string = k8Factory.default().contexts().readClusterOfContext(context);
+      if (clusterEntryName.startsWith(Helpers.KIND_CONTEXT_PREFIX)) {
+        return clusterEntryName.slice(Helpers.KIND_CONTEXT_PREFIX.length);
+      }
+    } catch {
+      // best-effort: when the kubeconfig entry cannot be read, detection falls back to the context name prefix alone
+    }
+    return undefined;
+  }
+
+  public static isKindContext(context: string | undefined, k8Factory?: K8Factory): boolean {
+    return Helpers.kindClusterNameForContext(context, k8Factory) !== undefined;
   }
 
   public static hasMultipleKubernetesContexts(consensusNodes: ConsensusNode[]): boolean {
@@ -751,6 +770,7 @@ export class Helpers {
     const fullImageName: string = `${imageName}:${imageTag}`;
     try {
       const output: string = execFileSync('docker', ['images', '--format', '{{.Repository}}:{{.Tag}}'], {
+        shell: false,
         encoding: 'utf8',
         stdio: 'pipe',
         env: SubprocessEnvironment.forCommand(SubprocessCommandProfile.CONTAINER_ENGINE),
@@ -776,27 +796,6 @@ export class Helpers {
     if (!fs.existsSync(directory)) {
       fs.mkdirSync(directory, {recursive: true});
     }
-  }
-
-  public static async findMinioOperator(context: string, k8: K8Factory): Promise<ReleaseNameData> {
-    const minioTenantPod: Optional<Pod> = await k8
-      .getK8(context)
-      .pods()
-      .listForAllNamespaces(['app.kubernetes.io/name=operator', 'operator=leader'])
-      .then((pods: Pod[]): Optional<Pod> => pods[0]);
-
-    if (!minioTenantPod) {
-      return {
-        exists: false,
-        releaseName: undefined,
-      };
-    }
-
-    return {
-      exists: true,
-      releaseName: minioTenantPod.labels?.['app.kubernetes.io/instance'],
-      version: minioTenantPod.labels?.['app.kubernetes.io/version'],
-    };
   }
 
   /**
@@ -1002,7 +1001,6 @@ export const entityId: typeof Helpers.entityId = Helpers.entityId;
 export const withTimeout: typeof Helpers.withTimeout = Helpers.withTimeout;
 export const checkDockerImageExists: typeof Helpers.checkDockerImageExists = Helpers.checkDockerImageExists;
 export const createDirectoryIfNotExists: typeof Helpers.createDirectoryIfNotExists = Helpers.createDirectoryIfNotExists;
-export const findMinioOperator: typeof Helpers.findMinioOperator = Helpers.findMinioOperator;
 export const remoteConfigsToDeploymentsTable: typeof Helpers.remoteConfigsToDeploymentsTable =
   Helpers.remoteConfigsToDeploymentsTable;
 export const createAndCopyBlockNodeJsonFileForConsensusNode: typeof Helpers.createAndCopyBlockNodeJsonFileForConsensusNode =

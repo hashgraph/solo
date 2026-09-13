@@ -21,7 +21,6 @@ defaults:
     shell: bash
 
 permissions:
-  id-token: write
   contents: read
 
 env:
@@ -31,15 +30,20 @@ jobs:
   gcs-bucket-reaper:
     name: "Reap stale CI bucket prefixes"
     runs-on: hiero-solo-linux-medium
+    permissions:
+      contents: read
+      id-token: write # OIDC token for google-github-auth workload identity federation
     timeout-minutes: 20
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Authenticate to Google Cloud
         uses: step-security/google-github-auth@775fc4c80760272ef389c9f9f8d98de7db0c170d # v3.0.2

@@ -24,6 +24,7 @@ import {ClusterConnectionFailedError} from './classes/system/cluster-connection-
 import {ClusterUnreachableError} from './classes/system/cluster-unreachable-error.js';
 import {KindClusterStoppedError} from './classes/system/kind-cluster-stopped-error.js';
 import {ContainerEngineNotRunningError} from './classes/system/container-engine-not-running-error.js';
+import {SoloLogsDirectoryNotWritableSoloError} from './classes/system/solo-logs-directory-not-writable-solo-error.js';
 import {GitHubApiHttpResponseError} from './classes/system/github-api-http-response-error.js';
 import {GitHubApiRequestFailedError} from './classes/system/github-api-request-failed-error.js';
 import {GitHubApiResponseMissingTagNameError} from './classes/system/github-api-response-missing-tag-name-error.js';
@@ -144,6 +145,7 @@ import {MirrorNodeInvalidComponentIdSoloError} from './classes/validation/mirror
 import {ClusterSetupFailedSoloError} from './classes/deployment/cluster-setup-failed-solo-error.js';
 import {ClusterResetFailedSoloError} from './classes/deployment/cluster-reset-failed-solo-error.js';
 import {MinioInstallFailedSoloError} from './classes/deployment/minio-install-failed-solo-error.js';
+import {MinioOperatorCrdsOrphanedSoloError} from './classes/system/minio-operator-crds-orphaned-solo-error.js';
 import {PrometheusInstallFailedSoloError} from './classes/deployment/prometheus-install-failed-solo-error.js';
 import {MetricsServerInstallFailedSoloError} from './classes/deployment/metrics-server-install-failed-solo-error.js';
 import {ClusterRoleInstallFailedSoloError} from './classes/deployment/cluster-role-install-failed-solo-error.js';
@@ -301,6 +303,7 @@ import {RemoteConfigContextUnavailableError} from './classes/internal/remote-con
 import {CacheImageTemplateUndeclaredError} from './classes/internal/cache-image-template-undeclared-error.js';
 import {InjectedFailureSoloError} from './classes/internal/injected-failure-solo-error.js';
 import {PipelineCancelledSoloError} from './classes/internal/pipeline-cancelled-solo-error.js';
+import {UncaughtFatalErrorSoloError} from './classes/internal/uncaught-fatal-error-solo-error.js';
 
 /**
  * Registry of typed Solo error constructors, grouped by error code category.
@@ -757,6 +760,7 @@ export class SoloErrors {
     readonly clusterUnreachable: typeof ClusterUnreachableError;
     readonly kindClusterStopped: typeof KindClusterStoppedError;
     readonly containerEngineNotRunning: typeof ContainerEngineNotRunningError;
+    readonly soloLogsDirectoryNotWritable: typeof SoloLogsDirectoryNotWritableSoloError;
     readonly githubApiHttpResponseError: typeof GitHubApiHttpResponseError;
     readonly githubApiRequestFailed: typeof GitHubApiRequestFailedError;
     readonly githubApiResponseMissingTagName: typeof GitHubApiResponseMissingTagNameError;
@@ -831,7 +835,9 @@ export class SoloErrors {
     readonly podTerminationTimeout: typeof PodTerminationTimeoutSoloError;
     readonly timeout: typeof TimeoutSoloError;
     readonly clusterRoleCheckFailed: typeof ClusterRoleCheckFailedSoloError;
+    readonly minioOperatorCrdsOrphaned: typeof MinioOperatorCrdsOrphanedSoloError;
   } = Object.freeze({
+    minioOperatorCrdsOrphaned: MinioOperatorCrdsOrphanedSoloError,
     blockNodePodNotFound: BlockNodePodNotFoundSoloError,
     blockNodeNotReady: BlockNodeNotReadySoloError,
     blockNodeNotInRemoteConfig: BlockNodeNotInRemoteConfigSoloError,
@@ -841,6 +847,7 @@ export class SoloErrors {
     clusterUnreachable: ClusterUnreachableError,
     kindClusterStopped: KindClusterStoppedError,
     containerEngineNotRunning: ContainerEngineNotRunningError,
+    soloLogsDirectoryNotWritable: SoloLogsDirectoryNotWritableSoloError,
     githubApiHttpResponseError: GitHubApiHttpResponseError,
     githubApiRequestFailed: GitHubApiRequestFailedError,
     githubApiResponseMissingTagName: GitHubApiResponseMissingTagNameError,
@@ -930,6 +937,7 @@ export class SoloErrors {
     readonly cacheImageTemplateUndeclared: typeof CacheImageTemplateUndeclaredError;
     readonly injectedFailure: typeof InjectedFailureSoloError;
     readonly pipelineCancelled: typeof PipelineCancelledSoloError;
+    readonly uncaughtFatalError: typeof UncaughtFatalErrorSoloError;
   } = Object.freeze({
     unsupportedOperation: UnsupportedOperationError,
     readRemoteConfigBeforeLoad: ReadRemoteConfigBeforeLoadError,
@@ -942,5 +950,6 @@ export class SoloErrors {
     cacheImageTemplateUndeclared: CacheImageTemplateUndeclaredError,
     injectedFailure: InjectedFailureSoloError,
     pipelineCancelled: PipelineCancelledSoloError,
+    uncaughtFatalError: UncaughtFatalErrorSoloError,
   });
 }

@@ -6,7 +6,7 @@ import {describe, it} from 'mocha';
 import {ConfigManager} from '../../../src/core/config-manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {container} from 'tsyringe-neo';
-import {getTestLogger} from '../../test-utility.js';
+import {BASE_TEST_DIR, getTestLogger} from '../../test-utility.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {SoloPinoLogger} from '../../../src/core/logging/solo-pino-logger.js';
@@ -18,6 +18,10 @@ describe('ConfigManager', (): void => {
     container.clearInstances();
     container.register(InjectTokens.LogLevel, {useValue: 'debug'});
     container.register(InjectTokens.DevelopmentMode, {useValue: true});
+    // clearInstances() drops value registrations, so the home directory has to be re-registered
+    // before constructing a logger; otherwise it falls back to the real Solo home and writes into
+    // the user's own ~/.solo/logs.
+    container.register(InjectTokens.HomeDirectory, {useValue: BASE_TEST_DIR});
     container.register(InjectTokens.SoloLogger, {useValue: new SoloPinoLogger()});
     container.registerInstance(InjectTokens.SoloLogger, getTestLogger());
     container.register(InjectTokens.ConfigManager, {useClass: ConfigManager});

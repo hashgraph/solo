@@ -519,6 +519,44 @@ pin to an exact version — floating tags can pull a different image on every de
 
 ---
 
+## 25. Changed comments, docs, tests, and PR claims describe the final implementation
+
+**What to look for**
+
+- A changed `//` comment, block comment, JSDoc, log explanation, or code example that describes an API shape,
+  callback, control flow, configuration source, process lifetime, error path, logging behavior, or security property
+  differently from the final code.
+- Test names, test comments, or PR text claiming coverage such as “every spawn”, “all call sites”, “end-to-end”, or
+  platform support when the test calls only a helper, skips a branch, or does not cross the relevant process boundary.
+- Documentation that promises an exact command, prerequisite, output, default, or fallback which differs from the
+  current implementation.
+- Text that is internally contradictory, or appears to describe a previous design after a refactor changed the
+  signature, ownership, execution model, or configuration flow.
+
+**How to verify**
+
+1. Enumerate each changed behavioral claim in the diff, including the PR description and companion documentation.
+2. Trace the claim through the final version of the relevant source and tests — not merely the changed hunk or an
+   earlier commit. Check the actual signature, callers, branches, emitted output, and configuration values.
+3. When a claim spans a subprocess, worker, container, or CI platform, verify the behavior crosses that boundary in
+   the implementation and test. Process-local globals, callbacks, loggers, and environment allowlists do not
+   automatically propagate to a separately started process.
+4. Compare examples and documented output with the invoked task or command. Conditional skips and helper-only tests
+   must not be presented as full integration coverage.
+
+**How to respond**
+
+- State the claim, the actual final behavior, and the precise code/test location that disproves it. For example:
+  “This comment appears left over from the earlier callback design: `forCommand()` no longer accepts that callback;
+  the reporter is configured separately. Please update or remove the comment so future changes do not preserve the
+  wrong contract.”
+- If the mismatch conceals a real defect, assign severity based on the defect, not the fact that its explanation is
+  stale. A documentation-only discrepancy is normally Minor; an inaccurate coverage or security claim can be Major
+  or Critical when it risks unsafe operation or an untested regression.
+- Do not dismiss a mismatch as “comments only” until the final implementation and test behavior have been verified.
+
+---
+
 ## Quick decision aids
 
 **"Should this be a class with statics or a module of functions?"**

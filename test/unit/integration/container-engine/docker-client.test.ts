@@ -41,7 +41,7 @@ describe('DockerClient', (): void => {
     shellRunnerRunStub
       .withArgs(
         'docker',
-        DockerClientTestBuilder.containerExistsArguments('solo-cluster-control-plane'),
+        DockerClientTestBuilder.containerInspectArguments('solo-cluster-control-plane'),
         sinon.match.object,
       )
       .resolves([]);
@@ -65,7 +65,7 @@ describe('DockerClient', (): void => {
     delete process.env.KIND_EXPERIMENTAL_PROVIDER;
     const nodeName: string = 'solo-cluster-control-plane';
     shellRunnerRunStub
-      .withArgs('docker', DockerClientTestBuilder.containerExistsArguments(nodeName), sinon.match.object)
+      .withArgs('docker', DockerClientTestBuilder.containerInspectArguments(nodeName), sinon.match.object)
       .resolves([]);
     shellRunnerRunStub
       .withArgs('docker', DockerClientTestBuilder.listImagesArguments(nodeName))
@@ -75,7 +75,7 @@ describe('DockerClient', (): void => {
     await client.listLoadedImagesInCluster('solo-cluster');
     await client.listLoadedImagesInCluster('solo-cluster');
 
-    expect(shellRunnerRunStub.withArgs('docker', DockerClientTestBuilder.containerExistsArguments(nodeName))).to.have
+    expect(shellRunnerRunStub.withArgs('docker', DockerClientTestBuilder.containerInspectArguments(nodeName))).to.have
       .been.calledOnce;
     expect(shellRunnerRunStub).to.not.have.been.calledWith('podman', sinon.match.any, sinon.match.any);
   });
@@ -89,7 +89,7 @@ describe('DockerClient', (): void => {
       loadImageArchive: kindLoadImageArchiveStub,
     } as unknown as KindClient);
     shellRunnerRunStub
-      .withArgs('docker', DockerClientTestBuilder.containerExistsArguments('kind-control-plane'), sinon.match.object)
+      .withArgs('docker', DockerClientTestBuilder.containerInspectArguments('kind-control-plane'), sinon.match.object)
       .resolves([]);
 
     const client: DockerClient = DockerClientTestBuilder.build(dependencyManager, kindBuilder);
@@ -221,6 +221,11 @@ class DockerClientTestBuilder {
 
   public static containerExistsArguments(nodeName: string, prefix: readonly string[] = []): string[] {
     return [...prefix, 'container', 'exists', nodeName];
+  }
+
+  /** Docker has no `container exists`; the portable probe is `container inspect`. */
+  public static containerInspectArguments(nodeName: string, prefix: readonly string[] = []): string[] {
+    return [...prefix, 'container', 'inspect', '--format', '{{.Id}}', nodeName];
   }
 
   public static listImagesArguments(nodeName: string, prefix: readonly string[] = []): string[] {

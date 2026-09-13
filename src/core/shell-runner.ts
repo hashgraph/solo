@@ -26,7 +26,7 @@ export class ShellRunner {
    */
   public static redactArguments(arguments_: string[]): string[] {
     return SensitiveDataRedactor.redactArguments(arguments_, {
-      flagsToRedactNextArgument: ['--password', '-p'],
+      flagsToRedactNextArgument: ['--password', '-p', '-P'],
       setStyleFlags: ['--set', '--set-string', '--set-file'],
     });
   }
@@ -42,6 +42,7 @@ export class ShellRunner {
       useShell = false,
       idleTimeoutMs,
       workingDirectory,
+      bestEffort = false,
     }: ShellRunOptions = options;
     const redactedArguments: string[] = ShellRunner.redactArguments(arguments_);
     const message: string = `Executing command${OperatingSystem.isWin32() ? ' (Windows)' : ''}: ${cmd} ${redactedArguments.join(' ')}`;
@@ -163,13 +164,18 @@ export class ShellRunner {
             }
           }
 
-          this.logger.error(`Error executing: '${cmd}'`, {
+          const failureDetails: Record<string, unknown> = {
             commandExitCode: code,
             commandExitSignal: signal,
             commandOutput: output,
             errOutput: errorOutput,
             error: {message: error.message, stack: error.stack},
-          });
+          };
+          if (bestEffort) {
+            this.logger.debug(`Best-effort command failed: '${cmd}'`, failureDetails);
+          } else {
+            this.logger.error(`Error executing: '${cmd}'`, failureDetails);
+          }
 
           reject(error);
           return;
@@ -200,7 +206,12 @@ export class ShellRunner {
           return; // already rejected by timeout handler
         }
         error.stack = callStack;
-        this.logger.error(`Error executing: '${cmd}'`, {error: {message: error.message, stack: error.stack}});
+        const spawnFailureDetails: Record<string, unknown> = {error: {message: error.message, stack: error.stack}};
+        if (bestEffort) {
+          this.logger.debug(`Best-effort command failed: '${cmd}'`, spawnFailureDetails);
+        } else {
+          this.logger.error(`Error executing: '${cmd}'`, spawnFailureDetails);
+        }
         reject(error);
       });
     });

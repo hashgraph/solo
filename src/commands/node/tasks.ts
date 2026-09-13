@@ -209,6 +209,43 @@ export class NodeCommandTasks {
   private static readonly BLOCK_NODE_RSA_BOOTSTRAP_FILE: string = 'rsa-bootstrap-roster.json';
   private static readonly BLOCK_NODE_APPLICATION_STATE_DIRECTORY: string = '/opt/hiero/block-node/application-state';
 
+  /**
+   * Component types whose pod logs and describes {@link downloadHieroComponentLogs} collects, with
+   * the label selector that finds each one.
+   *
+   * This list is maintained by hand and had drifted from the components Solo actually deploys —
+   * HAProxy and Envoy were missing, so a crash-looping proxy was invisible to
+   * {@link DiagnosticsAnalyzer} and surfaced only as a downstream client error (a failed SDK ping,
+   * a gRPC timeout) attributed to the consensus node behind it. Add an entry here whenever a new
+   * component type is deployed.
+   *
+   * Exposed for {@link componentLabelConfigs} so tests can assert coverage of that list.
+   */
+  private static readonly COMPONENT_LABEL_CONFIGS: ReadonlyArray<{name: string; labels: string[]}> = [
+    {name: 'consensus node', labels: ['solo.hedera.com/type=network-node']},
+    {name: 'haproxy', labels: ['solo.hedera.com/type=haproxy']},
+    {name: 'envoy proxy', labels: ['solo.hedera.com/type=envoy-proxy']},
+    {name: 'mirror importer', labels: [constants.SOLO_MIRROR_IMPORTER_NAME_LABEL]},
+    {name: 'mirror pinger', labels: [constants.SOLO_MIRROR_PINGER_NAME_LABEL]},
+    {name: 'mirror grpc', labels: [constants.SOLO_MIRROR_GRPC_NAME_LABEL]},
+    {name: 'mirror monitor', labels: [constants.SOLO_MIRROR_MONITOR_NAME_LABEL]},
+    {name: 'mirror rest', labels: [constants.SOLO_MIRROR_REST_NAME_LABEL]},
+    {name: 'mirror web3', labels: [constants.SOLO_MIRROR_WEB3_NAME_LABEL]},
+    {name: 'mirror postgres', labels: [constants.SOLO_MIRROR_POSTGRES_NAME_LABEL]},
+    {name: 'mirror redis', labels: [constants.SOLO_MIRROR_REDIS_NAME_LABEL]},
+    {name: 'mirror rest-java', labels: [constants.SOLO_MIRROR_RESTJAVA_NAME_LABEL]},
+    {name: 'relay node', labels: [constants.SOLO_RELAY_NAME_LABEL]},
+    {name: 'explorer', labels: [constants.SOLO_EXPLORER_LABEL]},
+    {name: 'block node', labels: [constants.SOLO_BLOCK_NODE_NAME_LABEL]},
+    {name: 'ingress controller', labels: [constants.SOLO_INGRESS_CONTROLLER_NAME_LABEL]},
+    {name: 'network load generator', labels: constants.NETWORK_LOAD_GENERATOR_POD_LABELS},
+  ];
+
+  /** Read-only view of {@link COMPONENT_LABEL_CONFIGS}, for tests that guard against drift. */
+  public static get componentLabelConfigs(): ReadonlyArray<{name: string; labels: string[]}> {
+    return NodeCommandTasks.COMPONENT_LABEL_CONFIGS;
+  }
+
   private static getDefaultBlockNodeIdsForCluster(
     blockNodes: BlockNodeStateSchema[],
     clusterReference: ClusterReferenceName,
@@ -1679,17 +1716,6 @@ export class NodeCommandTasks {
             `chown -R hedera:hedera ${constants.HEDERA_HAPI_PATH}/data/saved`,
           ]);
 
-          // Clean up old rounds - keep only the latest/biggest round
-          this.logger.info(`Cleaning up old rounds in pod ${podReference.name}, keeping only the latest round`);
-
-          const cleanupScriptName: string = PathEx.basename(constants.CLEANUP_STATE_ROUNDS_SCRIPT);
-          const cleanupScriptDestination: string = `${constants.HEDERA_USER_HOME_DIR}/${cleanupScriptName}`;
-
-          await container.execContainer(['mkdir', '-p', constants.HEDERA_USER_HOME_DIR]);
-          await container.copyTo(constants.CLEANUP_STATE_ROUNDS_SCRIPT, constants.HEDERA_USER_HOME_DIR);
-          await container.execContainer(['chmod', '+x', cleanupScriptDestination]);
-          await container.execContainer([cleanupScriptDestination, constants.HEDERA_HAPI_PATH]);
-
           // Rename node ID directories to match the target node
           if (sourceNodeId !== targetNodeId) {
             this.logger.info(
@@ -3125,11 +3151,12 @@ export class NodeCommandTasks {
                   'helm',
                   ['get', 'values', release.name, '-n', release.namespace, '--kube-context', context, '--all'],
                   {
+                    shell: false,
                     encoding: 'utf8',
                     cwd: process.cwd(),
                     maxBuffer: 1024 * 1024 * 10, // 10MB buffer
                     env: SubprocessEnvironment.forCommand(SubprocessCommandProfile.HELM, {
-                      PATH: `${container.resolve(InjectTokens.HelmInstallationDirectory)}${PathEx.delimiter}${process.env.PATH}`,
+                      PATH: `${container.resolve(InjectTokens.HelmInstallationDirectory)}${PathEx.delimiter}${SubprocessEnvironment.currentPath()}`,
                     }),
                   },
                 ).toString();
@@ -5230,25 +5257,6 @@ export class NodeCommandTasks {
             : contexts.list().filter((context): boolean => scopedContextNames.has(context));
         const allPods: Array<{pod: Pod; context: string; namespace: NamespaceName}> = [];
 
-        // Define component types and their label selectors
-        const componentLabelConfigs: Array<{name: string; labels: string[]}> = [
-          {name: 'consensus node', labels: ['solo.hedera.com/type=network-node']},
-          {name: 'mirror importer', labels: [constants.SOLO_MIRROR_IMPORTER_NAME_LABEL]},
-          {name: 'mirror pinger', labels: [constants.SOLO_MIRROR_PINGER_NAME_LABEL]},
-          {name: 'mirror grpc', labels: [constants.SOLO_MIRROR_GRPC_NAME_LABEL]},
-          {name: 'mirror monitor', labels: [constants.SOLO_MIRROR_MONITOR_NAME_LABEL]},
-          {name: 'mirror rest', labels: [constants.SOLO_MIRROR_REST_NAME_LABEL]},
-          {name: 'mirror web3', labels: [constants.SOLO_MIRROR_WEB3_NAME_LABEL]},
-          {name: 'mirror postgres', labels: [constants.SOLO_MIRROR_POSTGRES_NAME_LABEL]},
-          {name: 'mirror redis', labels: [constants.SOLO_MIRROR_REDIS_NAME_LABEL]},
-          {name: 'mirror rest-java', labels: [constants.SOLO_MIRROR_RESTJAVA_NAME_LABEL]},
-          {name: 'relay node', labels: [constants.SOLO_RELAY_NAME_LABEL]},
-          {name: 'explorer', labels: [constants.SOLO_EXPLORER_LABEL]},
-          {name: 'block node', labels: [constants.SOLO_BLOCK_NODE_NAME_LABEL]},
-          {name: 'ingress controller', labels: [constants.SOLO_INGRESS_CONTROLLER_NAME_LABEL]},
-          {name: 'network load generator', labels: constants.NETWORK_LOAD_GENERATOR_POD_LABELS},
-        ];
-
         // Create output directory structure - use custom dir if provided, otherwise use default
         const outputDirectory: string = customOutputDirectory
           ? PathEx.resolve(customOutputDirectory)
@@ -5264,7 +5272,7 @@ export class NodeCommandTasks {
             this.logger.info(`Discovering Hiero component pods in context: ${context}...`);
 
             // Iterate through each component type and discover pods
-            for (const config of componentLabelConfigs) {
+            for (const config of NodeCommandTasks.COMPONENT_LABEL_CONFIGS) {
               const pods: Pod[] =
                 scopedNamespaceName === undefined
                   ? await k8.pods().listForAllNamespaces(config.labels)

@@ -82,8 +82,9 @@ export class K8ClientContainer implements Container {
         constants.KUBECTL,
         fullArguments,
         {
+          shell: false,
           env: SubprocessEnvironment.forCommand(SubprocessCommandProfile.KUBECTL, {
-            PATH: `${this.kubectlInstallationDirectory}${path.delimiter}${process.env.PATH}`,
+            PATH: `${this.kubectlInstallationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
           }),
           stdio: ['ignore', 'pipe', 'pipe'],
           windowsHide: os.platform() === 'win32',

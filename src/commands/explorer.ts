@@ -12,6 +12,7 @@ import {type AnyListrContext, type ArgvStruct} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {showVersionBanner, sleep} from '../core/helpers.js';
 import {SharedClusterResourceReport} from '../core/shared-cluster-resource-report.js';
+import {ClusterCrdProbe} from '../core/cluster-crd-probe.js';
 import {ImageReference, type ParsedImageReference} from '../business/utils/image-reference.js';
 import {
   type ClusterReferenceName,
@@ -318,21 +319,19 @@ export class ExplorerCommand extends BaseCommand {
         const {soloChartVersion} = config;
 
         const soloCertManagerChartValues: HelmChartValues = await this.prepareCertManagerChartValues(config);
-        // check if CRDs of cert-manager are already installed
-        let needInstall: boolean = false;
-        const foundCrdVersions: Set<string> = new Set<string>();
-        for (const crd of constants.CERT_MANAGER_CRDS) {
-          const crdLabels: Record<string, string> | undefined = await this.k8Factory
-            .getK8(config.clusterContext)
-            .crds()
-            .readLabels(crd);
-
-          if (crdLabels === undefined) {
-            needInstall = true;
-            break;
-          }
-          foundCrdVersions.add(SharedClusterResourceReport.versionFromLabels(crdLabels));
-        }
+        // check if CRDs of cert-manager are already installed — all of them, since a partial set means
+        // the chart still has work to do
+        const presentCrds: Map<string, Record<string, string>> = await ClusterCrdProbe.probe(
+          this.k8Factory,
+          config.clusterContext,
+          constants.CERT_MANAGER_CRDS,
+        );
+        const needInstall: boolean = presentCrds.size < constants.CERT_MANAGER_CRDS.length;
+        const foundCrdVersions: Set<string> = new Set<string>(
+          [...presentCrds.values()].map((crdLabels: Record<string, string>): string =>
+            SharedClusterResourceReport.versionFromLabels(crdLabels),
+          ),
+        );
 
         if (!needInstall) {
           SharedClusterResourceReport.show(
@@ -425,8 +424,16 @@ export class ExplorerCommand extends BaseCommand {
               .set('image.tag', parsedReference.tag)
               .setLiteral('image.pullPolicy', 'Never');
           } else if (this.isLocalImageReference(config.componentImage)) {
-            // Local-looking ref but not in Docker — plain tag override, K8s will pull from registry.
-            explorerChartValues.set('image.tag', parsedReference.tag);
+            // Explicit local registry refs keep their registry/repository metadata even when Docker is missing.
+            if (this.isLocalRegistryImageReference(config.componentImage)) {
+              explorerChartValues
+                .setLiteral('image.registry', parsedReference.registry)
+                .setLiteral('image.repository', parsedReference.repository)
+                .set('image.tag', parsedReference.tag);
+            } else {
+              // Local-looking ref but not in Docker — plain tag override, K8s will pull from registry.
+              explorerChartValues.set('image.tag', parsedReference.tag);
+            }
           } else {
             // Explicit registry reference.
             explorerChartValues
@@ -434,6 +441,10 @@ export class ExplorerCommand extends BaseCommand {
               .setLiteral('image.repository', parsedReference.repository)
               .set('image.tag', parsedReference.tag);
           }
+        }
+
+        if (config.componentImage && this.isLocalImageAvailableInDocker(config.componentImage)) {
+          await this.kindLoadComponentImage(config.componentImage, config.clusterContext);
         }
 
         await this.chartManager.upgrade(

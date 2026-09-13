@@ -60,6 +60,7 @@ export class ContainerEngineResourceInspector {
       // spaces by the shell.
       const output: string[] = await this.shellRunner.run(engine, commandArguments, {
         commandProfile: SubprocessCommandProfile.CONTAINER_ENGINE,
+        bestEffort: true,
       });
       return JSON.parse(output.join('').trim()) as T;
     } catch (error) {
