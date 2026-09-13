@@ -1,0 +1,149 @@
+# Signs GitHub release assets with Sigstore keyless signing (cosign), uploading
+# a <asset>.sigstore.json bundle next to each asset. The OpenSSF Scorecard
+# Signed-Releases check detects these bundles by filename suffix
+# (https://scorecard.dev/viewer/?uri=github.com/hiero-ledger/solo).
+#
+# This is a reconciler, not a pipeline step: for the target release it signs
+# any asset whose bundle is missing or no longer verifies (e.g. after a
+# --clobber re-upload), and skips assets already correctly signed. Re-running
+# it is always safe. It runs automatically after each 'Deploy Release Artifact'
+# completes, and can be dispatched manually with a tag to sign or repair any
+# release, including releases that predate this workflow.
+#
+# Solo's release assets are uploaded in waves by several jobs of the release
+# flow (semantic-release creates the release, example zips and docs tarballs
+# are attached by later jobs). The workflow_run trigger fires only after that
+# entire workflow has completed — every job — so all assets exist before
+# signing starts. Anything uploaded or replaced after the fact is covered by
+# re-running this workflow, per the reconciler behavior above.
+#
+# Signing is keyless: the signature is bound to this workflow's OIDC identity
+# via Sigstore Fulcio, and recorded in the public Rekor transparency log. No
+# keys or secrets are involved.
+name: "Sign Release Assets"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to sign (e.g. v0.88.0). Defaults to the latest release."
+        type: string
+        required: false
+  workflow_run:
+    workflows: ["Deploy Release Artifact"]
+    types:
+      - completed
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  sign:
+    name: Sign Release Assets
+    runs-on: hiero-solo-linux-medium
+    timeout-minutes: 30
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      # Uploading release assets goes through the Releases API, which is only
+      # covered by the contents scope — GitHub has no narrower releases-only
+      # permission. The write grant is confined to this job (the workflow
+      # default above is contents: read), the token expires when the job ends,
+      # branch protection on main applies to it, and the job runs no untrusted
+      # input: it triggers only from the release workflow or manual dispatch,
+      # and executes only SHA-pinned actions against this repository's own
+      # releases.
+      contents: write
+      # obtain the OIDC token that Sigstore Fulcio exchanges for a signing certificate
+      id-token: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      OIDC_ISSUER: https://token.actions.githubusercontent.com
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Resolve Target Release
+        id: release
+        env:
+          # passed via env rather than interpolated into the script, so the
+          # value is data, never shell code
+          TAG_INPUT: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          TAG="${TAG_INPUT}"
+          if [[ -z "${TAG}" ]]; then
+            TAG="$(gh api "repos/${REPO}/releases/latest" --jq '.tag_name' 2>/dev/null || true)"
+          fi
+          if [[ -z "${TAG}" ]]; then
+            echo "::notice file=flow-sign-release-assets.yaml::No release found to sign, nothing to do."
+            echo "tag=" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+          if ! gh release view --repo "${REPO}" -- "${TAG}" >/dev/null 2>&1; then
+            echo "::error file=flow-sign-release-assets.yaml::Release ${TAG} does not exist."
+            exit 1
+          fi
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+
+      - name: Sign Unsigned Assets
+        if: ${{ steps.release.outputs.tag != '' }}
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Accept signatures from any workflow of this repository, so bundles
+          # created before a rename of this file keep verifying.
+          IDENTITY_REGEXP="^https://github.com/${REPO}/"
+
+          mkdir -p release-assets
+          cd release-assets
+          gh release download --repo "${REPO}" -- "${TAG}" || true
+
+          shopt -s nullglob
+          to_upload=()
+          for asset in *; do
+            [[ "${asset}" == *.sigstore.json ]] && continue
+            [[ -f "${asset}" ]] || continue
+            bundle="${asset}.sigstore.json"
+
+            if [[ -f "${bundle}" ]] && cosign verify-blob \
+                --bundle "${bundle}" \
+                --certificate-identity-regexp "${IDENTITY_REGEXP}" \
+                --certificate-oidc-issuer "${OIDC_ISSUER}" \
+                -- "${asset}" >/dev/null 2>&1; then
+              echo "Already signed and verified: ${asset}"
+              continue
+            fi
+
+            echo "Signing: ${asset}"
+            cosign sign-blob --yes --bundle "${bundle}" -- "${asset}"
+            cosign verify-blob \
+              --bundle "${bundle}" \
+              --certificate-identity-regexp "${IDENTITY_REGEXP}" \
+              --certificate-oidc-issuer "${OIDC_ISSUER}" \
+              -- "${asset}"
+            to_upload+=("${bundle}")
+          done
+
+          if [[ ${#to_upload[@]} -eq 0 ]]; then
+            echo "::notice file=flow-sign-release-assets.yaml::All assets of ${TAG} are already signed."
+            exit 0
+          fi
+
+          echo "Uploading ${#to_upload[@]} signature bundle(s) to ${TAG}..."
+          gh release upload --clobber --repo "${REPO}" -- "${TAG}" "${to_upload[@]}"
+          echo "::notice file=flow-sign-release-assets.yaml::Signed ${#to_upload[@]} asset(s) of ${TAG}."
