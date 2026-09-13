@@ -16,6 +16,7 @@ interface RelayCommandInternal {
   prepareNetworkJsonString: (nodeAliases: string[], namespace: NamespaceName, deployment: string) => Promise<string>;
   prepareHelmChartValuesForRelay: (configuration: Record<string, unknown>) => Promise<HelmChartValues>;
   isLocalImageAvailableInDocker: (componentImage: string) => boolean;
+  isComponentImageAvailableForKind: (componentImage: string, componentImageArchive: string) => boolean;
 }
 
 const prepareRelayValueArguments: (
@@ -35,6 +36,7 @@ const createRelayConfig: (overrides?: Record<string, unknown>) => Record<string,
   [flags.chainId.constName]: '',
   [flags.relayReleaseTag.constName]: '',
   [flags.componentImage.constName]: '',
+  [flags.componentImageArchive.constName]: '',
   [flags.replicaCount.constName]: 1,
   [flags.operatorId.constName]: '0.0.2',
   [flags.operatorKey.constName]: 'operator-key',
@@ -159,6 +161,25 @@ describe('RelayCommand unit tests', (): void => {
 
     expect(valueArguments).to.include('relay.image.registry=localhost:5001');
     expect(valueArguments).to.include('relay.image.repository=hiero-json-rpc-relay');
+    expect(valueArguments).to.include('relay.image.pullPolicy=Never');
+    expect(valueArguments).to.include('ws.image.pullPolicy=Never');
+  });
+
+  it('should use a Never pull policy for an image from an archive', async (): Promise<void> => {
+    const relayCommandInternal: RelayCommandInternal = relayCommand as unknown as RelayCommandInternal;
+    sinon.stub(relayCommandInternal, 'isComponentImageAvailableForKind').returns(true);
+    sinon.stub(relayCommandInternal, 'prepareNetworkJsonString').resolves('{"127.0.0.1:50211":"0.0.3"}');
+
+    const valueArguments: string[] = await prepareRelayValueArguments(
+      relayCommandInternal,
+      createRelayConfig({
+        [flags.componentImage.constName]: 'ghcr.io/hiero-ledger/hiero-json-rpc-relay:0.61.0',
+        [flags.componentImageArchive.constName]: '/artifacts/hiero-json-rpc-relay.tar',
+      }),
+    );
+
+    expect(valueArguments).to.include('relay.image.registry=ghcr.io');
+    expect(valueArguments).to.include('relay.image.repository=hiero-ledger/hiero-json-rpc-relay');
     expect(valueArguments).to.include('relay.image.pullPolicy=Never');
     expect(valueArguments).to.include('ws.image.pullPolicy=Never');
   });

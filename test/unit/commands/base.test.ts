@@ -3,6 +3,7 @@
 import {expect} from 'chai';
 import fs from 'node:fs';
 import os from 'node:os';
+import * as tar from 'tar';
 
 import {type DependencyManager} from '../../../src/core/dependency-managers/index.js';
 import {type ChartManager} from '../../../src/core/chart-manager.js';
@@ -37,6 +38,20 @@ interface BaseCommandInternal {
     clusterContext: string,
     additionalContexts?: Context[],
   ) => Promise<void>;
+  kindLoadComponentImageArchive: (
+    componentImageArchive: string,
+    clusterContext: Context,
+    additionalContexts?: Context[],
+  ) => Promise<void>;
+  loadComponentImage: (
+    componentImage: string | undefined,
+    componentImageArchive: string | undefined,
+    clusterContext: Context,
+  ) => Promise<void>;
+  validateComponentImageArchive: (
+    componentImage: string | undefined,
+    componentImageArchive: string | undefined,
+  ) => void;
   logger: SoloLogger;
   remoteConfig: {getContexts: () => Context[]};
   depManager: {getExecutable: (dependency: string) => Promise<string>};
@@ -434,9 +449,8 @@ describe('BaseCommand', (): void => {
       await expect(
         baseCommandInternal.kindLoadComponentImage('block-node-server:0.38.0', 'remote-cluster'),
       ).to.be.rejectedWith(
-        "Component image 'block-node-server:0.38.0' requires Kind image loading, but target cluster context " +
-          "'remote-cluster' is not a Kind cluster. Push the image to a registry reachable from the target " +
-          'cluster and pass that registry image reference to --component-image.',
+        "Component image source 'block-node-server:0.38.0' from --component-image requires Kind image loading, but target " +
+          "cluster context(s) 'remote-cluster' are not Kind clusters. Push the image to a registry reachable from every target cluster",
       );
 
       expect(loadDockerImageStub).to.not.have.been.called;
@@ -468,6 +482,194 @@ describe('BaseCommand', (): void => {
       expect(loadDockerImageStub).to.have.been.calledOnce;
       expect(loadDockerImageStub).to.have.been.calledWith('block-node-server:0.38.0', sinon.match.has('name', 'first'));
       expect(warnStub).to.not.have.been.called;
+    });
+  });
+
+  describe('kindLoadComponentImageArchive', (): void => {
+    let baseCommandInternal: BaseCommandInternal;
+    let loadImageArchiveStub: SinonStub;
+    let warnStub: SinonStub;
+    let temporaryDirectory: string;
+    let componentImageArchive: string;
+
+    beforeEach((): void => {
+      baseCommandInternal = baseCmd as unknown as BaseCommandInternal;
+      temporaryDirectory = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-component-image-archive-test-'));
+      componentImageArchive = PathEx.join(temporaryDirectory, 'block-node-server.tar');
+      fs.writeFileSync(componentImageArchive, 'image archive');
+
+      loadImageArchiveStub = sinon.stub().resolves();
+      warnStub = sinon.stub();
+      const kindClient: KindClient = {loadImageArchive: loadImageArchiveStub} as unknown as KindClient;
+
+      baseCommandInternal.logger = {warn: warnStub, debug: sinon.stub()} as unknown as SoloLogger;
+      baseCommandInternal.k8Factory = stubK8FactoryWithClusterEntries({
+        'kind-first': 'kind-first',
+        'kind-second': 'kind-second',
+        'kind-stale': 'kind-stale',
+        'renamed-first': 'kind-first',
+        'remote-cluster': 'remote-cluster-entry',
+      });
+      baseCommandInternal.remoteConfig = {
+        getContexts: (): Context[] => ['kind-first', 'kind-second'],
+      };
+      baseCommandInternal.depManager = {
+        getExecutable: async (): Promise<string> => 'kind',
+      };
+      baseCommandInternal.kindBuilder = {
+        executable: (): {build: () => Promise<KindClient>} => ({
+          build: async (): Promise<KindClient> => kindClient,
+        }),
+      };
+    });
+
+    afterEach((): void => {
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    });
+
+    it('should load an image archive only into the caller-supplied Kind context', async (): Promise<void> => {
+      await baseCommandInternal.kindLoadComponentImageArchive(componentImageArchive, 'kind-first');
+
+      expect(loadImageArchiveStub).to.have.been.calledOnce;
+      expect(loadImageArchiveStub).to.have.been.calledWith(componentImageArchive, sinon.match.has('name', 'first'));
+      expect(warnStub).to.not.have.been.called;
+    });
+
+    it('should preload additional Kind contexts and deduplicate the caller-supplied context', async (): Promise<void> => {
+      await baseCommandInternal.kindLoadComponentImageArchive(componentImageArchive, 'kind-first', [
+        'kind-first',
+        'kind-second',
+      ]);
+
+      expect(loadImageArchiveStub).to.have.been.calledTwice;
+      expect(loadImageArchiveStub).to.have.been.calledWith(componentImageArchive, sinon.match.has('name', 'first'));
+      expect(loadImageArchiveStub).to.have.been.calledWith(componentImageArchive, sinon.match.has('name', 'second'));
+      expect(warnStub).to.not.have.been.called;
+    });
+
+    it('should load an image archive once through a renamed context that resolves to an already-covered Kind cluster', async (): Promise<void> => {
+      await baseCommandInternal.kindLoadComponentImageArchive(componentImageArchive, 'kind-first', ['renamed-first']);
+
+      expect(loadImageArchiveStub).to.have.been.calledOnce;
+      expect(loadImageArchiveStub).to.have.been.calledWith(componentImageArchive, sinon.match.has('name', 'first'));
+      expect(warnStub).to.not.have.been.called;
+    });
+
+    it('should warn and continue when preloading into a stale additional Kind context fails', async (): Promise<void> => {
+      loadImageArchiveStub
+        .withArgs(componentImageArchive, sinon.match.has('name', 'stale'))
+        .rejects(new Error('failed to list nodes for cluster "stale"'));
+
+      await baseCommandInternal.kindLoadComponentImageArchive(componentImageArchive, 'kind-first', [
+        'kind-stale',
+        'kind-second',
+      ]);
+
+      expect(loadImageArchiveStub).to.have.been.calledThrice;
+      expect(loadImageArchiveStub).to.have.been.calledWith(componentImageArchive, sinon.match.has('name', 'first'));
+      expect(loadImageArchiveStub).to.have.been.calledWith(componentImageArchive, sinon.match.has('name', 'second'));
+      expect(warnStub).to.have.been.calledOnce;
+      expect(warnStub.firstCall.args[0]).to.include('kind-stale');
+    });
+
+    it('should skip non-Kind additional contexts with a warning', async (): Promise<void> => {
+      await baseCommandInternal.kindLoadComponentImageArchive(componentImageArchive, 'kind-first', ['remote-cluster']);
+
+      expect(loadImageArchiveStub).to.have.been.calledOnce;
+      expect(loadImageArchiveStub).to.have.been.calledWith(componentImageArchive, sinon.match.has('name', 'first'));
+      expect(warnStub).to.have.been.calledOnce;
+      expect(warnStub.firstCall.args[0]).to.include('remote-cluster');
+    });
+
+    it('should reject an image archive when the selected target context is not a Kind cluster', async (): Promise<void> => {
+      await expect(
+        baseCommandInternal.kindLoadComponentImageArchive(componentImageArchive, 'remote-cluster'),
+      ).to.be.rejectedWith(
+        `Component image source '${componentImageArchive}' from --component-image-archive requires Kind image loading`,
+      );
+
+      expect(loadImageArchiveStub).to.not.have.been.called;
+    });
+
+    it('should require an image reference with an image archive', async (): Promise<void> => {
+      await expect(
+        baseCommandInternal.loadComponentImage(undefined, componentImageArchive, 'kind-first'),
+      ).to.be.rejectedWith(
+        '--component-image-archive requires --component-image to identify the image in the archive.',
+      );
+    });
+
+    it('should reject a missing image archive path', async (): Promise<void> => {
+      const missingArchivePath: string = PathEx.join(temporaryDirectory, 'missing-block-node-server.tar');
+
+      await expect(
+        baseCommandInternal.loadComponentImage('block-node-server:0.38.0', missingArchivePath, 'kind-first'),
+      ).to.be.rejectedWith(`File does not exist: ${missingArchivePath}`);
+    });
+
+    it('should preload every remote-config context when loading through loadComponentImage', async (): Promise<void> => {
+      await baseCommandInternal.loadComponentImage('block-node-server:0.38.0', componentImageArchive, 'kind-first');
+
+      expect(loadImageArchiveStub).to.have.been.calledTwice;
+      expect(loadImageArchiveStub).to.have.been.calledWith(componentImageArchive, sinon.match.has('name', 'first'));
+      expect(loadImageArchiveStub).to.have.been.calledWith(componentImageArchive, sinon.match.has('name', 'second'));
+      expect(warnStub).to.not.have.been.called;
+    });
+  });
+
+  describe('validateComponentImageArchive manifest tag check', (): void => {
+    let baseCommandInternal: BaseCommandInternal;
+    let temporaryDirectory: string;
+
+    /** Builds a `docker save`-style tar archive whose manifest.json reports the given RepoTags. */
+    function buildArchiveWithRepoTags(repoTags: string[]): string {
+      const manifestDirectory: string = fs.mkdtempSync(PathEx.join(temporaryDirectory, 'manifest-source-'));
+      fs.writeFileSync(
+        PathEx.join(manifestDirectory, 'manifest.json'),
+        JSON.stringify([{Config: 'config.json', RepoTags: repoTags, Layers: []}]),
+      );
+
+      const archivePath: string = PathEx.join(temporaryDirectory, 'block-node-server.tar');
+      tar.c({file: archivePath, cwd: manifestDirectory, sync: true}, ['manifest.json']);
+      return archivePath;
+    }
+
+    beforeEach((): void => {
+      baseCommandInternal = baseCmd as unknown as BaseCommandInternal;
+      temporaryDirectory = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-component-image-archive-manifest-test-'));
+    });
+
+    afterEach((): void => {
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    });
+
+    it('should accept an archive whose manifest.json lists the component image', (): void => {
+      const archivePath: string = buildArchiveWithRepoTags(['block-node-server:0.38.0']);
+
+      expect((): void =>
+        baseCommandInternal.validateComponentImageArchive('block-node-server:0.38.0', archivePath),
+      ).to.not.throw();
+    });
+
+    it('should reject an archive whose manifest.json does not list the component image', (): void => {
+      const archivePath: string = buildArchiveWithRepoTags(['block-node-server:0.37.0']);
+
+      expect((): void =>
+        baseCommandInternal.validateComponentImageArchive('block-node-server:0.38.0', archivePath),
+      ).to.throw(
+        "Component image archive '" +
+          archivePath +
+          "' does not contain 'block-node-server:0.38.0'; it contains: 'block-node-server:0.37.0'",
+      );
+    });
+
+    it('should skip the tag check for an archive without a manifest.json', (): void => {
+      const archivePath: string = PathEx.join(temporaryDirectory, 'non-docker.tar');
+      fs.writeFileSync(archivePath, 'not a tar archive');
+
+      expect((): void =>
+        baseCommandInternal.validateComponentImageArchive('block-node-server:0.38.0', archivePath),
+      ).to.not.throw();
     });
   });
 

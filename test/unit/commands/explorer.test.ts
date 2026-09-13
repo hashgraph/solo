@@ -62,6 +62,12 @@ type ExplorerHarness = {
 type ExplorerCommandInternal = {
   prepareHederaExplorerChartValues: (config: Record<string, unknown>) => Promise<HelmChartValues>;
   isLocalImageAvailableInDocker: (componentImage: string) => boolean;
+  isComponentImageAvailableForKind: (componentImage: string, componentImageArchive: string) => boolean;
+  loadComponentImage: (
+    componentImage: string | undefined,
+    componentImageArchive: string | undefined,
+    clusterContext: string,
+  ) => Promise<void>;
   kindLoadComponentImage: (componentImage: string, clusterContext: string) => Promise<void>;
 };
 
@@ -535,20 +541,48 @@ describe('ExplorerCommand unit tests', (): void => {
       componentImage: 'localhost:5001/hiero-explorer:1.2.3',
     };
     const explorerCommandInternal: ExplorerCommandInternal = harness.command as unknown as ExplorerCommandInternal;
-    const kindLoadComponentImageStub: SinonStub = sandbox
-      .stub(explorerCommandInternal, 'kindLoadComponentImage')
-      .resolves();
+    const loadComponentImageStub: SinonStub = sandbox.stub(explorerCommandInternal, 'loadComponentImage').resolves();
     sandbox.stub(explorerCommandInternal, 'isLocalImageAvailableInDocker').returns(true);
     const chartUpgradeStub: SinonStub = sandbox.stub(harness.chartManager, 'upgrade').resolves();
 
     (harness.configManager.getConfig as SinonStub).returns(deployConfig);
     await harness.command.add({[flags.deployment.name]: 'deployment-1'} as never);
 
-    expect(kindLoadComponentImageStub).to.have.been.calledOnceWithExactly(
+    expect(loadComponentImageStub).to.have.been.calledOnceWithExactly(
       'localhost:5001/hiero-explorer:1.2.3',
+      undefined,
       'cluster-context-1',
     );
-    expect(kindLoadComponentImageStub).to.have.been.calledBefore(chartUpgradeStub.getCall(2));
+    expect(loadComponentImageStub).to.have.been.calledBefore(chartUpgradeStub.getCall(2));
+  });
+
+  it('loads an archived Explorer image and configures a Never pull policy before chart deployment', async (): Promise<void> => {
+    const harness: ExplorerHarness = await createHarness(sandbox);
+    const deployConfig: Record<string, unknown> = {
+      ...createDeployConfig('explorer-image-archive'),
+      componentImage: 'ghcr.io/hiero-ledger/explorer:1.2.3',
+      componentImageArchive: '/artifacts/explorer.tar',
+    };
+    const explorerCommandInternal: ExplorerCommandInternal = harness.command as unknown as ExplorerCommandInternal;
+    const loadComponentImageStub: SinonStub = sandbox.stub(explorerCommandInternal, 'loadComponentImage').resolves();
+    sandbox.stub(explorerCommandInternal, 'isComponentImageAvailableForKind').returns(true);
+    const chartUpgradeStub: SinonStub = sandbox.stub(harness.chartManager, 'upgrade').resolves();
+
+    (harness.configManager.getConfig as SinonStub).returns(deployConfig);
+    await harness.command.add({[flags.deployment.name]: 'deployment-1'} as never);
+
+    const explorerChartValues: HelmChartValues = chartUpgradeStub.getCall(2).args[5] as HelmChartValues;
+    const valueArguments: string[] = explorerChartValues.toArguments();
+    expect(valueArguments).to.include('image.registry=ghcr.io');
+    expect(valueArguments).to.include('image.repository=hiero-ledger/explorer');
+    expect(valueArguments).to.include('image.tag=1.2.3');
+    expect(valueArguments).to.include('image.pullPolicy=Never');
+    expect(loadComponentImageStub).to.have.been.calledOnceWithExactly(
+      'ghcr.io/hiero-ledger/explorer:1.2.3',
+      '/artifacts/explorer.tar',
+      'cluster-context-1',
+    );
+    expect(loadComponentImageStub).to.have.been.calledBefore(chartUpgradeStub.getCall(2));
   });
 
   it('upgrade builds the expected task flow and upgrades explorer state without reinstalling cert-manager', async (): Promise<void> => {

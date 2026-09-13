@@ -62,6 +62,7 @@ interface ExplorerDeployConfigClass {
   explorerStaticIp: string | '';
   explorerVersion: string;
   componentImage: Optional<string>;
+  componentImageArchive: Optional<string>;
   loadBalancerEnabled: boolean;
   namespace: NamespaceName;
   tlsClusterIssuerType: string;
@@ -103,6 +104,7 @@ interface ExplorerUpgradeConfigClass {
   explorerStaticIp: string | '';
   explorerVersion: string;
   componentImage: Optional<string>;
+  componentImageArchive: Optional<string>;
   loadBalancerEnabled: boolean;
   namespace: NamespaceName;
   tlsClusterIssuerType: string;
@@ -184,6 +186,7 @@ export class ExplorerCommand extends BaseCommand {
       flags.explorerStaticIp,
       flags.explorerVersion,
       flags.componentImage,
+      flags.componentImageArchive,
       flags.loadBalancerEnabled,
       flags.namespace,
       flags.quiet,
@@ -216,6 +219,7 @@ export class ExplorerCommand extends BaseCommand {
       flags.explorerStaticIp,
       flags.explorerVersion,
       flags.componentImage,
+      flags.componentImageArchive,
       flags.loadBalancerEnabled,
       flags.namespace,
       flags.quiet,
@@ -416,8 +420,12 @@ export class ExplorerCommand extends BaseCommand {
 
         if (config.componentImage) {
           const parsedReference: ParsedImageReference = ImageReference.parseImageReference(config.componentImage);
+          const isComponentImageAvailableForKind: boolean = this.isComponentImageAvailableForKind(
+            config.componentImage,
+            config.componentImageArchive,
+          );
 
-          if (this.isLocalImageAvailableInDocker(config.componentImage)) {
+          if (isComponentImageAvailableForKind) {
             explorerChartValues
               .setLiteral('image.registry', parsedReference.registry)
               .setLiteral('image.repository', parsedReference.repository)
@@ -443,9 +451,7 @@ export class ExplorerCommand extends BaseCommand {
           }
         }
 
-        if (config.componentImage && this.isLocalImageAvailableInDocker(config.componentImage)) {
-          await this.kindLoadComponentImage(config.componentImage, config.clusterContext);
-        }
+        await this.loadComponentImage(config.componentImage, config.componentImageArchive, config.clusterContext);
 
         await this.chartManager.upgrade(
           config.namespace,

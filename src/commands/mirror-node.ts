@@ -87,6 +87,7 @@ interface MirrorNodeDeployConfigClass {
   quiet: boolean;
   mirrorNodeVersion: string;
   componentImage: string;
+  componentImageArchive: string;
   pinger: boolean;
   operatorId: string;
   operatorKey: string;
@@ -138,6 +139,7 @@ interface MirrorNodeUpgradeConfigClass {
   quiet: boolean;
   mirrorNodeVersion: string;
   componentImage: string;
+  componentImageArchive: string;
   pinger: boolean;
   operatorId: string;
   operatorKey: string;
@@ -246,6 +248,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.valuesFile,
       flags.mirrorNodeVersion,
       flags.componentImage,
+      flags.componentImageArchive,
       flags.pinger,
       flags.useExternalDatabase,
       flags.operatorId,
@@ -286,6 +289,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.valuesFile,
       flags.mirrorNodeVersion,
       flags.componentImage,
+      flags.componentImageArchive,
       flags.pinger,
       flags.useExternalDatabase,
       flags.operatorId,
@@ -558,7 +562,7 @@ export class MirrorNodeCommand extends BaseCommand {
         .setLiteral('web3.image.tag', parsedImageReference.tag)
         .setLiteral('monitor.image.tag', parsedImageReference.tag);
 
-      if (this.isLocalImageAvailableInDocker(config.componentImage)) {
+      if (this.isComponentImageAvailableForKind(config.componentImage, config.componentImageArchive)) {
         chartValues
           .setLiteral('importer.image.pullPolicy', 'Never')
           .setLiteral('grpc.image.pullPolicy', 'Never')
@@ -800,9 +804,7 @@ export class MirrorNodeCommand extends BaseCommand {
       commandType,
     );
 
-    if (config.componentImage && this.isLocalImageAvailableInDocker(config.componentImage)) {
-      await this.kindLoadComponentImage(config.componentImage, config.clusterContext);
-    }
+    await this.loadComponentImage(config.componentImage, config.componentImageArchive, config.clusterContext);
 
     await this.upgradeMirrorNodeChart(config, shouldReuseValues);
 

@@ -222,6 +222,7 @@ export const ErrorCodeRegistry: Record<string, string> = {
   VALUES_FILE_PARSE_FAILED: 'SOLO-4079',
   BACKUP_DATABASE_DUMP_NOT_FOUND: 'SOLO-4080',
   INVALID_FLAG_VALUE: 'SOLO-4081',
+  COMPONENT_IMAGE_ARCHIVE_TAG_MISMATCH: 'SOLO-4082',
 
   // 5xxx - System / Environment: kubectl, DNS, permissions, timeouts
   RESOURCE_NOT_FOUND: 'SOLO-5001',

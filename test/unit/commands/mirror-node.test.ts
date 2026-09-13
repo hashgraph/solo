@@ -9,6 +9,7 @@ import os from 'node:os';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {MirrorNodeCommand} from '../../../src/commands/mirror-node.js';
 import * as constants from '../../../src/core/constants.js';
+import {NamespaceName} from '../../../src/types/namespace/namespace-name.js';
 import * as versions from '../../../version.js';
 import {resetForTest} from '../../test-container.js';
 import {HelmChartValues} from '../../../src/integration/helm/model/values.js';
@@ -69,6 +70,8 @@ interface MirrorNodeCommandInternal {
     targetVersion: string,
     commandType: string,
   ) => boolean;
+  prepareHelmChartValues: (config: Record<string, unknown>) => Promise<HelmChartValues>;
+  isComponentImageAvailableForKind: (componentImage: string, componentImageArchive: string) => boolean;
 }
 
 interface MirrorNodeDatabaseTaskContext {
@@ -322,6 +325,40 @@ describe('MirrorNodeCommand unit tests', (): void => {
     expect(valuesArguments).to.include('rest.image.tag=0.157.0');
     expect(valuesArguments).to.include('restjava.image.tag=0.157.0');
     expect(valuesArguments).to.include('web3.image.tag=0.157.0');
+  });
+
+  it('should configure every Mirror Node module image from an archive with a Never pull policy', async (): Promise<void> => {
+    const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+      mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+    sinon.stub(mirrorNodeCommandInternal, 'prepareBlockNodeIntegrationValues').returns(new HelmChartValues());
+    sinon.stub(mirrorNodeCommandInternal, 'isComponentImageAvailableForKind').returns(true);
+
+    const chartValues: HelmChartValues = await mirrorNodeCommandInternal.prepareHelmChartValues({
+      valuesFile: '',
+      mirrorNodeVersion: '0.157.0',
+      componentImage: 'ghcr.io/hiero-ledger/hiero-mirror:0.157.0',
+      componentImageArchive: '/artifacts/hiero-mirror.tar',
+      mirrorNodeChartDirectory: '',
+      storageBucket: '',
+      storageBucketPrefix: '',
+      storageType: constants.StorageType.MINIO_ONLY,
+      storageReadAccessKey: '',
+      storageReadSecrets: '',
+      storageEndpoint: '',
+      storageBucketRegion: '',
+      domainName: undefined,
+      useExternalDatabase: false,
+      namespace: NamespaceName.of('mirror'),
+    });
+
+    const valueArguments: string[] = chartValues.toArguments();
+    const pullPolicyArguments: string[] = valueArguments.filter((argument: string): boolean =>
+      argument.endsWith('.image.pullPolicy=Never'),
+    );
+
+    expect(valueArguments).to.include('importer.image.registry=ghcr.io');
+    expect(valueArguments).to.include('importer.image.repository=hiero-ledger/hiero-mirror');
+    expect(pullPolicyArguments).to.have.length(6);
   });
 
   it('should apply mirror node image tag overrides when no local chart directory is used', (): void => {

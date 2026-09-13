@@ -548,6 +548,18 @@ export class Flags {
     },
   };
 
+  public static readonly componentImageArchive: CommandFlag = {
+    constName: 'componentImageArchive',
+    name: 'component-image-archive',
+    definition: {
+      describe:
+        'Path to a docker save image archive. Requires --component-image to identify the archived image. ' +
+        'The archive is loaded into every target Kind cluster and uses pullPolicy: Never.',
+      defaultValue: '',
+      type: 'string',
+    },
+  };
+
   public static readonly relayReleaseTag: CommandFlag = {
     constName: 'relayReleaseTag',
     name: 'relay-release',
@@ -2880,6 +2892,7 @@ export class Flags {
     Flags.output,
     Flags.imageTag,
     Flags.componentImage,
+    Flags.componentImageArchive,
     Flags.relayReleaseTag,
     Flags.relayVersion,
     Flags.releaseTag,

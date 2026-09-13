@@ -77,6 +77,7 @@ interface RelayDeployConfigClass {
   operatorKey: string;
   relayReleaseTag: string;
   componentImage: string;
+  componentImageArchive: string;
   replicaCount: number;
   loadBalancerEnabled: boolean;
   valuesFile: string;
@@ -115,6 +116,7 @@ interface RelayUpgradeConfigClass {
   operatorKey: string;
   relayReleaseTag: string;
   componentImage: string;
+  componentImageArchive: string;
   replicaCount: number;
   loadBalancerEnabled: boolean;
   valuesFile: string;
@@ -182,6 +184,7 @@ export class RelayCommand extends BaseCommand {
       flags.relayReleaseTag,
       flags.relayVersion,
       flags.componentImage,
+      flags.componentImageArchive,
       flags.replicaCount,
       flags.loadBalancerEnabled,
       flags.valuesFile,
@@ -213,6 +216,7 @@ export class RelayCommand extends BaseCommand {
       flags.relayReleaseTag,
       flags.relayVersion,
       flags.componentImage,
+      flags.componentImageArchive,
       flags.replicaCount,
       flags.loadBalancerEnabled,
       flags.valuesFile,
@@ -248,6 +252,7 @@ export class RelayCommand extends BaseCommand {
     chainId,
     relayReleaseTag,
     componentImage,
+    componentImageArchive,
     replicaCount,
     loadBalancerEnabled,
     operatorId,
@@ -291,7 +296,7 @@ export class RelayCommand extends BaseCommand {
         .set('relay.image.tag', parsedImageReference.tag)
         .set('ws.image.tag', parsedImageReference.tag);
 
-      if (this.isLocalImageAvailableInDocker(componentImage)) {
+      if (this.isComponentImageAvailableForKind(componentImage, componentImageArchive)) {
         chartValues.set('relay.image.pullPolicy', 'Never').set('ws.image.pullPolicy', 'Never');
       }
     }
@@ -447,9 +452,7 @@ export class RelayCommand extends BaseCommand {
       title: 'Deploy JSON RPC Relay',
       task: async ({config}: RelayDeployContext | RelayUpgradeContext): Promise<void> => {
         try {
-          if (config.componentImage && this.isLocalImageAvailableInDocker(config.componentImage)) {
-            await this.kindLoadComponentImage(config.componentImage, config.context);
-          }
+          await this.loadComponentImage(config.componentImage, config.componentImageArchive, config.context);
 
           await this.chartManager.upgrade(
             config.namespace,
