@@ -32,6 +32,7 @@ import path from 'node:path';
 import yaml from 'yaml';
 import {Templates} from '../../../../core/templates.js';
 import {SemanticVersion} from '../../../../business/utils/semantic-version.js';
+import {helmValuesHelper} from '../../../../core/helm-values-helper.js';
 
 const MIRROR_NODE_ID: number = 1;
 const GITHUB_RELEASES_PER_PAGE: number = 100;
@@ -65,6 +66,20 @@ export class DeployArgvBuilders {
 
   private static shouldSkipMinioSetup(config: OneShotSingleDeployConfigClass): boolean {
     if (!this.shouldDeployBlockNode(config)) {
+      return false;
+    }
+
+    const candidateValuesFiles: (string | undefined)[] = [
+      config.networkConfiguration?.[Flags.getFormattedFlagKey(Flags.valuesFile)],
+      config.networkConfiguration?.['--values-file'],
+      config.networkConfiguration?.['values-file'],
+      config.valuesFile,
+    ];
+    const filteredFiles: string[] = candidateValuesFiles.filter(
+      (candidate: string | undefined): candidate is string =>
+        typeof candidate === 'string' && candidate.trim().length > 0,
+    );
+    if (helmValuesHelper.hasExplicitMinioConfiguration(filteredFiles)) {
       return false;
     }
 

@@ -28,6 +28,61 @@ type ExtractedExtraEnvironmentArray = {
 
 export class HelmValuesHelper {
   public constructor() {}
+  /**
+   * Inspects user-supplied values files to determine if any explicitly configure MinIO
+   * (e.g. by defining `minio-server`, `minio-tenant`, `minioTenant`, or `cloud.minio.enabled: true`).
+   *
+   * @param filePaths - array of file paths or comma-separated file string
+   * @returns true if any file explicitly enables or configures MinIO
+   */
+  public hasExplicitMinioConfiguration(filePaths: string[] | string | undefined): boolean {
+    if (!filePaths) {
+      return false;
+    }
+
+    const rawPaths: string[] = Array.isArray(filePaths) ? filePaths : [filePaths];
+    const candidatePaths: string[] = [];
+
+    for (const rawPath of rawPaths) {
+      if (!rawPath || typeof rawPath !== 'string') {
+        continue;
+      }
+      for (const item of rawPath.split(',')) {
+        const trimmed: string = item.trim();
+        if (!trimmed) {
+          continue;
+        }
+        const parts: string[] = trimmed.split('=');
+        candidatePaths.push(parts.length === 2 ? parts[1].trim() : parts[0].trim());
+      }
+    }
+
+    for (const filePath of candidatePaths) {
+      const parsedRecord: Record<string, unknown> | undefined = this.parseValuesFile(filePath);
+      if (!parsedRecord) {
+        continue;
+      }
+
+      if (parsedRecord['minio-server'] !== undefined) {
+        return true;
+      }
+      if (parsedRecord['minio-tenant'] !== undefined || parsedRecord['minioTenant'] !== undefined) {
+        return true;
+      }
+      const cloudSection: unknown = parsedRecord.cloud;
+      if (cloudSection && typeof cloudSection === 'object') {
+        const minioSection: unknown = (cloudSection as Record<string, unknown>).minio;
+        if (minioSection && typeof minioSection === 'object') {
+          const enabled: unknown = (minioSection as Record<string, unknown>).enabled;
+          if (enabled === true || enabled === 'true') {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
+  }
 
   private buildPerNodeExtraEnvironmentValuesStructure(
     consensusNodes: ConsensusNode[],

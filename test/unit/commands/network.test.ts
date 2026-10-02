@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import os from 'node:os';
+// SPDX-License-Identifier: Apache-2.0
+
 import sinon, {type SinonSpyCall, type SinonStub} from 'sinon';
 import {before, beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
@@ -605,6 +608,92 @@ describe('NetworkCommand unit tests', (): void => {
         expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
       } finally {
         argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        sinon.restore();
+      }
+    });
+
+    it('keeps MinIO enabled for CN 0.74+ with block nodes when a values file explicitly configures MinIO', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const temporaryFile: string = PathEx.join(os.tmpdir(), `silo-minio-${Date.now()}.yaml`);
+      fs.writeFileSync(temporaryFile, 'minio-server:\n  tenant:\n    buckets:\n      - name: falcon-bucket\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, temporaryFile);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(true);
+        expect(chartValueArguments).to.not.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.not.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.not.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.not.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(temporaryFile)) {
+          fs.unlinkSync(temporaryFile);
+        }
+        sinon.restore();
+      }
+    });
+
+    it('disables MinIO for CN 0.74+ with block nodes when a values file has only non-MinIO configuration', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const temporaryFile: string = PathEx.join(os.tmpdir(), `non-minio-${Date.now()}.yaml`);
+      fs.writeFileSync(temporaryFile, 'hedera:\n  nodes:\n    - name: node1\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, temporaryFile);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(false);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(temporaryFile)) {
+          fs.unlinkSync(temporaryFile);
+        }
         sinon.restore();
       }
     });

@@ -1007,15 +1007,14 @@ export class NetworkCommand extends BaseCommand {
       blockNodeConfigured,
       config.tssEnabled,
     );
+    const hasExplicitMinio: boolean = helmValuesHelper.hasExplicitMinioConfiguration(config.valuesFile);
     // CN >= 0.74 can stream blocks directly to a block node. If the effective stream
-    // mode is forced back to BOTH/RECORDS for compatibility, keep MinIO enabled so
+    // mode is forced back to BOTH/RECORDS for compatibility, or if the deployment
+    // explicitly configures MinIO/Tenant via a values file, keep MinIO enabled so
     // record uploaders and mirror importer use the same source.
-    config.minioEnabled = !(
-      tssByDefaultSupported &&
-      config.tssEnabled &&
-      blockNodeConfigured &&
-      blockStreamMode === 'BLOCKS'
-    );
+    config.minioEnabled =
+      hasExplicitMinio ||
+      !(tssByDefaultSupported && config.tssEnabled && blockNodeConfigured && blockStreamMode === 'BLOCKS');
 
     config.chartValuesMap = await this.prepareHelmChartValuesMap(config);
 
