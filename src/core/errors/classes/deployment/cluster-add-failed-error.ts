@@ -22,8 +22,9 @@ export class ClusterAddFailedError extends SoloError {
         message: 'Error adding cluster to deployment',
         code: ErrorCodeRegistry.CLUSTER_ADD_FAILED,
         troubleshootingSteps:
+          'List available cluster references: solo cluster-ref config list\n' +
           'Verify the cluster context exists: kubectl config get-contexts\n' +
-          `Make sure the cluster reference is created: cluster-ref config connect ${clusterReferenceFlagKey} <cluster-reference> ${contextFlagKey} <context>\n` +
+          `Make sure the cluster reference is created: solo cluster-ref config connect ${clusterReferenceFlagKey} <cluster-reference> ${contextFlagKey} <context>\n` +
           'Check logs for details: tail -n 100 ~/.solo/logs/solo.log',
       },
       cause,

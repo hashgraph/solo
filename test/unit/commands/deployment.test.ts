@@ -11,6 +11,7 @@ import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {type K8} from '../../../src/integration/kube/k8.js';
 import {type LocalConfigRuntimeState} from '../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
 import {type DeploymentCommand} from '../../../src/commands/deployment.js';
+import {SoloErrors} from '../../../src/core/errors/solo-errors.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {NamespaceName} from '../../../src/types/namespace/namespace-name.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
@@ -529,6 +530,61 @@ describe('DeploymentCommand unit tests', (): void => {
       // Nothing stopped successfully, so the config is preserved and no persist happens.
       expect(remoteConfigStub.persist.called).to.be.false;
       expect(explorerComponent.metadata.portForwardConfigs).to.have.lengthOf(1);
+    });
+  });
+
+  describe('addCluster() - error propagation', (): void => {
+    it('should propagate ClusterReferenceNotFoundError when cluster-ref is not in local config', async (): Promise<void> => {
+      const deploymentCommand: DeploymentCommand = container.resolve(InjectTokens.DeploymentCommand);
+      const argv: Argv = Argv.getDefaultArgv(namespace);
+      argv.setArg(flags.deployment, deploymentName);
+      argv.setArg(flags.clusterRef, 'non-existent-cluster-ref');
+      argv.setArg(flags.quiet, true);
+
+      await expect(deploymentCommand.addCluster(argv.build())).to.be.rejectedWith(
+        SoloErrors.deployment.clusterRefNotFound,
+      );
+    });
+
+    it('should propagate DeploymentNotFoundError when deployment is not in local config', async (): Promise<void> => {
+      const deploymentCommand: DeploymentCommand = container.resolve(InjectTokens.DeploymentCommand);
+      const argv: Argv = Argv.getDefaultArgv(namespace);
+      argv.setArg(flags.deployment, 'non-existent-deployment');
+      argv.setArg(flags.clusterRef, 'cluster-2');
+      argv.setArg(flags.quiet, true);
+
+      await expect(deploymentCommand.addCluster(argv.build())).to.be.rejectedWith(SoloErrors.deployment.notFound);
+    });
+
+    it('should propagate ClusterRefAlreadyExistsError when cluster-ref is already attached to deployment', async (): Promise<void> => {
+      const deploymentCommand: DeploymentCommand = container.resolve(InjectTokens.DeploymentCommand);
+      const argv: Argv = Argv.getDefaultArgv(namespace);
+      argv.setArg(flags.deployment, deploymentName);
+      argv.setArg(flags.clusterRef, 'cluster-1');
+      argv.setArg(flags.quiet, true);
+
+      await expect(deploymentCommand.addCluster(argv.build())).to.be.rejectedWith(
+        SoloErrors.deployment.clusterRefAlreadyExists,
+      );
+    });
+
+    it('should wrap unexpected generic errors in ClusterAddFailedError', async (): Promise<void> => {
+      const deploymentCommand: DeploymentCommand = container.resolve(InjectTokens.DeploymentCommand);
+      sinon.stub(deploymentCommand, 'checkNetworkState').returns({
+        title: 'mock unexpected failure',
+        task: (): never => {
+          throw new Error('unexpected runtime exception');
+        },
+      });
+
+      const argv: Argv = Argv.getDefaultArgv(namespace);
+      argv.setArg(flags.deployment, deploymentName);
+      argv.setArg(flags.clusterRef, 'cluster-2');
+      argv.setArg(flags.quiet, true);
+
+      await expect(deploymentCommand.addCluster(argv.build())).to.be.rejectedWith(
+        SoloErrors.deployment.clusterAddFailed,
+      );
     });
   });
 });

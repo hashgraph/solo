@@ -46,6 +46,7 @@ import * as version from '../../version.js';
 import find from 'find-process';
 import type ProcessInfo from 'find-process';
 import {SoloErrors} from '../core/errors/solo-errors.js';
+import {SoloError} from '../core/errors/solo-error.js';
 import {IncompleteLocalConfigError} from '../core/errors/classes/config/incomplete-local-config-error.js';
 import {RefreshLocalConfigSourceError} from '../core/errors/classes/config/refresh-local-config-source-error.js';
 import {DeploymentStateSchema} from '../data/schema/model/remote/deployment-state-schema.js';
@@ -409,10 +410,14 @@ export class DeploymentCommand extends BaseCommand {
       try {
         await tasks.run();
       } catch (error) {
+        if (error instanceof SoloError) {
+          throw error;
+        }
+
         throw new SoloErrors.deployment.clusterAddFailed(
           flags.getFormattedFlagKey(flags.clusterRef),
           flags.getFormattedFlagKey(flags.context),
-          error,
+          error as Error,
         );
       }
     }
@@ -1220,7 +1225,9 @@ export class DeploymentCommand extends BaseCommand {
         }
 
         if (
-          this.localConfig.configuration.deploymentByName(deployment).clusters.includes(new StringFacade(clusterRef))
+          this.localConfig.configuration
+            .deploymentByName(deployment)
+            .clusters.some((cluster): boolean => cluster.toString() === clusterRef)
         ) {
           throw new SoloErrors.deployment.clusterRefAlreadyExists(
             clusterRef,

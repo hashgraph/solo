@@ -14,6 +14,7 @@ import {SdkPingFailedSoloError} from '../../../src/core/errors/classes/component
 import {SdkClientNoHealthyNodesSoloError} from '../../../src/core/errors/classes/component/sdk-client-no-healthy-nodes-solo-error.js';
 import {SdkErrorTranslator} from '../../../src/core/errors/sdk-error-translator.js';
 import {SoloLogsDirectoryNotWritableSoloError} from '../../../src/core/errors/classes/system/solo-logs-directory-not-writable-solo-error.js';
+import {ClusterAddFailedError} from '../../../src/core/errors/classes/deployment/cluster-add-failed-error.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import * as constants from '../../../src/core/constants.js';
 
@@ -176,5 +177,17 @@ describe('Errors', (): void => {
       );
 
     expect(filesAdvisingInit).to.deep.equal([]);
+  });
+
+  describe('ClusterAddFailedError', (): void => {
+    it('should construct correct ClusterAddFailedError with valid code and troubleshooting steps', (): void => {
+      const error: ClusterAddFailedError = new ClusterAddFailedError('--cluster-ref', '--context');
+      expect(error).to.be.instanceof(SoloError);
+      expect(error.getFormattedCode()).to.equal('SOLO-2006');
+      const steps: string = (error.getTroubleshootingSteps() ?? []).join('\n');
+      expect(steps).to.include('solo cluster-ref config list');
+      expect(steps).to.include('solo cluster-ref config connect');
+      expect(steps).to.not.match(/(?<!solo\s)cluster-ref config connect/);
+    });
   });
 });
