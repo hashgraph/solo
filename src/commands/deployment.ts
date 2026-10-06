@@ -417,7 +417,7 @@ export class DeploymentCommand extends BaseCommand {
         throw new SoloErrors.deployment.clusterAddFailed(
           flags.getFormattedFlagKey(flags.clusterRef),
           flags.getFormattedFlagKey(flags.context),
-          error as Error,
+          error,
         );
       }
     }
@@ -1202,7 +1202,6 @@ export class DeploymentCommand extends BaseCommand {
    * Validates:
    * - cluster ref is present in the local config's cluster-ref => context mapping
    * - the deployment is created
-   * - the cluster-ref is not already added to the deployment
    */
   public verifyClusterAddArgs(): SoloListrTask<DeploymentAddClusterContext> {
     return {
@@ -1222,17 +1221,6 @@ export class DeploymentCommand extends BaseCommand {
 
         if (!this.localConfig.configuration.deploymentByName(deployment)) {
           throw new SoloErrors.deployment.notFound(`Deployment ${deployment} not found in local config`);
-        }
-
-        if (
-          this.localConfig.configuration
-            .deploymentByName(deployment)
-            .clusters.some((cluster): boolean => cluster.toString() === clusterRef)
-        ) {
-          throw new SoloErrors.deployment.clusterRefAlreadyExists(
-            clusterRef,
-            Flags.getFormattedFlagKey(Flags.clusterRef),
-          );
         }
       },
     };

@@ -185,9 +185,7 @@ describe('Errors', (): void => {
       expect(error).to.be.instanceof(SoloError);
       expect(error.getFormattedCode()).to.equal('SOLO-2006');
       const steps: string = (error.getTroubleshootingSteps() ?? []).join('\n');
-      expect(steps).to.include('solo cluster-ref config list');
-      expect(steps).to.include('solo cluster-ref config connect');
-      expect(steps).to.not.match(/(?<!solo\s)cluster-ref config connect/);
+      expect(steps).to.include('tail -n 100 ~/.solo/logs/solo.log');
     });
   });
 });

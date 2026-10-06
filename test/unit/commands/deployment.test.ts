@@ -549,6 +549,7 @@ describe('DeploymentCommand unit tests', (): void => {
     it('should propagate DeploymentNotFoundError when deployment is not in local config', async (): Promise<void> => {
       const deploymentCommand: DeploymentCommand = container.resolve(InjectTokens.DeploymentCommand);
       const argv: Argv = Argv.getDefaultArgv(namespace);
+      argv.setArg(flags.namespace, namespace.name);
       argv.setArg(flags.deployment, 'non-existent-deployment');
       argv.setArg(flags.clusterRef, 'cluster-2');
       argv.setArg(flags.quiet, true);
@@ -556,16 +557,33 @@ describe('DeploymentCommand unit tests', (): void => {
       await expect(deploymentCommand.addCluster(argv.build())).to.be.rejectedWith(SoloErrors.deployment.notFound);
     });
 
-    it('should propagate ClusterRefAlreadyExistsError when cluster-ref is already attached to deployment', async (): Promise<void> => {
+    it('should be idempotent and succeed when cluster-ref is already attached to deployment', async (): Promise<void> => {
       const deploymentCommand: DeploymentCommand = container.resolve(InjectTokens.DeploymentCommand);
+      const localConfig: LocalConfigRuntimeState = container.resolve(InjectTokens.LocalConfigRuntimeState);
+      await localConfig.load();
+      const initialClusterCount: number = localConfig.configuration.deploymentByName(deploymentName).clusters.length;
+
+      sinon.stub(deploymentCommand, 'checkNetworkState').returns({
+        title: 'mock network state',
+        task: (): void => {},
+      });
+      sinon.stub(deploymentCommand, 'testClusterConnection').returns({
+        title: 'mock test connection',
+        task: (): void => {},
+      });
+      sinon.stub(deploymentCommand, 'createOrEditRemoteConfigForNewDeployment').returns({
+        title: 'mock remote config',
+        task: (): void => {},
+      });
+
       const argv: Argv = Argv.getDefaultArgv(namespace);
       argv.setArg(flags.deployment, deploymentName);
       argv.setArg(flags.clusterRef, 'cluster-1');
       argv.setArg(flags.quiet, true);
 
-      await expect(deploymentCommand.addCluster(argv.build())).to.be.rejectedWith(
-        SoloErrors.deployment.clusterRefAlreadyExists,
-      );
+      await expect(deploymentCommand.addCluster(argv.build())).to.eventually.be.true;
+
+      expect(localConfig.configuration.deploymentByName(deploymentName).clusters.length).to.equal(initialClusterCount);
     });
 
     it('should wrap unexpected generic errors in ClusterAddFailedError', async (): Promise<void> => {
