@@ -8,11 +8,11 @@ import {ErrorCodeRegistry} from '../../error-code-registry.js';
  * @description Thrown when attaching a cluster to a deployment fails due to an unexpected error;
  * the underlying failure is wrapped in `cause`. Specific failures such as missing cluster
  * references or missing deployments are raised as dedicated error types, so this error serves as
- * the fallback for unexpected errors encountered while attaching a cluster. It is retryable,
- * since transient infrastructure or cluster issues may clear on a subsequent attempt.
+ * the fallback for unexpected errors encountered while attaching a cluster. It is not retryable,
+ * as unexpected runtime or code errors will generally produce the same failure on retry.
  */
 export class ClusterAddFailedError extends SoloError {
-  protected override readonly retryable: boolean = true;
+  protected override readonly retryable: boolean = false;
   protected override readonly ownership: ErrorOwnership = ErrorOwnership.Infrastructure;
 
   public constructor(clusterReferenceFlagKey?: string, contextFlagKey?: string, cause?: Error) {
