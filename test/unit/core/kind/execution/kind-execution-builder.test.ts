@@ -60,7 +60,7 @@ describe('KindExecutionBuilder', (): void => {
 
   describe('flag', (): void => {
     it('should add a flag', (): void => {
-      const result: KindExecutionBuilder = builder.flag('quiet');
+      const result: KindExecutionBuilder = builder.flag('--quiet');
       expect(result).to.equal(builder); // Should return this for chaining
     });
 
@@ -72,6 +72,10 @@ describe('KindExecutionBuilder', (): void => {
         expect(error).to.be.instanceOf(Error);
         expect(error.message).to.equal('flag must not be null');
       }
+    });
+
+    it('should throw error if flag does not start with a dash', (): void => {
+      expect((): KindExecutionBuilder => builder.flag('retain')).to.throw('flag must start with "-"');
     });
   });
 
@@ -130,7 +134,7 @@ describe('KindExecutionBuilder', (): void => {
       builder
         .subcommands('create', 'cluster')
         .argument('name', 'test-cluster')
-        .flag('quiet')
+        .flag('--quiet')
         .positional('--config=config.yaml')
         .optionsWithMultipleValues('label', ['app=test', 'env=dev'])
         .environmentVariable('DEBUG', 'true');

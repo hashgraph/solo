@@ -26,7 +26,7 @@ export class ShellRunner {
    */
   public static redactArguments(arguments_: string[]): string[] {
     return SensitiveDataRedactor.redactArguments(arguments_, {
-      flagsToRedactNextArgument: ['--password', '-p'],
+      flagsToRedactNextArgument: ['--password', '-p', '-P'],
       setStyleFlags: ['--set', '--set-string', '--set-file'],
     });
   }

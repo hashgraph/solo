@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {expect} from 'chai';
-import {before, describe, it} from 'mocha';
+import {afterEach, before, describe, it} from 'mocha';
+import sinon, {type SinonStub} from 'sinon';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 import * as yaml from 'yaml';
+import {container} from 'tsyringe-neo';
 import {ClusterTaskManager} from '../../../src/core/cluster-task-manager.js';
 import * as constants from '../../../src/core/constants.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {resetForTest} from '../../test-container.js';
 import {type OsPackageManager} from '../../../src/core/package-managers/os-package-manager.js';
 import {type DefaultKindClientBuilder} from '../../../src/integration/kind/impl/default-kind-client-builder.js';
@@ -15,7 +19,9 @@ import {type KindDependencyManager} from '../../../src/core/dependency-managers/
 import {type PodmanDependencyManager} from '../../../src/core/dependency-managers/podman-dependency-manager.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {type GitClient} from '../../../src/integration/git/git-client.js';
-import {type ContainerEngineClient} from '../../../src/integration/container-engine/container-engine-client.js';
+import {type SoloListrTaskWrapper} from '../../../src/types/index.js';
+import {type AnyObject} from '../../../src/types/aliases.js';
+import {SubprocessEnvironment} from '../../../src/core/subprocess-environment.js';
 
 function getConfigFilePath(manager: ClusterTaskManager, useSmallMemoryCluster: boolean): string {
   return (
@@ -25,24 +31,55 @@ function getConfigFilePath(manager: ClusterTaskManager, useSmallMemoryCluster: b
   ).getConfigFilePath(useSmallMemoryCluster);
 }
 
-function createClusterTaskManager(): ClusterTaskManager {
+function configureBrewPodmanRuntime(manager: ClusterTaskManager): Promise<void> {
+  return (
+    manager as unknown as {
+      configureBrewPodmanRuntime: (task: SoloListrTaskWrapper<AnyObject>) => Promise<void>;
+    }
+  ).configureBrewPodmanRuntime({title: 'Configure podman container runtime...'} as SoloListrTaskWrapper<AnyObject>);
+}
+
+function createClusterTaskManager(
+  podmanDependencyManager: object = {},
+  dependencyManager: object = {},
+): ClusterTaskManager {
   return new ClusterTaskManager(
     {} as unknown as OsPackageManager,
     {} as unknown as DefaultKindClientBuilder,
-    {} as unknown as PodmanDependencyManager,
+    podmanDependencyManager as unknown as PodmanDependencyManager,
     {} as unknown as KindDependencyManager,
     '/tmp/podman',
     {} as unknown as K8Factory,
-    {} as unknown as DependencyManager,
+    dependencyManager as unknown as DependencyManager,
     '/tmp/kind',
     {} as unknown as GitClient,
-    {} as unknown as ContainerEngineClient,
   );
 }
 
 describe('ClusterTaskManager', (): void => {
   before((): void => {
     resetForTest();
+  });
+
+  it('should resolve undefined podman and kind dependency managers from their own tokens', (): void => {
+    const manager: ClusterTaskManager = new ClusterTaskManager(
+      {} as unknown as OsPackageManager,
+      {} as unknown as DefaultKindClientBuilder,
+      undefined,
+      undefined,
+      '/tmp/podman',
+      {} as unknown as K8Factory,
+      {} as unknown as DependencyManager,
+      '/tmp/kind',
+      {} as unknown as GitClient,
+    );
+    const {podmanDependencyManager, kindDependencyManager} = manager as unknown as {
+      podmanDependencyManager: PodmanDependencyManager;
+      kindDependencyManager: KindDependencyManager;
+    };
+
+    expect(podmanDependencyManager).to.equal(container.resolve(InjectTokens.PodmanDependencyManager));
+    expect(kindDependencyManager).to.equal(container.resolve(InjectTokens.KindDependencyManager));
   });
 
   it('should return configured kind config for default cluster setup', (): void => {
@@ -124,5 +161,55 @@ describe('ClusterTaskManager', (): void => {
         constants.LOCAL_HOST,
       );
     }
+  });
+
+  describe('configureBrewPodmanRuntime', (): void => {
+    afterEach((): void => {
+      sinon.restore();
+    });
+
+    it('should leave the host container configuration untouched when podman is not Homebrew-managed', async (): Promise<void> => {
+      const getRuntimeBinaryDirectory: SinonStub = sinon.stub();
+      const setupConfig: SinonStub = sinon.stub();
+      const manager: ClusterTaskManager = createClusterTaskManager({
+        isBrewManaged: sinon.stub().resolves(false),
+        getRuntimeBinaryDirectory,
+        setupConfig,
+      });
+
+      await configureBrewPodmanRuntime(manager);
+
+      expect(getRuntimeBinaryDirectory.called).to.be.false;
+      expect(setupConfig.called).to.be.false;
+    });
+
+    it('should configure the brew runtime stack in the directory the dependency manager resolves', async (): Promise<void> => {
+      sinon.stub(os, 'arch').returns('x64');
+      const runtimeBinaryDirectory: string = fs.mkdtempSync(path.join(os.tmpdir(), 'solo-brew-bin-'));
+      fs.writeFileSync(path.join(runtimeBinaryDirectory, 'crun'), '');
+      fs.writeFileSync(path.join(runtimeBinaryDirectory, 'conmon'), '');
+      const setupConfig: SinonStub = sinon.stub().resolves();
+      const manager: ClusterTaskManager = createClusterTaskManager(
+        {
+          isBrewManaged: sinon.stub().resolves(true),
+          getRuntimeBinaryDirectory: sinon.stub().resolves(runtimeBinaryDirectory),
+          setupConfig,
+          containerConfigEnvironment: sinon.stub().returns({}),
+        },
+        {checkDependency: sinon.stub().resolves(true)},
+      );
+      const sudoRun: SinonStub = sinon.stub(manager, 'sudoRun').resolves([]);
+
+      try {
+        await configureBrewPodmanRuntime(manager);
+      } finally {
+        fs.rmSync(runtimeBinaryDirectory, {recursive: true, force: true});
+      }
+
+      expect(setupConfig.calledOnceWithExactly(runtimeBinaryDirectory)).to.be.true;
+      expect(sudoRun.firstCall.args[3][0]).to.equal(
+        `PATH=${runtimeBinaryDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
+      );
+    });
   });
 });

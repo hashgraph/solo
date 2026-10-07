@@ -1,9 +1,11 @@
 #schemaVersion: 1
+# Charts published before solo-charts moved to the `hiero-ledger` org were not copied over, so
+# `SoloChartRepository` falls back to the `hashgraph` org for those older versions at runtime.
 helmChart:
   name: solo-deployment
   # namespace: should come from presentation layer
   release: solo-deployment
-  repository: oci://ghcr.io/hashgraph/solo-charts
+  repository: oci://ghcr.io/hiero-ledger/solo-charts
   # directory: would be used via environment variable only
   # version: should come from version.ts or presentation layer
   labelSelector:
@@ -27,7 +29,7 @@ clusterSetupHelmChart:
   name: solo-cluster-setup
   # namespace: should come from presentation layer
   release: solo-cluster-setup
-  repository: oci://ghcr.io/hashgraph/solo-charts
+  repository: oci://ghcr.io/hiero-ledger/solo-charts
   # directory: would be used via environment variable only
   # version: should come from version.ts or presentation layer
   labelSelector:
@@ -39,7 +41,7 @@ certManagerHelmChart:
   name: solo-cert-manager
   namespace: cert-manager
   release: solo-cert-manager
-  repository: oci://ghcr.io/hashgraph/solo-charts
+  repository: oci://ghcr.io/hiero-ledger/solo-charts
   # directory: would be used via environment variable only
   # version: should come from version.ts or presentation layer
   labelSelector:

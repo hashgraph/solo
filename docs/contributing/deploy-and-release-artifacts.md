@@ -8,7 +8,7 @@
 ## 2. Validate Documentation Site
 
 - Review deployed docs:
-  - https://solo.hiero.org/main/docs/advanced-deployments/
+  - https://solo.hiero.org/docs/advanced-solo-setup/
 - Check other key pages for correctness
 - Note: Site updates automatically on PR merge to `main`
 
@@ -83,3 +83,19 @@
 ## 12. Verify JFrog Artifactory (@hashgraph)
 
 - https://artifacts.hashgraph.io/ui/packages/npm:%2F%2F@hashgraph%2Fsolo/
+
+## 13. Verify Release Asset Signatures
+
+- Workflow (runs automatically after the release workflow):
+  - https://github.com/hiero-ledger/solo/actions/workflows/flow-sign-release-assets.yaml
+- Every release asset should have a matching `<asset>.sigstore.json` bundle. To verify one:
+
+```bash
+cosign verify-blob \
+  --bundle example-hardhat-with-solo.zip.sigstore.json \
+  --certificate-identity https://github.com/hiero-ledger/solo/.github/workflows/flow-sign-release-assets.yaml@refs/heads/main \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  example-hardhat-with-solo.zip
+```
+
+- If a bundle is missing or fails to verify, run the workflow manually from `main` with the release tag.

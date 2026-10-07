@@ -12,6 +12,7 @@ import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 import {type HelmClient} from '../../../../src/integration/helm/helm-client.js';
 import {NamespaceName} from '../../../../src/types/namespace/namespace-name.js';
 import * as constants from '../../../../src/core/constants.js';
+import {SoloChartRepository} from '../../../../src/core/solo-chart-repository.js';
 import {type AnyObject} from '../../../../src/types/aliases.js';
 import {HelmChartValues} from '../../../../src/integration/helm/model/values.js';
 import {PathEx} from '../../../../src/business/utils/path-ex.js';
@@ -68,11 +69,11 @@ describe('SharedResourceManager', (): void => {
       expect(chartManagerStub.install).to.have.been.calledOnce;
     });
 
-    it('uses SOLO_TESTING_CHART_URL when chartDirectory is empty', async (): Promise<void> => {
+    it('uses the resolved solo-charts repository when chartDirectory is empty', async (): Promise<void> => {
       await manager.installChart(namespace, '', chartVersion, context);
 
       const repoName: AnyObject = (chartManagerStub.install as sinon.SinonStub).firstCall.args[3];
-      expect(repoName).to.equal(constants.SOLO_TESTING_CHART_URL);
+      expect(repoName).to.equal(SoloChartRepository.URL);
     });
 
     it('uses provided chartDirectory when given', async (): Promise<void> => {

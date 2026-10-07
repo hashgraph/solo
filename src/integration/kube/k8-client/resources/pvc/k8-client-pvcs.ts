@@ -14,10 +14,13 @@ import {Duration} from '../../../../../core/time/duration.js';
 import {type Pvc} from '../../../resources/pvc/pvc.js';
 import {KubePvcCreationFailedError} from '../../../errors/kube-pvc-creation-failed-error.js';
 import {K8ClientPvc} from './k8-client-pvc.js';
-import {type PvcReference} from '../../../resources/pvc/pvc-reference.js';
 import {KubeApiResponse} from '../../../kube-api-response.js';
 import {ResourceOperation} from '../../../resources/resource-operation.js';
 import {ResourceType} from '../../../resources/resource-type.js';
+import {type PvcDetail} from '../../../resources/pvc/pvc-detail.js';
+import {PvcName} from '../../../resources/pvc/pvc-name.js';
+import {PvcReference} from '../../../resources/pvc/pvc-reference.js';
+import {KubernetesQuantity} from '../../../../../business/utils/kubernetes-quantity.js';
 
 export class K8ClientPvcs implements Pvcs {
   public constructor(private readonly kubeClient: CoreV1Api) {}
@@ -60,6 +63,31 @@ export class K8ClientPvcs implements Pvcs {
     }
 
     return pvcs;
+  }
+
+  public async readAll(namespace: NamespaceName, labels?: string[]): Promise<PvcDetail[]> {
+    const labelSelector: string = labels ? labels.join(',') : undefined;
+
+    let response: V1PersistentVolumeClaimList;
+    try {
+      response = await this.kubeClient.listNamespacedPersistentVolumeClaim({
+        namespace: namespace.name,
+        labelSelector,
+        timeoutSeconds: Duration.ofMinutes(5).toMillis(),
+      });
+    } catch (error) {
+      KubeApiResponse.throwError(error, ResourceOperation.LIST, ResourceType.PERSISTENT_VOLUME_CLAIM, namespace, '');
+    }
+
+    return (response.items ?? []).map((item: V1PersistentVolumeClaim): PvcDetail => {
+      const requestedStorage: string | undefined = item.spec?.resources?.requests?.['storage'] as string | undefined;
+      return {
+        pvcReference: PvcReference.of(namespace, PvcName.of(item.metadata.name)),
+        phase: item.status?.phase ?? 'Unknown',
+        requestedStorageBytes: KubernetesQuantity.toBytes(requestedStorage),
+        storageClassName: item.spec?.storageClassName,
+      };
+    });
   }
 
   public async create(pvcReference: PvcReference, labels: Record<string, string>, accessModes: string[]): Promise<Pvc> {

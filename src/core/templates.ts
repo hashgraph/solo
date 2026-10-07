@@ -203,7 +203,6 @@ export class Templates {
       case constants.GVPROXY:
       case constants.NETAVARK:
       case constants.AARDVARK_DNS:
-      case constants.CRANE:
       case constants.KUBECTL: {
         if (OperatingSystem.isWin32()) {
           return PathEx.join(installationDirectory, `${dependency}.exe`);

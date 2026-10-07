@@ -10,8 +10,7 @@ import {CacheProviderNotConfiguredError} from '../errors/cache-provider-not-conf
  * Builder for {@link ImageCacheHandler}.
  *
  * This builder allows runtime construction of an image cache handler by
- * providing a target provider directly or by creating a YAML-backed target
- * provider from a file path.
+ * creating a YAML-backed target provider from a file path.
  */
 export class ImageCacheHandlerBuilder {
   private _provider?: CacheTargetProvider;
@@ -29,17 +28,6 @@ export class ImageCacheHandlerBuilder {
    */
   public static fromYaml(filePath: string): ImageCacheHandlerBuilder {
     return new ImageCacheHandlerBuilder().yamlProvider(filePath);
-  }
-
-  /**
-   * Sets the target provider explicitly.
-   *
-   * @param provider provider supplying image cache targets
-   * @returns this builder
-   */
-  public provider(provider: CacheTargetProvider): ImageCacheHandlerBuilder {
-    this._provider = provider;
-    return this;
   }
 
   /**

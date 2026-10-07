@@ -10,12 +10,18 @@ export class Architecture {
   public static readonly NODE_ARCH_ARM64: string = 'arm64';
   public static readonly NODE_ARCH_AARCH64: string = 'aarch64';
 
+  /** Linux / Docker daemon architecture names */
+  public static readonly LINUX_ARCH_X86_64: string = 'x86_64';
+  public static readonly LINUX_ARCH_AMD64: string = 'amd64';
+
   public static readonly LINUX_AMD64: string = 'linux/amd64';
   public static readonly LINUX_ARM64: string = 'linux/arm64';
 
   public static getArchitecture(rawArchitecture: string = process.arch): ArchitectureType {
     switch (rawArchitecture) {
-      case Architecture.NODE_ARCH_X64: {
+      case Architecture.NODE_ARCH_X64:
+      case Architecture.LINUX_ARCH_X86_64:
+      case Architecture.LINUX_ARCH_AMD64: {
         return ArchitectureType.AMD64;
       }
       case Architecture.NODE_ARCH_ARM64:

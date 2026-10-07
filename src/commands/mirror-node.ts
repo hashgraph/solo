@@ -34,6 +34,10 @@ import {type NamespaceName} from '../types/namespace/namespace-name.js';
 import {PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {Pod} from '../integration/kube/resources/pod/pod.js';
 import {type Pods} from '../integration/kube/resources/pod/pods.js';
+import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
+import {type Container} from '../integration/kube/resources/container/container.js';
+import {KubePodNotFoundError} from '../integration/kube/errors/kube-pod-not-found-error.js';
+import {KubePodNotReadyError} from '../integration/kube/errors/kube-pod-not-ready-error.js';
 import chalk from 'chalk';
 import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
@@ -87,6 +91,7 @@ interface MirrorNodeDeployConfigClass {
   quiet: boolean;
   mirrorNodeVersion: string;
   componentImage: string;
+  componentImageArchive: string;
   pinger: boolean;
   operatorId: string;
   operatorKey: string;
@@ -138,6 +143,7 @@ interface MirrorNodeUpgradeConfigClass {
   quiet: boolean;
   mirrorNodeVersion: string;
   componentImage: string;
+  componentImageArchive: string;
   pinger: boolean;
   operatorId: string;
   operatorKey: string;
@@ -180,11 +186,24 @@ interface MirrorNodeDestroyConfigClass {
   releaseName: string;
   ingressReleaseName: string;
   isLegacyChartInstalled: boolean;
-  isIngressControllerChartInstalled: boolean;
 }
 
 interface MirrorNodeDestroyContext {
   config: MirrorNodeDestroyConfigClass;
+}
+
+interface MirrorNodeCollectJfrConfigClass {
+  namespace: NamespaceName;
+  clusterContext: Context;
+  clusterReference: ClusterReferenceName;
+  deployment: DeploymentName;
+  devMode: boolean;
+  quiet: boolean;
+  id: ComponentId;
+}
+
+interface MirrorNodeCollectJfrContext {
+  config: MirrorNodeCollectJfrConfigClass;
 }
 
 interface InferredData {
@@ -231,6 +250,11 @@ export class MirrorNodeCommand extends BaseCommand {
 
   private static readonly UPGRADE_CONFIGS_NAME: string = 'upgradeConfigs';
 
+  private static readonly COLLECT_JFR_CONFIGS_NAME: string = 'collectJfrConfigs';
+
+  // Sentinel printed by the in-pod consolidation script when no JFR recording is present.
+  private static readonly NO_JFR_MARKER: string = 'SOLO_NO_JFR_RECORDING';
+
   public static readonly DEPLOY_FLAGS_LIST: CommandFlags = {
     required: [],
     optional: [
@@ -246,6 +270,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.valuesFile,
       flags.mirrorNodeVersion,
       flags.componentImage,
+      flags.componentImageArchive,
       flags.pinger,
       flags.useExternalDatabase,
       flags.operatorId,
@@ -286,6 +311,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.valuesFile,
       flags.mirrorNodeVersion,
       flags.componentImage,
+      flags.componentImageArchive,
       flags.pinger,
       flags.useExternalDatabase,
       flags.operatorId,
@@ -322,6 +348,11 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.debugMode,
       flags.id,
     ],
+  };
+
+  public static readonly COLLECT_JFR_FLAGS_LIST: CommandFlags = {
+    required: [flags.deployment],
+    optional: [flags.clusterRef, flags.debugMode, flags.quiet, flags.id],
   };
 
   private prepareBlockNodeIntegrationValues(
@@ -558,7 +589,7 @@ export class MirrorNodeCommand extends BaseCommand {
         .setLiteral('web3.image.tag', parsedImageReference.tag)
         .setLiteral('monitor.image.tag', parsedImageReference.tag);
 
-      if (this.isLocalImageAvailableInDocker(config.componentImage)) {
+      if (this.isComponentImageAvailableForKind(config.componentImage, config.componentImageArchive)) {
         chartValues
           .setLiteral('importer.image.pullPolicy', 'Never')
           .setLiteral('grpc.image.pullPolicy', 'Never')
@@ -800,9 +831,7 @@ export class MirrorNodeCommand extends BaseCommand {
       commandType,
     );
 
-    if (config.componentImage && this.isLocalImageAvailableInDocker(config.componentImage)) {
-      await this.kindLoadComponentImage(config.componentImage, config.clusterContext);
-    }
+    await this.loadComponentImage(config.componentImage, config.componentImageArchive, config.clusterContext);
 
     await this.upgradeMirrorNodeChart(config, shouldReuseValues);
 
@@ -945,13 +974,17 @@ export class MirrorNodeCommand extends BaseCommand {
                 context_.config.soloChartVersion,
                 context_.config.clusterContext,
                 {
+                  'redis.host': constants.REDIS_HOST,
                   'redis.image.registry': constants.REDIS_IMAGE_REGISTRY,
                   'redis.image.repository': constants.REDIS_IMAGE_REPOSITORY,
                   'redis.image.tag': versions.REDIS_IMAGE_VERSION,
+                  'redis.replica.replicaCount': constants.REDIS_REPLICA_REPLICACOUNT,
+                  'redis.sentinel.enabled': constants.REDIS_SENTINEL_ENABLED,
                   'redis.sentinel.image.registry': constants.REDIS_SENTINEL_IMAGE_REGISTRY,
                   'redis.sentinel.image.repository': constants.REDIS_SENTINEL_IMAGE_REPOSITORY,
                   'redis.sentinel.image.tag': versions.REDIS_SENTINEL_IMAGE_VERSION,
                   'redis.sentinel.masterSet': constants.REDIS_SENTINEL_MASTER_SET,
+                  'redis.sentinel.getMasterTimeout': constants.REDIS_SENTINEL_GETMASTERTIMEOUT,
                 },
               );
             },
@@ -1231,10 +1264,28 @@ export class MirrorNodeCommand extends BaseCommand {
             constants.MIRROR_NODE_IMPORTER_DETECT_MAX_ATTEMPTS,
             constants.MIRROR_NODE_IMPORTER_DETECT_DELAY,
           );
-        } catch {
-          // importer disabled via custom values — no schema build to wait for
-          this.logger.info(`No importer pod found for release ${config.releaseName}; skipping mirror node schema wait`);
-          return;
+        } catch (error: Error | unknown) {
+          if (error instanceof KubePodNotFoundError) {
+            // No importer pod exists at all, so the importer was disabled via custom values and
+            // there is no schema to wait for.
+            this.logger.info(
+              `No importer pod found for release ${config.releaseName}; skipping mirror node schema wait`,
+            );
+            return;
+          }
+
+          if (!(error instanceof KubePodNotReadyError)) {
+            throw error;
+          }
+
+          // The detect window above is deliberately short because it only answers "does an importer
+          // exist". A pod that exists but has not reached Running within it is simply starting
+          // slowly, which is normal on a loaded node, so fall through to the readiness wait below:
+          // that one allows far longer and is where a genuinely stuck importer has to surface.
+          // Returning here instead would report a broken importer as a successful deploy.
+          this.logger.info(
+            `Importer pod for release ${config.releaseName} is not running yet; waiting for it to become ready`,
+          );
         }
 
         await pods.waitForReadyStatus(
@@ -2117,11 +2168,6 @@ export class MirrorNodeCommand extends BaseCommand {
               releaseName,
               ingressReleaseName,
               isLegacyChartInstalled,
-              isIngressControllerChartInstalled: await this.chartManager.isChartInstalled(
-                namespace,
-                ingressReleaseName,
-                clusterContext,
-              ),
             };
 
             if (!this.oneShotState.isActive()) {
@@ -2184,12 +2230,13 @@ export class MirrorNodeCommand extends BaseCommand {
         this.disableSharedResourceComponents(),
         {
           title: 'Uninstall mirror ingress controller',
-          skip: (context_): boolean => !context_.config.isIngressControllerChartInstalled,
           task: async (context_): Promise<void> => {
-            await this.k8Factory
-              .getK8(context_.config.clusterContext)
-              .ingressClasses()
-              .delete(constants.MIRROR_INGRESS_CLASS_NAME);
+            // Checked before the uninstall below; gates the cluster-scoped IngressClass deletion so a no-ingress destroy does not remove an IngressClass used by another deployment
+            const ingressControllerInstalled: boolean = await this.chartManager.isChartInstalled(
+              context_.config.namespace,
+              context_.config.ingressReleaseName,
+              context_.config.clusterContext,
+            );
 
             if (
               await this.k8Factory
@@ -2208,19 +2255,28 @@ export class MirrorNodeCommand extends BaseCommand {
               context_.config.ingressReleaseName,
               context_.config.clusterContext,
             );
-            // delete ingress class if found one
-            const existingIngressClasses: IngressClass[] = await this.k8Factory
-              .getK8(context_.config.clusterContext)
-              .ingressClasses()
-              .list();
-            for (const ingressClass of existingIngressClasses) {
-              if (ingressClass.name === constants.MIRROR_INGRESS_CLASS_NAME) {
-                await this.k8Factory
-                  .getK8(context_.config.clusterContext)
-                  .ingressClasses()
-                  .delete(constants.MIRROR_INGRESS_CLASS_NAME);
+
+            // delete ingress class if found one — only when this deployment used ingress
+            if (ingressControllerInstalled) {
+              const existingIngressClasses: IngressClass[] = await this.k8Factory
+                .getK8(context_.config.clusterContext)
+                .ingressClasses()
+                .list();
+              for (const ingressClass of existingIngressClasses) {
+                if (ingressClass.name === constants.MIRROR_INGRESS_CLASS_NAME) {
+                  await this.k8Factory
+                    .getK8(context_.config.clusterContext)
+                    .ingressClasses()
+                    .delete(constants.MIRROR_INGRESS_CLASS_NAME);
+                }
               }
             }
+
+            // Delete the namespace-scoped TLS secret created for the ingress on deploy; delete() tolerates NotFound
+            await this.k8Factory
+              .getK8(context_.config.clusterContext)
+              .secrets()
+              .delete(context_.config.namespace, constants.MIRROR_INGRESS_TLS_SECRET_NAME);
           },
         },
         this.disableMirrorNodeComponents(),
@@ -2244,6 +2300,141 @@ export class MirrorNodeCommand extends BaseCommand {
     } else {
       this.taskList.registerCloseFunction(async (): Promise<void> => {
         await this.accountManager?.close().catch();
+        if (!this.oneShotState.isActive()) {
+          await lease?.release();
+        }
+      });
+    }
+
+    return true;
+  }
+
+  private downloadMirrorNodeJavaFlightRecorderLogs(): SoloListrTask<MirrorNodeCollectJfrContext> {
+    return {
+      title: 'Download Java Flight Recorder logs from mirror node importer pod',
+      task: async ({config}, task): Promise<void> => {
+        // Select the importer by name+component only so both modern (mirror-<id>) and legacy (mirror) release names match.
+        const labels: string[] = [constants.SOLO_MIRROR_IMPORTER_NAME_LABEL, 'app.kubernetes.io/component=importer'];
+        const importerPods: Pod[] = await this.k8Factory
+          .getK8(config.clusterContext)
+          .pods()
+          .list(config.namespace, labels);
+
+        if (importerPods.length === 0) {
+          throw new SoloErrors.system.mirrorNodePodsNotFound(this.renderReleaseName(config.id), config.namespace.name);
+        }
+
+        const podReference: PodReference = importerPods[0].podReference;
+        const containerReference: ContainerReference = ContainerReference.of(
+          podReference,
+          constants.MIRROR_NODE_IMPORTER_CONTAINER_NAME,
+        );
+        const k8Container: Container = this.k8Factory
+          .getK8(config.clusterContext)
+          .containers()
+          .readByRef(containerReference);
+
+        const repositoryDirectory: string = constants.MIRROR_NODE_JFR_REPOSITORY_DIRECTORY;
+        const collectedRecordingPath: string = `${repositoryDirectory}/collected-recording.jfr`;
+
+        // Concatenate every finalized JFR chunk (all but the still-open last one) into a single readable recording.
+        const consolidateScript: string =
+          'set -e; ' +
+          `finalized=$(ls -1 ${repositoryDirectory}/*/*.jfr 2>/dev/null | sort | sed '$d'); ` +
+          `if [ -z "$finalized" ]; then echo "${MirrorNodeCommand.NO_JFR_MARKER}"; exit 0; fi; ` +
+          `cat $finalized > ${collectedRecordingPath}`;
+
+        let consolidateResult: string;
+        try {
+          // The perf overlay runs the importer on the JVM image, which ships bash; Solo's default native image does not.
+          consolidateResult = await k8Container.execContainer(['bash', '-c', consolidateScript]);
+        } catch (error) {
+          throw new SoloErrors.component.mirrorNodeJfrCollectionFailed(error);
+        }
+
+        if (consolidateResult.includes(MirrorNodeCommand.NO_JFR_MARKER)) {
+          const reason: string = `no finalized Java Flight Recorder chunk found in ${repositoryDirectory} on mirror node importer pod ${podReference.name}; the mirror node may not have been deployed with Java Flight Recorder enabled, or the recording is still shorter than one chunk`;
+          this.logger.warn(reason);
+          task.skip(`${task.title} ${chalk.yellow('[SKIPPING]')} ${chalk.grey(reason)}`);
+          return;
+        }
+
+        const localJfrLogsDirectory: string = PathEx.join(constants.SOLO_LOGS_DIR, config.deployment);
+        fs.mkdirSync(localJfrLogsDirectory, {recursive: true});
+
+        await k8Container.copyFrom(collectedRecordingPath, localJfrLogsDirectory);
+
+        const downloadedRecordingPath: string = PathEx.join(localJfrLogsDirectory, 'collected-recording.jfr');
+        this.logger.showUser(`Downloaded Java Flight Recorder recording to ${downloadedRecordingPath}`);
+      },
+    };
+  }
+
+  public async collectJfr(argv: ArgvStruct): Promise<boolean> {
+    let lease: Lock;
+
+    const tasks: SoloListr<MirrorNodeCollectJfrContext> = this.taskList.newTaskList<MirrorNodeCollectJfrContext>(
+      [
+        {
+          title: 'Initialize',
+          task: async (context_, task): Promise<Listr<AnyListrContext>> => {
+            await this.localConfig.load();
+            await this.remoteConfig.loadAndValidate(argv);
+            if (!this.oneShotState.isActive()) {
+              lease = await this.leaseManager.create();
+            }
+
+            this.configManager.update(argv);
+
+            flags.disablePrompts(MirrorNodeCommand.COLLECT_JFR_FLAGS_LIST.optional);
+
+            const allFlags: CommandFlag[] = [
+              ...MirrorNodeCommand.COLLECT_JFR_FLAGS_LIST.required,
+              ...MirrorNodeCommand.COLLECT_JFR_FLAGS_LIST.optional,
+            ];
+
+            await this.configManager.executePrompt(task, allFlags);
+
+            const config: MirrorNodeCollectJfrConfigClass = this.configManager.getConfig(
+              MirrorNodeCommand.COLLECT_JFR_CONFIGS_NAME,
+              allFlags,
+            ) as MirrorNodeCollectJfrConfigClass;
+
+            context_.config = config;
+
+            config.namespace = await this.getNamespace(task);
+            config.clusterReference = this.getClusterReference();
+            config.clusterContext = this.getClusterContext(config.clusterReference);
+
+            config.id = this.inferMirrorNodeId();
+
+            await this.throwIfNamespaceIsMissing(config.clusterContext, config.namespace);
+
+            if (!this.oneShotState.isActive()) {
+              return ListrLock.newAcquireLockTask(lease, task);
+            }
+            return ListrLock.newSkippedLockTask(task);
+          },
+        },
+        this.downloadMirrorNodeJavaFlightRecorderLogs(),
+      ],
+      constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
+      undefined,
+      'mirror node collect-jfr',
+    );
+
+    if (tasks.isRoot()) {
+      try {
+        await tasks.run();
+      } catch (error) {
+        throw new SoloErrors.component.mirrorNodeJfrCollectionFailed(error);
+      } finally {
+        if (!this.oneShotState.isActive()) {
+          await lease?.release();
+        }
+      }
+    } else {
+      this.taskList.registerCloseFunction(async (): Promise<void> => {
         if (!this.oneShotState.isActive()) {
           await lease?.release();
         }

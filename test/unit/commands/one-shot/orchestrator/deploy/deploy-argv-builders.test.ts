@@ -328,6 +328,17 @@ describe('buildConsensusDeployArgv', (): void => {
     expect(argv).to.include(optionFromFlag(Flags.deployment));
     expect(argv).to.include('test-deployment');
   });
+
+  it('forwards a nested network values file to consensus deploy', (): void => {
+    const valuesFile: string = '/tmp/silo-helm-values.yaml';
+    const argv: string[] = DeployArgvBuilders.buildConsensusDeployArgv(
+      makeConfig({networkConfiguration: {[optionFromFlag(Flags.valuesFile)]: valuesFile}}),
+    );
+    const valuesFileIndex: number = argv.indexOf(optionFromFlag(Flags.valuesFile));
+
+    expect(valuesFileIndex).to.be.greaterThan(-1);
+    expect(argv[valuesFileIndex + 1]).to.equal(valuesFile);
+  });
 });
 
 describe('buildConsensusSetupArgv', (): void => {

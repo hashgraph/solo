@@ -1,0 +1,147 @@
+##
+# Copyright (C) 2022-2024 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+name: "Build SEA Binaries"
+# Builds the Solo Node.js Single Executable Application (SEA) for each supported platform.
+# The binary bundles the full solo CLI with all resources embedded so it runs without
+# a Node.js installation. Each matrix leg uploads its binary as a GitHub Actions artifact.
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        description: "Node.js version"
+        type: string
+        required: false
+        default: "22"
+      version:
+        description: "Version to embed in the binary, for example 0.92.0 (default: the package.json version)"
+        type: string
+        required: false
+        default: ""
+  workflow_dispatch:
+    inputs:
+      node-version:
+        description: "Node.js version"
+        type: string
+        required: false
+        default: "22"
+  push:
+    branches:
+      - main
+      - 'release/*'
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  build-sea:
+    name: "SEA / ${{ matrix.os }} (${{ matrix.arch }})"
+    # Keep each platform matrix leg in its own concurrency group. This workflow is also called by
+    # Nightly Extended Tests; a workflow-level group makes all of the caller's matrix legs share
+    # one slot and causes GitHub to cancel the waiting legs before they start.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}-${{ matrix.os }}-${{ matrix.arch }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: hiero-solo-linux-medium
+            platform: linux
+            arch: x64
+          # Apple Silicon (arm64) runner
+          - os: macos-latest
+            platform: darwin
+            arch: arm64
+          # Intel (x64) macOS runner
+          - os: macos-15-intel
+            platform: darwin
+            arch: x64
+          # win32 is Node's fixed process.platform value for ALL Windows builds
+          # windows-latest currently resolves to a x64 runner.
+          - os: windows-latest
+            platform: win32
+            arch: x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ inputs.node-version || '22' }}
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Set Version
+        if: ${{ inputs.version != '' }}
+        env:
+          VERSION: ${{ inputs.version }}
+        run: npm version "${VERSION}" --no-git-tag-version --allow-same-version
+
+      - name: Compile TypeScript
+        run: npx tsc
+
+      - name: Build SEA Binary
+        run: npx tsx sea/build.ts
+
+      - name: Smoke Test — solo --help / --version
+        # Verify the binary starts, resolves its embedded resources, exits cleanly, and reports
+        # the version actually embedded at build time.
+        shell: bash
+        run: |
+          set -e
+          if [[ "${{ matrix.platform }}" == "win32" ]]; then
+            BIN=$(find sea/dist -name "solo-win32-*.exe" | head -1)
+          else
+            BIN=$(find sea/dist -name "solo-${{ matrix.platform }}-*" ! -name "*.blob" ! -name "*.cjs" ! -name "*.json" | head -1)
+          fi
+          [[ -n "$BIN" ]] || { echo "no SEA binary found in sea/dist"; exit 1; }
+          [[ "${{ matrix.platform }}" == "win32" ]] || chmod +x "$BIN"
+
+          echo "Running: $BIN --help"
+          "$BIN" --help
+          echo "✓ --help exited 0"
+
+          EXPECTED=$(node -p "require('./package.json').version")
+          ACTUAL=$("$BIN" --version)
+          echo "$ACTUAL" | grep -q "$EXPECTED" || { echo "version mismatch: expected $EXPECTED, got: $ACTUAL"; exit 1; }
+          echo "✓ Smoke test passed (version $EXPECTED)"
+
+      - name: Upload Binary Artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: solo-${{ matrix.platform }}-${{ matrix.arch }}-${{ github.sha }}
+          path: sea/dist/solo-${{ matrix.platform }}-*
+          if-no-files-found: error
+          retention-days: 7

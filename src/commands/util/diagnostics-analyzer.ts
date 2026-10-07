@@ -102,6 +102,8 @@ interface ActiveConditionalLogSuppression {
  * | `oom`           | `OOMKilled`, `out of memory`, `reason: OOMKilled`                                      |
  * | `pod-readiness` | Pod `Status` field is not `Running`, or `Ready: False` is present in container status; |
  * |                 | supporting `Reason:` / `Message:` lines are captured as evidence                       |
+ * | `relay-mirror-connectivity` | Relay keep-alive is enabled and Mirror Web3 recorded successful contract calls; this |
+ * |                            | combination can indicate stale relay-to-Mirror connections during pod replacement |
  *
  * ### 2. Consensus node log archives  (`*-log-config.zip`)
  * Written by `getNodeLogsAndConfigs()` under `~/.solo/logs/<namespace>/`.
@@ -247,8 +249,9 @@ export class DiagnosticsAnalyzer {
     oom: 2,
     'pod-readiness': 3,
     'consensus-active': 4,
-    'log-exception': 5,
-    'app-error': 6,
+    'relay-mirror-connectivity': 5,
+    'log-exception': 6,
+    'app-error': 7,
   };
 
   /** Matches an ISO-8601 timestamp at the start of an application log line. */
@@ -301,6 +304,7 @@ export class DiagnosticsAnalyzer {
 
     if (fs.existsSync(hieroOutputDirectory)) {
       this.analyzePodLogFiles(hieroOutputDirectory, findings);
+      this.analyzeRelayMirrorConnectivity(hieroOutputDirectory, findings);
     }
 
     if (fs.existsSync(hieroOutputDirectory)) {
@@ -624,6 +628,66 @@ export class DiagnosticsAnalyzer {
         evidence: errorScan.evidence,
       });
     }
+  }
+
+  /**
+   * Correlates relay configuration with Mirror Web3 request evidence.
+   *
+   * The relay logs its configuration at startup but, with the usual ERROR log level, does not
+   * log successful JSON-RPC requests. Mirror Web3 does log completed contract calls. When the
+   * relay is configured to reuse HTTP connections and Mirror Web3 has recently served calls, a
+   * migration or restart can leave a stale pooled connection in the relay while the mirror has
+   * already returned a response. This is a diagnostic lead, not proof of a failed request.
+   */
+  private analyzeRelayMirrorConnectivity(rootDirectory: string, findings: DiagnosticsFinding[]): void {
+    const logFiles: string[] = this.collectFilesRecursively(rootDirectory, (filePath: string): boolean =>
+      /[\\/](?:relay|mirror[^/\\]*-web3)[^/\\]*\.log$/i.test(filePath),
+    );
+    let relaySource: string | undefined;
+    let relayKeepAliveEvidence: string | undefined;
+    let mirrorSource: string | undefined;
+    let mirrorCallEvidence: string | undefined;
+
+    for (const logFile of logFiles) {
+      let content: string;
+      try {
+        content = fs.readFileSync(logFile, 'utf8');
+      } catch {
+        continue;
+      }
+
+      const relativePath: string = path.relative(rootDirectory, logFile);
+      const keepAliveMatch: string | undefined = content
+        .split(/\r?\n/)
+        .find((line: string): boolean => /MIRROR_NODE_HTTP_KEEP_ALIVE\s*=\s*true/i.test(line));
+      if (keepAliveMatch && !relayKeepAliveEvidence) {
+        relaySource = relativePath;
+        relayKeepAliveEvidence = keepAliveMatch.trim();
+      }
+
+      const mirrorCallMatch: string | undefined = content
+        .split(/\r?\n/)
+        .find((line: string): boolean => /POST \/api\/v1\/contracts\/call .*:\s*200\b.*Success/i.test(line));
+      if (mirrorCallMatch && !mirrorCallEvidence) {
+        mirrorSource = relativePath;
+        mirrorCallEvidence = mirrorCallMatch.trim();
+      }
+    }
+
+    if (!relaySource || !relayKeepAliveEvidence || !mirrorSource || !mirrorCallEvidence) {
+      return;
+    }
+
+    this.addDiagnosticsFinding(findings, {
+      category: 'relay-mirror-connectivity',
+      title: 'Potential stale relay-to-Mirror Web3 HTTP connection',
+      source: `${relaySource}; ${mirrorSource}`,
+      evidence: [
+        `Relay configuration: ${relayKeepAliveEvidence}`,
+        `Mirror Web3 response: ${mirrorCallEvidence}`,
+        'Review relay-to-Mirror Web3 connection reuse when contract calls remain pending.',
+      ],
+    });
   }
 
   /**
@@ -1304,6 +1368,7 @@ export class DiagnosticsAnalyzer {
       oom: 'Out Of Memory',
       'pod-readiness': 'Pod Readiness',
       'consensus-active': 'Consensus Active State',
+      'relay-mirror-connectivity': 'Relay/Mirror Connectivity',
       'log-exception': 'Exception Stack',
       'app-error': 'Application Error',
     };

@@ -69,6 +69,13 @@ export class PathEx {
   }
 
   /**
+   * Joins paths using POSIX separators regardless of host platform.
+   */
+  public static posixJoin(...paths: string[]): string {
+    return path.posix.join(...paths);
+  }
+
+  /**
    * Resolves the given paths to an absolute path. This is a wrapper around path.resolve. It is recommended to only use this when you are dealing
    * with part of a path that is not a complete path reference on its own.
    *

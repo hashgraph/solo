@@ -871,7 +871,7 @@ export class ProfileManager {
       const configLines: string[] = [`swirld, ${chainId}`, `app, ${appName}`];
 
       const shouldAvoidGossipFqdn: boolean =
-        gossipFqdnRestricted || Helpers.hasMultipleKubernetesContexts(consensusNodes);
+        gossipFqdnRestricted || ProfileManager.hasMultipleKubernetesContexts(consensusNodes);
 
       let nodeSeq: number = 0;
       for (const consensusNode of consensusNodes) {
@@ -910,6 +910,11 @@ export class ProfileManager {
         error instanceof Error ? error : new Error(String(error)),
       );
     }
+  }
+
+  private static hasMultipleKubernetesContexts(consensusNodes: ConsensusNode[]): boolean {
+    const contexts: Set<string> = new Set(consensusNodes.map((node: ConsensusNode): string => node.context));
+    return contexts.size > 1;
   }
 
   private async getGossipFqdnRestricted(

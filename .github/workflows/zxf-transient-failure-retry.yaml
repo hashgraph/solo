@@ -1,0 +1,416 @@
+##
+# Copyright (C) 2023-2026 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+# Reruns the failed jobs of a pull request or push workflow when, and only when, every failed job
+# carries a known transient infrastructure signature. Every rule below was derived from the failed
+# job logs of a five day window; a failure that does not match one is left alone so that a real
+# regression stays red instead of being hidden behind a rerun. The rerun endpoint works at run level
+# and cannot target a subset, so a run mixing transient and genuine failures is not retried at all.
+name: 'ZXF: Transient Failure Retry'
+
+on:
+  # workflow_run is required here, not incidental: GitHub only exposes a completed upstream
+  # run's jobs and logs through this trigger, and the retry endpoint needs the run ID from
+  # its payload. The trigger is only dangerous when a workflow checks out or executes the
+  # triggering run's code, or restores its artifacts, with the elevated token that comes
+  # with it - this workflow does neither. It has no actions/checkout step, downloads no
+  # artifacts, and only reads job metadata and text logs through the API (matched against
+  # fixed regexes, never executed) before calling the rerun-failed-jobs endpoint with the
+  # default, minimally-scoped github.token. Do not add a checkout step here.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows:
+      - 'PR Checks'
+      - 'Test Examples'
+      - 'Test Migration Process'
+      - 'Test GCS as Bucket Storage'
+      - 'Standard Runner One-Shot Deploy and Destroy'
+      - 'Windows One-Shot Deploy and Destroy'
+      - 'Install Validation'
+      - 'Install Validation (Podman Runtime)'
+      - 'Performance Test Solo Deployment'
+      - 'CodeQL'
+    # `completed` is the only usable activity type here: a workflow_run trigger fires regardless
+    # of the upstream conclusion and GitHub offers no conclusion filter, so the failure check has
+    # to live in the job condition below. The runs this creates for successful upstream workflows
+    # skip that condition and never occupy a runner.
+    types:
+      - completed
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+env:
+  # Total attempts a run may reach, counting the original. Guards against an endless retry loop
+  # when a matching failure turns out to be persistent rather than transient.
+  MAX_RUN_ATTEMPTS: '3'
+
+jobs:
+  retry-transient-failure:
+    name: 'Retry Transient Failure'
+    # Only a completed run that concluded in failure is eligible. A cancelled or interrupted run
+    # does not reach the retry path, and a stale run is not retried once the job-level gate has
+    # already rejected it.
+    if: >-
+      ${{
+        github.event.workflow_run.status == 'completed' &&
+        (startsWith(github.event.workflow_run.event, 'pull_request') ||
+          github.event.workflow_run.event == 'push') &&
+        github.event.workflow_run.conclusion == 'failure'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write # reads the observed run's job logs and reruns its failed jobs
+      checks: read # reads the job annotation that records a lost runner, since such a job has no log
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Rerun Failed Jobs With A Transient Signature
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const { owner, repo } = context.repo;
+            const run = context.payload.workflow_run;
+            const maxRunAttempts = Number(process.env.MAX_RUN_ATTEMPTS);
+
+            // Signature rules for failures that are not step timeouts; timeouts are handled
+            // generically above. Each rule needs a failed step whose name matches one of its
+            // prefixes (an empty list matches any failed step), the `required` signature present
+            // in the job log, and the `forbidden` signature absent. Matching on the log as well as the step name keeps a
+            // deterministic failure in an infrastructure step - a moved dependency version, a bad
+            // ref, a compile error - from being retried, which only burns runners and hides the bug.
+            // Shared by every rule below that only applies to a step preparing the environment,
+            // so the download and checksum rules cannot drift apart by editing one and not the
+            // other.
+            const setupStepPrefixes = ['install', 'setup', 'set up', 'configure', 'bootstrap', 'retry'];
+
+            const rules = [
+              {
+                // A setup step that is only fetching a tool or a chart fails when the download is
+                // refused or the host cannot be reached at all. `@actions/tool-cache` reports the
+                // first as "Unexpected HTTP response" and helm as "failed to fetch ...: 504 Gateway
+                // Timeout"; the second surfaces as a resolver or socket error, as in `getaddrinfo
+                // EAI_AGAIN get.helm.sh`. APT reports the same transient condition as "Connection
+                // timed out" or "Connection failed", while npm reports `code ECONNRESET` followed
+                // by a separate `network` line. `step-security/retry` and the setup actions have
+                // usually already spent their own attempts by then. A 404 is deliberately not matched,
+                // since a version that does not exist is a settled failure. Gated to steps that
+                // install or configure, so a product step that merely mentions one of these in its
+                // own output is left alone.
+                //
+                // ECONNRESET, ETIMEDOUT and "socket hang up" are generic enough that a long running
+                // step - `Setup E2E Tests` runs a ten minute script - could print one from an
+                // unrelated cause buried in its own output. None of 61 audited logs did, but the
+                // below lines are still anchored to the same line as a fetch/download/install/request
+                // word, except for npm's structured multi-line network error block, rather than
+                // trusted anywhere in the log.
+                description: 'tool download could not reach its host',
+                // Deploy steps can fetch a chart during environment creation. Keep this explicit
+                // rather than making every product step eligible for generic network errors.
+                stepPrefixes: [...setupStepPrefixes, 'one-shot single deploy'],
+                required:
+                  /Unexpected HTTP response: (429|5\d\d)|failed to fetch [^\n]*: (429|5\d\d) |getaddrinfo (EAI_AGAIN|ENOTFOUND)|(?:fetch|download|install|request)[^\n]*(?:ECONNRESET|ETIMEDOUT|socket hang up|connection timed out|connection failed)|(?:ECONNRESET|ETIMEDOUT|socket hang up|connection timed out|connection failed)[^\n]*(?:fetch|download|install|request)|npm (?:ERR!|error) code (?:ECONNRESET|ETIMEDOUT|EAI_AGAIN)[\s\S]{0,500}npm (?:ERR!|error) network\b/i,
+                forbidden: /error TS\d{4}/,
+              },
+              {
+                // A download cut short arrives complete enough to write but fails its checksum, so
+                // the tool is never installed and the step's own cleanup then reports the binary as
+                // missing. Distinct from a Go module mismatch, which is an integrity claim about a
+                // published module and stays excluded above.
+                description: 'downloaded tool failed its checksum',
+                stepPrefixes: setupStepPrefixes,
+                required: /sha256sum: WARNING: \d+ computed checksums? did NOT match/,
+                forbidden: /SECURITY ERROR/,
+              },
+              {
+                // Uploading logs and coverage goes through GitHub's artifact service, so a name
+                // that will not resolve fails the step after the toolkit's own five attempts.
+                description: 'artifact service could not be reached',
+                stepPrefixes: [],
+                required:
+                  /Failed to (Create|Finalize|Delete)Artifact[^\n]*after \d+ attempts[^\n]*(EAI_AGAIN|ENOTFOUND|ECONNRESET|ETIMEDOUT|socket hang up|502|503|504)/,
+                forbidden: /error TS\d{4}/,
+              },
+              {
+                // `go install` verifies every module against the checksum database, so a failure
+                // from sum.golang.org or the module proxy stops the build even though nothing is
+                // wrong with the module itself. A genuine mismatch reports "SECURITY ERROR:
+                // checksum mismatch" and a toolchain skew reports "requires go >= ", both settled
+                // failures that must never be retried - the latter burned three attempts of run
+                // 33480747973 before the version was pinned.
+                description: 'Go module server could not be reached',
+                stepPrefixes: [],
+                required:
+                  /(sum|proxy)\.golang\.org[^\n]*(stream error|INTERNAL_ERROR|connection reset|unexpected EOF|i\/o timeout|502|503|504|Service Unavailable)/,
+                forbidden: /SECURITY ERROR|checksum mismatch|requires go >= /,
+              },
+              {
+                // The runner downloads every referenced action before the first step runs, so a
+                // stall at codeload.github.com fails the implicit `Set up job` step. The runner
+                // has already retried internally ("after 3 attempts"), so the archive is
+                // genuinely unreachable rather than misreferenced; a bad ref reports "Unable to
+                // resolve action" instead and must not be retried.
+                description: 'action archive download timed out',
+                stepPrefixes: ['set up job'],
+                required: /Action '[^']*' download has timed out|Failed to download archive '[^']*' after \d+ attempts/,
+                forbidden: /Unable to resolve action|error TS\d{4}/,
+              },
+              {
+                description: 'kind could not bind a host port held by a leaked cluster',
+                stepPrefixes: [],
+                required: /docker: Error response from daemon:[\s\S]{0,200}(port is already allocated|driver failed programming external connectivity)/,
+                forbidden: /error TS\d{4}/,
+              },
+              {
+                description: 'distribution mirror rejected a metadata request',
+                stepPrefixes: ['bootstrap container'],
+                required: /Failed to retrieve new repository metadata|Access to requested URL is forbidden|Curl error \(22\)/,
+                forbidden: /error TS\d{4}|Failed to run task "build:compile"/,
+              },
+            ];
+
+            // A step killed by its own `timeout-minutes` budget reports a generic error naming the
+            // step, and the API exposes no structured cause - a step carries only a name, a
+            // conclusion and timestamps - so this log line is the sole signal:
+            //
+            //   ##[error]The action 'Setup Node' has timed out after 5 minutes.
+            //
+            // Two families of step are retried when they run out of time, so neither needs a rule
+            // of its own. Steps that prepare the environment - fetching sources, toolchains,
+            // packages, images - stall on the network, and a fresh runner is the remedy. Steps that
+            // build the project stall the same way: a successful `Compile Project` averages 30
+            // seconds against a 300 second budget, so exhausting that budget is a ten-fold
+            // deviation - a stall in `npm ci` or in `npx tsc` - rather than a slow build. A real
+            // compile error fails in seconds instead, and `error TS####` vetoes the retry anyway.
+            //
+            // Steps that execute Solo are excluded: `Run E2E Tests` timed out in four of the
+            // audited logs and every one was a reproducible product hang, so retrying those would
+            // only hide the bug.
+            // A step that runs or serves something can occupy its whole budget by design or hang on a
+            // product bug, so it is never retried even when its name opens with a retryable verb.
+            // `Build and Start Metrics Plotter tool` is the case that matters: it leaves a
+            // foreground server listening on 127.0.0.1:8123 and can only ever end by timing out.
+            const longRunningStepPattern = /\b(start|serve|run|test|deploy|destroy|launch|migrate)\b/i;
+
+            const retryableStepPattern =
+              /^(set up job|harden runner|checkout|set ?up|install|configure|bootstrap|restore|retry|build|compile|pack)\b/i;
+
+            // Such a step can also fail for a settled reason no rerun will change - a bad ref or
+            // credentials, an unresolvable action, a compile error - which vetoes a timeout retry.
+            const settledFailurePattern =
+              /fatal:|RPC failed|index-pack failed|Repository not found|could not read Username|Unable to resolve action|error TS\d{4}/;
+
+            const escapeForRegExp = (text) => text.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+            const stepRanOutOfTime = (stepName, log) =>
+              new RegExp(`The action '${escapeForRegExp(stepName)}' has timed out after \\d+ minutes?`).test(log);
+
+            // A step wrapped in an action that spawns a child process - `step-security/retry`, for
+            // one - is killed without the message above when its budget expires, so the log alone
+            // cannot see it. What remains is the timing: the runner stops the step on the exact
+            // second its `timeout-minutes` budget ends, which is why a whole number of minutes is
+            // the signal. `Setup Posix Dependencies` failed this way three times in 48 hours, each
+            // at exactly 300 seconds, while no failure on a step outside this list landed on a
+            // minute boundary at all.
+            const stepHitAnExactBudget = (step) => {
+              const seconds = (Date.parse(step.completed_at) - Date.parse(step.started_at)) / 1000;
+              return Number.isInteger(seconds) && seconds >= 120 && seconds % 60 === 0;
+            };
+
+            const readJobLog = async (jobId) => {
+              try {
+                const response = await github.rest.actions.downloadJobLogsForWorkflowRun({
+                  owner, repo, job_id: jobId,
+                });
+                // Windows logs carry NUL bytes and every runner colourises errors, both of which
+                // break a plain match: a compile error arrives as "error" and " TS1117" separated
+                // by SGR escape sequences.
+                return String(response.data)
+                  .replaceAll(/\u001B\[[\d;]*[a-zA-Z]/g, '')
+                  .replaceAll(/[\0\r]/g, '');
+              } catch (error) {
+                // A log we cannot read leaves the job unclassified rather than retried, so an
+                // unreadable log costs a manual rerun instead of masking a genuine failure.
+                core.warning(`Could not read the log of job ${jobId}: ${error.message}`);
+                return undefined;
+              }
+            };
+
+            // A lost runner leaves its step `in_progress` and uploads no log; its annotation is the only record.
+            const lostRunnerPattern = /^The hosted runner lost communication with the server\./;
+
+            const runnerWasLost = async (jobId) => {
+              try {
+                const annotations = await github.paginate(github.rest.checks.listAnnotations, {
+                  owner, repo, check_run_id: jobId, per_page: 100,
+                });
+                return annotations.some(annotation =>
+                  annotation.annotation_level === 'failure' && lostRunnerPattern.test(annotation.message));
+              } catch (error) {
+                // As with an unreadable log, the job is left unclassified rather than retried.
+                core.warning(`Could not read the annotations of job ${jobId}: ${error.message}`);
+                return false;
+              }
+            };
+
+            // Repeated from the job condition so a cancelled run is refused even if the trigger
+            // is ever widened, and so the behaviour can be exercised in isolation.
+            if (run.conclusion !== 'failure') {
+              core.info(`${run.name} run ${run.id} concluded as '${run.conclusion}', not 'failure'. Nothing to retry.`);
+              return;
+            }
+
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              owner, repo, run_id: run.id, filter: 'latest', per_page: 100,
+            });
+
+            // A cancelled job means the run was interrupted before the final state could settle.
+            // Retrying a stale or partial run is not safe, so the whole run is left alone.
+            const cancelledJobs = jobs.filter(job => job.conclusion === 'cancelled');
+            if (cancelledJobs.length > 0) {
+              core.info(
+                `${run.name} run ${run.id} was interrupted (cancelled jobs: ` +
+                `${cancelledJobs.map(job => job.name).join(', ')}). Leaving the run alone.`
+              );
+              return;
+            }
+
+            // Cancelled jobs and cancelled steps are never classified: only an outright failure
+            // carries a signature worth reading.
+            const failedJobs = jobs.filter(job => job.conclusion === 'failure');
+            const reasons = [];
+
+            for (const job of failedJobs) {
+              // Same step gate as a timeout: a runner lost while Solo runs may have been starved by Solo itself.
+              const interruptedStep = (job.steps ?? []).find(step => step.status === 'in_progress');
+              if (
+                interruptedStep &&
+                retryableStepPattern.test(interruptedStep.name) &&
+                !longRunningStepPattern.test(interruptedStep.name) &&
+                (await runnerWasLost(job.id))
+              ) {
+                reasons.push(`${job.name}: the hosted runner was lost during '${interruptedStep.name}'`);
+                continue;
+              }
+
+              // Rule prefixes compare lower case, but the timeout error quotes the step name
+              // exactly as written, so the original casing has to survive.
+              const failedSteps = (job.steps ?? []).filter(step => step.conclusion === 'failure');
+              const failedStepNames = failedSteps.map(step => step.name.toLowerCase());
+
+              const candidates = rules.filter(rule =>
+                rule.stepPrefixes.length === 0 ||
+                failedStepNames.some(name => rule.stepPrefixes.some(prefix => name.startsWith(prefix))));
+
+              const retryableSteps = failedSteps.filter(
+                step => retryableStepPattern.test(step.name) && !longRunningStepPattern.test(step.name));
+
+              if (candidates.length === 0 && retryableSteps.length === 0) {
+                continue;
+              }
+
+              const log = await readJobLog(job.id);
+              if (log === undefined) {
+                continue;
+              }
+
+              const matched = candidates.find(rule => rule.required.test(log) && !rule.forbidden.test(log));
+              if (matched) {
+                reasons.push(`${job.name}: ${matched.description}`);
+                continue;
+              }
+
+              const timedOutStep = retryableSteps.find(
+                step => stepRanOutOfTime(step.name, log) || stepHitAnExactBudget(step));
+              if (timedOutStep && !settledFailurePattern.test(log)) {
+                reasons.push(`${job.name}: '${timedOutStep.name}' exceeded its time budget`);
+              }
+            }
+
+            const failedJobSummary = failedJobs.map(job => job.name).join(', ') || 'none';
+
+            if (reasons.length === 0) {
+              core.info(
+                `${run.name} run ${run.id} (attempt ${run.run_attempt}) failed without a transient ` +
+                `signature. Failed jobs: ${failedJobSummary}. Leaving the run alone.`
+              );
+              return;
+            }
+
+            // `rerun-failed-jobs` is a run level endpoint: it reruns every failed job and their
+            // dependents, not the subset matched above. A run mixing a transient failure with a
+            // real regression would therefore rerun the regression too. Retry only when every
+            // failed job is transient; a mixed run is left alone and stays red for a human.
+            if (reasons.length !== failedJobs.length) {
+              core.info(
+                `${run.name} run ${run.id} mixes transient and non-transient failures ` +
+                `(${reasons.length} of ${failedJobs.length} failed jobs are transient). ` +
+                `Failed jobs: ${failedJobSummary}. Leaving the run alone.`
+              );
+              return;
+            }
+
+            if (run.run_attempt >= maxRunAttempts) {
+              core.warning(
+                `Transient failures found (${reasons.join('; ')}), but run ${run.id} is already at ` +
+                `attempt ${run.run_attempt} of ${maxRunAttempts}; not rerunning. ${run.html_url}`
+              );
+              return;
+            }
+
+            // Multiple workflow_run events can be queued for the same source run while a rerun is
+            // starting. Refresh the run immediately before the POST so a stale event cannot try
+            // to rerun a run that is already in progress or has already succeeded.
+            const currentRun = await github.rest.actions.getWorkflowRun({ owner, repo, run_id: run.id });
+            if (
+              currentRun.data.status !== 'completed' ||
+              currentRun.data.conclusion !== 'failure' ||
+              currentRun.data.run_attempt !== run.run_attempt
+            ) {
+              core.info(
+                `Run ${run.id} changed while it was being classified ` +
+                `(event attempt ${run.run_attempt}, current attempt ${currentRun.data.run_attempt}, ` +
+                `status '${currentRun.data.status}', conclusion '${currentRun.data.conclusion}'). ` +
+                'Another retry handler may already be processing it; leaving the run alone.'
+              );
+              return;
+            }
+
+            try {
+              await github.rest.actions.reRunWorkflowFailedJobs({ owner, repo, run_id: run.id });
+            } catch (error) {
+              if (error.status === 403 && /cannot be retried/i.test(error.message)) {
+                core.info(
+                  `Run ${run.id} was changed by another retry handler before it could be rerun. ` +
+                  'Leaving the run alone.'
+                );
+                return;
+              }
+              throw error;
+            }
+            core.notice(
+              `Transient failures found (${reasons.join('; ')}). Reran the failed jobs of run ` +
+              `${run.id}, which was at attempt ${run.run_attempt} of ${maxRunAttempts}. ${run.html_url}`
+            );

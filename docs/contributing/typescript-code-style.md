@@ -653,7 +653,7 @@ A class, method, or module should have one reason to change.
 
 **Across repos (the most common SRP violation in review):**
 
-- **Lifecycle behavior belongs in the container image**, not in Solo's `kubectl exec` strings. If Solo is `touch`ing supervisor files, removing `down` markers, or polling for JVM startup, the responsibility is in the wrong layer — push it into [`solo-containers`](https://github.com/hashgraph/solo-containers).
+- **Lifecycle behavior belongs in the container image**, not in Solo's `kubectl exec` strings. If Solo is `touch`ing supervisor files, removing `down` markers, or polling for JVM startup, the responsibility is in the wrong layer — push it into [`solo-containers`](https://github.com/hiero-ledger/solo-containers).
 - **Documentation belongs in [`solo-docs`](https://github.com/hiero-ledger/solo-docs)**, not in `docs/site/content/en/docs/`. Files under the in-repo `docs/site/content/` are migrating out; do not invest in them.
 - **Version pinning of upstream images** belongs to a release cut of the upstream repo — do not pin `main` to alpha/RC versions whose source isn't on the upstream repo's `main` branch.
 

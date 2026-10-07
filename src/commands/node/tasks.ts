@@ -15,6 +15,7 @@ import {type HelmClient} from '../../integration/helm/helm-client.js';
 import {ReleaseItem} from '../../integration/helm/model/release/release-item.js';
 import {Zippy} from '../../core/zippy.js';
 import * as constants from '../../core/constants.js';
+import {SoloChartRepository} from '../../core/solo-chart-repository.js';
 import {
   CHECK_WRAPS_DIRECTORY_BACKOFF_MS,
   CHECK_WRAPS_DIRECTORY_MAX_ATTEMPTS,
@@ -167,6 +168,7 @@ import {DeploymentStateSchema} from '../../data/schema/model/remote/deployment-s
 import {type BaseStateSchema} from '../../data/schema/model/remote/state/base-state-schema.js';
 import {type BlockNodeStateSchema} from '../../data/schema/model/remote/state/block-node-state-schema.js';
 import {ComponentStateMetadataSchema} from '../../data/schema/model/remote/state/component-state-metadata-schema.js';
+import {ConsensusNodeStateSchema} from '../../data/schema/model/remote/state/consensus-node-state-schema.js';
 import net from 'node:net';
 import {type NodeConnectionsContext} from './config-interfaces/node-connections-context.js';
 import {TDirectoryData} from '../../integration/kube/t-directory-data.js';
@@ -482,8 +484,7 @@ export class NodeCommandTasks {
       `rm -rf ${constants.HEDERA_HAPI_PATH}/${constants.HEDERA_DATA_LIB_DIR}/*.jar ${constants.HEDERA_HAPI_PATH}/${constants.HEDERA_DATA_APPS_DIR}/*.jar`,
     ]);
 
-    await container.copyTo(localDataLibraryBuildPath, `${constants.HEDERA_HAPI_PATH}`, localBuildPathFilter);
-    await container.execContainer(['bash', '-c', this.buildNormalizeHederaJarPermissionsCommand()]);
+    await this.copyAndVerifyLocalBuildJars(container, localDataLibraryBuildPath, constants.HEDERA_HAPI_PATH);
 
     const upgradeDirectory: string = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`;
     if (await container.hasDir(upgradeDirectory)) {
@@ -492,8 +493,7 @@ export class NodeCommandTasks {
         '-c',
         `rm -rf ${upgradeDirectory}/${constants.HEDERA_DATA_LIB_DIR}/*.jar ${upgradeDirectory}/${constants.HEDERA_DATA_APPS_DIR}/*.jar`,
       ]);
-      await container.copyTo(localDataLibraryBuildPath, upgradeDirectory, localBuildPathFilter);
-      await container.execContainer(['bash', '-c', this.buildNormalizeHederaJarPermissionsCommand(upgradeDirectory)]);
+      await this.copyAndVerifyLocalBuildJars(container, localDataLibraryBuildPath, upgradeDirectory);
     }
 
     await container.execContainer(['sync', constants.HEDERA_HAPI_PATH]);
@@ -504,6 +504,35 @@ export class NodeCommandTasks {
         if (fs.existsSync(jsonFile)) {
           await container.copyTo(jsonFile, `${constants.HEDERA_HAPI_PATH}`);
         }
+      }
+    }
+  }
+
+  /**
+   * Copy the local build into `hapiPath` and verify the copied jars, copying again when a jar is corrupt.
+   *
+   * `copyTo` only checks that a copied directory exists, which is true even for the stock image, so a truncated jar
+   * slips through it (issue #6010). The truncation is intermittent, so another copy usually fixes it (issue #6079).
+   */
+  private async copyAndVerifyLocalBuildJars(
+    container: Container,
+    localDataLibraryBuildPath: string,
+    hapiPath: string,
+  ): Promise<void> {
+    const maxAttempts: number = constants.CONTAINER_COPY_MAX_ATTEMPTS;
+    for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
+      await container.copyTo(localDataLibraryBuildPath, hapiPath, localBuildPathFilter);
+      await container.execContainer(['bash', '-c', this.buildNormalizeHederaJarPermissionsCommand(hapiPath)]);
+      try {
+        await this.platformInstaller.verifyJarIntegrity(container, hapiPath);
+        return;
+      } catch (error) {
+        if (attempt === maxAttempts) {
+          throw error;
+        }
+        this.logger.warn(
+          `Jar integrity check failed in ${hapiPath} on attempt ${attempt} of ${maxAttempts}, copying again: ${error.message}`,
+        );
       }
     }
   }
@@ -1716,17 +1745,6 @@ export class NodeCommandTasks {
             `chown -R hedera:hedera ${constants.HEDERA_HAPI_PATH}/data/saved`,
           ]);
 
-          // Clean up old rounds - keep only the latest/biggest round
-          this.logger.info(`Cleaning up old rounds in pod ${podReference.name}, keeping only the latest round`);
-
-          const cleanupScriptName: string = PathEx.basename(constants.CLEANUP_STATE_ROUNDS_SCRIPT);
-          const cleanupScriptDestination: string = `${constants.HEDERA_USER_HOME_DIR}/${cleanupScriptName}`;
-
-          await container.execContainer(['mkdir', '-p', constants.HEDERA_USER_HOME_DIR]);
-          await container.copyTo(constants.CLEANUP_STATE_ROUNDS_SCRIPT, constants.HEDERA_USER_HOME_DIR);
-          await container.execContainer(['chmod', '+x', cleanupScriptDestination]);
-          await container.execContainer([cleanupScriptDestination, constants.HEDERA_HAPI_PATH]);
-
           // Rename node ID directories to match the target node
           if (sourceNodeId !== targetNodeId) {
             this.logger.info(
@@ -1753,6 +1771,57 @@ export class NodeCommandTasks {
             '-c',
             `chown -R hedera:hedera ${constants.HEDERA_HAPI_PATH}/data/saved`,
           ]);
+        }
+      },
+      skip,
+    };
+  }
+
+  /**
+   * A restored state carries the address book of the network it was captured on, which would have this
+   * network's nodes gossiping to the wrong endpoints with mismatched certificates. `override-network.json`
+   * tells the consensus node to use the roster generated here instead.
+   */
+  public installOverrideNetworkJson(skip: SkipCheck | boolean): SoloListrTask<NodeStartContext> {
+    return {
+      title: 'Install override-network.json',
+      task: async ({config}): Promise<void> => {
+        // Written under the cache rather than the staging directory: `node start` does not take the flags
+        // that populate `config.stagingDir`, so it is undefined here. A unique directory per invocation
+        // keeps two concurrent transplants under the same SOLO_HOME from reading each other's roster.
+        fs.mkdirSync(constants.SOLO_CACHE_DIR, {recursive: true});
+        const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(constants.SOLO_CACHE_DIR, 'override-network-'));
+
+        try {
+          const overrideNetworkJson: string = await this.generateNetworkJson(
+            constants.OVERRIDE_NETWORK_FILE,
+            config.namespace,
+            config.consensusNodes,
+            temporaryDirectory,
+            config.domainNamesMapping,
+            config.gossipEndpointPortMapping,
+            config.serviceEndpointPortMapping,
+          );
+
+          for (const nodeAlias of config.nodeAliases) {
+            const kubeContext: Optional<string> = extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
+            const container: Container = this.k8Factory
+              .getK8(kubeContext)
+              .containers()
+              .readByRef(ContainerReference.of(config.podRefs[nodeAlias], constants.ROOT_CONTAINER));
+
+            await container.copyTo(overrideNetworkJson, ConsensusNodePathTemplates.DATA_CONFIG);
+
+            // copyTo lands the file as root; the node runs as hedera and would otherwise be denied access.
+            await container.execContainer([
+              'bash',
+              '-c',
+              `chown hedera:hedera ${ConsensusNodePathTemplates.OVERRIDE_NETWORK_JSON}`,
+            ]);
+          }
+        } finally {
+          // The file only has to exist long enough to be copied into each pod.
+          fs.rmSync(temporaryDirectory, {force: true, recursive: true});
         }
       },
       skip,
@@ -1890,7 +1959,8 @@ export class NodeCommandTasks {
           );
         }
         if (isGenesis) {
-          await this.generateGenesisNetworkJson(
+          await this.generateNetworkJson(
+            constants.GENESIS_NETWORK_FILE,
             config.namespace,
             config.consensusNodes,
             config.stagingDir,
@@ -2026,10 +2096,7 @@ export class NodeCommandTasks {
         }
         // skip if caller opted out (e.g. restore flow where endpoint is already correct
         // in the restored state and re-sending triggers the CN v0.74 CHECKING bug)
-        if (this.configManager.getFlag<boolean>(flags.skipGrpcWebEndpoint)) {
-          return true;
-        }
-        return false;
+        return this.configManager.getFlag<boolean>(flags.skipGrpcWebEndpoint);
       },
       task: async ({config}): Promise<void> => {
         const {namespace, deployment, adminKey} = config;
@@ -2161,23 +2228,19 @@ export class NodeCommandTasks {
   }
 
   /**
-   * Generate genesis network json file
-   * @param namespace - namespace
-   * @param consensusNodes - consensus nodes
-   * @param keysDirectory - keys directory
-   * @param stagingDirectory - staging directory
-   * @param domainNamesMapping
-   * @param gossipEndpointPortMapping - port overrides for the gossip endpoints
-   * @param serviceEndpointPortMapping - port overrides for the gRPC service endpoints
+   * Writes the address book describing the network as it exists right now — endpoints, admin keys and
+   * weights are read from the live remote config and service map, so the result reflects any nodes added or
+   * updated since genesis. `genesis-network.json` and `override-network.json` share this format.
    */
-  private async generateGenesisNetworkJson(
+  private async generateNetworkJson(
+    fileName: string,
     namespace: NamespaceName,
     consensusNodes: ConsensusNode[],
     stagingDirectory: string,
     domainNamesMapping?: Record<NodeAlias, string>,
     gossipEndpointPortMapping?: EndpointPortMapping,
     serviceEndpointPortMapping?: EndpointPortMapping,
-  ): Promise<void> {
+  ): Promise<string> {
     const deploymentName: string = this.configManager.getFlag<DeploymentName>(flags.deployment);
     const networkNodeServiceMap: Map<NodeAlias, NetworkNodeServices> = await this.accountManager.getNodeServiceMap(
       namespace,
@@ -2202,8 +2265,9 @@ export class NodeCommandTasks {
       serviceEndpointPortMapping,
     );
 
-    const genesisNetworkJson: string = PathEx.join(stagingDirectory, 'genesis-network.json');
-    fs.writeFileSync(genesisNetworkJson, genesisNetworkData.toJSON());
+    const networkJson: string = PathEx.join(stagingDirectory, fileName);
+    fs.writeFileSync(networkJson, genesisNetworkData.toJSON());
+    return networkJson;
   }
 
   public prepareStagingDirectory(nodeAliasesProperty: string): SoloListrTask<AnyListrContext> {
@@ -2250,8 +2314,8 @@ export class NodeCommandTasks {
   public startNodes(nodeAliasesProperty: string): SoloListrTask<AnyListrContext> {
     return {
       title: 'Starting nodes',
-      task: (context_, task): any => {
-        const config: any = context_.config;
+      task: (context_, task): SoloListr<AnyListrContext> => {
+        const config: AnyListrContext = context_.config;
         const nodeAliases: NodeAliases = config[nodeAliasesProperty];
         const subTasks: SoloListrTask<AnyListrContext>[] = [];
 
@@ -2475,6 +2539,108 @@ export class NodeCommandTasks {
     };
   }
 
+  /**
+   * Wait for every node to settle on a terminal startup status, ACTIVE or FREEZE_COMPLETE, and
+   * record on the config which one a state restore landed in.
+   *
+   * A restore cannot predict the status from the archive. The snapshot round is often an
+   * ordinary signed round (this consensus node version reports `SIGNING_WEIGHT_SUM: 0` for
+   * freeze states, so a freeze round is never selected as fully signed), yet the preconsensus
+   * events replayed on top of it still carry the freeze transaction and put the node back into
+   * FREEZE_COMPLETE. Whether that happens depends on how far the retained event stream runs
+   * past the snapshot, so observe the status the nodes actually reach instead of inferring it.
+   */
+  public checkAllNodesAreActiveOrFrozen(nodeAliasesProperty: string): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Check all nodes are ACTIVE or FREEZE_COMPLETE',
+      task: async (context_, task): Promise<void> => {
+        const nodeAliases: NodeAliases = context_.config[nodeAliasesProperty];
+        const frozenStatusName: string = NodeStatusEnums[NodeStatusCodes.FREEZE_COMPLETE];
+
+        const statuses: string[] = await Promise.all(
+          nodeAliases.map((nodeAlias: NodeAlias): Promise<string> =>
+            this.waitForActiveOrFrozenStatus(context_, nodeAlias),
+          ),
+        );
+
+        const statusByNodeAlias: Record<string, string> = Object.fromEntries(
+          nodeAliases.map((nodeAlias: NodeAlias, index: number): [string, string] => [nodeAlias, statuses[index]]),
+        );
+
+        // Only a network that came up entirely frozen skips the ACTIVE-only follow-up work. A
+        // mixed result means the nodes disagree on whether the restore replays back into a
+        // freeze, so fail fast here instead of letting the ACTIVE-only checks run and burn their
+        // own timeout against a node that can never reach ACTIVE without a fresh start.
+        const allFrozen: boolean = statuses.every((status: string): boolean => status === frozenStatusName);
+        const allActive: boolean = statuses.every((status: string): boolean => status !== frozenStatusName);
+        if (!allFrozen && !allActive) {
+          throw new SoloErrors.component.nodeRestoreStatusMismatch(statusByNodeAlias);
+        }
+
+        context_.config.restoredFromFreezeState = allFrozen;
+
+        const statusSummary: string = nodeAliases
+          .map((nodeAlias: NodeAlias, index: number): string => `${nodeAlias}=${statuses[index]}`)
+          .join(', ');
+        task.title = `Check all nodes are ACTIVE or FREEZE_COMPLETE - ${chalk.green(statusSummary)}`;
+      },
+    };
+  }
+
+  private async waitForActiveOrFrozenStatus(context_: AnyListrContext, nodeAlias: NodeAlias): Promise<string> {
+    const maxAttempts: number = constants.NETWORK_NODE_ACTIVE_MAX_ATTEMPTS;
+    const acceptedStatusNames: string[] = [
+      NodeStatusEnums[NodeStatusCodes.ACTIVE],
+      NodeStatusEnums[NodeStatusCodes.FREEZE_COMPLETE],
+    ];
+    const context: string = extractContextFromConsensusNodes(nodeAlias, this.remoteConfig.getConsensusNodes());
+    const podReference: PodReference = PodReference.of(
+      context_.config.namespace,
+      Templates.renderNetworkPodName(nodeAlias),
+    );
+    const networkNodes: NetworkNodes = container.resolve<NetworkNodes>(InjectTokens.NetworkNodes);
+
+    for (let attempt: number = 0; attempt < maxAttempts; attempt++) {
+      const status: string = await networkNodes.getNetworkNodePlatformStatusName(podReference, context);
+      if (acceptedStatusNames.includes(status)) {
+        this.logger.debug(`[state-restore] ${nodeAlias}: reached ${status} after ${attempt + 1} attempt(s)`);
+        return status;
+      }
+
+      await sleep(Duration.ofMillis(constants.NETWORK_NODE_ACTIVE_DELAY));
+    }
+
+    throw new SoloErrors.component.nodeNotReady(nodeAlias, acceptedStatusNames.join(' or '), maxAttempts, maxAttempts);
+  }
+
+  public waitForFrozenStateToBeStable(nodeAliasesProperty: string): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Wait for frozen state files to stabilize',
+      task: (context_, task): SoloListr<AnyListrContext> => {
+        const nodeAliases: NodeAliases = context_.config[nodeAliasesProperty];
+        const subTasks: SoloListrTask<AnyListrContext>[] = nodeAliases.map(
+          (nodeAlias): SoloListrTask<AnyListrContext> => ({
+            title: `Wait for stable frozen state: ${chalk.yellow(nodeAlias)}`,
+            task: async (): Promise<void> => {
+              const context: string = extractContextFromConsensusNodes(
+                nodeAlias,
+                this.remoteConfig.getConsensusNodes(),
+              );
+              const podReference: PodReference = PodReference.of(
+                context_.config.namespace,
+                Templates.renderNetworkPodName(nodeAlias),
+              );
+              await container
+                .resolve<NetworkNodes>(InjectTokens.NetworkNodes)
+                .waitForFrozenStateToBeStable(podReference, context);
+            },
+          }),
+        );
+        return task.newListr(subTasks, {concurrent: true, rendererOptions: {collapseSubtasks: false}});
+      },
+    };
+  }
+
   public checkNodeProxiesAreActive(): SoloListrTask<NodeStartContext | NodeRefreshContext | NodeRestartContext> {
     return {
       title: 'Check node proxies are ACTIVE',
@@ -2499,7 +2665,7 @@ export class NodeCommandTasks {
   ): SoloListrTask<NodeStartContext | NodeRefreshContext | NodeRestartContext> {
     return {
       title: 'Check nodes are ACTIVE and proxies are ready',
-      task: (context_, task): SoloListr<AnyListrContext> => {
+      task: (_, task): SoloListr<AnyListrContext> => {
         const subTasks: SoloListrTask<AnyListrContext>[] = [
           {
             title: 'Check all nodes are ACTIVE',
@@ -3007,7 +3173,7 @@ export class NodeCommandTasks {
                     config.namespace,
                     constants.SOLO_DEPLOYMENT_CHART,
                     constants.SOLO_DEPLOYMENT_CHART,
-                    config.chartDirectory || constants.SOLO_TESTING_CHART_URL,
+                    config.chartDirectory || SoloChartRepository.resolveUrl(config.soloChartVersion),
                     config.soloChartVersion,
                     valuesFiles[clusterReference],
                     context,
@@ -3167,7 +3333,7 @@ export class NodeCommandTasks {
                     cwd: process.cwd(),
                     maxBuffer: 1024 * 1024 * 10, // 10MB buffer
                     env: SubprocessEnvironment.forCommand(SubprocessCommandProfile.HELM, {
-                      PATH: `${container.resolve(InjectTokens.HelmInstallationDirectory)}${PathEx.delimiter}${process.env.PATH}`,
+                      PATH: `${container.resolve(InjectTokens.HelmInstallationDirectory)}${PathEx.delimiter}${SubprocessEnvironment.currentPath()}`,
                     }),
                   },
                 ).toString();
@@ -3483,12 +3649,43 @@ export class NodeCommandTasks {
     return {
       title: 'Get node states',
       task: async (context_): Promise<void> => {
+        const networkNodes: NetworkNodes = container.resolve<NetworkNodes>(InjectTokens.NetworkNodes);
+        const nodePhases: DeploymentPhase[] = [];
         for (const nodeAlias of context_.config.nodeAliases) {
           const context: string = extractContextFromConsensusNodes(nodeAlias, context_.config.consensusNodes);
-          await container
-            .resolve<NetworkNodes>(InjectTokens.NetworkNodes)
-            .getStatesFromPod(context_.config.namespace, nodeAlias, context);
+          const nodeComponent: ConsensusNodeStateSchema = this.remoteConfig.configuration.components.getComponent(
+            ComponentTypes.ConsensusNode,
+            Templates.renderComponentIdFromNodeAlias(nodeAlias),
+          );
+          const deploymentPhase: DeploymentPhase = nodeComponent.metadata.phase;
+
+          if (![DeploymentPhase.FROZEN, DeploymentPhase.STOPPED].includes(deploymentPhase)) {
+            throw new SoloErrors.validation.illegalArgument(
+              `Consensus node ${nodeAlias} must be in phase '${DeploymentPhase.FROZEN}' or '${DeploymentPhase.STOPPED}' before downloading saved state.`,
+            );
+          }
+
+          nodePhases.push(deploymentPhase);
+          await networkNodes.getStatesFromPod(
+            context_.config.namespace,
+            nodeAlias,
+            context,
+            undefined,
+            deploymentPhase,
+          );
         }
+
+        // Normalize all downloaded archives together so every node restores from
+        // the same signed round instead of independently selecting a boundary.
+        const allNodesFrozen: boolean = nodePhases.every(
+          (phase: DeploymentPhase): boolean => phase === DeploymentPhase.FROZEN,
+        );
+        await networkNodes.normalizeDownloadedStateArchives(
+          context_.config.namespace,
+          context_.config.nodeAliases,
+          undefined,
+          allNodesFrozen ? DeploymentPhase.FROZEN : undefined,
+        );
       },
     };
   }
@@ -3659,7 +3856,7 @@ export class NodeCommandTasks {
     return {
       title: 'Load signing key certificate',
       task: (context_): void => {
-        const config: any = context_.config;
+        const config: NodeAddConfigClass = context_.config;
         const signingCertFile: string = Templates.renderGossipPemPublicKeyFile(config.nodeAlias);
         const signingCertFullPath: string = PathEx.joinWithRealPath(config.keysDir, signingCertFile);
         context_.signingCertDer = this.keyManager.getDerFromPemCertificate(signingCertFullPath);
@@ -3671,7 +3868,7 @@ export class NodeCommandTasks {
     return {
       title: 'Compute mTLS certificate hash',
       task: (context_): void => {
-        const config: any = context_.config;
+        const config: NodeAddConfigClass = context_.config;
         const tlsCertFile: string = Templates.renderTLSPemPublicKeyFile(config.nodeAlias);
         const tlsCertFullPath: string = PathEx.joinWithRealPath(config.keysDir, tlsCertFile);
         const tlsCertDer: Uint8Array<ArrayBuffer> = this.keyManager.getDerFromPemCertificate(tlsCertFullPath);
@@ -3836,7 +4033,7 @@ export class NodeCommandTasks {
     return {
       title: 'Send node update transaction',
       task: async (context_): Promise<void> => {
-        const config: any = context_.config;
+        const config: NodeUpdateConfigClass = context_.config;
 
         const nodeId: NodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
         this.logger.info(`nodeId: ${nodeId}, config.newAccountNumber: ${config.newAccountNumber}`);
@@ -3851,7 +4048,7 @@ export class NodeCommandTasks {
           );
         }
 
-        let nodeUpdateTx: any = new NodeUpdateTransaction().setNodeId(new Long(nodeId));
+        let nodeUpdateTx: NodeUpdateTransaction = new NodeUpdateTransaction().setNodeId(new Long(nodeId));
         nodeUpdateTx = nodeUpdateTx.setGossipEndpoints(await this.prepareNodeUpdateGossipEndpoints(config));
 
         if (config.tlsPublicKey && config.tlsPrivateKey) {
@@ -4177,7 +4374,7 @@ export class NodeCommandTasks {
           let found: boolean = false;
           while (attempt < attempts) {
             try {
-              if (await rootContainer.execContainer(`test -d "${targetWrapsPath}"`)) {
+              if (await rootContainer.hasDir(targetWrapsPath)) {
                 found = true;
                 break;
               }
@@ -4187,14 +4384,31 @@ export class NodeCommandTasks {
               );
               await sleep(Duration.ofMillis(CHECK_WRAPS_DIRECTORY_BACKOFF_MS));
               attempt++;
+              continue;
             }
+
+            this.logger.info(
+              `Attempt ${attempt}/${attempts}: WRAPs directory not found in node ${consensusNode.name}. Retrying...`,
+            );
+            await sleep(Duration.ofMillis(CHECK_WRAPS_DIRECTORY_BACKOFF_MS));
+            attempt++;
           }
 
           if (found) {
             continue;
           }
 
-          await rootContainer.copyTo(extractedDirectory, `${constants.HEDERA_HAPI_PATH}/data/keys`);
+          await rootContainer.execContainer(['bash', '-c', `mkdir -p "${targetWrapsPath}"`]);
+          for (const file of wraps.allowedKeyFileSet) {
+            const sourcePath: string = PathEx.join(extractedDirectory, file);
+            if (fs.existsSync(sourcePath)) {
+              await rootContainer.copyFileResumable(
+                sourcePath,
+                `${targetWrapsPath}/${file}`,
+                constants.CONTAINER_COPY_CHUNK_SIZE_BYTES,
+              );
+            }
+          }
         }
       },
     };
@@ -4417,7 +4631,7 @@ export class NodeCommandTasks {
               config.namespace,
               constants.SOLO_DEPLOYMENT_CHART,
               constants.SOLO_DEPLOYMENT_CHART,
-              config.chartDirectory || constants.SOLO_TESTING_CHART_URL,
+              config.chartDirectory || SoloChartRepository.resolveUrl(config.soloChartVersion),
               config.soloChartVersion,
               chartValues,
               context,
@@ -4503,27 +4717,6 @@ export class NodeCommandTasks {
       chartValuesMap: chartValuesMap as Record<ClusterReferenceName, HelmChartValues>,
       valueFilePathsMap: valueFilePathsMap as Record<ClusterReferenceName, string[]>,
     };
-  }
-
-  /**
-   * Append root.image registry/repository/tag settings for a given node path to Helm chart values.
-   * @param chartValues - existing chart values
-   * @param nodePath - base node path, e.g. `hedera.nodes[0]`
-   * @param registry - image registry
-   * @param repository - image repository
-   * @param tag - image tag
-   */
-  private addRootImageValues(
-    chartValues: HelmChartValues,
-    nodePath: string,
-    registry: string,
-    repository: string,
-    tag: string,
-  ): void {
-    chartValues
-      .setLiteral(`${nodePath}.root.image.registry`, registry)
-      .setLiteral(`${nodePath}.root.image.tag`, tag)
-      .setLiteral(`${nodePath}.root.image.repository`, repository);
   }
 
   /**

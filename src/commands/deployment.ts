@@ -46,6 +46,7 @@ import * as version from '../../version.js';
 import find from 'find-process';
 import type ProcessInfo from 'find-process';
 import {SoloErrors} from '../core/errors/solo-errors.js';
+import {SoloError} from '../core/errors/solo-error.js';
 import {IncompleteLocalConfigError} from '../core/errors/classes/config/incomplete-local-config-error.js';
 import {RefreshLocalConfigSourceError} from '../core/errors/classes/config/refresh-local-config-source-error.js';
 import {DeploymentStateSchema} from '../data/schema/model/remote/deployment-state-schema.js';
@@ -362,20 +363,6 @@ export class DeploymentCommand extends BaseCommand {
                 this.localConfig.configuration.deployments.remove(actualDeployment);
               }
 
-              // Prune cluster-refs that are no longer referenced by any remaining deployment, so destroy
-              // converges to a clean local config. Idempotent: deleting an absent cluster-ref is a no-op.
-              const referencedClusterReferences: Set<string> = new Set<string>();
-              for (const remainingDeployment of this.localConfig.configuration.deployments) {
-                for (const cluster of remainingDeployment.clusters) {
-                  referencedClusterReferences.add(cluster.toString());
-                }
-              }
-              for (const clusterReference of this.localConfig.configuration.clusterRefs.keys()) {
-                if (!referencedClusterReferences.has(clusterReference)) {
-                  this.localConfig.configuration.clusterRefs.delete(clusterReference);
-                }
-              }
-
               await this.localConfig.persist();
             } catch {
               // Deployment might not exist in local config, ignore error and continue with cleanup of other deployments if needed
@@ -423,6 +410,10 @@ export class DeploymentCommand extends BaseCommand {
       try {
         await tasks.run();
       } catch (error) {
+        if (error instanceof SoloError) {
+          throw error;
+        }
+
         throw new SoloErrors.deployment.clusterAddFailed(
           flags.getFormattedFlagKey(flags.clusterRef),
           flags.getFormattedFlagKey(flags.context),
@@ -1211,7 +1202,6 @@ export class DeploymentCommand extends BaseCommand {
    * Validates:
    * - cluster ref is present in the local config's cluster-ref => context mapping
    * - the deployment is created
-   * - the cluster-ref is not already added to the deployment
    */
   public verifyClusterAddArgs(): SoloListrTask<DeploymentAddClusterContext> {
     return {
@@ -1231,15 +1221,6 @@ export class DeploymentCommand extends BaseCommand {
 
         if (!this.localConfig.configuration.deploymentByName(deployment)) {
           throw new SoloErrors.deployment.notFound(`Deployment ${deployment} not found in local config`);
-        }
-
-        if (
-          this.localConfig.configuration.deploymentByName(deployment).clusters.includes(new StringFacade(clusterRef))
-        ) {
-          throw new SoloErrors.deployment.clusterRefAlreadyExists(
-            clusterRef,
-            Flags.getFormattedFlagKey(Flags.clusterRef),
-          );
         }
       },
     };

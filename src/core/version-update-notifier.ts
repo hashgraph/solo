@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import fs from 'node:fs';
+import https from 'node:https';
+import {type ClientRequest, type IncomingMessage} from 'node:http';
 import chalk from 'chalk';
 import * as constants from './constants.js';
 import {PACKAGE_NAME} from './constants.js';
@@ -37,7 +39,7 @@ export class VersionUpdateNotifier {
   /** How long a cached latest-version lookup is considered fresh (24 hours). */
   private static readonly CHECK_INTERVAL_MILLISECONDS: number = Duration.ofHours(24).toMinutes();
 
-  private static readonly FETCH_TIMEOUT_MILLISECONDS: number = 2000;
+  private static readonly REQUEST_TIMEOUT_MILLISECONDS: number = 2000;
 
   /** Location of the cache file within the Solo cache directory. */
   private static readonly CACHE_FILE_PATH: string = PathEx.join(constants.SOLO_CACHE_DIR, 'update-check.json');
@@ -95,29 +97,74 @@ export class VersionUpdateNotifier {
     return cache?.latestVersion;
   }
 
-  /** Fetches the latest published version from the npm registry, or undefined on any failure. */
+  /**
+   * Fetches the latest published version from the npm registry, or undefined on any failure.
+   *
+   * Deliberately uses `node:https` with `agent: false` rather than the global `fetch`. A pooled
+   * client keeps the connection alive past the response and finishes tearing it down on the libuv
+   * thread pool. This check is the last thing a command does before the CLI flushes its logs and
+   * calls `process.exit()`, and on Windows a thread-pool completion that lands after that exit
+   * begins aborts the process with `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)` —
+   * turning a successful command into a crash. An unpooled socket is closed with the response, so
+   * nothing is left in flight at exit.
+   */
   private static async fetchLatestVersion(): Promise<string | undefined> {
-    const controller: AbortController = new AbortController();
-    const timeoutHandle: ReturnType<typeof setTimeout> = setTimeout((): void => {
-      controller.abort();
-    }, VersionUpdateNotifier.FETCH_TIMEOUT_MILLISECONDS);
+    return new Promise<string | undefined>((resolve): void => {
+      let settled: boolean = false;
 
-    try {
-      const response: Response = await fetch(VersionUpdateNotifier.REGISTRY_URL, {
-        signal: controller.signal,
-        headers: {'User-Agent': constants.SOLO_USER_AGENT_HEADER},
+      // Resolves on whichever of response, error, or deadline arrives first; the rest become no-ops.
+      const settle: (version?: string) => void = (version?: string): void => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        resolve(version);
+      };
+
+      const request: ClientRequest = https.get(
+        VersionUpdateNotifier.REGISTRY_URL,
+        {agent: false, headers: {'User-Agent': constants.SOLO_USER_AGENT_HEADER}},
+        (response: IncomingMessage): void => {
+          if (response.statusCode !== 200) {
+            response.resume(); // drain so the socket can close
+            settle();
+            return;
+          }
+
+          let body: string = '';
+          response.setEncoding('utf8');
+          response.on('data', (chunk: string): void => {
+            body += chunk;
+          });
+          response.on('end', (): void => {
+            try {
+              const payload: {version?: string} = JSON.parse(body) as {version?: string};
+              settle(payload.version);
+            } catch {
+              // best-effort: a malformed registry response is treated as "no update available".
+              settle();
+            }
+          });
+          response.on('error', (): void => {
+            // best-effort: a connection reset mid-response falls back to no update.
+            settle();
+          });
+        },
+      );
+
+      request.on('error', (): void => {
+        // best-effort: offline, DNS failure, or a refused connection all fall back to no update.
+        settle();
       });
-      if (!response.ok) {
-        return undefined;
-      }
-      const payload: {version?: string} = (await response.json()) as {version?: string};
-      return payload.version;
-    } catch {
-      // best-effort: offline, DNS failure, timeout/abort, or malformed response all fall back to no update.
-      return undefined;
-    } finally {
-      clearTimeout(timeoutHandle);
-    }
+
+      // unref() so this deadline never holds the CLI open once the answer has arrived, which also
+      // means there is no timer to clear on the happy path.
+      setTimeout((): void => {
+        // best-effort: a registry too slow to answer must not delay the command, so give up quietly.
+        request.destroy();
+        settle();
+      }, VersionUpdateNotifier.REQUEST_TIMEOUT_MILLISECONDS).unref();
+    });
   }
 
   /** Reads and parses the cache file, returning undefined when it is absent or unreadable. */

@@ -30,8 +30,10 @@ import {K8ClientPodCondition} from './k8-client-pod-condition.js';
 import {type PodCondition} from '../../../resources/pod/pod-condition.js';
 import {K8ClientContainerStatus} from './k8-client-container-status.js';
 import {type ContainerStatus} from '../../../resources/pod/container-status.js';
+import {type PodVolumeMount} from '../../../resources/pod/pod-volume-mount.js';
 import {ShellRunner} from '../../../../../core/shell-runner.js';
 import {SubprocessCommandProfile} from '../../../../../core/subprocess-command-profile.js';
+import {SubprocessEnvironment} from '../../../../../core/subprocess-environment.js';
 import chalk from 'chalk';
 import http from 'node:http';
 import os from 'node:os';
@@ -61,6 +63,7 @@ export class K8ClientPod implements Pod {
     public readonly deletionTimestamp?: Date,
     public readonly phase?: string,
     public readonly allContainerStatuses?: ContainerStatus[],
+    public readonly persistentVolumeClaimMounts?: PodVolumeMount[],
   ) {
     this.logger = container.resolve(InjectTokens.SoloLogger);
   }
@@ -234,17 +237,28 @@ export class K8ClientPod implements Pod {
       if (persist) {
         // When running via tsx (dev/test), __filename ends in .ts; use tsx to run the .ts source.
         // In a compiled build it ends in .js; use node to run the compiled .js.
+        // In a SEA binary, the script is extracted to SOLO_SEA_ROOT_DIR/scripts/ at startup.
         const isTsx: boolean = __filename.endsWith('.ts');
         const persistScriptExtension: string = isTsx ? '.ts' : '.js';
-        const useDirectNodeRuntime: boolean = isWindows;
-        let persistCmd: string = isTsx ? 'tsx' : 'node';
+        const seaRootDirectory: string | undefined = constants.getEnvironmentVariable('SOLO_SEA_ROOT_DIR');
+
+        // SEA binary cannot run external JS files (process.execPath points to the SEA itself),
+        // so fall back to 'node' from PATH. Requires node to be available on PATH in SEA mode.
+        const useDirectNodeRuntime: boolean = isWindows && !seaRootDirectory;
+        let persistCmd: string = !seaRootDirectory && isTsx ? 'tsx' : 'node';
         if (useDirectNodeRuntime) {
           persistCmd = process.execPath;
         }
         const persistRuntimeArguments: string[] = useDirectNodeRuntime && isTsx ? ['--import', 'tsx'] : [];
-        const persistPortForwardScriptPath: string = path.resolve(
-          __dirname,
-          `persist-port-forward${persistScriptExtension}`,
+        const persistPortForwardScriptPath: string = seaRootDirectory
+          ? path.join(seaRootDirectory, 'scripts', 'persist-port-forward.js')
+          : path.resolve(__dirname, `persist-port-forward${persistScriptExtension}`);
+
+        // The worker below runs in its own process, so it starts with no operator-configured
+        // allowlist of its own; without forwarding the parent's already-vetted names it would
+        // silently drop them the moment it re-derives its own environment for the kubectl spawn.
+        const operatorAllowlistForKubectl: string = JSON.stringify(
+          SubprocessEnvironment.getOperatorAllowlist(SubprocessCommandProfile.KUBECTL),
         );
 
         cmd = persistCmd;
@@ -257,6 +271,7 @@ export class K8ClientPod implements Pod {
           `${availablePort}:${podPort}`,
           constants.KUBECTL,
           this.kubectlInstallationDirectory,
+          operatorAllowlistForKubectl,
         ];
 
         // WSL2 has issues with kubectl port-forward when binding to localhost, binding to all interfaces will trigger
@@ -294,7 +309,7 @@ export class K8ClientPod implements Pod {
         detached: true,
         commandProfile: SubprocessCommandProfile.KUBECTL,
         environmentVariablesToAppend: {
-          PATH: `${this.kubectlInstallationDirectory}${path.delimiter}${process.env.PATH}`,
+          PATH: `${this.kubectlInstallationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
         },
         useShell: false,
       });
@@ -426,6 +441,42 @@ export class K8ClientPod implements Pod {
     return v1Pod;
   }
 
+  /**
+   * Joins `spec.volumes` to every container's `volumeMounts` so each claim is paired with the paths
+   * it is actually mounted on. A claim declared in `spec.volumes` but mounted by no container is
+   * omitted, since there is nothing to verify for it.
+   */
+  private static resolvePersistentVolumeClaimMounts(v1Pod: V1Pod): PodVolumeMount[] {
+    const claimNameByVolumeName: Map<string, string> = new Map<string, string>();
+    for (const volume of v1Pod.spec?.volumes ?? []) {
+      const claimName: string | undefined = volume.persistentVolumeClaim?.claimName;
+      if (claimName) {
+        claimNameByVolumeName.set(volume.name, claimName);
+      }
+    }
+
+    if (claimNameByVolumeName.size === 0) {
+      return [];
+    }
+
+    const mounts: PodVolumeMount[] = [];
+    for (const podContainer of [...(v1Pod.spec?.initContainers ?? []), ...(v1Pod.spec?.containers ?? [])]) {
+      for (const volumeMount of podContainer.volumeMounts ?? []) {
+        const claimName: string | undefined = claimNameByVolumeName.get(volumeMount.name);
+        if (claimName) {
+          mounts.push({
+            claimName,
+            volumeName: volumeMount.name,
+            containerName: podContainer.name,
+            mountPath: volumeMount.mountPath,
+          });
+        }
+      }
+    }
+
+    return mounts;
+  }
+
   public static fromV1Pod(
     v1Pod: V1Pod,
     pods: Pods,
@@ -461,6 +512,7 @@ export class K8ClientPod implements Pod {
       v1Pod.metadata.deletionTimestamp ? new Date(v1Pod.metadata.deletionTimestamp) : undefined,
       v1Pod.status?.phase,
       allContainerStatuses,
+      K8ClientPod.resolvePersistentVolumeClaimMounts(v1Pod),
     );
   }
 }

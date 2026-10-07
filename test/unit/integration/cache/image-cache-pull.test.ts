@@ -1,0 +1,398 @@
+// SPDX-License-Identifier: Apache-2.0
+
+import 'sinon-chai';
+
+import {expect} from 'chai';
+import sinon, {type SinonStub} from 'sinon';
+import {afterEach, beforeEach, describe, it} from 'mocha';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import {createHash} from 'node:crypto';
+import {ImageCacheHandler} from '../../../../src/integration/cache/impl/image-cache-handler.js';
+import {CacheManifestClient} from '../../../../src/integration/cache/impl/cache-manifest-client.js';
+import {CacheManifestImage} from '../../../../src/integration/cache/models/impl/cache-manifest-image.js';
+import {StaticCacheTargetProvider} from '../../../../src/integration/cache/target-providers/static-cache-target-provider.js';
+import {CacheArtifactEnum} from '../../../../src/integration/cache/enums/cache-artifact-enum.js';
+import {type CacheCatalogStore} from '../../../../src/integration/cache/api/cache-catalog-store.js';
+import {type CacheHealthInspector} from '../../../../src/integration/cache/api/cache-health-inspector.js';
+import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
+import {SoloPinoLogger} from '../../../../src/core/logging/solo-pino-logger.js';
+import {type ContainerEngineClient} from '../../../../src/integration/container-engine/container-engine-client.js';
+import {ClusterNodeResumeOutcome} from '../../../../src/integration/container-engine/cluster-node-resume-outcome.js';
+import {type PackageDownloader} from '../../../../src/core/package-downloader.js';
+import {type SoloListrTask} from '../../../../src/types/index.js';
+import {type AnyListrContext} from '../../../../src/types/aliases.js';
+import {PathEx} from '../../../../src/business/utils/path-ex.js';
+
+const IMAGE_REFERENCE: string = 'docker.io/library/busybox:1.36.1';
+const TAR_FILE: string = 'docker.io__library__busybox__1.36.1.tar';
+const ARCHIVE_CONTENTS: string = 'a pretend image archive';
+const ARCHIVE_HASH: string = createHash('sha256').update(ARCHIVE_CONTENTS).digest('hex');
+
+const target: {type: CacheArtifactEnum; name: string; version: string; source: string | undefined} = {
+  type: CacheArtifactEnum.IMAGE,
+  name: 'docker.io/library/busybox',
+  version: '1.36.1',
+  source: undefined,
+};
+
+const engine: ContainerEngineClient = {
+  loadImageArchiveIntoCluster: async (): Promise<void> => undefined,
+  removeImage: async (): Promise<void> => undefined,
+  listLoadedImagesInCluster: async (): Promise<readonly string[]> => [],
+  resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
+};
+
+function manifestImage(sha256: string = ARCHIVE_HASH): CacheManifestImage {
+  return new CacheManifestImage(
+    IMAGE_REFERENCE,
+    TAR_FILE,
+    `${TAR_FILE}.sha256`,
+    sha256,
+    `https://cdn.solo.hashgraph.io/${TAR_FILE}`,
+    `https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`,
+  );
+}
+
+/**
+ * Runs the pull subtasks one at a time, or all at once the way `solo cache image pull` starts them
+ * (`CACHE_IMAGE_MAX_CONCURRENCY`) when `concurrent` is set.
+ */
+async function runPull(
+  handler: ImageCacheHandler,
+  concurrent: boolean = false,
+): Promise<{config: {results: unknown[]}}> {
+  const subtasks: readonly SoloListrTask<AnyListrContext>[] = await handler.pull();
+  const context: {config: {results: unknown[]}} = {config: {results: []}};
+  const run: (subtask: SoloListrTask<AnyListrContext>) => Promise<void> = (subtask): Promise<void> =>
+    subtask.task(context as never, {title: subtask.title} as never) as Promise<void>;
+
+  if (concurrent) {
+    await Promise.all(subtasks.map((subtask): Promise<void> => run(subtask)));
+  } else {
+    for (const subtask of subtasks) {
+      await run(subtask);
+    }
+  }
+
+  return context;
+}
+
+async function exists(path: string): Promise<boolean> {
+  return fs
+    .access(path)
+    .then((): boolean => true)
+    .catch((): boolean => false);
+}
+
+describe('ImageCacheHandler pull', (): void => {
+  let temporaryDirectory: string;
+  let archivePath: string;
+  let hashPath: string;
+  let loggerStub: sinon.SinonStubbedInstance<SoloPinoLogger>;
+  let logger: SoloLogger;
+  let store: CacheCatalogStore;
+  let inspector: CacheHealthInspector;
+
+  beforeEach(async (): Promise<void> => {
+    temporaryDirectory = await fs.mkdtemp(PathEx.join(os.tmpdir(), 'solo-image-cache-'));
+    archivePath = PathEx.join(temporaryDirectory, TAR_FILE);
+    hashPath = `${archivePath}.sha256`;
+
+    loggerStub = sinon.createStubInstance(SoloPinoLogger);
+    loggerStub.getMessageGroupKeys.returns([]);
+    logger = loggerStub as unknown as SoloLogger;
+
+    store = {
+      save: async (): Promise<void> => undefined,
+      load: async (): Promise<never> => ({items: []}) as never,
+      exists: async (): Promise<boolean> => true,
+      clear: async (): Promise<void> => undefined,
+      resolvePath: (): string => archivePath,
+    };
+
+    inspector = {
+      exists: async (path: string): Promise<boolean> =>
+        fs
+          .access(path)
+          .then((): boolean => true)
+          .catch((): boolean => false),
+      getSize: async (): Promise<number> => 0,
+      filterExisting: async (paths: readonly string[]): Promise<readonly string[]> => paths,
+    };
+  });
+
+  afterEach(async (): Promise<void> => {
+    sinon.restore();
+    await fs.rm(temporaryDirectory, {recursive: true, force: true});
+  });
+
+  /** Writes whatever the fake CDN serves for each URL when fetchFile is called. */
+  function stubDownloader(files: Record<string, string>): SinonStub {
+    const fetchFile: SinonStub = sinon.stub();
+    fetchFile.callsFake(async (url: string, destinationPath: string): Promise<string> => {
+      if (!(url in files)) {
+        throw new Error(`404 for ${url}`);
+      }
+      await fs.writeFile(destinationPath, files[url]);
+      return destinationPath;
+    });
+
+    return fetchFile;
+  }
+
+  function createHandler(fetchFile: SinonStub): ImageCacheHandler {
+    return new ImageCacheHandler(engine, new StaticCacheTargetProvider([target]), store, inspector, logger, {
+      fetchFile,
+    } as unknown as PackageDownloader);
+  }
+
+  it('downloads the archive and its hash file, then verifies both', async (): Promise<void> => {
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}`]: ARCHIVE_CONTENTS,
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`]: `${ARCHIVE_HASH}  ${TAR_FILE}\n`,
+    });
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(fetchFile).to.have.been.calledTwice;
+    expect(context.config.results).to.have.lengthOf(1);
+    expect(await fs.readFile(archivePath, 'utf8')).to.equal(ARCHIVE_CONTENTS);
+    // The hash file is kept next to the archive so it can be re-checked without another download.
+    expect(await exists(hashPath)).to.equal(true);
+  });
+
+  it('skips the download when a valid archive is already cached', async (): Promise<void> => {
+    await fs.writeFile(archivePath, ARCHIVE_CONTENTS);
+    await fs.writeFile(hashPath, ARCHIVE_HASH);
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({});
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(fetchFile).to.not.have.been.called;
+    expect(context.config.results).to.have.lengthOf(1);
+    expect(await exists(archivePath)).to.equal(true);
+  });
+
+  it('deletes a cached archive whose hash no longer matches the manifest', async (): Promise<void> => {
+    await fs.writeFile(archivePath, 'corrupted on disk');
+    await fs.writeFile(hashPath, ARCHIVE_HASH);
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({});
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(await exists(archivePath)).to.equal(false);
+    expect(context.config.results).to.have.lengthOf(0);
+    expect(loggerStub.warn).to.have.been.called;
+  });
+
+  it('deletes a downloaded archive that does not match its expected hash', async (): Promise<void> => {
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}`]: 'corrupted in transit',
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`]: ARCHIVE_HASH,
+    });
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(await exists(archivePath)).to.equal(false);
+    expect(await exists(hashPath)).to.equal(false);
+    expect(context.config.results).to.have.lengthOf(0);
+    expect(loggerStub.warn).to.have.been.called;
+  });
+
+  it('does not download the archive when the manifest and the published hash disagree', async (): Promise<void> => {
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}`]: ARCHIVE_CONTENTS,
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`]: 'c'.repeat(64),
+    });
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(fetchFile).to.have.been.calledOnce;
+    expect(fetchFile.firstCall.args[0]).to.equal(`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`);
+    expect(await exists(archivePath)).to.equal(false);
+    expect(await exists(hashPath)).to.equal(false);
+    expect(context.config.results).to.have.lengthOf(0);
+  });
+
+  it('skips an image the manifest does not list', async (): Promise<void> => {
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([]);
+    const fetchFile: SinonStub = stubDownloader({});
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(fetchFile).to.not.have.been.called;
+    expect(context.config.results).to.have.lengthOf(0);
+    expect(loggerStub.addMessageGroupMessage).to.have.been.called;
+  });
+
+  it('caches nothing and never throws when the manifest is unavailable', async (): Promise<void> => {
+    sinon.stub(CacheManifestClient, 'fetchImages').rejects(new Error('manifest not published'));
+    const fetchFile: SinonStub = stubDownloader({});
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(fetchFile).to.not.have.been.called;
+    expect(context.config.results).to.have.lengthOf(0);
+    expect(loggerStub.addMessageGroupMessage).to.have.been.called;
+  });
+
+  it('records a failure and never throws when a download fails', async (): Promise<void> => {
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({});
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(context.config.results).to.have.lengthOf(0);
+    expect(await exists(archivePath)).to.equal(false);
+    expect(loggerStub.addMessageGroupMessage).to.have.been.called;
+  });
+
+  it('prunes archives and hash files the manifest does not list', async (): Promise<void> => {
+    const staleArchive: string = PathEx.join(temporaryDirectory, 'docker.io__library__busybox__1.35.0.tar');
+    await fs.writeFile(staleArchive, 'an archive from an older solo version');
+    await fs.writeFile(`${staleArchive}.sha256`, 'a'.repeat(64));
+    await fs.writeFile(archivePath, ARCHIVE_CONTENTS);
+    await fs.writeFile(hashPath, ARCHIVE_HASH);
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+
+    await runPull(createHandler(stubDownloader({})));
+
+    expect(await exists(staleArchive)).to.equal(false);
+    expect(await exists(`${staleArchive}.sha256`)).to.equal(false);
+    // the manifest-listed archive is kept
+    expect(await exists(archivePath)).to.equal(true);
+    expect(loggerStub.addMessageGroupMessage).to.have.been.calledWithMatch(
+      sinon.match.string,
+      sinon.match(staleArchive),
+    );
+  });
+
+  it('prunes nothing when the manifest is unavailable', async (): Promise<void> => {
+    const staleArchive: string = PathEx.join(temporaryDirectory, 'docker.io__library__busybox__1.35.0.tar');
+    await fs.writeFile(staleArchive, 'an archive from an older solo version');
+    await fs.writeFile(`${staleArchive}.sha256`, 'a'.repeat(64));
+    sinon.stub(CacheManifestClient, 'fetchImages').rejects(new Error('manifest not published'));
+
+    await runPull(createHandler(stubDownloader({})));
+
+    expect(await exists(staleArchive)).to.equal(true);
+  });
+
+  it('removes an archive cached by an older solo version and downloads the published one', async (): Promise<void> => {
+    // The registry-pull model exported archives locally and never wrote a hash file next to them.
+    await fs.writeFile(archivePath, 'an archive exported from a local container engine');
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}`]: ARCHIVE_CONTENTS,
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`]: ARCHIVE_HASH,
+    });
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(loggerStub.addMessageGroupMessage).to.have.been.calledWithMatch(
+      sinon.match.string,
+      sinon.match(archivePath),
+    );
+    // the published archive replaced it in the same run
+    expect(await fs.readFile(archivePath, 'utf8')).to.equal(ARCHIVE_CONTENTS);
+    expect(await exists(hashPath)).to.equal(true);
+    expect(context.config.results).to.have.lengthOf(1);
+  });
+
+  it('replaces an archive cached by an older solo version when the subtasks run concurrently', async (): Promise<void> => {
+    // The command starts every subtask at once; migration must already be done by then, or the download
+    // subtask rehashes the legacy archive and reports it as corrupted instead of replacing it.
+    await fs.writeFile(archivePath, 'an archive exported from a local container engine');
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}`]: ARCHIVE_CONTENTS,
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`]: ARCHIVE_HASH,
+    });
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile), true);
+
+    expect(loggerStub.warn).to.not.have.been.called;
+    expect(fetchFile).to.have.been.calledTwice;
+    expect(await fs.readFile(archivePath, 'utf8')).to.equal(ARCHIVE_CONTENTS);
+    expect(context.config.results).to.have.lengthOf(1);
+  });
+
+  it('raises a cache directory that cannot be read instead of silently skipping housekeeping', async (): Promise<void> => {
+    sinon.stub(fs, 'readdir').rejects(Object.assign(new Error('EACCES: permission denied'), {code: 'EACCES'}));
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+
+    await expect(createHandler(stubDownloader({})).pull()).to.be.rejectedWith('EACCES');
+  });
+
+  it('leaves an archive cached by an older solo version alone when the manifest is unavailable', async (): Promise<void> => {
+    // Nothing could replace it, and with no manifest entry the load path still accepts it.
+    await fs.writeFile(archivePath, 'an archive exported from a local container engine');
+    sinon.stub(CacheManifestClient, 'fetchImages').rejects(new Error('manifest not published'));
+
+    await runPull(createHandler(stubDownloader({})));
+
+    expect(await exists(archivePath)).to.equal(true);
+  });
+
+  it('reports a file it cannot remove and still caches the rest', async (): Promise<void> => {
+    const staleArchive: string = PathEx.join(temporaryDirectory, 'docker.io__library__busybox__1.35.0.tar');
+    await fs.writeFile(staleArchive, 'an archive from an older solo version');
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const realRm: typeof fs.rm = fs.rm;
+    sinon.stub(fs, 'rm').callsFake(async (path, options): Promise<void> => {
+      if (path === staleArchive) {
+        throw Object.assign(new Error('EPERM: operation not permitted'), {code: 'EPERM'});
+      }
+      await realRm(path, options);
+    });
+    const fetchFile: SinonStub = stubDownloader({
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}`]: ARCHIVE_CONTENTS,
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`]: ARCHIVE_HASH,
+    });
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(await exists(staleArchive)).to.equal(true);
+    expect(loggerStub.addMessageGroupMessage).to.have.been.calledWithMatch(
+      sinon.match.string,
+      sinon.match('Could not remove').and(sinon.match(staleArchive)),
+    );
+    expect(context.config.results).to.have.lengthOf(1);
+  });
+
+  it('finds nothing to migrate on a second run', async (): Promise<void> => {
+    await fs.writeFile(archivePath, ARCHIVE_CONTENTS);
+    await fs.writeFile(hashPath, ARCHIVE_HASH);
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+    const fetchFile: SinonStub = stubDownloader({});
+    const handler: ImageCacheHandler = createHandler(fetchFile);
+
+    await runPull(handler);
+    loggerStub.addMessageGroupMessage.resetHistory();
+    await runPull(handler);
+
+    expect(loggerStub.addMessageGroupMessage).to.not.have.been.called;
+    expect(await exists(archivePath)).to.equal(true);
+    expect(await exists(hashPath)).to.equal(true);
+    expect(fetchFile).to.not.have.been.called;
+  });
+
+  it('leaves files that are not image cache entries alone', async (): Promise<void> => {
+    const unrelatedFile: string = PathEx.join(temporaryDirectory, 'cache-catalog.json');
+    const unrelatedDirectory: string = PathEx.join(temporaryDirectory, 'nested.tar');
+    await fs.writeFile(unrelatedFile, '{}');
+    await fs.mkdir(unrelatedDirectory);
+    sinon.stub(CacheManifestClient, 'fetchImages').resolves([manifestImage()]);
+
+    await runPull(createHandler(stubDownloader({})));
+
+    expect(await exists(unrelatedFile)).to.equal(true);
+    expect(await exists(unrelatedDirectory)).to.equal(true);
+  });
+});

@@ -60,7 +60,6 @@ interface BlockNodePerformanceValuesConfig {
   blockNode?: {
     config?: {
       JAVA_OPTS?: string;
-      SERVER_MAX_MESSAGE_SIZE_BYTES?: string;
     };
   };
 }
@@ -74,9 +73,7 @@ describe('Block node TSS values', (): void => {
       valuesContent,
     ) as BlockNodePerformanceValuesConfig;
     const javaOptions: string | undefined = parsedValues.blockNode?.config?.JAVA_OPTS;
-    const maxMessageSize: string | undefined = parsedValues.blockNode?.config?.SERVER_MAX_MESSAGE_SIZE_BYTES;
 
-    expect(maxMessageSize, 'TSS max message size should cover the genesis WRAPS proof').to.equal('37748736');
     expect(javaOptions, 'TSS JAVA_OPTS should be defined').to.be.a('string');
     expect(javaOptions, 'TSS heap should have enough headroom for the large bootstrap block').to.include('-Xmx512m');
     expect(javaOptions, 'TSS direct memory should be larger than one max block message').to.include(

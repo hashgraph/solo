@@ -47,19 +47,23 @@ runs:
     - name: Build Cache Metadata
       id: cache-metadata
       shell: bash
+      env:
+        OPERATION: ${{ inputs.operation }}
+        KEY_PREFIX: ${{ inputs.key-prefix }}
+        KEY_SUFFIX: ${{ inputs.key-suffix }}
       run: |
         set -euo pipefail
 
-        case "${{ inputs.operation }}" in
+        case "${OPERATION}" in
           restore|save) ;;
-          *) echo "Unsupported operation: ${{ inputs.operation }} (expected 'restore' or 'save')" >&2; exit 1 ;;
+          *) echo "Unsupported operation: ${OPERATION} (expected 'restore' or 'save')" >&2; exit 1 ;;
         esac
 
-        primary_key="${{ inputs.key-prefix }}-${RUNNER_OS}-${RUNNER_ARCH}-${{ inputs.key-suffix }}"
+        primary_key="${KEY_PREFIX}-${RUNNER_OS}-${RUNNER_ARCH}-${KEY_SUFFIX}"
         {
           echo "primary-key=${primary_key}"
           echo "restore-keys<<RESTORE_KEYS"
-          echo "${{ inputs.key-prefix }}-${RUNNER_OS}-${RUNNER_ARCH}-"
+          echo "${KEY_PREFIX}-${RUNNER_OS}-${RUNNER_ARCH}-"
           echo "RESTORE_KEYS"
         } >> "${GITHUB_OUTPUT}"
 
@@ -77,10 +81,12 @@ runs:
       id: inspect
       if: ${{ inputs.operation == 'save' }}
       shell: bash
+      env:
+        CACHE_PATH: ${{ inputs.cache-path }}
       run: |
         set -euo pipefail
 
-        image_cache_dir="${{ inputs.cache-path }}"
+        image_cache_dir="${CACHE_PATH}"
         if [[ -d "${image_cache_dir}" ]] && find "${image_cache_dir}" -type f -name '*.tar' -print -quit | grep -q .; then
           echo "has-files=true" >> "${GITHUB_OUTPUT}"
         else

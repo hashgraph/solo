@@ -1,0 +1,260 @@
+##
+# Copyright (C) 2026 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+# Signs GitHub release assets with Sigstore keyless signing (cosign), uploading
+# a <asset>.sigstore.json bundle next to each asset. The OpenSSF Scorecard
+# Signed-Releases check detects these bundles by filename suffix
+# (https://scorecard.dev/viewer/?uri=github.com/hiero-ledger/solo).
+#
+# This is a reconciler, not a pipeline step: for each target release it signs
+# any asset whose bundle is missing or no longer verifies (e.g. after a
+# --clobber re-upload), and skips assets already correctly signed. Re-running
+# it is always safe.
+#
+# Target releases:
+#   - workflow_run: every release with an asset uploaded or replaced while the
+#     triggering run was in progress. Both workflows below upload release
+#     assets; the trigger fires only after the whole run has finished, so all
+#     of its uploads exist. A dry run uploads nothing and therefore signs nothing.
+#   - workflow_dispatch: the given tag, to back-sign or repair any release.
+#
+# Signing is keyless: the signature is bound to this workflow's OIDC identity
+# via Sigstore Fulcio and recorded in the public Rekor transparency log. No keys
+# or secrets are involved. Bundles verify only against this exact identity:
+#   https://github.com/hiero-ledger/solo/.github/workflows/flow-sign-release-assets.yaml@refs/heads/main
+name: "Sign Release Assets"
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to sign or repair (e.g. v0.88.0)"
+        type: string
+        required: true
+  workflow_run:
+    workflows: ["Deploy Release Artifact", "Deploy Hugo Build and Deploy Site to Pages"]
+    types:
+      - completed
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.tag || github.event.workflow_run.id }}
+  cancel-in-progress: false
+
+jobs:
+  # Signing and uploading are split so that id-token: write and contents: write
+  # are never live in the same job.
+  sign:
+    name: Sign Release Assets
+    runs-on: hiero-solo-linux-medium
+    timeout-minutes: 30
+    # Both triggering workflows upload release assets only when dispatched
+    # manually; their push-triggered runs never touch a release.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.event == 'workflow_dispatch' }}
+    permissions:
+      contents: read
+      # obtain the OIDC token that Sigstore Fulcio exchanges for a signing certificate
+      id-token: write
+    outputs:
+      has-bundles: ${{ steps.sign.outputs.has-bundles }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      OIDC_ISSUER: https://token.actions.githubusercontent.com
+      SIGNER_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/flow-sign-release-assets.yaml@refs/heads/main
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Require Main Branch
+        run: |
+          # The certificate identity includes the ref, so a run from any other
+          # branch would produce bundles that fail verification.
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "::error file=flow-sign-release-assets.yaml::Run this workflow from main (got ${GITHUB_REF})."
+            exit 1
+          fi
+
+      - name: Resolve Target Releases
+        id: targets
+        env:
+          # passed via env rather than interpolated into the script, so the
+          # values are data, never shell code
+          TAG_INPUT: ${{ inputs.tag }}
+          TRIGGER_STARTED_AT: ${{ github.event.workflow_run.run_started_at }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if ! gh release view --repo "${REPO}" -- "${TAG_INPUT}" >/dev/null 2>&1; then
+              echo "::error file=flow-sign-release-assets.yaml::Release ${TAG_INPUT} does not exist."
+              exit 1
+            fi
+            tags="${TAG_INPUT}"
+          else
+            # An empty start time would match every asset of every release.
+            if [[ -z "${TRIGGER_STARTED_AT}" ]]; then
+              echo "::error file=flow-sign-release-assets.yaml::Triggering run has no start time."
+              exit 1
+            fi
+            # Timestamps are ISO-8601 UTC in the same format, so string comparison is chronological.
+            tags="$(SINCE="${TRIGGER_STARTED_AT}" gh api --paginate "repos/${REPO}/releases?per_page=100" --jq '
+              .[] | select(.draft | not)
+                  | select([.assets[] | select(.name | endswith(".sigstore.json") | not)
+                                      | select(.updated_at >= env.SINCE)] | length > 0)
+                  | .tag_name')"
+          fi
+
+          if [[ -z "${tags}" ]]; then
+            echo "::notice file=flow-sign-release-assets.yaml::No release assets changed, nothing to sign."
+          else
+            echo "Target releases:"
+            echo "${tags}"
+          fi
+          {
+            echo "tags<<EOF"
+            echo "${tags}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      # cosign-installer expands its install-dir with envsubst, which the ARC runner image lacks
+      - name: Install envsubst
+        if: ${{ steps.targets.outputs.tags != '' }}
+        run: sudo apt-get update && sudo apt-get install -y gettext-base
+
+      - name: Install Cosign
+        if: ${{ steps.targets.outputs.tags != '' }}
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: 'v3.0.6'
+
+      - name: Sign Unsigned Assets
+        id: sign
+        if: ${{ steps.targets.outputs.tags != '' }}
+        env:
+          TAGS: ${{ steps.targets.outputs.tags }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          bundle_count=0
+          index=0
+
+          while IFS= read -r tag; do
+            [[ -n "${tag}" ]] || continue
+            index=$((index + 1))
+            # Bundles are staged per release under a numbered directory with the
+            # tag recorded in a file, so tag names never become paths.
+            assets_directory="${RUNNER_TEMP}/assets/${index}"
+            bundles_directory="${RUNNER_TEMP}/bundles/${index}"
+            mkdir -p "${assets_directory}" "${bundles_directory}"
+            printf '%s' "${tag}" > "${bundles_directory}/TAG"
+
+            echo "::group::${tag}"
+            # Any download failure must fail the job: a skipped asset would
+            # otherwise be left unsigned while the run still reports success.
+            gh release download --repo "${REPO}" --dir "${assets_directory}" -- "${tag}"
+
+            for asset_path in "${assets_directory}"/*; do
+              asset="$(basename "${asset_path}")"
+              [[ "${asset}" == *.sigstore.json ]] && continue
+              existing_bundle="${asset_path}.sigstore.json"
+
+              if [[ -f "${existing_bundle}" ]] && cosign verify-blob \
+                  --bundle "${existing_bundle}" \
+                  --certificate-identity "${SIGNER_IDENTITY}" \
+                  --certificate-oidc-issuer "${OIDC_ISSUER}" \
+                  -- "${asset_path}" >/dev/null 2>&1; then
+                echo "Already signed and verified: ${asset}"
+                continue
+              fi
+
+              echo "Signing: ${asset}"
+              bundle="${bundles_directory}/${asset}.sigstore.json"
+              cosign sign-blob --yes --bundle "${bundle}" -- "${asset_path}"
+              cosign verify-blob \
+                --bundle "${bundle}" \
+                --certificate-identity "${SIGNER_IDENTITY}" \
+                --certificate-oidc-issuer "${OIDC_ISSUER}" \
+                -- "${asset_path}"
+              bundle_count=$((bundle_count + 1))
+            done
+            echo "::endgroup::"
+          done <<< "${TAGS}"
+
+          if [[ "${bundle_count}" -eq 0 ]]; then
+            echo "::notice file=flow-sign-release-assets.yaml::All target assets are already signed."
+            echo "has-bundles=false" >> "${GITHUB_OUTPUT}"
+          else
+            echo "Created ${bundle_count} signature bundle(s)."
+            echo "has-bundles=true" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Stage Signature Bundles
+        if: ${{ steps.sign.outputs.has-bundles == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sigstore-bundles
+          path: ${{ runner.temp }}/bundles
+          if-no-files-found: error
+          retention-days: 1
+
+  upload:
+    name: Upload Signature Bundles
+    runs-on: hiero-solo-linux-medium
+    timeout-minutes: 15
+    needs: sign
+    if: ${{ needs.sign.outputs.has-bundles == 'true' }}
+    permissions:
+      # Uploading release assets goes through the Releases API, which is only
+      # covered by the contents scope -- GitHub has no narrower releases-only
+      # permission. The grant is confined to this job, which holds no OIDC token,
+      # runs no untrusted input, and executes only SHA-pinned actions against
+      # this repository's own releases.
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Download Signature Bundles
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sigstore-bundles
+          path: bundles
+
+      - name: Upload Signature Bundles
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for bundles_directory in bundles/*/; do
+            tag="$(< "${bundles_directory}TAG")"
+            bundles=("${bundles_directory}"*.sigstore.json)
+            [[ ${#bundles[@]} -gt 0 ]] || continue
+            echo "Uploading ${#bundles[@]} signature bundle(s) to ${tag}..."
+            gh release upload --clobber --repo "${REPO}" -- "${tag}" "${bundles[@]}"
+            echo "::notice file=flow-sign-release-assets.yaml::Signed ${#bundles[@]} asset(s) of ${tag}."
+          done

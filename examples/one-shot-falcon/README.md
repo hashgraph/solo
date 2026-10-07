@@ -5,7 +5,7 @@ This example demonstrates how to use the Solo **one-shot falcon** commands to qu
 ## What It Does
 
 * **Deploys a complete network stack** with consensus nodes, mirror node, explorer, and relay in one command
-* **Uses a values file** to configure all network components with custom settings
+* **Optionally uses a values file** to configure all network components with custom settings; without one it deploys with the `one-shot single` defaults
 * **Simplifies deployment** by avoiding multiple manual steps
 * **Provides quick teardown** with the destroy command
 * **Ideal for testing and development** workflows
@@ -63,6 +63,26 @@ Browse the source code and configuration files for this example in the [GitHub r
      * Destroy the Solo network using `solo one-shot falcon destroy`
      * Delete the Kind cluster
 
+## Deploying Without a Values File
+
+The `--values-file` flag is optional. When it is omitted, `solo one-shot falcon deploy` behaves exactly like `solo one-shot single deploy`:
+
+```sh
+solo one-shot falcon deploy
+```
+
+From this directory, the same deployment is available as a task:
+
+```sh
+task deploy-defaults
+```
+
+Command-line flags still apply, so the defaults can be adjusted without a values file:
+
+```sh
+solo one-shot falcon deploy --num-consensus-nodes 2 --deploy-explorer=false
+```
+
 ## Files
 
 * `Taskfile.yml` — Automation tasks for deploy/destroy and refresh-recovery test flow
@@ -72,7 +92,7 @@ Browse the source code and configuration files for this example in the [GitHub r
 ## Notes
 
 * The **one-shot falcon** commands are designed to streamline deployment workflows
-* All network components are configured through a single values file
+* All network components can be configured through a single values file; without one, the `one-shot single` defaults apply
 * The values file may be written as YAML or as JSON — a file starting with `{` is read as JSON
 * This is perfect for CI/CD pipelines and automated testing
 * For more advanced customization, see the main [Solo documentation](https://github.com/hiero-ledger/solo)
@@ -109,3 +129,34 @@ This is useful for:
 * Testing specific components in isolation
 * Reducing resource usage during development
 * Customizing deployment for specific testing scenarios
+
+## Subprocess environment passthrough
+
+Solo does not forward this shell's environment to the external commands it runs. It builds the
+environment for `helm`, `kubectl` and friends from a per-command allowlist, so a variable a
+managed-Kubernetes credential plugin needs must be named explicitly (see
+[hiero-ledger/solo#5895](https://github.com/hiero-ledger/solo/issues/5895)).
+
+The `test-env-passthrough` task, run as part of `task test` after the network is deployed,
+demonstrates this end to end. It writes a `solo-config.yaml` declaring
+`EXAMPLE_PASSTHROUGH_ACCEPTED` for `helm` and `kubectl` only, then asserts against the
+withheld-variable names Solo records in `solo.log` that:
+
+* the declared variable reached `helm` and `kubectl`;
+* `EXAMPLE_PASSTHROUGH_CONTROL`, declared nowhere, reached neither;
+* the declared variable did **not** reach `npm`.
+
+The task fails the run if any of these does not hold, so it cannot pass silently if the feature
+regresses.
+
+It uses a throwaway `SOLO_HOME` under `.tmp/env-passthrough-home` and **never writes
+`~/.solo/solo-config.yaml`** — running an example must not overwrite your real Solo configuration.
+It can be run on its own once a cluster exists:
+
+```sh
+task deploy
+task test-env-passthrough
+```
+
+See [Subprocess Environment Filtering](https://solo.hiero.org/docs/advanced-solo-setup/subprocess-environment-filtering/)
+for the full reference, including the variable names refused regardless of configuration.

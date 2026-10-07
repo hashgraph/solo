@@ -29,6 +29,23 @@ describe('HelmExecutionBuilder', (): void => {
     }).to.throw(Error);
   });
 
+  describe('flag', (): void => {
+    it('should add a flag', (): void => {
+      const builder: HelmExecutionBuilder = new HelmExecutionBuilder();
+      expect(builder.flag('--atomic')).to.equal(builder);
+    });
+
+    it('should throw error if flag is empty', (): void => {
+      const builder: HelmExecutionBuilder = new HelmExecutionBuilder();
+      expect((): HelmExecutionBuilder => builder.flag('')).to.throw('flag must not be null');
+    });
+
+    it('should throw error if flag does not start with a dash', (): void => {
+      const builder: HelmExecutionBuilder = new HelmExecutionBuilder();
+      expect((): HelmExecutionBuilder => builder.flag('atomic')).to.throw('flag must start with "-"');
+    });
+  });
+
   it('builds a minimal helm environment: keeps KUBECONFIG/HELM_*, drops arbitrary secrets', (): void => {
     process.env.KUBECONFIG = '/home/user/.kube/config';
     process.env.HELM_REPOSITORY_CONFIG = '/home/user/.config/helm/repositories.yaml';

@@ -22,7 +22,7 @@
     "test-script": "test-e2e-node-add-local",
     "coverage-subdirectory": "e2e-node-add-local",
     "coverage-report-name": "E2E_Node_Add_Local_Tests_Coverage_Report",
-    "test-timeout-minutes": 40,
+    "test-timeout-minutes": 45,
     "local-java-build": true,
     "install-dependencies": true,
     "runner": "hiero-solo-linux-large",

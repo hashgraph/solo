@@ -50,6 +50,7 @@ import {InjectTokens} from '../../../core/dependency-injection/inject-tokens.js'
 import {type SoloLogger} from '../../../core/logging/solo-logger.js';
 import {patchInject} from '../../../core/dependency-injection/container-helper.js';
 import path from 'node:path';
+import {SubprocessEnvironment} from '../../../core/subprocess-environment.js';
 import {SemanticVersion} from '../../../business/utils/semantic-version.js';
 
 type BiFunction<T, U, R> = (t: T, u: U) => R;
@@ -164,7 +165,10 @@ export class DefaultKindClient implements KindClient {
   private async executeCall<T extends KindRequest>(request: T): Promise<void> {
     const builder: KindExecutionBuilder = new KindExecutionBuilder();
     builder.executable(this.executable);
-    builder.environmentVariable('PATH', `${this.installationDirectory}${path.delimiter}${process.env.PATH}`);
+    builder.environmentVariable(
+      'PATH',
+      `${this.installationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
+    );
     request.apply(builder);
     const execution: KindExecution = builder.build();
     await execution.call();
@@ -216,7 +220,10 @@ export class DefaultKindClient implements KindClient {
 
     const builder: KindExecutionBuilder = new KindExecutionBuilder();
     builder.executable(this.executable);
-    builder.environmentVariable('PATH', `${this.installationDirectory}${path.delimiter}${process.env.PATH}`);
+    builder.environmentVariable(
+      'PATH',
+      `${this.installationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
+    );
     request.apply(builder);
     const execution: KindExecution = builder.build();
     return responseFunction(execution, responseClass);

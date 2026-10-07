@@ -25,6 +25,10 @@ export class K8ClientContexts implements Contexts {
     return NamespaceName.of(this.kubeConfig.getContextObject(this.readCurrent())?.namespace);
   }
 
+  public readClusterOfContext(context: string): string {
+    return this.kubeConfig.getContextObject(context)?.cluster ?? '';
+  }
+
   public updateCurrent(context: string): void {
     this.kubeConfig.setCurrentContext(context);
   }

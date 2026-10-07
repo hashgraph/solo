@@ -8,6 +8,7 @@ import * as constants from './constants.js';
 import {type ConfigManager} from './config-manager.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {Templates} from './templates.js';
+import {ConsensusNodePathTemplates} from './consensus-node-path-templates.js';
 import {Flags as flags} from '../commands/flags.js';
 import * as Base64 from 'js-base64';
 import chalk from 'chalk';
@@ -165,6 +166,7 @@ export class PlatformInstaller {
       await container.execContainer(`chmod +x ${extractScript}`);
       await container.execContainer(`chown root:root ${extractScript}`);
       await container.execContainer([extractScript, tag]);
+      await this.verifyJarIntegrity(container);
 
       return true;
     } catch (error) {
@@ -179,6 +181,36 @@ export class PlatformInstaller {
       const message: string = `failed to extract platform code in this pod '${podReference}' while using the '${context}' context: ${error.message}`;
       throw new SoloErrors.system.containerOperationFailed(message, error);
     }
+  }
+
+  /**
+   * Verify that every JAR file under the `data/apps` and `data/lib` directories of the given HAPI
+   * directory is a valid ZIP archive, by running `unzip -t` against each of them. A truncated or
+   * otherwise corrupted JAR (for example from an interrupted copy) fails here instead of surfacing
+   * later as a `NoClassDefFoundError` and a `CATASTROPHIC_FAILURE` at node startup.
+   *
+   * @param container - the container to run the verification in
+   * @param hapiPath - the base directory holding the `data/apps` and `data/lib` JAR directories
+   */
+  public async verifyJarIntegrity(container: Container, hapiPath: string = constants.HEDERA_HAPI_PATH): Promise<void> {
+    const applicationsJarGlob: string = `${hapiPath}/${constants.HEDERA_DATA_APPS_DIR}/*.jar`;
+    const librariesJarGlob: string = `${hapiPath}/${constants.HEDERA_DATA_LIB_DIR}/*.jar`;
+    const verifyScriptLines: string[] = [
+      'set -euo pipefail',
+      "foundJarFile='false'",
+      `for jarFile in ${applicationsJarGlob} ${librariesJarGlob}; do`,
+      '  if [[ -f ${jarFile} ]]; then',
+      "    foundJarFile='true'",
+      '    unzip -t ${jarFile} >/dev/null',
+      '  fi',
+      'done',
+      "if [[ ${foundJarFile} != 'true' ]]; then",
+      `  echo 'No jar files found in ${hapiPath}' >&2`,
+      '  exit 1',
+      'fi',
+    ];
+    const verifyScript: string = verifyScriptLines.join('\n');
+    await container.execContainer(['bash', '-c', verifyScript]);
   }
 
   /**
@@ -437,7 +469,7 @@ export class PlatformInstaller {
     context?: string,
   ): Promise<void> {
     if (isGenesis) {
-      const genesisNetworkJson: string[] = [PathEx.joinWithRealPath(stagingDirectory, 'genesis-network.json')];
+      const genesisNetworkJson: string[] = [PathEx.joinWithRealPath(stagingDirectory, constants.GENESIS_NETWORK_FILE)];
       await this.copyFiles(
         podReference,
         genesisNetworkJson,
@@ -446,9 +478,8 @@ export class PlatformInstaller {
         context,
       );
 
-      // Create a persistent archive copy used by `ledger system reset` to restore
-      // genesis-network.json without needing to re-run `consensus node setup`.
-      const archiveDirectory: string = `${constants.HEDERA_HAPI_PATH}/data/config/.archive`;
+      // Archived so `ledger system reset` and a state transplant can restore the address book without
+      // re-running `consensus node setup`.
       await this.k8Factory
         .getK8(context)
         .containers()
@@ -456,8 +487,8 @@ export class PlatformInstaller {
         .execContainer([
           'bash',
           '-c',
-          `mkdir -p ${archiveDirectory} && ` +
-            `cp ${constants.HEDERA_HAPI_PATH}/data/config/genesis-network.json ${archiveDirectory}/genesis-network.json`,
+          `mkdir -p ${ConsensusNodePathTemplates.CONFIG_ARCHIVE} && ` +
+            `cp ${ConsensusNodePathTemplates.GENESIS_NETWORK_JSON} ${ConsensusNodePathTemplates.ARCHIVE_GENESIS_NETWORK_JSON}`,
         ]);
     }
 

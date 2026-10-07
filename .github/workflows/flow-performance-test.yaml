@@ -41,6 +41,15 @@ on:
         type: boolean
         required: false
         default: false
+      report-to-slack:
+        description: "Post the summarized memory report to the nightly Slack channel"
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      SLACK_TEST_WEBHOOK:
+        description: "Webhook used by the Send Slack Notification step to post the memory summary"
+        required: false
   pull_request:
     types:
       - opened
@@ -52,7 +61,9 @@ on:
       - main
       - 'release/*'
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  # Called workflows inherit the caller's workflow name and run ID. Include this workflow's
+  # identity so it does not compete with other reusable jobs in Nightly Extended Tests.
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-performance-test
   cancel-in-progress: true
 
 defaults:
@@ -65,25 +76,28 @@ permissions:
 
 env:
   STEP_TIMEOUT_MINUTES: '5'
+  SLACK_MEMORY_WARNING_MB: '2500'
   KIND_DOCKER_REGISTRY_MIRRORS: ${{ vars.KIND_DOCKER_REGISTRY_MIRRORS }}
 
 jobs:
   performance-test:
     name: Performance Test
-    if: >
-      ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false ||
-      startsWith(github.event.pull_request.title, 'trunk-merge') && !cancelled() && !failure() }}
+    if: >-
+      ${{ (github.event_name != 'pull_request' || github.event.pull_request.draft == false ||
+      startsWith(github.event.pull_request.title, 'trunk-merge')) && !cancelled() && !failure() }}
     timeout-minutes: 90
     runs-on: hiero-solo-linux-large
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Posix Dependencies
@@ -95,8 +109,12 @@ jobs:
           # Install jq (a lightweight and flexible command-line JSON processor)
           sudo apt-get update && sudo apt-get install -y jq
 
+      # setup-node caches npm downloads, and this workflow runs on both pull_request and push to
+      # main, so a pull request run can populate a cache that a later trusted run restores. Accepted
+      # (issue #5957): no release artifact is produced here, so the impact is a corrupted
+      # performance run rather than anything shipped.
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0 # zizmor: ignore[cache-poisoning]
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: 24
@@ -133,10 +151,18 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: task build:compile
 
+      - name: Restore Solo Bin Cache
+        id: solo-bin-cache
+        if: ${{ !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Restore Solo Image Cache
         id: solo-image-cache
         if: ${{ !cancelled() && !failure() }}
-        uses: ./.github/actions/solo-image-cache
+        uses: $/.github/actions/solo-image-cache
         with:
           operation: restore
           key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
@@ -145,12 +171,17 @@ jobs:
         id: run-e2e-tests
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          # github.event_name is read through the GITHUB_EVENT_NAME variable the runner provides.
+          CN_EDGE_VERSION_INPUT: ${{ inputs.cn-edge-version || '' }}
+          USE_EDGE_INPUT: ${{ inputs.use-edge }}
         run: |
           set -euo pipefail
           export PATH=~/.solo/bin:${PATH}
           echo SOLO_TEST_CLUSTER=solo-e2e > .env
           echo ONE_SHOT_WITH_BLOCK_NODE=true >> .env
-          CN_EDGE_VERSION="${{ inputs.cn-edge-version || '' }}"
+          echo BLOCK_STREAM_STREAM_MODE=BLOCKS >> .env
+          echo ONE_SHOT_BLOCK_NODE_PERF=true >> .env
+          CN_EDGE_VERSION="${CN_EDGE_VERSION_INPUT}"
           if [[ -n "${CN_EDGE_VERSION}" ]]; then
             echo "Using consensus node edge version: ${CN_EDGE_VERSION}"
             echo CONSENSUS_NODE_EDGE_VERSION="${CN_EDGE_VERSION}" >> .env
@@ -159,7 +190,7 @@ jobs:
             echo "No consensus node edge version specified, using default from version.ts"
           fi
           USE_EDGE="false"
-          if [[ "${{ github.event_name }}" != "pull_request" && "${{ inputs.use-edge }}" == "true" ]]; then
+          if [[ "${GITHUB_EVENT_NAME}" != "pull_request" && "${USE_EDGE_INPUT}" == "true" ]]; then
             USE_EDGE="true"
           fi
           if [[ "${USE_EDGE}" == "true" ]]; then
@@ -280,9 +311,16 @@ jobs:
             exit "${TASK_RC}"
           fi
 
+      - name: Save Solo Bin Cache
+        if: ${{ github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Save Solo Image Cache
         if: ${{ github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
-        uses: ./.github/actions/solo-image-cache
+        uses: $/.github/actions/solo-image-cache
         with:
           operation: save
           key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
@@ -341,17 +379,21 @@ jobs:
       - name: Write Runner Resource Usage to Workflow Summary
         if: ${{ !cancelled() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          CHART_GENERATED: ${{ steps.generate-chart.outputs.chart_generated }}
+          GENERATED_CHART_FILE: ${{ steps.generate-chart.outputs.chart_file }}
+          GENERATED_MERMAID_FILE: ${{ steps.generate-chart.outputs.mermaid_file }}
         run: |
           echo "## Runner Resource Usage — Performance Test" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ steps.generate-chart.outputs.chart_generated }}" == "true" ]]; then
-            CHART_FILE="${{ steps.generate-chart.outputs.chart_file }}"
+          if [[ "${CHART_GENERATED}" == "true" ]]; then
+            CHART_FILE="${GENERATED_CHART_FILE}"
             if [[ -f "$CHART_FILE" ]]; then
               echo '```' >> $GITHUB_STEP_SUMMARY
               cat "$CHART_FILE" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
             fi
-            MERMAID_FILE="${{ steps.generate-chart.outputs.mermaid_file }}"
+            MERMAID_FILE="${GENERATED_MERMAID_FILE}"
             if [[ -n "$MERMAID_FILE" && -f "$MERMAID_FILE" ]]; then
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "### Pod Memory Distribution by Category" >> $GITHUB_STEP_SUMMARY
@@ -369,13 +411,15 @@ jobs:
         env:
           LOG_FILE: "${{ steps.log-metrics.outputs.solo_log_dir }}/log_file.md"
           JSON_INPUT: "${{ toJSON(fromJSON(steps.log-metrics.outputs.json_log)) }}"
+          CHART_GENERATED: ${{ steps.generate-chart.outputs.chart_generated }}
+          GENERATED_CHART_FILE: ${{ steps.generate-chart.outputs.chart_file }}
         run: |
           echo "## Log Metrics - Performance Test" >> $LOG_FILE
           echo "" >> $LOG_FILE
 
           # Add ASCII resource chart if available
-          if [[ "${{ steps.generate-chart.outputs.chart_generated }}" == "true" ]]; then
-            CHART_FILE="${{ steps.generate-chart.outputs.chart_file }}"
+          if [[ "${CHART_GENERATED}" == "true" ]]; then
+            CHART_FILE="${GENERATED_CHART_FILE}"
             if [[ -f "$CHART_FILE" ]]; then
               echo "<details>" >> $LOG_FILE
               echo "<summary>📊 Runner Resource Usage</summary>" >> $LOG_FILE
@@ -402,15 +446,19 @@ jobs:
       - name: Write Log Metrics to Workflow Summary
         if: ${{ !cancelled() && steps.log-metrics-file.conclusion == 'success' }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          LOG_METRICS_FILE: ${{ steps.log-metrics-file.outputs.log_file }}
         run: |
-          cat "${{ steps.log-metrics-file.outputs.log_file }}" >> $GITHUB_STEP_SUMMARY
+          cat "${LOG_METRICS_FILE}" >> $GITHUB_STEP_SUMMARY
 
       - name: Read Pod Memory Category Table
         id: pod-categories
         if: ${{ !cancelled() && steps.generate-chart.outputs.categories_file != '' }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          GENERATED_CATEGORIES_FILE: ${{ steps.generate-chart.outputs.categories_file }}
         run: |
-          CATEGORIES_FILE="${{ steps.generate-chart.outputs.categories_file }}"
+          CATEGORIES_FILE="${GENERATED_CATEGORIES_FILE}"
           if [[ -f "$CATEGORIES_FILE" ]]; then
             {
               echo "content<<EOF_CATEGORIES"
@@ -418,6 +466,53 @@ jobs:
               echo "EOF_CATEGORIES"
             } >> $GITHUB_OUTPUT
           fi
+
+      - name: Format Slack Memory Summary
+        id: slack-summary
+        if: ${{ !cancelled() && inputs.report-to-slack && steps.pod-categories.outputs.content != '' }}
+        continue-on-error: true
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          POD_CATEGORIES_CONTENT: |-
+            ${{ steps.pod-categories.outputs.content }}
+        run: |
+          MEMORY_USED_MB="$(awk '/^Total \(excl\./ {print $(NF-1)}' <<< "$POD_CATEGORIES_CONTENT")"
+          if [[ ! "${MEMORY_USED_MB}" =~ ^[0-9]+$ ]]; then
+            echo "Unable to extract the Total row from the pod memory category table"
+            exit 1
+          fi
+
+          SAFE_CATEGORIES="$(printf '%s' "$POD_CATEGORIES_CONTENT" | perl -0pe 's/`{3,}/``/g')"
+          TABLE='```'
+          TABLE="${TABLE}"$'\n'"${SAFE_CATEGORIES}"
+          TABLE="${TABLE}"$'\n''```'
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          MESSAGE="${TABLE}"$'\n\n'":link: <${RUN_URL}|View Job Logs>"
+
+          {
+            echo "message<<EOF_MESSAGE"
+            echo "$MESSAGE"
+            echo "EOF_MESSAGE"
+          } >> "$GITHUB_OUTPUT"
+
+          if (( MEMORY_USED_MB > SLACK_MEMORY_WARNING_MB )); then
+            echo "color=warning" >> "$GITHUB_OUTPUT"
+          else
+            echo "color=good" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Send Slack Notification
+        if: ${{ !cancelled() && steps.slack-summary.outcome == 'success' }}
+        uses: rtCamp/action-slack-notify@33ca3be66c6f378fe1610fd1d5258632dbed5e58 # v2.4.0
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_TEST_WEBHOOK }}
+          SLACK_MSG_AUTHOR: Release Engineering
+          SLACK_COLOR: ${{ steps.slack-summary.outputs.color }}
+          SLACK_TITLE: Performance Test Memory Results
+          SLACK_MESSAGE: >-
+            ${{ steps.slack-summary.outputs.message }}
+          SLACK_FOOTER: ${{ github.workflow }}
 
       - name: Move JVM Memory Usage Data to Metrics Directory
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}

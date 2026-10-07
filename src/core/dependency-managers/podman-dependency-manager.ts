@@ -8,6 +8,7 @@ import {InjectTokens} from '../dependency-injection/inject-tokens.js';
 import {BaseDependencyManager} from './base-dependency-manager.js';
 import {PackageDownloader} from '../package-downloader.js';
 import util from 'node:util';
+import path from 'node:path';
 import {SoloError} from '../errors/solo-error.js';
 import {SoloErrors} from '../errors/solo-errors.js';
 import {GitHubApiClient} from '../github-api-client.js';
@@ -16,6 +17,8 @@ import {Zippy} from '../zippy.js';
 import {GitHubRelease, ReleaseInfo, PodmanMode} from '../../types/index.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {OperatingSystem} from '../../business/utils/operating-system.js';
+import {SubprocessEnvironment} from '../subprocess-environment.js';
+import {SubprocessCommandProfile} from '../subprocess-command-profile.js';
 
 const PODMAN_RELEASES_LIST_URL: string = 'https://api.github.com/repos/containers/podman/releases';
 
@@ -25,6 +28,7 @@ export class PodmanDependencyManager extends BaseDependencyManager {
   protected releaseBaseUrl: string;
   protected artifactFileName: string;
   protected artifactVersion: string;
+  private brewPrefix: string = '';
 
   public constructor(
     @inject(InjectTokens.PackageDownloader) downloader: PackageDownloader,
@@ -218,6 +222,51 @@ export class PodmanDependencyManager extends BaseDependencyManager {
     return this.checksum;
   }
 
+  /** Whether the podman on PATH is Homebrew-managed: with symlinks resolved, it lives inside the brew prefix. */
+  public async isBrewManaged(): Promise<boolean> {
+    const podmanPath: false | string = this.getGlobalExecutableWithPath();
+    if (!podmanPath) {
+      return false;
+    }
+    const brewPrefix: string | undefined = await this.getBrewPrefix();
+    return !!brewPrefix && PodmanDependencyManager.resolvesInside(podmanPath, brewPrefix);
+  }
+
+  /**
+   * Directory holding the runtime stack (crun, conmon) for the podman on PATH: the brew bin directory when podman is
+   * Homebrew-managed, otherwise podman's own directory; undefined when podman is not on PATH.
+   */
+  public async getRuntimeBinaryDirectory(): Promise<string | undefined> {
+    const podmanPath: false | string = this.getGlobalExecutableWithPath();
+    if (!podmanPath) {
+      return undefined;
+    }
+    return (await this.isBrewManaged()) ? PathEx.join(await this.getBrewPrefix(), 'bin') : PathEx.dirname(podmanPath);
+  }
+
+  /** The Homebrew prefix, looked up once and then cached; undefined while brew is unavailable. */
+  private async getBrewPrefix(): Promise<string | undefined> {
+    if (!this.brewPrefix) {
+      try {
+        const output: string[] = await this.run('brew', ['--prefix'], {commandProfile: SubprocessCommandProfile.BREW});
+        this.brewPrefix = output.join('').trim();
+      } catch {
+        // brew is unavailable, so the podman on the PATH cannot be Homebrew-managed
+      }
+    }
+    return this.brewPrefix || undefined;
+  }
+
+  /** Whether filePath lies inside directory once symlinks on both sides are resolved. */
+  private static resolvesInside(filePath: string, directory: string): boolean {
+    try {
+      return PathEx.realPathSync(filePath).startsWith(`${PathEx.realPathSync(directory)}${path.sep}`);
+    } catch {
+      // a path that no longer resolves (e.g. a stale brew prefix) cannot contain podman
+      return false;
+    }
+  }
+
   /**
    * The container-configuration environment (CONTAINERS_CONF / CONTAINERS_REGISTRIES_CONF) pointing
    * at the files {@link setupConfig} persisted under this manager's home directory, so rootful
@@ -315,7 +364,7 @@ export class PodmanDependencyManager extends BaseDependencyManager {
     let configContent: string = fs.readFileSync(templatePath, 'utf8');
     configContent = configContent.replace('$HELPER_BINARIES_DIR', this.helpersDirectory.replaceAll('\\', '/'));
     fs.writeFileSync(destinationPath, configContent, 'utf8');
-    process.env.CONTAINERS_CONF = destinationPath;
+    SubprocessEnvironment.setSessionVariable('CONTAINERS_CONF', destinationPath);
   }
 
   /**

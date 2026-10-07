@@ -40,11 +40,6 @@ export class HelmExecutionBuilder extends ExecutionBuilder {
   private readonly _optionsWithMultipleValues: Array<{key: string; value: string[]}> = [];
 
   /**
-   * The flags to be passed to the helm command.
-   */
-  private readonly _flags: string[] = [];
-
-  /**
    * The positional arguments to be passed to the helm command.
    */
   private readonly _positionals: string[] = [];
@@ -166,20 +161,6 @@ export class HelmExecutionBuilder extends ExecutionBuilder {
     }
 
     this._environmentVariables.set(name, value);
-    return this;
-  }
-
-  /**
-   * Adds a flag to the helm execution.
-   * @param flag the flag to be added
-   * @returns this builder
-   */
-  public flag(flag: string): HelmExecutionBuilder {
-    if (!flag) {
-      throw new Error('flag must not be null');
-    }
-
-    this._flags.push(flag);
     return this;
   }
 

@@ -74,7 +74,7 @@ export class OneShotCommandDefinition extends BaseCommandDefinition {
               this.oneShotCommand,
               this.oneShotCommand.deploy,
               DefaultOneShotCommand.DEPLOY_FLAGS_LIST,
-              [...constants.BASE_DEPENDENCIES, ...(constants.CONFIG.ENABLE_IMAGE_CACHE ? [constants.CRANE] : [])],
+              [...constants.BASE_DEPENDENCIES],
               true,
             ),
           )
@@ -101,7 +101,7 @@ export class OneShotCommandDefinition extends BaseCommandDefinition {
               this.oneShotCommand,
               this.oneShotCommand.deploy,
               DefaultOneShotCommand.MULTI_DEPLOY_FLAGS_LIST,
-              [...constants.BASE_DEPENDENCIES, ...(constants.CONFIG.ENABLE_IMAGE_CACHE ? [constants.CRANE] : [])],
+              [...constants.BASE_DEPENDENCIES],
               true,
             ),
           )
@@ -124,11 +124,11 @@ export class OneShotCommandDefinition extends BaseCommandDefinition {
           .addSubcommand(
             new Subcommand(
               OneShotCommandDefinition.SINGLE_DEPLOY,
-              'Deploys all required components for the selected one shot configuration (with optional values file).',
+              'Deploys all required components for the selected one shot configuration. The values file is optional; without one, the one-shot single defaults are used.',
               this.oneShotCommand,
               this.oneShotCommand.deployFalcon,
               DefaultOneShotCommand.FALCON_DEPLOY_FLAGS_LIST,
-              [...constants.BASE_DEPENDENCIES, ...(constants.CONFIG.ENABLE_IMAGE_CACHE ? [constants.CRANE] : [])],
+              [...constants.BASE_DEPENDENCIES],
               true,
             ),
           )

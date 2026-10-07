@@ -3,7 +3,6 @@
 import {Listr} from 'listr2';
 import {
   createAndCopyBlockNodeJsonFileForConsensusNode,
-  Helpers,
   showVersionBanner,
   sleep,
   withTimeout,
@@ -64,6 +63,7 @@ import {BlockNodeDeployedEvent} from '../core/events/event-types/block-node-depl
 import {type Container} from '../integration/kube/resources/container/container.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import yaml from 'yaml';
 
 interface BlockNodeDeployConfigClass {
@@ -78,10 +78,12 @@ interface BlockNodeDeployConfigClass {
   domainName: Optional<string>;
   enableIngress: boolean;
   quiet: boolean;
+  force: boolean;
   valuesFile: Optional<string>;
   releaseTag: string;
   imageTag: Optional<string>;
   componentImage: Optional<string>;
+  componentImageArchive: Optional<string>;
   namespace: NamespaceName;
   context: string;
   chartValues: HelmChartValues;
@@ -125,6 +127,7 @@ interface BlockNodeUpgradeConfigClass {
   deployment: DeploymentName;
   debugMode: boolean;
   quiet: boolean;
+  force: boolean;
   valuesFile: Optional<string>;
   namespace: NamespaceName;
   context: string;
@@ -243,6 +246,7 @@ export class BlockNodeCommand extends BaseCommand {
       flags.debugMode,
       flags.domainName,
       flags.enableIngress,
+      flags.force,
       flags.quiet,
       flags.valuesFile,
       // Keep deprecated legacy flag accepted for backward compatibility.
@@ -250,6 +254,7 @@ export class BlockNodeCommand extends BaseCommand {
       flags.consensusNodeVersion,
       flags.imageTag,
       flags.componentImage,
+      flags.componentImageArchive,
       flags.priorityMapping,
     ],
   };
@@ -302,6 +307,7 @@ export class BlockNodeCommand extends BaseCommand {
       flags.quiet,
       flags.valuesFile,
       flags.upgradeVersion,
+      flags.consensusNodeVersion,
       flags.id,
     ],
   };
@@ -373,18 +379,37 @@ export class BlockNodeCommand extends BaseCommand {
     }
 
     if ('componentImage' in config && config.componentImage) {
+      const hasComponentImageArchive: boolean = this.hasComponentImageArchiveValue(config.componentImageArchive);
       if (this.isLocalImageReference(config.componentImage)) {
-        const {name: localImageName, tag: rawTag} = this.splitImageNameTag(config.componentImage);
-        const localImageTag: string = SemanticVersion.getValidSemanticVersion(rawTag, false, 'Block node image tag');
-        if (this.isLocalImageAvailableInDocker(`${localImageName}:${localImageTag}`)) {
-          // Image found locally — kind-load task will load it; set pullPolicy: Never.
-          chartValues
-            .set('image.repository', localImageName)
-            .set('image.tag', localImageTag)
-            .set('image.pullPolicy', 'Never');
+        if (this.isLocalRegistryImageReference(config.componentImage)) {
+          const parsedReference: ParsedImageReference = ImageReference.parseImageReference(config.componentImage);
+          if (this.isLocalImageAvailableInDocker(config.componentImage) || hasComponentImageArchive) {
+            // Image found locally or loaded from an archive — kind-load task will load it; set pullPolicy: Never.
+            chartValues
+              .setLiteral('image.registry', parsedReference.registry)
+              .set('image.repository', parsedReference.repository)
+              .set('image.tag', parsedReference.tag)
+              .set('image.pullPolicy', 'Never');
+          } else {
+            // Preserve the explicit registry/repository when a local registry image is pulled remotely.
+            chartValues
+              .setLiteral('image.registry', parsedReference.registry)
+              .set('image.repository', parsedReference.repository)
+              .set('image.tag', parsedReference.tag);
+          }
         } else {
-          // Not in local Docker — plain tag override so K8s can pull from a registry.
-          chartValues.set('image.tag', localImageTag);
+          const {name: localImageName, tag: rawTag} = this.splitImageNameTag(config.componentImage);
+          const localImageTag: string = SemanticVersion.getValidSemanticVersion(rawTag, false, 'Block node image tag');
+          if (this.isLocalImageAvailableInDocker(`${localImageName}:${localImageTag}`) || hasComponentImageArchive) {
+            // Image found locally or loaded from an archive — kind-load task will load it; set pullPolicy: Never.
+            chartValues
+              .set('image.repository', localImageName)
+              .set('image.tag', localImageTag)
+              .set('image.pullPolicy', 'Never');
+          } else {
+            // Not in local Docker — plain tag override so K8s can pull from a registry.
+            chartValues.set('image.tag', localImageTag);
+          }
         }
       } else {
         const parsedReference: ParsedImageReference = ImageReference.parseImageReference(config.componentImage);
@@ -392,6 +417,9 @@ export class BlockNodeCommand extends BaseCommand {
           .setLiteral('image.registry', parsedReference.registry)
           .set('image.repository', parsedReference.repository)
           .set('image.tag', parsedReference.tag);
+        if (hasComponentImageArchive) {
+          chartValues.set('image.pullPolicy', 'Never');
+        }
       }
     }
 
@@ -425,10 +453,77 @@ export class BlockNodeCommand extends BaseCommand {
   }
 
   private shouldConfigureRsaMirrorBootstrapSource(): boolean {
-    const consensusNodeVersion: string =
-      this.remoteConfig.configuration.versions?.consensusNode?.toString() ?? versions.HEDERA_PLATFORM_VERSION;
+    const consensusNodeVersion: SemanticVersion<string> = new SemanticVersion<string>(
+      this.remoteConfig.configuration.versions?.consensusNode?.toString() || versions.HEDERA_PLATFORM_VERSION,
+    );
+    if (consensusNodeVersion.lessThan(versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS)) {
+      return false;
+    }
+
     const blockStreamMode: string = constants.getEnvironmentVariable('BLOCK_STREAM_STREAM_MODE') ?? 'BLOCKS';
-    return Helpers.requiresRsaBootstrap(consensusNodeVersion, blockStreamMode);
+    return blockStreamMode === 'BLOCKS' || blockStreamMode === 'BOTH';
+  }
+
+  /**
+   * Rejects a block node version that sits on the opposite side of the fixed 16-slot block root hash
+   * boundary (hiero-consensus-node#26918) from the consensus node it will serve. The consensus node
+   * streams every block to the block node for verification, so a mismatched pair is rejected with
+   * BAD_BLOCK_PROOF until the consensus node block buffer saturates and the network stalls.
+   *
+   * `consensusNodeVersion` must be the version that will actually be running alongside this block
+   * node. See {@link resolveConsensusNodeVersionForCompatibility} for how add picks it.
+   */
+  /**
+   * Picks the consensus node version that a block node being added will actually serve.
+   *
+   * An explicitly requested version wins, because a block node is often added before the consensus
+   * network exists — remote config then still holds solo's default rather than the version about to
+   * be deployed. With no explicit request, remote config is the ground truth for an already deployed
+   * network. Falls back to solo's default when neither is available.
+   *
+   * `--consensus-node-version` defaults to an empty string, which yargs drops, so its presence in
+   * argv means the caller supplied it. The deprecated `--release-tag` always carries solo's default
+   * into argv, so it only counts as explicit when it differs from that default.
+   */
+  private resolveConsensusNodeVersionForCompatibility(argv: ArgvStruct): string {
+    const requestedConsensusNodeVersion: string = argv[flags.consensusNodeVersion.name] as string;
+    if (requestedConsensusNodeVersion) {
+      return requestedConsensusNodeVersion;
+    }
+
+    const requestedReleaseTag: string = argv[flags.releaseTag.name] as string;
+    if (requestedReleaseTag && requestedReleaseTag !== versions.HEDERA_PLATFORM_VERSION) {
+      return requestedReleaseTag;
+    }
+
+    return this.remoteConfig.configuration.versions?.consensusNode?.toString() ?? versions.HEDERA_PLATFORM_VERSION;
+  }
+
+  private assertBlockProofCompatibility(blockNodeVersion: string, consensusNodeVersion: string, force: boolean): void {
+    const blockNodeUsesFixedSlots: boolean = new SemanticVersion<string>(blockNodeVersion).greaterThanOrEqual(
+      versions.MINIMUM_BLOCK_NODE_VERSION_FOR_16_SLOT_BLOCK_PROOF,
+    );
+    const consensusNodeUsesFixedSlots: boolean = new SemanticVersion<string>(consensusNodeVersion).greaterThanOrEqual(
+      versions.MINIMUM_CN_VERSION_FOR_16_SLOT_BLOCK_PROOF,
+    );
+
+    if (blockNodeUsesFixedSlots === consensusNodeUsesFixedSlots) {
+      return;
+    }
+
+    if (force) {
+      this.logger.warn(
+        `Force flag enabled, bypassing the block root hash compatibility check between block node ${blockNodeVersion} and consensus node ${consensusNodeVersion}`,
+      );
+      return;
+    }
+
+    throw new SoloErrors.validation.blockNodeBlockProofIncompatible(
+      blockNodeVersion,
+      consensusNodeVersion,
+      versions.MINIMUM_BLOCK_NODE_VERSION_FOR_16_SLOT_BLOCK_PROOF,
+      versions.MINIMUM_CN_VERSION_FOR_16_SLOT_BLOCK_PROOF,
+    );
   }
 
   private resolveMirrorNodeReleaseName(): string {
@@ -454,10 +549,25 @@ export class BlockNodeCommand extends BaseCommand {
       return undefined;
     }
 
-    const bootstrapJson: Optional<string> = Helpers.buildRsaAddressBookJson(consensusNodes, keysDirectory);
-    if (!bootstrapJson) {
-      return undefined;
+    const nodeAddresses: Array<{RSAPubKey: string; nodeId: number}> = [];
+    for (const consensusNode of consensusNodes) {
+      const alias: NodeAlias = consensusNode.name;
+      const publicKeyFile: string = PathEx.join(keysDirectory, Templates.renderGossipPemPublicKeyFile(alias));
+      if (!fs.existsSync(publicKeyFile)) {
+        return undefined;
+      }
+
+      const certPem: string = fs.readFileSync(publicKeyFile, 'utf8');
+      const spkiDer: Buffer = new crypto.X509Certificate(certPem).publicKey.export({
+        format: 'der',
+        type: 'spki',
+      }) as Buffer;
+      nodeAddresses.push({RSAPubKey: spkiDer.toString('hex'), nodeId: Templates.nodeIdFromNodeAlias(alias)});
     }
+
+    const bootstrapJson: string = JSON.stringify({
+      addressBooks: [{addressBook: {nodeAddress: nodeAddresses}, startBlock: '0', endBlock: '-1'}],
+    });
     const content: string = yaml.stringify({
       blockNode: {
         initContainers: [
@@ -682,12 +792,15 @@ export class BlockNodeCommand extends BaseCommand {
 
   private loadImageIntoKindTask(): SoloListrTask<BlockNodeDeployContext> {
     return {
-      title: 'Load local image into Kind cluster',
+      title: 'Load component image into Kind cluster',
       skip: ({config}: BlockNodeDeployContext): boolean => {
-        return !config.componentImage || !this.isLocalImageAvailableInDocker(config.componentImage);
+        return (
+          !this.hasComponentImageArchiveValue(config.componentImageArchive) &&
+          (!config.componentImage || !this.isLocalImageAvailableInDocker(config.componentImage))
+        );
       },
       task: async ({config}: BlockNodeDeployContext): Promise<void> => {
-        await this.kindLoadComponentImage(config.componentImage, config.context);
+        await this.loadComponentImage(config.componentImage, config.componentImageArchive, config.context);
       },
     };
   }
@@ -880,7 +993,16 @@ export class BlockNodeCommand extends BaseCommand {
               config.componentImage = `${constants.BLOCK_NODE_IMAGE_NAME}:${config.imageTag}`;
             }
 
-            config.livenessCheckPort = this.getLivenessCheckPortNumber(config.chartVersion, config.componentImage);
+            this.assertBlockProofCompatibility(
+              config.chartVersion,
+              this.resolveConsensusNodeVersionForCompatibility(argv),
+              config.force,
+            );
+            config.livenessCheckPort = this.getLivenessCheckPortNumber(
+              config.chartVersion,
+              config.componentImage,
+              config.componentImageArchive,
+            );
 
             await this.persistBlockNodeMessageSizeOverrides(
               config.blockNodeMessageSizeSoftLimitBytes,
@@ -949,17 +1071,17 @@ export class BlockNodeCommand extends BaseCommand {
 
             await this.remoteConfig.persist();
 
-            if (componentImage && this.isLocalImageAvailableInDocker(componentImage)) {
+            if (componentImage && this.isComponentImageAvailableForKind(componentImage, config.componentImageArchive)) {
               // update config map with new VERSION info since
               // it will be used as a critical environment variable by block node
-              const localImageTag: string = this.splitImageNameTag(componentImage).tag;
+              const componentImageTag: string = ImageReference.parseImageReference(componentImage).tag;
               const blockNodeId: ComponentId = newBlockNodeComponent.metadata.id;
 
               const name: string = `block-node-${blockNodeId}-config`;
-              const data: Record<string, string> = {VERSION: localImageTag};
+              const data: Record<string, string> = {VERSION: componentImageTag};
 
               await this.k8Factory.getK8(context).configMaps().update(namespace, name, data);
-              task.title += ` with local built image (${localImageTag})`;
+              task.title += ` with component image (${componentImageTag})`;
             }
 
             showVersionBanner(this.logger, releaseName, chartVersion);
@@ -1345,6 +1467,13 @@ export class BlockNodeCommand extends BaseCommand {
               optionFromFlag(flags.upgradeVersion),
             );
 
+            // On upgrade the consensus network is already deployed, so remote config is ground truth.
+            this.assertBlockProofCompatibility(
+              config.upgradeVersion,
+              this.remoteConfig.configuration.versions?.consensusNode?.toString() ?? versions.HEDERA_PLATFORM_VERSION,
+              config.force,
+            );
+
             if (!this.oneShotState.isActive()) {
               return ListrLock.newAcquireLockTask(lease, task);
             }
@@ -1700,15 +1829,27 @@ export class BlockNodeCommand extends BaseCommand {
   /// Block node >= v0.39.0 serves its health endpoints (`/healthz/readyz`) from a dedicated
   /// web server on `BLOCK_NODE_HEALTH_PORT`; earlier versions served them from the gRPC port
   /// (`BLOCK_NODE_PORT`). The effective version is the higher of the requested chart version and
-  /// a local image tag (when set), mirroring `updateBlockNodeVersionInRemoteConfig`.
-  private getLivenessCheckPortNumber(chartVersion: string, componentImage?: string): number {
+  /// a local image tag or an archive-sourced image (when set); a plain remote-registry image is
+  /// ignored here since it is pulled as-is and does not drive the effective version choice.
+  private getLivenessCheckPortNumber(
+    chartVersion: string,
+    componentImage?: string,
+    componentImageArchive?: string,
+  ): number {
     let blockNodeVersion: SemanticVersion<string> = new SemanticVersion<string>(chartVersion);
 
-    if (componentImage && this.isLocalImageReference(componentImage)) {
-      const tag: string = this.splitImageNameTag(componentImage).tag;
-      const imageVersion: SemanticVersion<string> = new SemanticVersion<string>(tag);
-      if (blockNodeVersion.lessThan(imageVersion)) {
-        blockNodeVersion = imageVersion;
+    if (
+      componentImage &&
+      (this.isLocalImageReference(componentImage) || this.hasComponentImageArchiveValue(componentImageArchive))
+    ) {
+      const tag: string = ImageReference.parseImageReference(componentImage).tag;
+      try {
+        const imageVersion: SemanticVersion<string> = new SemanticVersion<string>(tag);
+        if (blockNodeVersion.lessThan(imageVersion)) {
+          blockNodeVersion = imageVersion;
+        }
+      } catch {
+        // non-semver tags (e.g. implicit latest on tagless registry refs) cannot drive the port choice
       }
     }
 
@@ -1737,9 +1878,17 @@ export class BlockNodeCommand extends BaseCommand {
     }
 
     const deployConfig: BlockNodeDeployConfigClass = config as BlockNodeDeployConfigClass;
-    if (deployConfig.componentImage && this.isLocalImageReference(deployConfig.componentImage)) {
-      const tag: string = this.splitImageNameTag(deployConfig.componentImage).tag;
-      componentImageVersion = new SemanticVersion<string>(tag);
+    if (
+      deployConfig.componentImage &&
+      (this.isLocalImageReference(deployConfig.componentImage) ||
+        this.hasComponentImageArchiveValue(deployConfig.componentImageArchive))
+    ) {
+      const tag: string = ImageReference.parseImageReference(deployConfig.componentImage).tag;
+      try {
+        componentImageVersion = new SemanticVersion<string>(tag);
+      } catch {
+        // non-semver tags (e.g. implicit latest on tagless local registry refs) do not bump the component version
+      }
     }
 
     const finalVersion: SemanticVersion<string> =

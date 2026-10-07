@@ -8,6 +8,10 @@ import {KubePodNotReadyError} from './kube-pod-not-ready-error.js';
 export class KubePodReadinessFailedError extends KubeError {
   public readonly namespace: string;
   public readonly labels: string[];
+  public readonly podName: string | undefined;
+  public readonly phase: string | undefined;
+  public readonly containerSummary: string | undefined;
+  public readonly volumeMountDiagnostic: string | undefined;
 
   public constructor(namespace: string, labels: string[], cause?: Error | unknown) {
     const causeError: Error | undefined = cause instanceof Error ? cause : undefined;
@@ -23,12 +27,14 @@ export class KubePodReadinessFailedError extends KubeError {
 
     if (cause instanceof KubePodNotFoundError) {
       meta['resource'] = cause.resource;
+      meta['volumeMountDiagnostic'] = cause.volumeMountDiagnostic;
     }
 
     if (cause instanceof KubePodNotReadyError) {
       meta['podName'] = cause.podName;
       meta['phase'] = cause.phase;
       meta['containerSummary'] = cause.containerSummary;
+      meta['volumeMountDiagnostic'] = cause.volumeMountDiagnostic;
     }
 
     super(
@@ -40,5 +46,15 @@ export class KubePodReadinessFailedError extends KubeError {
     );
     this.namespace = namespace;
     this.labels = labels;
+    if (cause instanceof KubePodNotReadyError) {
+      this.podName = cause.podName;
+      this.phase = cause.phase;
+      this.containerSummary = cause.containerSummary;
+    }
+    // Carried on the wrapper as well as in meta so KubeErrorTranslator can surface the volume
+    // troubleshooting steps without having to unwrap the cause.
+    if (cause instanceof KubePodNotReadyError || cause instanceof KubePodNotFoundError) {
+      this.volumeMountDiagnostic = cause.volumeMountDiagnostic;
+    }
   }
 }

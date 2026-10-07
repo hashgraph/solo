@@ -92,7 +92,9 @@ tasks:
           # --skip-grpc-web-endpoint: the restored state already has the correct grpcProxyEndpoint
           # FQDN. Sending NodeUpdateTransaction to re-set the same value triggers the CN v0.74 bug
           # where the periodic TSS check (every ~5 min) puts both nodes into CHECKING indefinitely.
-          {{ .TIMEOUT_COMMAND }} 300s {{ .SOLO_COMMAND }} consensus node start --deployment {{ .DEPLOYMENT }} --skip-grpc-web-endpoint
+          # Pass the backup directory so consensus node start observes whether the restored
+          # nodes settle in ACTIVE or FREEZE_COMPLETE instead of waiting for ACTIVE only.
+          {{ .TIMEOUT_COMMAND }} 300s {{ .SOLO_COMMAND }} consensus node start --deployment {{ .DEPLOYMENT }} --state-file {{ .BACKUP_DIR }} --skip-grpc-web-endpoint
           {{ .SOLO_COMMAND }} deployment refresh port-forwards --deployment {{ .DEPLOYMENT }}
       # Block nodes were already restarted by restore-config (applyBlockNodeRestoreFixes
       # restores the backed-up block data archive, deletes each pod, and waits for ready).

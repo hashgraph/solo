@@ -795,4 +795,26 @@ containers:
     const consoleSummary: string = userMessages.join('\n');
     expect(consoleSummary).to.include('Suppressed 1 transient error line(s) in solo.log');
   });
+
+  it('detects a potential stale relay-to-mirror Web3 connection', (): void => {
+    const componentLogDirectory: string = temporaryDirectory;
+    fs.writeFileSync(
+      path.join(componentLogDirectory, 'relay-1-pod.log'),
+      'MIRROR_NODE_HTTP_KEEP_ALIVE = true\n',
+      'utf8',
+    );
+    fs.writeFileSync(
+      path.join(componentLogDirectory, 'mirror-1-web3-pod.log'),
+      '2026-09-22T12:58:16.628Z INFO POST /api/v1/contracts/call in 228 ms : 200 Success\n',
+      'utf8',
+    );
+
+    new DiagnosticsAnalyzer(loggerStub).analyze(temporaryDirectory, '');
+
+    const reportPath: string = path.join(temporaryDirectory, 'diagnostics-analysis.txt');
+    const reportText: string = fs.readFileSync(reportPath, 'utf8');
+    expect(reportText).to.include('Potential stale relay-to-Mirror Web3 HTTP connection');
+    expect(reportText).to.include('MIRROR_NODE_HTTP_KEEP_ALIVE = true');
+    expect(reportText).to.include('POST /api/v1/contracts/call in 228 ms : 200 Success');
+  });
 });

@@ -7,6 +7,7 @@ import {ShellRunner} from '../../core/shell-runner.js';
 import {SubprocessCommandProfile} from '../../core/subprocess-command-profile.js';
 import {type SoloLogger} from '../../core/logging/solo-logger.js';
 import {type ContainerEngineResources} from './container-engine-resources.js';
+import {Architecture} from '../../business/utils/architecture.js';
 
 /**
  * Inspects the local container engine (Docker or Podman) for the host resources available to it.
@@ -26,6 +27,47 @@ export class ContainerEngineResourceInspector {
 
   public async getAvailableResources(): Promise<ContainerEngineResources | undefined> {
     return (await this.readDockerResources()) ?? (await this.readPodmanResources());
+  }
+
+  /**
+   * Returns the Linux platform string (`linux/amd64` or `linux/arm64`) for the container engine
+   * that is currently running. The architecture is read from `docker info` or `podman info` so that
+   * image pulls always target the runtime environment, not the Solo Node.js process architecture.
+   *
+   * Falls back to the Solo process architecture (`process.arch`) when neither engine can be reached.
+   */
+  public async getEngineLinuxPlatform(): Promise<string> {
+    const engineArchitecture: string | undefined =
+      (await this.readDockerArchitecture()) ?? (await this.readPodmanArchitecture());
+
+    if (engineArchitecture !== undefined) {
+      return Architecture.getLinuxPlatform(engineArchitecture);
+    }
+
+    // Fall back to the Solo process architecture when the container engine is unreachable.
+    return Architecture.getLinuxPlatform();
+  }
+
+  private async readDockerArchitecture(): Promise<string | undefined> {
+    // `docker info --format '{{json .}}'` returns a JSON object whose `Architecture` field
+    // reports the host OS architecture as seen by the Docker daemon (e.g. `x86_64`, `aarch64`).
+    const info: {Architecture?: string} | undefined = await this.readEngineInfo('docker', [
+      'info',
+      '--format',
+      '{{json .}}',
+    ]);
+    return typeof info?.Architecture === 'string' ? info.Architecture : undefined;
+  }
+
+  private async readPodmanArchitecture(): Promise<string | undefined> {
+    // `podman info --format json` returns a JSON object whose `host.arch` field reports the
+    // host architecture (e.g. `amd64`, `arm64`).
+    const info: {host?: {arch?: string}} | undefined = await this.readEngineInfo('podman', [
+      'info',
+      '--format',
+      'json',
+    ]);
+    return typeof info?.host?.arch === 'string' ? info.host.arch : undefined;
   }
 
   private async readDockerResources(): Promise<ContainerEngineResources | undefined> {

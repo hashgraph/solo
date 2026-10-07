@@ -23,8 +23,8 @@ import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type NodeDestroyContext} from './config-interfaces/node-destroy-context.js';
 import {type NodeAddContext} from './config-interfaces/node-add-context.js';
 import {type NodeUpdateContext} from './config-interfaces/node-update-context.js';
-import {type NodeUpgradeContext} from './config-interfaces/node-upgrade-context.js';
 import {type NodeFreezeContext} from './config-interfaces/node-freeze-context.js';
+import {type NodeUpgradeContext} from './config-interfaces/node-upgrade-context.js';
 import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
 import {DeploymentPhase} from '../../data/schema/model/remote/deployment-phase.js';
 import {Templates} from '../../core/templates.js';
@@ -47,10 +47,24 @@ import {findDeploymentsFromRemoteConfig} from '../util/remote-config-helper.js';
 import {GetSoloRemoteConfigMapTask} from '../util/get-solo-remote-config-map-task.js';
 import {type RemoteDeploymentInfo} from '../util/remote-deployment-info.js';
 import {type K8Factory} from '../../integration/kube/k8-factory.js';
+import {type NodeStartConfigClass} from './config-interfaces/node-start-config-class.js';
 
 @injectable()
 export class NodeCommandHandlers extends CommandHandler {
   private readonly nodeConfigManager: ConfigManager;
+
+  /**
+   * Whether `consensus node start` should leave the roster in the restored state alone.
+   *
+   * Only a transplant wants its roster replaced. Restoring a network's own state must keep the roster
+   * that state carries, or the platform hits a roster transition it cannot replay past.
+   *
+   * Exposed as a static so the task wiring and its test share one definition — a copy in the test
+   * would keep passing while this changed.
+   */
+  public static skipOverrideNetworkJson({config}: {config: NodeStartConfigClass}): boolean {
+    return !config.transplant;
+  }
 
   public constructor(
     @inject(InjectTokens.LockManager) private readonly leaseManager: LockManager,
@@ -77,6 +91,11 @@ export class NodeCommandHandlers extends CommandHandler {
   private static readonly DESTROY_CONTEXT_FILE: string = 'node-destroy.json';
   private static readonly UPDATE_CONTEXT_FILE: string = 'node-update.json';
   private static readonly UPGRADE_CONTEXT_FILE: string = 'node-upgrade.json';
+  // CN does not signal when the final block has been flushed to the block node after a freeze.
+  // Without this delay, stopNodes races the in-flight blocks and the block node may miss the
+  // last block before the freeze boundary, causing a gap in mirror node ingestion.
+  private static readonly FREEZE_BLOCK_STREAM_DRAIN_MILLISECONDS: number = 20_000;
+
   private resolveOutputDirectory(argv: ArgvStruct, fallback: string = ''): string {
     this.nodeConfigManager.update(argv);
     return this.nodeConfigManager.getFlag<string>(flags.outputDir) || fallback;
@@ -406,6 +425,53 @@ export class NodeCommandHandlers extends CommandHandler {
     };
   }
 
+  /**
+   * Add a skip condition to a task without discarding the one it already declares.
+   *
+   * Several start tasks carry their own skip (port forwarding, TSS, gRPC web endpoint,
+   * remote config writes), so the added condition has to be combined with the existing
+   * one rather than replace it.
+   */
+  private withAdditionalSkip(
+    task: SoloListrTask<AnyListrContext>,
+    additionalSkip: (context_: AnyListrContext) => boolean | string,
+  ): SoloListrTask<AnyListrContext> {
+    const declaredSkip: SoloListrTask<AnyListrContext>['skip'] = task.skip;
+
+    return {
+      ...task,
+      skip: async (context_: AnyListrContext): Promise<boolean | string> => {
+        const additionalSkipReason: boolean | string = additionalSkip(context_);
+        if (additionalSkipReason) {
+          return additionalSkipReason;
+        }
+
+        return typeof declaredSkip === 'function' ? await declaredSkip(context_) : (declaredSkip ?? false);
+      },
+    };
+  }
+
+  /** Run the task only when a state file was supplied, meaning this start is a restore. */
+  private onlyWhenRestoringFromStateFile(task: SoloListrTask<AnyListrContext>): SoloListrTask<AnyListrContext> {
+    return this.withAdditionalSkip(task, (context_: AnyListrContext): boolean | string =>
+      context_.config.stateFile?.length > 0 ? false : 'No state file supplied',
+    );
+  }
+
+  /** Run the task only when the restored nodes settled in FREEZE_COMPLETE rather than ACTIVE. */
+  private onlyWhenRestoringFreezeState(task: SoloListrTask<AnyListrContext>): SoloListrTask<AnyListrContext> {
+    return this.withAdditionalSkip(task, (context_: AnyListrContext): boolean | string =>
+      context_.config.restoredFromFreezeState ? false : 'Nodes did not come up frozen',
+    );
+  }
+
+  /** Run the task unless the restored nodes settled in FREEZE_COMPLETE. */
+  private skipWhenRestoringFreezeState(task: SoloListrTask<AnyListrContext>): SoloListrTask<AnyListrContext> {
+    return this.withAdditionalSkip(task, (context_: AnyListrContext): boolean | string =>
+      context_.config.restoredFromFreezeState ? 'Nodes came up frozen' : false,
+    );
+  }
+
   private markNodesConfiguredWhenNodeStartSkipped(): SoloListrTask<NodeUpgradeContext> {
     const task: SoloListrTask<NodeUpgradeContext> = this.changeAllNodePhases(
       DeploymentPhase.CONFIGURED,
@@ -456,7 +522,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.skipTaskWhenNodeStartSkipped(this.tasks.startNodes('allNodeAliases')),
       this.skipTaskWhenNodeStartSkipped(this.tasks.enablePortForwarding()),
       this.skipTaskWhenNodeStartSkipped(this.tasks.checkAllNodesAreActive('allNodeAliases')),
-      this.skipTaskWhenNodeStartSkipped(this.tasks.checkAllNodeProxiesAreActive()),
+      this.skipTaskWhenNodeStartSkipped(this.tasks.checkAllNodeProxiesAreActive() as SoloListrTask<NodeUpgradeContext>),
       this.skipTaskWhenNodeStartSkipped(this.tasks.finalize()),
     ];
   }
@@ -1183,19 +1249,29 @@ export class NodeCommandHandlers extends CommandHandler {
         this.validateAllNodePhases({acceptedPhases: [DeploymentPhase.CONFIGURED]}),
         this.tasks.identifyExistingNodes(),
         this.tasks.uploadStateFiles(({config}): boolean => config.stateFile.length === 0),
+        this.tasks.installOverrideNetworkJson(NodeCommandHandlers.skipOverrideNetworkJson),
         this.tasks.startNodes('nodeAliases'),
         // Must precede checkNodesAndProxiesAreActive: when --debug-node-alias is set the JVM starts
         // with suspend=y and will never reach ACTIVE until a debugger connects via this port-forward.
         this.tasks.enableDebuggerPortForwarding(),
-        this.tasks.checkNodesAndProxiesAreActive('nodeAliases'),
-        this.tasks.enablePortForwarding(true),
-        this.tasks.emitNodeStartedEvent(),
-        this.tasks.waitForTss(),
-        this.tasks.setGrpcWebEndpoint('nodeAliases', NodeSubcommandType.START),
-        this.changeAllNodePhases(DeploymentPhase.STARTED, LedgerPhase.INITIALIZED),
-        this.tasks.addNodeStakes(),
-        // TODO only show this if we are not running in one-shot mode
-        // this.tasks.showUserMessages(),
+
+        // A restore can settle in either ACTIVE or FREEZE_COMPLETE and the archive does not
+        // say which: the snapshot round is usually an ordinary signed round, but the
+        // preconsensus events replayed on top of it can still carry the freeze transaction
+        // and re-freeze the node. So observe the status the nodes actually reach and gate the
+        // ACTIVE-only follow-up work (TSS, stakes, gRPC web endpoint, start event) on that,
+        // instead of predicting it from `--state-file` being set.
+        this.onlyWhenRestoringFromStateFile(this.tasks.checkAllNodesAreActiveOrFrozen('nodeAliases')),
+        this.onlyWhenRestoringFreezeState(this.tasks.checkNodeProxiesAreActive()),
+        this.onlyWhenRestoringFreezeState(this.changeAllNodePhases(DeploymentPhase.FROZEN)),
+
+        this.skipWhenRestoringFreezeState(this.tasks.checkNodesAndProxiesAreActive('nodeAliases')),
+        this.skipWhenRestoringFreezeState(this.tasks.enablePortForwarding(true)),
+        this.skipWhenRestoringFreezeState(this.tasks.emitNodeStartedEvent()),
+        this.skipWhenRestoringFreezeState(this.tasks.waitForTss()),
+        this.skipWhenRestoringFreezeState(this.tasks.setGrpcWebEndpoint('nodeAliases', NodeSubcommandType.START)),
+        this.skipWhenRestoringFreezeState(this.changeAllNodePhases(DeploymentPhase.STARTED, LedgerPhase.INITIALIZED)),
+        this.skipWhenRestoringFreezeState(this.tasks.addNodeStakes()),
       ],
       constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
       'Error starting node',
@@ -1252,7 +1328,11 @@ export class NodeCommandHandlers extends CommandHandler {
         this.tasks.identifyExistingNodes(),
         this.tasks.sendFreezeTransaction(),
         this.tasks.checkAllNodesAreFrozen('existingNodeAliases'),
+        // The drain gives the block stream time to reach the block node; the stable
+        // state wait then confirms the saved state stopped changing on disk. They
+        // cover different things, so stopping the nodes has to wait for both.
         this.tasks.drainBlockStreamAfterFreeze<NodeFreezeContext>(),
+        this.tasks.waitForFrozenStateToBeStable('existingNodeAliases'),
         this.tasks.stopNodes('existingNodeAliases'),
         this.changeAllNodePhases(DeploymentPhase.FROZEN),
       ],
