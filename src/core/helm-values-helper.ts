@@ -29,46 +29,29 @@ type ExtractedExtraEnvironmentArray = {
 export class HelmValuesHelper {
   public constructor() {}
   /**
-   * Inspects user-supplied values files to determine if any explicitly configure MinIO
-   * (e.g. by defining `minio-server`, `minio-tenant`, `minioTenant`, or `cloud.minio.enabled: true`).
+   * Inspects user-supplied values files to determine if any explicitly enables MinIO
+   * via `cloud.minio.enabled: true`.
    *
-   * @param filePaths - array of file paths or comma-separated file string
-   * @returns true if any file explicitly enables or configures MinIO
+   * @param filePaths - array of resolved file paths, a single file path, or undefined
+   * @returns true if any file explicitly sets `cloud.minio.enabled: true`
    */
-  public hasExplicitMinioConfiguration(filePaths: string[] | string | undefined): boolean {
+  public hasExplicitMinioEnabled(filePaths?: string[] | string): boolean {
     if (!filePaths) {
       return false;
     }
 
-    const rawPaths: string[] = Array.isArray(filePaths) ? filePaths : [filePaths];
-    const candidatePaths: string[] = [];
+    const paths: string[] = Array.isArray(filePaths) ? filePaths : [filePaths];
 
-    for (const rawPath of rawPaths) {
-      if (!rawPath || typeof rawPath !== 'string') {
+    for (const filePath of paths) {
+      if (!filePath || typeof filePath !== 'string') {
         continue;
       }
-      for (const item of rawPath.split(',')) {
-        const trimmed: string = item.trim();
-        if (!trimmed) {
-          continue;
-        }
-        const parts: string[] = trimmed.split('=');
-        candidatePaths.push(parts.length === 2 ? parts[1].trim() : parts[0].trim());
-      }
-    }
 
-    for (const filePath of candidatePaths) {
       const parsedRecord: Record<string, unknown> | undefined = this.parseValuesFile(filePath);
       if (!parsedRecord) {
         continue;
       }
 
-      if (parsedRecord['minio-server'] !== undefined) {
-        return true;
-      }
-      if (parsedRecord['minio-tenant'] !== undefined || parsedRecord['minioTenant'] !== undefined) {
-        return true;
-      }
       const cloudSection: unknown = parsedRecord.cloud;
       if (cloudSection && typeof cloudSection === 'object') {
         const minioSection: unknown = (cloudSection as Record<string, unknown>).minio;

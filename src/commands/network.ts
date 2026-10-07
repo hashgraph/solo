@@ -584,6 +584,26 @@ export class NetworkCommand extends BaseCommand {
       }
     }
 
+    const networkNodeVersion: SemanticVersion<string> = new SemanticVersion(config.releaseTag);
+    const tssByDefaultSupported: boolean = networkNodeVersion.greaterThanOrEqual(
+      versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS,
+    );
+    const blockNodeConfigured: boolean =
+      config.blockNodeComponents.length > 0 ||
+      config.consensusNodes.some((consensusNode): boolean => {
+        const blockNodeMapLength: number = consensusNode.blockNodeMap?.length ?? 0;
+        const externalBlockNodeMapLength: number = consensusNode.externalBlockNodeMap?.length ?? 0;
+
+        return blockNodeMapLength > 0 || externalBlockNodeMapLength > 0;
+      });
+    const blockStreamMode: string = Helpers.getBlockStreamModeForConsensusVersion(
+      config.releaseTag,
+      blockNodeConfigured,
+      config.tssEnabled,
+    );
+    const shouldDisableUploaders: boolean =
+      tssByDefaultSupported && config.tssEnabled && blockNodeConfigured && blockStreamMode === 'BLOCKS';
+
     if (config.minioEnabled && config.storageType === constants.StorageType.MINIO_ONLY) {
       for (const clusterReference of clusterReferences) {
         chartValuesMap[clusterReference].set('cloud.minio.enabled', true);
@@ -593,6 +613,11 @@ export class NetworkCommand extends BaseCommand {
       for (const clusterReference of clusterReferences) {
         chartValuesMap[clusterReference].set('cloud.minio.enabled', false);
         chartValuesMap[clusterReference].set('cloud.generateNewSecrets', false);
+      }
+    }
+
+    if (shouldDisableUploaders || !config.minioEnabled) {
+      for (const clusterReference of clusterReferences) {
         chartValuesMap[clusterReference].set('defaults.sidecars.recordStreamUploader.enabled', false);
         chartValuesMap[clusterReference].set('defaults.sidecars.eventStreamUploader.enabled', false);
         chartValuesMap[clusterReference].set('defaults.sidecars.blockstreamUploader.enabled', false);
@@ -1007,11 +1032,12 @@ export class NetworkCommand extends BaseCommand {
       blockNodeConfigured,
       config.tssEnabled,
     );
-    const hasExplicitMinio: boolean = helmValuesHelper.hasExplicitMinioConfiguration(config.valuesFile);
+    const valuesFiles: string[] = Object.values(flags.parseValuesFilesInput(config.valuesFile)).flat();
+    const hasExplicitMinio: boolean = helmValuesHelper.hasExplicitMinioEnabled(valuesFiles);
     // CN >= 0.74 can stream blocks directly to a block node. If the effective stream
     // mode is forced back to BOTH/RECORDS for compatibility, or if the deployment
-    // explicitly configures MinIO/Tenant via a values file, keep MinIO enabled so
-    // record uploaders and mirror importer use the same source.
+    // explicitly enables MinIO via a values file, keep MinIO enabled so
+    // the MinIO Operator/Tenant resources can be deployed.
     config.minioEnabled =
       hasExplicitMinio ||
       !(tssByDefaultSupported && config.tssEnabled && blockNodeConfigured && blockStreamMode === 'BLOCKS');

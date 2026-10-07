@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+
+# Explicitly enable MinIO so the MinIO Operator and Tenant CRDs are deployed in CN >= 0.74 BLOCKS mode.
+cloud:
+  minio:
+    enabled: true
+
+# Silo preserves the MinIO S3/API and MINIO_* configuration compatibility.
+minio-server:
+  tenant:
+    buckets:
+      - name: solo-streams
+      - name: solo-backups
+      - name: falcon-values-file-override
+    image:
+      repository: docker.io/pgsty/silo
+      tag: RELEASE.2026-09-16T00-00-00Z
+      pullPolicy: IfNotPresent

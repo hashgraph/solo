@@ -69,18 +69,13 @@ export class DeployArgvBuilders {
       return false;
     }
 
-    const candidateValuesFiles: (string | undefined)[] = [
-      config.networkConfiguration?.[Flags.getFormattedFlagKey(Flags.valuesFile)],
-      config.networkConfiguration?.['--values-file'],
-      config.networkConfiguration?.['values-file'],
-      config.valuesFile,
-    ];
-    const filteredFiles: string[] = candidateValuesFiles.filter(
-      (candidate: string | undefined): candidate is string =>
-        typeof candidate === 'string' && candidate.trim().length > 0,
-    );
-    if (helmValuesHelper.hasExplicitMinioConfiguration(filteredFiles)) {
-      return false;
+    const networkValuesFileInput: unknown = config.networkConfiguration?.[Flags.getFormattedFlagKey(Flags.valuesFile)];
+    if (typeof networkValuesFileInput === 'string' && networkValuesFileInput.trim().length > 0) {
+      const parsedValuesFiles: Record<string, string[]> = Flags.parseValuesFilesInput(networkValuesFileInput);
+      const filePaths: string[] = Object.values(parsedValuesFiles).flat();
+      if (helmValuesHelper.hasExplicitMinioEnabled(filePaths)) {
+        return false;
+      }
     }
 
     const consensusNodeVersion: string = config.versions.consensus || version.HEDERA_PLATFORM_VERSION;
