@@ -186,6 +186,7 @@ describe('Errors', (): void => {
       expect(error.getFormattedCode()).to.equal('SOLO-2006');
       const steps: string = (error.getTroubleshootingSteps() ?? []).join('\n');
       expect(steps).to.include('tail -n 100 ~/.solo/logs/solo.log');
+      expect(error['retryable']).to.be.false;
     });
   });
 });

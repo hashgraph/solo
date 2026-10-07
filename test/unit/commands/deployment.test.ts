@@ -12,6 +12,7 @@ import {type K8} from '../../../src/integration/kube/k8.js';
 import {type LocalConfigRuntimeState} from '../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
 import {type DeploymentCommand} from '../../../src/commands/deployment.js';
 import {SoloErrors} from '../../../src/core/errors/solo-errors.js';
+import {type SoloError} from '../../../src/core/errors/solo-error.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {NamespaceName} from '../../../src/types/namespace/namespace-name.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
@@ -586,12 +587,13 @@ describe('DeploymentCommand unit tests', (): void => {
       expect(localConfig.configuration.deploymentByName(deploymentName).clusters.length).to.equal(initialClusterCount);
     });
 
-    it('should wrap unexpected generic errors in ClusterAddFailedError', async (): Promise<void> => {
+    it('should wrap unexpected generic errors in ClusterAddFailedError and preserve cause', async (): Promise<void> => {
       const deploymentCommand: DeploymentCommand = container.resolve(InjectTokens.DeploymentCommand);
+      const expectedCause: Error = new Error('unexpected runtime exception');
       sinon.stub(deploymentCommand, 'checkNetworkState').returns({
         title: 'mock unexpected failure',
         task: (): never => {
-          throw new Error('unexpected runtime exception');
+          throw expectedCause;
         },
       });
 
@@ -600,9 +602,15 @@ describe('DeploymentCommand unit tests', (): void => {
       argv.setArg(flags.clusterRef, 'cluster-2');
       argv.setArg(flags.quiet, true);
 
-      await expect(deploymentCommand.addCluster(argv.build())).to.be.rejectedWith(
-        SoloErrors.deployment.clusterAddFailed,
-      );
+      let thrownError: unknown;
+      try {
+        await deploymentCommand.addCluster(argv.build());
+      } catch (error) {
+        thrownError = error;
+      }
+
+      expect(thrownError).to.be.instanceof(SoloErrors.deployment.clusterAddFailed);
+      expect((thrownError as SoloError).cause).to.equal(expectedCause);
     });
   });
 });
