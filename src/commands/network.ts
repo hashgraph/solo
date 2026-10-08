@@ -1114,7 +1114,16 @@ export class NetworkCommand extends BaseCommand {
       blockNodeConfigured,
       config.tssEnabled,
     );
-    const valuesFiles: string[] = Object.values(flags.parseValuesFilesInput(config.valuesFile)).flat();
+    const networkValuesFileInput: unknown =
+      (config as unknown as {networkConfiguration?: Record<string, unknown>}).networkConfiguration?.[
+        flags.getFormattedFlagKey(flags.valuesFile)
+      ] ??
+      this.configManager.getFlag<string>(flags.networkDeploymentValuesFile) ??
+      this.configManager.getFlag<string>(flags.valuesFile);
+    const valuesFileInput: string = typeof networkValuesFileInput === 'string' ? networkValuesFileInput : '';
+    const valuesFiles: string[] = valuesFileInput
+      ? Object.values(flags.parseValuesFilesInput(valuesFileInput)).flat()
+      : [];
     const hasExplicitMinio: boolean = helmValuesHelper.hasExplicitMinioEnabled(valuesFiles);
     // CN >= 0.74 can stream blocks directly to a block node. If the effective stream
     // mode is forced back to BOTH/RECORDS for compatibility, or if the deployment

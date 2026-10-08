@@ -29,20 +29,21 @@ type ExtractedExtraEnvironmentArray = {
 export class HelmValuesHelper {
   public constructor() {}
   /**
-   * Inspects user-supplied values files to determine if any explicitly enables MinIO
-   * via `cloud.minio.enabled: true`.
+   * Inspects user-supplied values files in Helm merge order to determine if MinIO
+   * is explicitly enabled via `cloud.minio.enabled`.
+   * Later values files override earlier values files (last defined value wins).
    *
-   * @param filePaths - array of resolved file paths, a single file path, or undefined
-   * @returns true if any file explicitly sets `cloud.minio.enabled: true`
+   * @param filePaths - array of resolved file paths
+   * @returns true if the last explicitly defined `cloud.minio.enabled` across the files is true; false otherwise.
    */
-  public hasExplicitMinioEnabled(filePaths?: string[] | string): boolean {
-    if (!filePaths) {
+  public hasExplicitMinioEnabled(filePaths: string[] = []): boolean {
+    if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
       return false;
     }
 
-    const paths: string[] = Array.isArray(filePaths) ? filePaths : [filePaths];
+    let minioEnabled: boolean = false;
 
-    for (const filePath of paths) {
+    for (const filePath of filePaths) {
       if (!filePath || typeof filePath !== 'string') {
         continue;
       }
@@ -57,14 +58,14 @@ export class HelmValuesHelper {
         const minioSection: unknown = (cloudSection as Record<string, unknown>).minio;
         if (minioSection && typeof minioSection === 'object') {
           const enabled: unknown = (minioSection as Record<string, unknown>).enabled;
-          if (enabled === true || enabled === 'true') {
-            return true;
+          if (enabled !== undefined && enabled !== null) {
+            minioEnabled = enabled === true || enabled === 'true';
           }
         }
       }
     }
 
-    return false;
+    return minioEnabled;
   }
 
   private buildPerNodeExtraEnvironmentValuesStructure(

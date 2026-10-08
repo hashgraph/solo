@@ -71,8 +71,7 @@ export class DeployArgvBuilders {
 
     const networkValuesFileInput: unknown = config.networkConfiguration?.[Flags.getFormattedFlagKey(Flags.valuesFile)];
     if (typeof networkValuesFileInput === 'string' && networkValuesFileInput.trim().length > 0) {
-      const parsedValuesFiles: Record<string, string[]> = Flags.parseValuesFilesInput(networkValuesFileInput);
-      const filePaths: string[] = Object.values(parsedValuesFiles).flat();
+      const filePaths: string[] = Object.values(Flags.parseValuesFilesInput(networkValuesFileInput)).flat();
       if (helmValuesHelper.hasExplicitMinioEnabled(filePaths)) {
         return false;
       }
