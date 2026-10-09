@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ##
-# Explicitly enable MinIO so the MinIO Operator and Tenant resources are deployed in CN >= 0.74 BLOCKS mode.
+# Explicitly enable MinIO so the MinIO Operator installs CRDs and the Tenant resource is deployed in CN >= 0.74 BLOCKS mode.
 cloud:
   minio:
     enabled: true

@@ -649,25 +649,7 @@ export class NetworkCommand extends BaseCommand {
       }
     }
 
-    const networkNodeVersion: SemanticVersion<string> = new SemanticVersion(config.releaseTag);
-    const tssByDefaultSupported: boolean = networkNodeVersion.greaterThanOrEqual(
-      versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS,
-    );
-    const blockNodeConfigured: boolean =
-      config.blockNodeComponents.length > 0 ||
-      config.consensusNodes.some((consensusNode): boolean => {
-        const blockNodeMapLength: number = consensusNode.blockNodeMap?.length ?? 0;
-        const externalBlockNodeMapLength: number = consensusNode.externalBlockNodeMap?.length ?? 0;
-
-        return blockNodeMapLength > 0 || externalBlockNodeMapLength > 0;
-      });
-    const blockStreamMode: string = Helpers.getBlockStreamModeForConsensusVersion(
-      config.releaseTag,
-      blockNodeConfigured,
-      config.tssEnabled,
-    );
-    const shouldDisableUploaders: boolean =
-      tssByDefaultSupported && config.tssEnabled && blockNodeConfigured && blockStreamMode === 'BLOCKS';
+    const shouldDisableUploaders: boolean = this.isDirectBlockStreaming(config);
 
     if (config.minioEnabled && config.storageType === constants.StorageType.MINIO_ONLY) {
       for (const clusterReference of clusterReferences) {
@@ -860,6 +842,28 @@ export class NetworkCommand extends BaseCommand {
         chartValuesMap[consensusNode.cluster].setLiteral(`hedera.nodes[${nodeIndex}].${valueName}`, recordValue);
       }
     }
+  }
+
+  private isDirectBlockStreaming(config: NetworkDeployConfigClass): boolean {
+    const networkNodeVersion: SemanticVersion<string> = new SemanticVersion(config.releaseTag);
+    const tssByDefaultSupported: boolean = networkNodeVersion.greaterThanOrEqual(
+      versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS,
+    );
+    const blockNodeConfigured: boolean =
+      config.blockNodeComponents.length > 0 ||
+      config.consensusNodes.some((consensusNode): boolean => {
+        const blockNodeMapLength: number = consensusNode.blockNodeMap?.length ?? 0;
+        const externalBlockNodeMapLength: number = consensusNode.externalBlockNodeMap?.length ?? 0;
+
+        return blockNodeMapLength > 0 || externalBlockNodeMapLength > 0;
+      });
+    const blockStreamMode: string = Helpers.getBlockStreamModeForConsensusVersion(
+      config.releaseTag,
+      blockNodeConfigured,
+      config.tssEnabled,
+    );
+
+    return tssByDefaultSupported && config.tssEnabled && blockNodeConfigured && blockStreamMode === 'BLOCKS';
   }
 
   /**
@@ -1097,30 +1101,12 @@ export class NetworkCommand extends BaseCommand {
 
     config.singleUseServiceMonitor = config.serviceMonitor;
     config.singleUsePodLog = config.podLog;
-    const networkNodeVersion: SemanticVersion<string> = new SemanticVersion(config.releaseTag);
-    const tssByDefaultSupported: boolean = networkNodeVersion.greaterThanOrEqual(
-      versions.MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS,
-    );
-    const blockNodeConfigured: boolean =
-      config.blockNodeComponents.length > 0 ||
-      config.consensusNodes.some((consensusNode): boolean => {
-        const blockNodeMapLength: number = consensusNode.blockNodeMap?.length ?? 0;
-        const externalBlockNodeMapLength: number = consensusNode.externalBlockNodeMap?.length ?? 0;
-
-        return blockNodeMapLength > 0 || externalBlockNodeMapLength > 0;
-      });
-    const blockStreamMode: string = Helpers.getBlockStreamModeForConsensusVersion(
-      config.releaseTag,
-      blockNodeConfigured,
-      config.tssEnabled,
-    );
-    const networkValuesFileInput: unknown =
-      (config as unknown as {networkConfiguration?: Record<string, unknown>}).networkConfiguration?.[
-        flags.getFormattedFlagKey(flags.valuesFile)
-      ] ??
-      this.configManager.getFlag<string>(flags.networkDeploymentValuesFile) ??
-      this.configManager.getFlag<string>(flags.valuesFile);
-    const valuesFileInput: string = typeof networkValuesFileInput === 'string' ? networkValuesFileInput : '';
+    const valuesFileInput: string = [
+      this.configManager.getFlag<string>(flags.networkDeploymentValuesFile),
+      config.valuesFile,
+    ]
+      .filter((input): boolean => typeof input === 'string' && input.trim().length > 0)
+      .join(',');
     const valuesFiles: string[] = valuesFileInput
       ? Object.values(flags.parseValuesFilesInput(valuesFileInput)).flat()
       : [];
@@ -1129,9 +1115,7 @@ export class NetworkCommand extends BaseCommand {
     // mode is forced back to BOTH/RECORDS for compatibility, or if the deployment
     // explicitly enables MinIO via a values file, keep MinIO enabled so
     // the MinIO Operator/Tenant resources can be deployed.
-    config.minioEnabled =
-      hasExplicitMinio ||
-      !(tssByDefaultSupported && config.tssEnabled && blockNodeConfigured && blockStreamMode === 'BLOCKS');
+    config.minioEnabled = hasExplicitMinio || !this.isDirectBlockStreaming(config);
 
     config.chartValuesMap = await this.prepareHelmChartValuesMap(config);
 
