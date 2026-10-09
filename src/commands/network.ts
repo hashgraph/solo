@@ -1101,15 +1101,7 @@ export class NetworkCommand extends BaseCommand {
 
     config.singleUseServiceMonitor = config.serviceMonitor;
     config.singleUsePodLog = config.podLog;
-    const valuesFileInput: string = [
-      this.configManager.getFlag<string>(flags.networkDeploymentValuesFile),
-      config.valuesFile,
-    ]
-      .filter((input): boolean => typeof input === 'string' && input.trim().length > 0)
-      .join(',');
-    const valuesFiles: string[] = valuesFileInput
-      ? Object.values(flags.parseValuesFilesInput(valuesFileInput)).flat()
-      : [];
+    const valuesFiles: string[] = Object.values(flags.parseValuesFilesInput(config.valuesFile)).flat();
     const hasExplicitMinio: boolean = helmValuesHelper.hasExplicitMinioEnabled(valuesFiles);
     // CN >= 0.74 can stream blocks directly to a block node. If the effective stream
     // mode is forced back to BOTH/RECORDS for compatibility, or if the deployment
