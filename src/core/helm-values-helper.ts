@@ -37,14 +37,10 @@ export class HelmValuesHelper {
    * @returns true if the last explicitly defined `cloud.minio.enabled` across the files is true; false otherwise.
    */
   public hasExplicitMinioEnabled(filePaths: string[] = []): boolean {
-    if (!filePaths || !Array.isArray(filePaths) || filePaths.length === 0) {
-      return false;
-    }
-
     let minioEnabled: boolean = false;
 
     for (const filePath of filePaths) {
-      if (!filePath || typeof filePath !== 'string') {
+      if (!filePath) {
         continue;
       }
 
