@@ -538,6 +538,24 @@ jobs:
             Remove-Item -LiteralPath $kindCommand.Source -Force
           }
 
+      - name: Raise Block Buffer For Docker Restart Recovery
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # The one-shot small-memory template caps blockStream.buffer.maxBlocks at 5. After a Docker
+          # restart the consensus node replays old blocks the block node never acks again, which
+          # saturates that buffer, blocks the transaction handler and leaves the node stuck in
+          # REPLAYING_EVENTS. Solo copies resources/templates into its cache on every run, so raising
+          # the cap in this checkout applies it to every one-shot deploy in this job only.
+          $propertiesFile = Join-Path $env:GITHUB_WORKSPACE 'resources/templates/small-memory/application.properties'
+          $content = Get-Content -LiteralPath $propertiesFile -Raw
+          $updated = $content -replace '(?m)^blockStream\.buffer\.maxBlocks=\d+[ \t\r]*$', 'blockStream.buffer.maxBlocks=1000'
+          if ($updated -eq $content) {
+            throw "blockStream.buffer.maxBlocks was not found in $propertiesFile"
+          }
+          Set-Content -LiteralPath $propertiesFile -Value $updated -NoNewline
+          Select-String -LiteralPath $propertiesFile -Pattern 'blockStream.buffer.maxBlocks'
+
       - name: One-Shot Single Deploy
         shell: pwsh
         timeout-minutes: 70
