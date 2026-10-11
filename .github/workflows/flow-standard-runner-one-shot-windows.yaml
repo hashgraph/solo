@@ -562,6 +562,15 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics connections -d one-shot --check
 
+      - name: Freeze Consensus Network Before Docker Restart
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- consensus network freeze --deployment one-shot --freeze-block-drain-seconds 30 --dev
+
       - name: Restart Docker Daemon in WSL2
         shell: pwsh
         timeout-minutes: 10
@@ -651,6 +660,15 @@ jobs:
           $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment refresh port-forwards --deployment one-shot --dev
+
+      - name: Start Consensus Nodes After Docker Restart
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- consensus node start --deployment one-shot --dev
 
       - name: Verify Ledger Account Creation After Docker Restart
         shell: pwsh
