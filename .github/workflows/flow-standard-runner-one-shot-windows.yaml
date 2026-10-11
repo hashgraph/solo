@@ -545,9 +545,10 @@ jobs:
           # The one-shot small-memory template caps blockStream.buffer.maxBlocks at 5. After a Docker
           # restart the consensus node replays old blocks the block node never acks again, which
           # saturates that buffer, blocks the transaction handler and leaves the node stuck in
-          # REPLAYING_EVENTS. Solo copies resources/templates into its cache on every run, so raising
-          # the cap in this checkout applies it to every one-shot deploy in this job only.
-          $propertiesFile = Join-Path $env:GITHUB_WORKSPACE 'resources/templates/small-memory/application.properties'
+          # REPLAYING_EVENTS. Solo reads its templates from the build output (dist/resources, copied
+          # from resources/ at build time) and copies them into its cache on every run, so raising the
+          # cap there applies it to every one-shot deploy in this job only.
+          $propertiesFile = Join-Path $env:GITHUB_WORKSPACE 'dist/resources/templates/small-memory/application.properties'
           $content = Get-Content -LiteralPath $propertiesFile -Raw
           $updated = $content -replace '(?m)^blockStream\.buffer\.maxBlocks=\d+[ \t\r]*$', 'blockStream.buffer.maxBlocks=1000'
           if ($updated -eq $content) {
