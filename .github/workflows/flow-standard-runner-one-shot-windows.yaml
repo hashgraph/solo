@@ -562,14 +562,14 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics connections -d one-shot --check
 
-      - name: Freeze Consensus Network Before Docker Restart
+      - name: Stop Consensus Nodes Before Docker Restart
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- consensus network freeze --deployment one-shot --freeze-block-drain-seconds 30 --dev
+          npm run solo -- consensus node stop --deployment one-shot --dev
 
       - name: Restart Docker Daemon in WSL2
         shell: pwsh
