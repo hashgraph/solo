@@ -671,6 +671,31 @@ jobs:
             throw "Docker daemon did not become reachable after restart."
           }
 
+      - name: Wait for Kubernetes API After Docker Restart
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # Restarting dockerd restarts the kind control plane. The API server answers before its RBAC
+          # bootstrap has finished and returns 403 Forbidden ("kubernetes-admin cannot get resource
+          # configmaps") for a short while, which fails the first Solo command that follows. Wait
+          # until the admin user is actually authorized and the node is Ready.
+          $ready = $false
+          for ($attempt = 1; $attempt -le 60; $attempt++) {
+            $canReadConfigMaps = kubectl --context kind-solo-cluster auth can-i get configmaps --namespace one-shot 2>$null
+            $nodeReady = kubectl --context kind-solo-cluster get nodes -o "jsonpath={.items[*].status.conditions[?(@.type=='Ready')].status}" 2>$null
+            if ("$canReadConfigMaps".Trim() -eq 'yes' -and "$nodeReady" -notmatch 'False|Unknown' -and "$nodeReady" -match 'True') {
+              $ready = $true
+              Write-Host "Kubernetes API authorized and node Ready after restart [attempt=$attempt]"
+              break
+            }
+            Write-Host "Waiting for Kubernetes API [attempt=$attempt, can-i=$canReadConfigMaps, nodeReady=$nodeReady]"
+            Start-Sleep -Seconds 3
+          }
+          if (-not $ready) {
+            kubectl --context kind-solo-cluster get nodes
+            throw "Kubernetes API did not become authorized after Docker restart."
+          }
+
       - name: Refresh Port Forwards After Docker Restart
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
