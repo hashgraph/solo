@@ -9,21 +9,33 @@ A compatibility kit, owned by the Solo team, answering one question about a cand
 
 > **Does this build deploy cleanly via a supported Solo release and produce a functional network?**
 
-**Consumers.** CN, Mirror Node, Block Node, JSON-RPC Relay, the JS SDK, and Solo itself. The Explorer _UI_
-is out of scope; its **server API is in scope**, and Explorer runs no Solo today, so that is entirely new
-CI.
+**Consumers.** CN, Mirror Node, Block Node, JSON-RPC Relay, the JS SDK, and Solo itself. The Explorer is not
+a consumer: its _UI_ is out of scope and its _server API_ is a verification channel the `standard` suite
+probes, so no new Explorer CI is created.
 
-**Where it runs.** In each component's own CI against its branch build — at PR time where that team already
-runs Solo per PR (Mirror Node, Relay), otherwise on their existing schedule (CN 3-hourly, Block Node
-daily/weekly).
+**Where it runs.** In each component's own CI against its branch build — as a PR gate where that team already
+runs Solo per PR (Mirror Node, Relay, JS SDK), and as an additive scheduled job for CN (3-hourly) and Block
+Node (daily/weekly), with a PR gate for those two tracked separately (TCK-D6). A cron gates nothing, so that
+split is recorded as a decision rather than left implicit.
 
-**Home.** The Solo repo, released as a versioned action on its own release tags (TCK-D2), keeping direct
-reuse of the `test/e2e` harness.
+**Home.** The Solo repo, released as a versioned action on its own release tags under a prefix Solo's
+`semantic-release` ignores (TCK-D2). The reuse that buys is of the _repository_ — fixtures, helpers, CI
+plumbing — not of Solo's internals: the suites are recreated against the observable CLI contract and the kit
+imports nothing from `src/`.
+
+**Default version model.** Hybrid at PR time (the candidate is provided, the other components track
+latest-stable but stay overridable) plus a pinned tuple for nightly and release runs — TCK-D1's
+recommendation, proposed as the default rather than as one option among four.
 
 **Blocking opens.**
 
 - **Version resolution.** Keith's PRD says latest-stable/hybrid; roadmap#199 says pinned tuples. The two
-  disagree and must be reconciled first. TCK-D1 recommends hybrid for PR-time plus a pinned tuple for
-  release/nightly.
+  disagree and must be reconciled first; neither source is readable by every reviewer, so their requirements
+  need mirroring into GitHub (TCK-D0).
 - **No written contract to conform to.** Until the Solo Deployment Contract exists (TCK-D4) this is an
-  integration gate, not a TCK.
+  integration gate, not a TCK — and without it there is no rule for deciding whether a failure is the
+  component's fault or Solo's.
+
+**No longer blocking.** Branch builds are deployable today for Mirror Node, Relay, Explorer and Block Node
+via `--component-image` / `--component-image-archive`; only the Consensus Node still lacks an image swap. The
+remaining gaps are narrow and listed in design §2.
