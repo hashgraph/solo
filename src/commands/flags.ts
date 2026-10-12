@@ -2280,7 +2280,7 @@ export class Flags {
     definition: {
       defaultValue: constants.StorageType.MINIO_ONLY,
       describe:
-        'storage type for saving stream files, available options are minio_only, aws_only, gcs_only, aws_and_gcs',
+        'storage type for saving stream files, available options are minio_only, aws_only, gcs_only, aws_and_gcs, rustfs_only',
       type: 'StorageType',
     },
   };

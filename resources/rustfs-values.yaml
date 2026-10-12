@@ -1,0 +1,88 @@
+# Values for the RustFS chart (https://github.com/rustfs/helm), used by `--storage-type rustfs_only`.
+# Solo supplies secret.existingSecret, image tags and solo.bucketInitImage at install time.
+mode:
+  standalone:
+    enabled: true
+  distributed:
+    enabled: false
+
+storageclass:
+  name: '' # use the cluster default storage class
+  dataStorageSize: 10Gi
+
+config:
+  rustfs:
+    # `info` emits tracing span events for every operation (~600 MB/hour under a pinger workload)
+    log_level: warn
+    # empty logs to stdout instead of a file on a dedicated logs PVC
+    obs_log_directory: ''
+    scanner:
+      speed: slowest
+      bitrot_cycle_secs: 'off'
+
+ingress:
+  enabled: false
+
+resources:
+  requests:
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+
+solo:
+  buckets:
+    - solo-streams
+    - solo-backups
+  bucketInitImage: ''
+
+# The chart has no bucket-creation mechanism and the RustFS image ships no S3 client, so buckets are
+# created by a hook Job. `helm install --wait` blocks until hook Jobs complete.
+extraManifests:
+  - apiVersion: batch/v1
+    kind: Job
+    metadata:
+      name: '{{ include "rustfs.fullname" . }}-bucket-init'
+      labels:
+        solo.hedera.com/type: rustfs-bucket-init
+      annotations:
+        helm.sh/hook: post-install,post-upgrade
+        helm.sh/hook-delete-policy: before-hook-creation
+    spec:
+      backoffLimit: 5
+      template:
+        metadata:
+          labels:
+            solo.hedera.com/type: rustfs-bucket-init
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: aws-cli
+              image: '{{ .Values.solo.bucketInitImage }}'
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: '{{ .Values.secret.existingSecret }}'
+                      key: RUSTFS_ACCESS_KEY
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: '{{ .Values.secret.existingSecret }}'
+                      key: RUSTFS_SECRET_KEY
+                - name: AWS_DEFAULT_REGION
+                  value: '{{ .Values.config.rustfs.region }}'
+                - name: S3_ENDPOINT
+                  value: 'http://{{ include "rustfs.fullname" . }}-svc:{{ .Values.service.endpoint.port }}'
+                - name: BUCKETS
+                  value: '{{ join " " .Values.solo.buckets }}'
+              command: ['/bin/sh', '-c']
+              args:
+                - |
+                  set -e
+                  for bucket in ${BUCKETS}; do
+                    if aws --endpoint-url "${S3_ENDPOINT}" s3api head-bucket --bucket "${bucket}" 2>/dev/null; then
+                      echo "bucket ${bucket} already exists"
+                    else
+                      aws --endpoint-url "${S3_ENDPOINT}" s3 mb "s3://${bucket}"
+                    fi
+                  done

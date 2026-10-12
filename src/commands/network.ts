@@ -311,6 +311,76 @@ export class NetworkCommand extends BaseCommand {
     }
   }
 
+  private async prepareRustfsSecrets(config: NetworkDeployConfigClass): Promise<void> {
+    const namespace: NamespaceName = config.namespace;
+    const accessKey: string = uuidv4();
+    const secretKey: string = uuidv4();
+    const endpointUrl: string = `http://${constants.RUSTFS_SERVICE_ENDPOINT}`;
+
+    const rustfsData: Record<string, string> = {
+      RUSTFS_ACCESS_KEY: Base64.encode(accessKey),
+      RUSTFS_SECRET_KEY: Base64.encode(secretKey),
+    };
+
+    // uploaders read S3_*; the mirror importer reads the downloader source keys via envFrom
+    const uploaderData: Record<string, string> = {
+      S3_ACCESS_KEY: Base64.encode(accessKey),
+      S3_SECRET_KEY: Base64.encode(secretKey),
+      S3_ENDPOINT: Base64.encode(constants.RUSTFS_SERVICE_ENDPOINT),
+      HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_TYPE: Base64.encode('S3'),
+      HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_URI: Base64.encode(endpointUrl),
+      HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_ACCESSKEY: Base64.encode(accessKey),
+      HEDERA_MIRROR_IMPORTER_DOWNLOADER_SOURCES_0_CREDENTIALS_SECRETKEY: Base64.encode(secretKey),
+    };
+
+    for (const context of config.contexts) {
+      for (const [secretName, data] of [
+        [constants.RUSTFS_SECRET_NAME, rustfsData],
+        [constants.UPLOADER_SECRET_NAME, uploaderData],
+      ] as const) {
+        const isCreated: boolean = await this.k8Factory
+          .getK8(context)
+          .secrets()
+          .createOrReplace(namespace, secretName, SecretType.OPAQUE, data);
+
+        if (!isCreated) {
+          throw new SoloErrors.system.k8sSecretCreateFailed(
+            `failed to create secret '${secretName}' using context: ${context}`,
+          );
+        }
+      }
+    }
+  }
+
+  private async installRustfs(namespace: NamespaceName, context: Context): Promise<void> {
+    try {
+      await this.chartManager.setup(new Map([[constants.RUSTFS_RELEASE_NAME, constants.RUSTFS_CHART_URL]]));
+
+      await this.chartManager.install(
+        namespace,
+        constants.RUSTFS_RELEASE_NAME,
+        constants.RUSTFS_CHART,
+        constants.RUSTFS_RELEASE_NAME,
+        versions.RUSTFS_CHART_VERSION,
+        new HelmChartValues()
+          .file(constants.RUSTFS_VALUES_FILE)
+          .setLiteral('secret.existingSecret', constants.RUSTFS_SECRET_NAME)
+          .setLiteral('image.rustfs.tag', versions.RUSTFS_IMAGE_TAG)
+          .setLiteral('image.initImage.tag', '1.36.1')
+          .setLiteral('solo.bucketInitImage', versions.RUSTFS_BUCKET_INIT_IMAGE),
+        context,
+        false,
+        true,
+      );
+    } catch (error) {
+      throw new SoloErrors.deployment.rustfsInstallFailed(error as Error);
+    }
+  }
+
+  private isRustfsEnabled(config: NetworkDeployConfigClass): boolean {
+    return config.storageType === constants.StorageType.RUSTFS_ONLY && config.minioEnabled;
+  }
+
   private async prepareStreamUploaderSecrets(config: NetworkDeployConfigClass): Promise<void> {
     const namespace: NamespaceName = config.namespace;
 
@@ -389,7 +459,9 @@ export class NetworkCommand extends BaseCommand {
 
   private async prepareStorageSecrets(config: NetworkDeployConfigClass): Promise<void> {
     try {
-      if (config.storageType !== constants.StorageType.MINIO_ONLY) {
+      if (this.isRustfsEnabled(config)) {
+        await this.prepareRustfsSecrets(config);
+      } else if (config.storageType !== constants.StorageType.MINIO_ONLY) {
         if (config.minioEnabled) {
           const minioAccessKey: string = uuidv4();
           const minioSecretKey: string = uuidv4();
@@ -646,6 +718,15 @@ export class NetworkCommand extends BaseCommand {
     if (config.storageType !== constants.StorageType.MINIO_ONLY) {
       for (const clusterReference of clusterReferences) {
         chartValuesMap[clusterReference].set('cloud.generateNewSecrets', false);
+      }
+    }
+
+    if (this.isRustfsEnabled(config)) {
+      for (const clusterReference of clusterReferences) {
+        chartValuesMap[clusterReference]
+          .set('cloud.minio.enabled', false)
+          .set('cloud.s3.enabled', true)
+          .set('cloud.s3.useSsl', false);
       }
     }
 
@@ -1159,6 +1240,17 @@ export class NetworkCommand extends BaseCommand {
             constants.SOLO_DEPLOYMENT_CHART,
             this.k8Factory.getK8(context).contexts().readCurrent(),
           );
+        }),
+      ),
+    );
+
+    await this.logDestroyResults(
+      'Uninstall RustFS chart',
+      await Promise.allSettled(
+        contexts.map(async (context): Promise<void> => {
+          if (await this.chartManager.isChartInstalled(namespace, constants.RUSTFS_RELEASE_NAME, context)) {
+            await this.chartManager.uninstall(namespace, constants.RUSTFS_RELEASE_NAME, context);
+          }
         }),
       ),
     );
@@ -1909,6 +2001,15 @@ export class NetworkCommand extends BaseCommand {
           },
         },
         {
+          title: 'Install RustFS',
+          skip: ({config}): boolean => !this.isRustfsEnabled(config),
+          task: async ({config: {namespace, clusterRefs}}): Promise<void> => {
+            for (const [, context] of clusterRefs) {
+              await this.installRustfs(namespace, context);
+            }
+          },
+        },
+        {
           title: `Install chart '${constants.SOLO_DEPLOYMENT_CHART}'`,
           task: async ({config}): Promise<void> => {
             const {clusterRefs} = config;
@@ -2098,7 +2199,8 @@ export class NetworkCommand extends BaseCommand {
                   !minioEnabled ||
                   storageType === constants.StorageType.GCS_ONLY ||
                   storageType === constants.StorageType.AWS_ONLY ||
-                  storageType === constants.StorageType.AWS_AND_GCS,
+                  storageType === constants.StorageType.AWS_AND_GCS ||
+                  storageType === constants.StorageType.RUSTFS_ONLY,
               },
             ];
 

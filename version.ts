@@ -51,6 +51,10 @@ export const MINIO_IMAGE_REPOSITORY: string =
 export const MINIO_IMAGE_DIGEST: string =
   constants.getEnvironmentVariable('MINIO_IMAGE_DIGEST') ||
   '635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46';
+export const RUSTFS_CHART_VERSION: string = '1.0.0';
+// 1.0.0's scanner holds about one CPU core on single-node, single-disk deployments; fixed in 1.0.1 previews
+export const RUSTFS_IMAGE_TAG: string = '1.0.1-preview.16';
+export const RUSTFS_BUCKET_INIT_IMAGE: string = 'docker.io/amazon/aws-cli:2.37.6';
 export const METRICS_SERVER_VERSION: string = constants.getEnvironmentVariable('METRICS_SERVER_VERSION') || '';
 export const PROMETHEUS_STACK_VERSION: string =
   constants.getEnvironmentVariable('PROMETHEUS_STACK_VERSION') || '52.0.1';

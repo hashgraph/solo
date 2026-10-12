@@ -124,6 +124,14 @@ tasks:
         {{ .mocha_bin }} 'test/e2e/commands/block-node.test.ts'
         {{ .reporter_options_prefix }}-e2e-block-node.xml"
 
+  test-e2e-rustfs:
+    desc: "Runs E2E RustFS storage tests with coverage and generates reports in coverage/e2e-rustfs"
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E RustFS Tests\"
+        {{ .reporter_prefix }}='coverage/e2e-rustfs'
+        {{ .mocha_bin }} 'test/e2e/commands/rustfs.test.ts'
+        {{ .reporter_options_prefix }}-e2e-rustfs.xml"
+
   test-e2e-dual-cluster-full:
     desc: "Runs E2E Dual Cluster Full tests with coverage and generates reports in coverage/e2e-dual-cluster-full"
     cmds:

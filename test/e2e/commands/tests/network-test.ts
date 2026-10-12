@@ -27,6 +27,7 @@ export class NetworkTest extends BaseCommandTest {
     tssEnabled: boolean,
     wrapsEnabled: boolean,
     releaseTagOverride?: string,
+    storageType?: constants.StorageType,
   ): string[] {
     const {newArgv, argvPushGlobalFlags, optionFromFlag} = NetworkTest;
 
@@ -61,6 +62,11 @@ export class NetworkTest extends BaseCommandTest {
     } else if (enableLocalBuildPathTesting) {
       argv.push(optionFromFlag(Flags.releaseTag), localBuildReleaseTag);
     }
+
+    if (storageType) {
+      argv.push(optionFromFlag(Flags.storageType), storageType);
+    }
+
     argvPushGlobalFlags(argv, testName, true, true);
     return argv;
   }
@@ -78,6 +84,7 @@ export class NetworkTest extends BaseCommandTest {
       wrapsEnabled,
       clusterReferenceNameArray,
       consensusNodesCount,
+      storageType,
     } = options;
     const {soloNetworkDeployArgv} = NetworkTest;
 
@@ -92,6 +99,7 @@ export class NetworkTest extends BaseCommandTest {
           tssEnabled,
           wrapsEnabled,
           releaseTagOverride,
+          storageType,
         ),
       );
       const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);

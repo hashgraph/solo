@@ -3,6 +3,7 @@
 import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 import {type ClusterReferences} from '../../../../src/types/index.js';
 import {type NamespaceName} from '../../../../src/types/namespace/namespace-name.js';
+import {type StorageType} from '../../../../src/core/constants.js';
 
 export interface BaseTestOptions {
   readonly testName: string;
@@ -36,4 +37,5 @@ export interface BaseTestOptions {
   readonly javaFlightRecorderConfiguration: string;
   readonly chainId?: number;
   readonly valuesFile?: string;
+  readonly storageType?: StorageType;
 }
