@@ -79,7 +79,7 @@ describe('Mirror node performance (JFR) values', (): void => {
 });
 
 describe('Mirror node debug (JDWP) values', (): void => {
-  type DebugValues = MirrorNodePerformanceValuesConfig & {importer?: {livenessProbe?: unknown}};
+  type DebugValues = MirrorNodePerformanceValuesConfig & {importer?: {livenessProbe?: unknown; startupProbe?: unknown}};
   let debugValues: DebugValues;
 
   before((): void => {
@@ -99,9 +99,11 @@ describe('Mirror node debug (JDWP) values', (): void => {
     );
   });
 
-  it('should drop the importer liveness probe so a paused debugger does not restart the pod', (): void => {
-    // Helm deletes a key set to null, so the chart default and Solo's base probe are both dropped.
+  it('should drop the importer startup and liveness probes so a paused debugger does not restart the pod', (): void => {
+    // Helm deletes a key set to null, so the chart default and Solo's base probes are both dropped.
     // eslint-disable-next-line unicorn/no-null
     expect(debugValues.importer).to.have.property('livenessProbe', null);
+    // eslint-disable-next-line unicorn/no-null
+    expect(debugValues.importer).to.have.property('startupProbe', null);
   });
 });

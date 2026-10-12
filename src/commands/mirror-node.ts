@@ -115,7 +115,7 @@ interface MirrorNodeDeployConfigClass {
   externalDatabaseReadonlyPassword: Optional<string>;
   domainName: Optional<string>;
   forcePortForward: Optional<boolean>;
-  debugMirrorNode: boolean;
+  debugMirrorNodeComponent: Optional<string>;
   releaseName: string;
   ingressReleaseName: string;
   newMirrorNodeComponent: MirrorNodeStateSchema;
@@ -168,7 +168,7 @@ interface MirrorNodeUpgradeConfigClass {
   externalDatabaseReadonlyPassword: Optional<string>;
   domainName: Optional<string>;
   forcePortForward: Optional<boolean>;
-  debugMirrorNode: boolean;
+  debugMirrorNodeComponent: Optional<string>;
   releaseName: string;
   ingressReleaseName: string;
   isLegacyChartInstalled: boolean;
@@ -296,7 +296,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.externalDatabaseReadonlyPassword,
       flags.domainName,
       flags.forcePortForward,
-      flags.debugMirrorNode,
+      flags.debugMirrorNodeComponent,
       flags.externalAddress,
       flags.soloChartVersion,
       flags.forceBlockNodeIntegration, // Used to bypass version requirements for block node integration
@@ -338,7 +338,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.externalDatabaseReadonlyPassword,
       flags.domainName,
       flags.forcePortForward,
-      flags.debugMirrorNode,
+      flags.debugMirrorNodeComponent,
       flags.externalAddress,
       flags.id,
       flags.soloChartVersion,
@@ -710,7 +710,8 @@ export class MirrorNodeCommand extends BaseCommand {
 
     chartValues.add(this.prepareBlockNodeIntegrationValues(config));
 
-    if (config.debugMirrorNode) {
+    // The flag only accepts `importer` for now, and the overlay is importer-only.
+    if (config.debugMirrorNodeComponent === 'importer') {
       chartValues.file(constants.MIRROR_NODE_DEBUG_VALUES_FILE);
     }
 
@@ -1630,30 +1631,32 @@ export class MirrorNodeCommand extends BaseCommand {
 
   private enableDebuggerPortForwardingTask(): SoloListrTask<AnyListrContext> {
     return {
-      title: 'Enable port forwarding for mirror node importer JVM debugger',
-      skip: ({config}: MirrorNodeDeployContext | MirrorNodeUpgradeContext): boolean => !config.debugMirrorNode,
+      title: 'Enable port forwarding for mirror node JVM debugger',
+      skip: ({config}: MirrorNodeDeployContext | MirrorNodeUpgradeContext): boolean => !config.debugMirrorNodeComponent,
       task: async ({config}: MirrorNodeDeployContext | MirrorNodeUpgradeContext): Promise<void> => {
         const externalAddress: string = this.configManager.getFlag<string>(flags.externalAddress);
-        const [importerPod]: Pod[] = await this.k8Factory
+        const [debugPod]: Pod[] = await this.k8Factory
           .getK8(config.clusterContext)
           .pods()
           .list(config.namespace, [
-            'app.kubernetes.io/component=importer',
+            `app.kubernetes.io/component=${config.debugMirrorNodeComponent}`,
             `app.kubernetes.io/instance=${config.releaseName}`,
           ]);
-        if (!importerPod) {
+        if (!debugPod) {
           throw new SoloErrors.system.mirrorNodePodsNotFound(config.releaseName, config.namespace.name);
         }
 
         // Not tracked in remote config, same as the consensus node --debug-node-alias forward
-        const localPort: number = await importerPod.portForward(
+        const localPort: number = await debugPod.portForward(
           constants.JVM_DEBUG_PORT,
           constants.JVM_DEBUG_PORT,
           true,
           true,
           externalAddress,
         );
-        this.logger.showUser(`Mirror node importer JVM debugger is available on localhost:${localPort}`);
+        this.logger.showUser(
+          `Mirror node ${config.debugMirrorNodeComponent} JVM debugger is available on localhost:${localPort}`,
+        );
       },
     };
   }
