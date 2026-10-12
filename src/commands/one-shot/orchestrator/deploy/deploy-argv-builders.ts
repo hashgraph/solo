@@ -32,6 +32,8 @@ import path from 'node:path';
 import yaml from 'yaml';
 import {Templates} from '../../../../core/templates.js';
 import {SemanticVersion} from '../../../../business/utils/semantic-version.js';
+import {type ComponentVersionTuple} from '../../../../business/compatibility/component-version-tuple.js';
+import {ComponentTypes} from '../../../../core/config/remote/enumerations/component-types.js';
 
 const MIRROR_NODE_ID: number = 1;
 const GITHUB_RELEASES_PER_PAGE: number = 100;
@@ -61,6 +63,28 @@ export class DeployArgvBuilders {
   public static shouldDeployBlockNode(config: OneShotSingleDeployConfigClass): boolean {
     void config;
     return this.isBlockNodeEnvironmentEnabled();
+  }
+
+  /**
+   * The versions of the components this one-shot run will deploy together. The sub-commands each check compatibility
+   * against what remote config records when they run, which in this pipeline can be before the other components have
+   * recorded their versions, so one-shot validates the whole set up front.
+   */
+  public static buildComponentVersionTuple(config: OneShotSingleDeployConfigClass): ComponentVersionTuple {
+    const tuple: Partial<Record<ComponentTypes, string>> = {[ComponentTypes.ConsensusNode]: config.versions.consensus};
+    if (this.shouldDeployBlockNode(config)) {
+      tuple[ComponentTypes.BlockNode] = config.versions.blockNode;
+    }
+    if (config.deployMirrorNode) {
+      tuple[ComponentTypes.MirrorNode] = config.versions.mirror;
+    }
+    if (config.deployRelay || config.minimalSetup) {
+      tuple[ComponentTypes.RelayNodes] = config.versions.relay;
+    }
+    if (config.deployExplorer || config.minimalSetup) {
+      tuple[ComponentTypes.Explorer] = config.versions.explorer;
+    }
+    return tuple;
   }
 
   private static shouldSkipMinioSetup(config: OneShotSingleDeployConfigClass): boolean {

@@ -150,12 +150,13 @@ export class ComponentCompatibility {
   }
 
   /**
-   * Throws when the tuple breaks a constraint that involves `involving`; with `bypass` (--force, or a staged upgrade
-   * that leaves the nodes stopped) the violation is logged and the caller proceeds.
+   * Throws when the tuple breaks a constraint that involves `involving` (every constraint when it is `undefined`); with
+   * `bypass` (--force, or a staged upgrade that leaves the nodes stopped) the violation is logged and the caller
+   * proceeds.
    */
   public static assertCompatible(
     tuple: ComponentVersionTuple,
-    involving: ComponentTypes,
+    involving: ComponentTypes | undefined,
     bypass: boolean,
     logger: SoloLogger,
   ): void {
@@ -228,15 +229,20 @@ export class ComponentCompatibility {
   /**
    * Reads the versions of the components that are present in the deployment's remote config. Remote config holds a
    * default version for every component type, so a version only counts when at least one component of that type
-   * exists.
+   * exists. A component that is registered but has not recorded its version yet (still `0.0.0`, e.g. one that one-shot
+   * pre-registers before deploying it) is left out, since its version is not known.
    */
   public static deployedVersions(remoteConfig: RemoteConfigRuntimeStateApi): ComponentVersionTuple {
     const deployedComponentTypes: Set<ComponentTypes> = new Set(remoteConfig.getComponentPhasesMap().keys());
     const tuple: Partial<Record<ComponentTypes, string>> = {};
 
     for (const component of ComponentCompatibility.VERSIONED_COMPONENTS) {
-      if (deployedComponentTypes.has(component)) {
-        tuple[component] = remoteConfig.getComponentVersion(component)?.toString();
+      if (!deployedComponentTypes.has(component)) {
+        continue;
+      }
+      const version: SemanticVersion<string> | undefined = remoteConfig.getComponentVersion(component);
+      if (version && !version.equals('0.0.0')) {
+        tuple[component] = version.toString();
       }
     }
 

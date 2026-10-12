@@ -151,6 +151,24 @@ describe('ComponentCompatibility', (): void => {
       expect(showUser.calledOnce).to.be.true;
     });
 
+    it('checks every constraint when no component is given', (): void => {
+      expect((): void =>
+        ComponentCompatibility.assertCompatible(
+          {
+            [ComponentTypes.ConsensusNode]: 'v0.79.0',
+            [ComponentTypes.BlockNode]: '0.45.0',
+            [ComponentTypes.MirrorNode]: '0.164.0',
+          },
+          undefined,
+          false,
+          logger,
+        ),
+      )
+        .to.throw(ComponentVersionIncompatibleSoloError)
+        .with.property('message')
+        .that.matches(/mirror node 0\.164\.0 cannot run with consensus node v0\.79\.0/);
+    });
+
     it('stays silent for a compatible tuple', (): void => {
       ComponentCompatibility.assertCompatible(tuple('v0.79.0', '0.45.0'), ComponentTypes.BlockNode, false, logger);
       expect(warn.called).to.be.false;
@@ -225,6 +243,23 @@ describe('ComponentCompatibility', (): void => {
       expect(ComponentCompatibility.deployedVersions(remoteConfig)).to.deep.equal({
         [ComponentTypes.ConsensusNode]: '0.79.0',
         [ComponentTypes.MirrorNode]: '0.165.0',
+      });
+    });
+
+    // one-shot registers the mirror node before deploying it; until then its version is the 0.0.0 placeholder
+    it('leaves out a registered component that has not recorded its version yet', (): void => {
+      const remoteConfig: RemoteConfigRuntimeStateApi = {
+        getComponentPhasesMap: (): Map<ComponentTypes, DeploymentPhase> =>
+          new Map([
+            [ComponentTypes.ConsensusNode, DeploymentPhase.DEPLOYED],
+            [ComponentTypes.MirrorNode, DeploymentPhase.REQUESTED],
+          ]),
+        getComponentVersion: (type: ComponentTypes): SemanticVersion<string> =>
+          new SemanticVersion<string>(type === ComponentTypes.MirrorNode ? '0.0.0' : '0.79.0'),
+      } as unknown as RemoteConfigRuntimeStateApi;
+
+      expect(ComponentCompatibility.deployedVersions(remoteConfig)).to.deep.equal({
+        [ComponentTypes.ConsensusNode]: '0.79.0',
       });
     });
   });
