@@ -55,8 +55,8 @@ Solo TCK runner (Mocha + TypeScript)
   └─ Probe layer ──────► kubectl + mirror REST + JSON-RPC + SDK HCS
 ```
 
-**Candidate build — largely solved, and no longer the gating dependency.** On `main`, four of five components
-can already be deployed from a branch build:
+**Candidate build — largely solved, and no longer the gating dependency.** On `main`, every component can
+already be deployed from a branch build; what differs is the artifact:
 
 | Component   | Mechanism on `main`                                                             | Gap                                        |
 | ----------- | ------------------------------------------------------------------------------- | ------------------------------------------ |
@@ -64,24 +64,49 @@ can already be deployed from a branch build:
 | Relay       | `--component-image` / `--component-image-archive` (+ `--relay-chart-dir`)       | consumer builds no image per PR today (§4) |
 | Explorer    | `--component-image` / `--component-image-archive` (+ `--explorer-chart-dir`)    | —                                          |
 | Block node  | `--component-image` / `--component-image-archive` (+ `--block-node-chart-dir`)  | not wired into `block node upgrade`        |
-| Consensus   | `--local-build-path` (a JAR side-load)                                          | **no image swap**                          |
+| Consensus   | `--local-build-path` (the platform build, side-loaded)                          | provenance only — see below                |
+
+**The consensus node has no vendor image to swap, by design.** The CN pod runs an image _we_ own —
+`ghcr.io/hiero-ledger/solo-containers/debian-s6-java25`, built in
+[hiero-ledger/solo-containers](https://github.com/hiero-ledger/solo-containers) and pinned by
+`SOLO_CONTAINERS_VERSION` in `version.ts` — and the consensus node itself arrives as the platform build copied
+into that container. So `--local-build-path` _is_ the CN candidate mechanism, not a stopgap for a missing one,
+and "CN lacks an image swap" is the wrong way to describe it.
+
+That also means CN carries **three** candidate axes, all independently able to break a deploy, and the kit
+should be able to take any of them as the candidate:
+
+1. the **platform build** (`--local-build-path`, or `--consensus-node-version` for a release),
+2. the **runtime container** from `solo-containers` (`SOLO_CONTAINERS_VERSION`),
+3. the **chart**, `solo-deployment` in [hiero-ledger/solo-charts](https://github.com/hiero-ledger/solo-charts)
+   (`SOLO_CHART_VERSION`, overridable with `--chart-dir`), which also pins the sidecars — cheetah, HAProxy,
+   Envoy, backup-uploader, Grafana Alloy.
+
+Axes 2 and 3 are Solo-owned, so a break there is a `solo-defect` (§6) by construction, and they are exactly the
+changes no consumer's CI would ever catch. They belong in the nightly tuple even though no external team
+triggers them.
 
 `#5021` is four-fifths closed (#4473, #5938, #5940, #5856 merged; only
 [#5939](https://github.com/hiero-ledger/solo/issues/5939) — images beyond a single Kind cluster — is open), and
 Mirror Node already deploys its branch build through Solo on every PR
 (`.github/actions/run-e2e/action.yml`). What remains is narrower than "branch builds are not deployable":
 
-1. CN still has no image swap, only the JAR side-load.
-2. `one-shot` accepts no `--component-image`, so the kit's simplest entry point cannot carry a candidate.
-3. `block node upgrade` does not accept it either.
-4. **Nothing records which image a run actually deployed** — the provenance gap that makes a green run
-   unfalsifiable (see §3's resolved-tuple requirement).
+1. `one-shot` accepts no `--component-image`, so the kit's simplest entry point cannot carry a candidate.
+2. `block node upgrade` does not accept it either.
+3. **Nothing records which image or build a run actually deployed** — the provenance gap that makes a green run
+   unfalsifiable (see §3's resolved-tuple requirement). This is the one gap that applies to CN too.
+4. **No local image registry.** `--component-image` already accepts a Kind-attached registry reference
+   (`localhost:5001/component:1.2.3`), but Solo never stands one up, so a locally built image lives and dies
+   inside one Kind cluster — which is #5939, and the piece that lets one built image serve several clusters or
+   jobs. The kit depends on it for any multi-cluster topology.
 5. The end-state per-component build actions do not exist: `hiero-ledger/solo-build-actions`
    ([TSC#298](https://github.com/hiero-ledger/tsc/issues/298)) was created but is still empty (README +
-   `.gitignore`, last pushed 2026-09-08).
+   `.gitignore`, last pushed 2026-09-08). The registry in (4) is the natural companion to those actions: build
+   once, push to the local registry, deploy by reference.
 
-**`candidate` is not one shape.** It is a build directory for CN, and an image reference — optionally with a
-chart directory — for the rest. §4's input must be typed per component rather than as a single string.
+**`candidate` is not one shape.** A platform build directory, a runtime image, or a chart directory for CN; an
+image reference — optionally with a chart directory — for the rest. §4's input must be typed per component
+rather than as a single string.
 
 **The JS SDK does not fit this flow at all.** Solo never deploys the SDK as an image, so a candidate SDK has
 to be exercised two ways, and both belong in the plan:
@@ -141,6 +166,12 @@ Bounded by the support window in [#3608](https://github.com/hiero-ledger/solo/is
 | Relay          | `--relay-version`          | `RELAY_VERSION`          | `HEDERA_JSON_RPC_RELAY_VERSION` |
 | Block node     | `--block-node-version`     | `BLOCK_NODE_VERSION`     | `BLOCK_NODE_VERSION`            |
 
+Two further axes belong in the tuple even though no consumer sets them, because both are Solo-owned and both
+ship inside every deploy: the `solo-deployment` chart (`--chart-dir`, `SOLO_CHART_VERSION`) and the runtime
+container from `solo-containers` (`SOLO_CONTAINERS_VERSION`), which the chart pins alongside its sidecars.
+A nightly tuple that records the component versions but not these two cannot explain a regression caused by
+either.
+
 **Interdependency gating (TCK-D5).** _"CN X requires BN Y"_ belongs inside Solo, not the kit. One real gate
 exists — `BlockNodeCommand.assertBlockProofCompatibility` (`src/commands/block-node.ts:503`) checks a CN and a
 BN version together — but it is enforcement-only and reachable only by deploying, and the remaining gates are
@@ -157,15 +188,15 @@ resolved tuple before deploy, with `assertBlockProofCompatibility` as the first 
 | **Solo PR**                 | Solo CI       | supported component versions | gate a Solo change on component compat  |
 | **Release / nightly tuple** | Solo CI       | a pinned tuple               | roadmap#199 release signal (pending §3) |
 
-| Caller input             | Required | Meaning                                                                     |
-| ------------------------ | -------- | --------------------------------------------------------------------------- |
-| `component`              | yes      | `consensus-node` \| `mirror-node` \| `block-node` \| `relay` \| `js-sdk`    |
-| `candidate`              | yes      | build dir (CN), image ref (+ optional chart dir) for the rest, or a version |
-| `solo-version`           | no       | a published Solo version **or** a Solo branch build, inside the kit's range |
-| `topology`               | no       | which topology suite(s) to run                                              |
-| `scope`                  | no       | `pr-core` \| `extended` \| `nightly` — the §6 tiers                         |
-| `non-candidate-versions` | no       | override for the other components; default per §3                           |
-| `expected-solo-break`    | no       | a Solo issue URL declaring an intentional break up front (§6)               |
+| Caller input             | Required | Meaning                                                                                                      |
+| ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------ |
+| `component`              | yes      | `consensus-node` \| `mirror-node` \| `block-node` \| `relay` \| `js-sdk`                                     |
+| `candidate`              | yes      | platform build, runtime image or chart dir (CN); image ref (+ optional chart dir) for the rest; or a version |
+| `solo-version`           | no       | a published Solo version **or** a Solo branch build, inside the kit's range                                  |
+| `topology`               | no       | which topology suite(s) to run                                                                               |
+| `scope`                  | no       | `pr-core` \| `extended` \| `nightly` — the §6 tiers                                                          |
+| `non-candidate-versions` | no       | override for the other components; default per §3                                                            |
+| `expected-solo-break`    | no       | a Solo issue URL declaring an intentional break up front (§6)                                                |
 
 **No sixth Solo pin (TCK-D3).** The kit accepts the caller's Solo version. Consumers already pin Solo five
 ways — CN `.citr-env` v0.87.1, MN `v0.88.1`, BN input default `0.88.1`, Relay on the deprecated
@@ -286,8 +317,9 @@ though the epic lists it under the PR check — a deviation to confirm with Keit
    rule that assigns failure classes (§6).
 3. **Solo cannot express cross-component constraints** (§3, TCK-D5) — net-new work, with
    `assertBlockProofCompatibility` as the starting point.
-4. **Candidate-build gaps** (§2) — CN image swap, `--component-image` on `one-shot` and `block node upgrade`,
-   and a record of which image a run deployed. Narrow and parallelisable; **no longer gates TCK-1.**
+4. **Candidate-build gaps** (§2) — `--component-image` on `one-shot` and `block node upgrade`, a record of
+   which image or build a run deployed, and a local image registry (#5939) so a built image outlives one Kind
+   cluster. Narrow and parallelisable; **no longer gates TCK-1.**
 5. **`hiero-solo-action` ownership** — maintained outside the core Solo CI group; confirm write access
    before the design's assumption that we update it.
 6. **JDK axis** — chartered by roadmap#199, but Solo has no flag for it; needs an owner or a v1 exclusion.

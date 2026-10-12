@@ -36,6 +36,7 @@ recommendation, proposed as the default rather than as one option among four.
   integration gate, not a TCK — and without it there is no rule for deciding whether a failure is the
   component's fault or Solo's.
 
-**No longer blocking.** Branch builds are deployable today for Mirror Node, Relay, Explorer and Block Node
-via `--component-image` / `--component-image-archive`; only the Consensus Node still lacks an image swap. The
-remaining gaps are narrow and listed in design §2.
+**No longer blocking.** Branch builds are deployable today: `--component-image` / `--component-image-archive`
+for Mirror Node, Relay, Explorer and Block Node, and `--local-build-path` for the Consensus Node, whose
+runtime container we own (`solo-containers`) and whose chart we ship (`solo-deployment` in `solo-charts`) — so
+there is no vendor CN image to swap in the first place. The remaining gaps are narrow and listed in design §2.
