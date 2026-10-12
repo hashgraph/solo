@@ -58,7 +58,7 @@ export class CacheCommandDefinition extends BaseCommandDefinition {
               this.cacheCommand,
               this.cacheCommand.pull,
               CacheCommand.PULL_FLAGS_LIST,
-              [constants.CRANE],
+              [],
             ),
           )
           .addSubcommand(

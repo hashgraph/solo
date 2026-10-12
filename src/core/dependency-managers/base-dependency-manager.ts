@@ -114,7 +114,7 @@ export abstract class BaseDependencyManager extends ShellRunner {
    * This avoids spawning a shell subprocess (which, command -v, where) whose
    * behaviour varies across shells and CI runner environments.
    */
-  private getGlobalExecutableWithPath(): false | string {
+  protected getGlobalExecutableWithPath(): false | string {
     if (this.globalExecutablePath) {
       return this.globalExecutablePath;
     }

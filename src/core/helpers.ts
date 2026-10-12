@@ -137,6 +137,8 @@ export class Helpers {
 
     if (streamMode === 'BLOCKS') {
       Helpers.upsertApplicationProperty(lines, 'blockStream.streamWrappedRecordBlocks', 'false');
+    } else if (streamMode === 'BOTH') {
+      Helpers.upsertApplicationProperty(lines, 'blockStream.streamWrappedRecordBlocks', 'true');
     }
   }
 

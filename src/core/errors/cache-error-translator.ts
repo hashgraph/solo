@@ -5,7 +5,6 @@ import {type SoloError} from './solo-error.js';
 import {CacheImageTemplateUnknownError} from '../../integration/cache/errors/cache-image-template-unknown-error.js';
 import {CacheImageTemplateUndeclaredError} from '../../integration/cache/errors/cache-image-template-undeclared-error.js';
 import {CacheProviderNotConfiguredError} from '../../integration/cache/errors/cache-provider-not-configured-error.js';
-import {CacheInvalidKindNodeImageError} from '../../integration/cache/errors/cache-invalid-kind-node-image-error.js';
 
 export class CacheErrorTranslator {
   /**
@@ -21,9 +20,6 @@ export class CacheErrorTranslator {
     }
     if (error instanceof CacheProviderNotConfiguredError) {
       return new SoloErrors.system.cacheProviderNotConfigured(error.providerName, error.missing);
-    }
-    if (error instanceof CacheInvalidKindNodeImageError) {
-      return new SoloErrors.validation.invalidKindNodeImage(error.image);
     }
     return undefined;
   }

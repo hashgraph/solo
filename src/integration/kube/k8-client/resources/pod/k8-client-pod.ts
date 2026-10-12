@@ -39,6 +39,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {isSea} from 'node:sea';
 import find from 'find-process';
 import type FindConfig from 'find-process';
 import type ProcessInfo from 'find-process';
@@ -237,29 +238,41 @@ export class K8ClientPod implements Pod {
       if (persist) {
         // When running via tsx (dev/test), __filename ends in .ts; use tsx to run the .ts source.
         // In a compiled build it ends in .js; use node to run the compiled .js.
+        // A SEA binary cannot run an external JS file, so it re-runs itself (process.execPath) with a
+        // hidden flag that its bootstrap (sea/sea-main.template.cjs) routes to the embedded worker.
         const isTsx: boolean = __filename.endsWith('.ts');
         const persistScriptExtension: string = isTsx ? '.ts' : '.js';
-        const useDirectNodeRuntime: boolean = isWindows;
+        const isSeaBinary: boolean = isSea();
+
+        const useDirectNodeRuntime: boolean = isWindows || isSeaBinary;
         let persistCmd: string = isTsx ? 'tsx' : 'node';
         if (useDirectNodeRuntime) {
           persistCmd = process.execPath;
         }
         const persistRuntimeArguments: string[] = useDirectNodeRuntime && isTsx ? ['--import', 'tsx'] : [];
-        const persistPortForwardScriptPath: string = path.resolve(
-          __dirname,
-          `persist-port-forward${persistScriptExtension}`,
+        // The flag keeps "persist-port-forward" in the command line, which the process matchers rely on.
+        const persistPortForwardEntry: string = isSeaBinary
+          ? '--internal-persist-port-forward'
+          : path.resolve(__dirname, `persist-port-forward${persistScriptExtension}`);
+
+        // The worker below runs in its own process, so it starts with no operator-configured
+        // allowlist of its own; without forwarding the parent's already-vetted names it would
+        // silently drop them the moment it re-derives its own environment for the kubectl spawn.
+        const operatorAllowlistForKubectl: string = JSON.stringify(
+          SubprocessEnvironment.getOperatorAllowlist(SubprocessCommandProfile.KUBECTL),
         );
 
         cmd = persistCmd;
         cmdArguments = [
           ...persistRuntimeArguments,
-          persistPortForwardScriptPath,
+          persistPortForwardEntry,
           this.podReference.namespace.name,
           `pods/${this.podReference.name}`,
           this.kubeConfig.currentContext,
           `${availablePort}:${podPort}`,
           constants.KUBECTL,
           this.kubectlInstallationDirectory,
+          operatorAllowlistForKubectl,
         ];
 
         // WSL2 has issues with kubectl port-forward when binding to localhost, binding to all interfaces will trigger

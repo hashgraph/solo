@@ -8,11 +8,19 @@
  *   2. oom              — container was killed by the kernel due to memory exhaustion.
  *   3. pod-readiness    — pod is not Running or its readiness probe is failing.
  *   4. consensus-active — consensus node did not reach ACTIVE platform status.
- *   5. log-exception    — an exception/stack-trace was found in an application log.
- *   6. app-error        — an ERROR line was found in a pod's raw container log.
+ *   5. relay-mirror-connectivity — relay/Mirror Node Web3 connection risk was inferred from
+ *       component configuration and request evidence.
+ *   6. log-exception    — an exception/stack-trace was found in an application log.
+ *   7. app-error        — an ERROR line was found in a pod's raw container log.
  */
 export type DiagnosticsFindingCategory =
-  'image-pull' | 'oom' | 'pod-readiness' | 'consensus-active' | 'log-exception' | 'app-error';
+  | 'image-pull'
+  | 'oom'
+  | 'pod-readiness'
+  | 'consensus-active'
+  | 'relay-mirror-connectivity'
+  | 'log-exception'
+  | 'app-error';
 
 /** A single detected problem with its supporting evidence lines. */
 export interface DiagnosticsFinding {

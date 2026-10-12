@@ -35,18 +35,13 @@ export abstract class GitHubReleaseDependencyManager extends BaseDependencyManag
   /** Whether the given release asset is the one built for the running platform and architecture. */
   protected abstract isMatchingAsset(asset: GitHubReleaseAsset): boolean;
 
-  /** The arguments that make the executable print its version; matched against `\d+.\d+.\d+`. */
-  protected getVersionArguments(): string[] {
-    return ['--version'];
-  }
-
   public async getVersion(executableWithPath: string): Promise<string> {
     // The retry handles transient issues with the command execution: `<tool> --version` was sometimes
     // observed to return an empty output in the CI environment.
     const maxAttempts: number = 3;
     for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const output: string[] = await this.run(executableWithPath, this.getVersionArguments());
+        const output: string[] = await this.run(executableWithPath, ['--version']);
         const match: RegExpMatchArray | null = output.join('\n').match(/(\d+\.\d+\.\d+)/);
         if (match) {
           return match[1];

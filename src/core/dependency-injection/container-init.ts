@@ -67,6 +67,7 @@ import {RemoteConfigRuntimeState} from '../../business/runtime-state/config/remo
 import {ComponentFactory} from '../config/remote/component-factory.js';
 import {RemoteConfigValidator} from '../config/remote/remote-config-validator.js';
 import {type ConfigProvider} from '../../data/configuration/api/config-provider.js';
+import {OptionalDefaultConfigSource} from '../../data/configuration/impl/optional-default-config-source.js';
 import {DefaultConfigSource} from '../../data/configuration/impl/default-config-source.js';
 import {SoloConfigSchema} from '../../data/schema/model/solo/solo-config-schema.js';
 import {EnvironmentAliasRegistry} from '../../data/schema/decorators/environment-alias-registry.js';
@@ -112,7 +113,6 @@ import {ContainerEngineResourceInspector} from '../../integration/container-engi
 import {DefaultCacheHandlerRegistry} from '../../integration/cache/impl/default-cache-handler-registry.js';
 import {DefaultCacheHealthInspector} from '../../integration/cache/impl/default-cache-health-inspector.js';
 import {FileSystemCacheCatalogStore} from '../../integration/cache/impl/file-system-cache-catalog-store.js';
-import {CraneDependencyManager} from '../dependency-managers/crane-dependency-manager.js';
 
 export type InstanceOverrides = Map<symbol, SingletonContainer | ValueContainer>;
 
@@ -159,7 +159,6 @@ export class Container {
       new SingletonContainer(InjectTokens.GvproxyDependencyManager, GvproxyDependencyManager),
       new SingletonContainer(InjectTokens.NetavarkDependencyManager, NetavarkDependencyManager),
       new SingletonContainer(InjectTokens.AardvarkDnsDependencyManager, AardvarkDnsDependencyManager),
-      new SingletonContainer(InjectTokens.CraneDependencyManager, CraneDependencyManager),
       new SingletonContainer(InjectTokens.ChartManager, ChartManager),
       new SingletonContainer(InjectTokens.ConfigManager, ConfigManager),
       new SingletonContainer(InjectTokens.AccountManager, AccountManager),
@@ -254,7 +253,6 @@ export class Container {
       new ValueContainer(InjectTokens.KindInstallationDirectory, PathEx.join(constants.SOLO_HOME_DIR, 'bin')),
       new ValueContainer(InjectTokens.KubectlInstallationDirectory, PathEx.join(constants.SOLO_HOME_DIR, 'bin')),
       new ValueContainer(InjectTokens.PodmanInstallationDirectory, PathEx.join(constants.SOLO_HOME_DIR, 'bin')),
-      new ValueContainer(InjectTokens.CraneInstallationDirectory, PathEx.join(constants.SOLO_HOME_DIR, 'bin')),
       new ValueContainer(
         InjectTokens.PodmanDependenciesInstallationDirectory,
         PathEx.join(constants.SOLO_HOME_DIR, 'bin/podman-helpers'),
@@ -271,7 +269,6 @@ export class Container {
       new ValueContainer(InjectTokens.GvproxyVersion, version.GVPROXY_VERSION),
       new ValueContainer(InjectTokens.NetavarkVersion, version.NETAVARK_VERSION),
       new ValueContainer(InjectTokens.AardvarkDnsVersion, version.AARDVARK_DNS_VERSION),
-      new ValueContainer(InjectTokens.CraneVersion, version.CRANE_VERSION),
       new ValueContainer(InjectTokens.SystemAccounts, constants.SYSTEM_ACCOUNTS),
       new ValueContainer(InjectTokens.CacheDir, cacheDirectory),
       new ValueContainer(InjectTokens.LocalConfigFileName, constants.DEFAULT_LOCAL_CONFIG_FILE),
@@ -306,13 +303,26 @@ export class Container {
             objectMapper,
           );
 
+          // Operator-editable configuration in SOLO_HOME_DIR. Included so the cascade is
+          // complete for consumers that refresh the config; the subprocess allowlist is applied
+          // separately at startup by SubprocessEnvironmentBootstrap, because sources load
+          // asynchronously and this factory is synchronous.
+          const userConfigSource: OptionalDefaultConfigSource<SoloConfigSchema> =
+            new OptionalDefaultConfigSource<SoloConfigSchema>(
+              constants.DEFAULT_SOLO_CONFIG_FILE,
+              constants.SOLO_HOME_DIR,
+              new SoloConfigSchemaDefinition(objectMapper),
+              objectMapper,
+            );
+
           const provider: ConfigProvider = new LayeredConfigProvider(objectMapper);
           provider
             .builder()
             .withDefaultSources()
-            .withSources(helmChartConfigSource, tssConfigSource)
+            .withSources(helmChartConfigSource, tssConfigSource, userConfigSource)
             .withMergeSourceValues(true)
             .build();
+
           return provider;
         },
       ),

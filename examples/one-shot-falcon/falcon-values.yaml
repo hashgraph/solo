@@ -20,7 +20,8 @@ network:
   --quiet-mode: false
   --release-tag: "${SOLO_RELEASE_TAG}"
   --settings-txt: ""
-  --values-file: ""
+  # Custom Helm values are intentionally exercised by the example Taskfile workflow.
+  --values-file: silo-helm-values.yaml
   --grpc-tls-certificate-path: ""
   --grpc-web-tls-certificate-path: ""
   --grpc-tls-key-path: ""

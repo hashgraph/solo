@@ -15,6 +15,10 @@ import {DeploymentPhase} from '../../../../../../src/data/schema/model/remote/de
 import {ConfirmationRequiredSoloError} from '../../../../../../src/core/errors/classes/validation/confirmation-required-solo-error.js';
 import {UserBreak} from '../../../../../../src/core/errors/user-break.js';
 import {Flags} from '../../../../../../src/commands/flags.js';
+import {ValuesFileNotFoundSoloError} from '../../../../../../src/core/errors/classes/validation/values-file-not-found-solo-error.js';
+import {PathEx} from '../../../../../../src/business/utils/path-ex.js';
+import fs from 'node:fs';
+import os from 'node:os';
 
 type MockType = any;
 type MockListr = MockType;
@@ -756,8 +760,8 @@ describe('DefaultOneShotDeployOrchestrator reconcileEffectiveVersions', (): void
     // reflected in the printed "Versions Used" summary, not just in the actual deployment.
     const orchestrator: DefaultOneShotDeployOrchestrator = makeOrchestrator();
     const config: OneShotSingleDeployConfigClass = makeConfig({
-      networkConfiguration: {[releaseTagKey]: 'v0.77.0-rc.2'},
-      setupConfiguration: {[releaseTagKey]: 'v0.77.0-rc.2'},
+      networkConfiguration: {[releaseTagKey]: 'v0.77.2'},
+      setupConfiguration: {[releaseTagKey]: 'v0.77.2'},
       versions: {
         soloChart: '0.64.0',
         consensus: 'v0.74.0',
@@ -771,7 +775,7 @@ describe('DefaultOneShotDeployOrchestrator reconcileEffectiveVersions', (): void
     // @ts-expect-error - to access private method
     orchestrator.reconcileEffectiveVersions(config);
 
-    expect(config.versions.consensus).to.equal('v0.77.0-rc.2');
+    expect(config.versions.consensus).to.equal('v0.77.2');
   });
 
   it('reflects per-component version overrides for block, mirror, explorer, and relay nodes', (): void => {
@@ -800,5 +804,126 @@ describe('DefaultOneShotDeployOrchestrator reconcileEffectiveVersions', (): void
     expect(config.versions.mirror).to.equal('v0.159.0');
     expect(config.versions.explorer).to.equal('26.2.0');
     expect(config.versions.relay).to.equal('0.78.0');
+  });
+});
+
+function invokeApplyValuesFileOverrides(config: OneShotSingleDeployConfigClass): void {
+  const orchestrator: DefaultOneShotDeployOrchestrator = makeOrchestrator();
+  // @ts-expect-error - to access private method
+  orchestrator.applyValuesFileOverrides(config);
+}
+
+describe('DefaultOneShotDeployOrchestrator applyValuesFileOverrides', (): void => {
+  const releaseTagKey: string = Flags.getFormattedFlagKey(Flags.consensusNodeVersion);
+  const mirrorNodeVersionKey: string = Flags.getFormattedFlagKey(Flags.mirrorNodeVersion);
+  const generatedFiles: string[] = [];
+
+  afterEach((): void => {
+    sinon.restore();
+    while (generatedFiles.length > 0) {
+      const filePath: string | undefined = generatedFiles.pop();
+      if (filePath && fs.existsSync(filePath)) {
+        fs.rmSync(filePath, {force: true});
+      }
+    }
+  });
+
+  function writeValuesFile(content: string): string {
+    const filePath: string = PathEx.join(os.tmpdir(), `falcon-values.unit.${Date.now()}.${generatedFiles.length}.yaml`);
+    fs.writeFileSync(filePath, content);
+    generatedFiles.push(filePath);
+    return filePath;
+  }
+
+  // Covers https://github.com/hiero-ledger/solo/issues/3296: `one-shot falcon deploy` without
+  // --values-file must behave exactly like `one-shot single deploy`.
+  it('keeps the one-shot single defaults when no values file is given', (): void => {
+    const existsSyncSpy: sinon.SinonSpy = sinon.spy(fs, 'existsSync');
+    const config: OneShotSingleDeployConfigClass = makeConfig({valuesFile: ''});
+
+    invokeApplyValuesFileOverrides(config);
+
+    expect(existsSyncSpy).to.not.have.been.called;
+    expect(config.networkConfiguration).to.deep.equal({});
+    expect(config.setupConfiguration).to.deep.equal({});
+    expect(config.consensusNodeConfiguration).to.deep.equal({});
+    expect(config.mirrorNodeConfiguration).to.deep.equal({});
+    expect(config.blockNodeConfiguration).to.deep.equal({});
+    expect(config.explorerNodeConfiguration).to.deep.equal({});
+    expect(config.relayNodeConfiguration).to.deep.equal({});
+  });
+
+  it('throws ValuesFileNotFoundSoloError when the given values file does not exist', (): void => {
+    const missingPath: string = PathEx.join(os.tmpdir(), `falcon-values.missing.${Date.now()}.yaml`);
+    const config: OneShotSingleDeployConfigClass = makeConfig({valuesFile: missingPath});
+
+    expect((): void => invokeApplyValuesFileOverrides(config)).to.throw(ValuesFileNotFoundSoloError, missingPath);
+  });
+
+  it('applies only the sections present in the values file and leaves the rest at the defaults', (): void => {
+    const valuesFile: string = writeValuesFile(
+      `network:\n  ${releaseTagKey}: v0.77.0\nmirrorNode:\n  ${mirrorNodeVersionKey}: v0.159.0\n`,
+    );
+    const config: OneShotSingleDeployConfigClass = makeConfig({valuesFile});
+
+    invokeApplyValuesFileOverrides(config);
+
+    expect(config.networkConfiguration).to.deep.equal({[releaseTagKey]: 'v0.77.0'});
+    expect(config.mirrorNodeConfiguration).to.deep.equal({[mirrorNodeVersionKey]: 'v0.159.0'});
+    expect(config.setupConfiguration).to.deep.equal({});
+    expect(config.consensusNodeConfiguration).to.deep.equal({});
+    expect(config.blockNodeConfiguration).to.deep.equal({});
+    expect(config.explorerNodeConfiguration).to.deep.equal({});
+    expect(config.relayNodeConfiguration).to.deep.equal({});
+  });
+
+  it('loads the command-line profile and resolves its nested network values file', (): void => {
+    const valuesFile: string = PathEx.resolve('test/fixtures/one-shot-falcon/silo-values.yaml');
+    const config: OneShotSingleDeployConfigClass = makeConfig({valuesFile});
+
+    invokeApplyValuesFileOverrides(config);
+
+    expect(config.valuesFile).to.equal(PathEx.resolve(valuesFile));
+    expect(config.networkConfiguration).to.deep.equal({
+      [Flags.getFormattedFlagKey(Flags.valuesFile)]: PathEx.resolve(
+        'test/fixtures/one-shot-falcon/silo-helm-values.yaml',
+      ),
+    });
+  });
+
+  it('merges profile values over existing defaults and preserves unspecified values', (): void => {
+    const nestedValuesFile: string = PathEx.resolve('test/fixtures/one-shot-falcon/silo-helm-values.yaml');
+    const valuesFile: string = writeValuesFile(
+      `network:\n  --values-file: ${nestedValuesFile}\n  --application-env: custom.env\n`,
+    );
+    const releaseTagKey: string = Flags.getFormattedFlagKey(Flags.releaseTag);
+    const valuesFileKey: string = Flags.getFormattedFlagKey(Flags.valuesFile);
+    const config: OneShotSingleDeployConfigClass = makeConfig({
+      valuesFile,
+      networkConfiguration: {
+        [releaseTagKey]: 'v0.84.1',
+        [valuesFileKey]: 'default-values.yaml',
+      },
+    });
+
+    invokeApplyValuesFileOverrides(config);
+
+    expect(config.networkConfiguration[releaseTagKey]).to.equal('v0.84.1');
+    expect(config.networkConfiguration[valuesFileKey]).to.equal(nestedValuesFile);
+    expect(config.networkConfiguration[Flags.getFormattedFlagKey(Flags.applicationEnv)]).to.equal('custom.env');
+  });
+
+  // Covers the real on-disk layout: the Falcon example's nested --values-file is a bare filename
+  // resolved next to falcon-values.yaml, not relative to the process cwd (npm run-script executes
+  // with cwd set to the package root, not the caller's directory).
+  it('propagates the nested values file using the real one-shot Falcon example layout', (): void => {
+    const examplePath: string = PathEx.resolve('examples/one-shot-falcon/falcon-values.yaml');
+    const config: OneShotSingleDeployConfigClass = makeConfig({valuesFile: examplePath});
+
+    invokeApplyValuesFileOverrides(config);
+
+    expect(config.networkConfiguration[Flags.getFormattedFlagKey(Flags.valuesFile)]).to.equal(
+      PathEx.resolve('examples/one-shot-falcon/silo-helm-values.yaml'),
+    );
   });
 });

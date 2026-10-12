@@ -12,7 +12,6 @@ import {type DependencyManager} from '../../../../src/core/dependency-managers/i
 import {type KindClient} from '../../../../src/integration/kind/kind-client.js';
 import {PodmanDependencyManager} from '../../../../src/core/dependency-managers/podman-dependency-manager.js';
 import {ClusterNodeResumeOutcome} from '../../../../src/integration/container-engine/cluster-node-resume-outcome.js';
-import {Architecture} from '../../../../src/business/utils/architecture.js';
 
 describe('DockerClient', (): void => {
   let previousKindProvider: string | undefined;
@@ -162,57 +161,6 @@ describe('DockerClient', (): void => {
     const outcome: ClusterNodeResumeOutcome = await client.resumeStoppedClusterNode('solo-cluster');
 
     expect(outcome).to.equal(ClusterNodeResumeOutcome.ENGINE_UNAVAILABLE);
-  });
-
-  it('pulls an image using the platform reported by the container engine, not process.arch', async (): Promise<void> => {
-    // Simulate a docker daemon on an arm64 host regardless of which architecture the Solo process runs on.
-    shellRunnerRunStub
-      .withArgs('docker', ['info', '--format', '{{json .}}'], sinon.match.object)
-      .resolves([JSON.stringify({Architecture: 'aarch64', MemTotal: 8_000_000_000, NCPU: 4})]);
-    shellRunnerRunStub
-      .withArgs(
-        'docker',
-        sinon.match((arguments_: string[]): boolean => arguments_[0] === 'pull'),
-        sinon.match.object,
-      )
-      .resolves([]);
-
-    const client: DockerClient = DockerClientTestBuilder.build();
-    await client.pullImage('ghcr.io/example/image:latest');
-
-    expect(shellRunnerRunStub).to.have.been.calledWithMatch('docker', [
-      'pull',
-      '--platform',
-      Architecture.LINUX_ARM64,
-      'ghcr.io/example/image:latest',
-    ]);
-  });
-
-  it('saves an image archive using the platform reported by the container engine', async (): Promise<void> => {
-    // Simulate a docker daemon on an amd64 host.
-    shellRunnerRunStub
-      .withArgs('docker', ['info', '--format', '{{json .}}'], sinon.match.object)
-      .resolves([JSON.stringify({Architecture: 'x86_64', MemTotal: 8_000_000_000, NCPU: 4})]);
-    const craneExecutable: string = '/home/runner/.solo/bin/crane';
-    const dependencyManager: DependencyManager = DockerClientTestBuilder.buildDependencyManager(craneExecutable);
-    shellRunnerRunStub
-      .withArgs(
-        craneExecutable,
-        sinon.match((arguments_: string[]): boolean => arguments_[0] === 'pull'),
-        sinon.match.object,
-      )
-      .resolves([]);
-
-    const client: DockerClient = DockerClientTestBuilder.build(dependencyManager);
-    await client.saveImage('ghcr.io/example/image:latest', '/tmp/test-image.tar');
-
-    expect(shellRunnerRunStub).to.have.been.calledWithMatch(craneExecutable, [
-      'pull',
-      '--platform',
-      Architecture.LINUX_AMD64,
-      'ghcr.io/example/image:latest',
-      '/tmp/test-image.tar',
-    ]);
   });
 });
 

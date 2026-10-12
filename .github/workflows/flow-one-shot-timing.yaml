@@ -241,8 +241,10 @@ jobs:
       - name: Checkout and Build Consensus Node (local build)
         if: ${{ inputs.use-local-build == true }}
         timeout-minutes: 30
+        env:
+          RESOLVED_CN_VERSION: ${{ steps.versions.outputs.cn-version }}
         run: |
-          CN_VERSION="${{ steps.versions.outputs.cn-version }}"
+          CN_VERSION="${RESOLVED_CN_VERSION}"
           echo "Building consensus node at version: $CN_VERSION"
 
           CN_REPO_DIR="${GITHUB_WORKSPACE}/../hiero-consensus-node"
@@ -263,32 +265,39 @@ jobs:
 
       - name: Generate Values File
         id: values-file
+        env:
+          RESOLVED_CN_VERSION: ${{ steps.versions.outputs.cn-version }}
+          RESOLVED_BN_VERSION: ${{ steps.versions.outputs.bn-version }}
+          RESOLVED_MN_VERSION: ${{ steps.versions.outputs.mn-version }}
+          RESOLVED_RELAY_VERSION: ${{ steps.versions.outputs.relay-version }}
+          RESOLVED_EXPLORER_VERSION: ${{ steps.versions.outputs.explorer-version }}
+          USE_LOCAL_BUILD_INPUT: ${{ inputs.use-local-build }}
         run: |
           VALUES_FILE="/tmp/one-shot-timing-values.yaml"
           {
             echo "network:"
-            echo "  --release-tag: \"${{ steps.versions.outputs.cn-version }}\""
+            echo "  --release-tag: \"${RESOLVED_CN_VERSION}\""
             echo "  --tss: \"true\""
             echo ""
-            if [ "${{ inputs.use-local-build }}" = "true" ]; then
+            if [ "${USE_LOCAL_BUILD_INPUT}" = "true" ]; then
               CN_REPO_DIR="${GITHUB_WORKSPACE}/../hiero-consensus-node"
               echo "setup:"
               echo "  --local-build-path: \"${CN_REPO_DIR}/hedera-node/data\""
-              echo "  --release-tag: \"${{ steps.versions.outputs.cn-version }}\""
+              echo "  --release-tag: \"${RESOLVED_CN_VERSION}\""
               echo ""
             fi
             echo "blockNode:"
-            echo "  --chart-version: \"${{ steps.versions.outputs.bn-version }}\""
-            echo "  --release-tag: \"${{ steps.versions.outputs.cn-version }}\""
+            echo "  --chart-version: \"${RESOLVED_BN_VERSION}\""
+            echo "  --release-tag: \"${RESOLVED_CN_VERSION}\""
             echo ""
             echo "mirrorNode:"
-            echo "  --mirror-node-version: \"${{ steps.versions.outputs.mn-version }}\""
+            echo "  --mirror-node-version: \"${RESOLVED_MN_VERSION}\""
             echo ""
             echo "relayNode:"
-            echo "  --relay-release: \"${{ steps.versions.outputs.relay-version }}\""
+            echo "  --relay-release: \"${RESOLVED_RELAY_VERSION}\""
             echo ""
             echo "explorerNode:"
-            echo "  --explorer-version: \"${{ steps.versions.outputs.explorer-version }}\""
+            echo "  --explorer-version: \"${RESOLVED_EXPLORER_VERSION}\""
           } > "$VALUES_FILE"
           echo "Generated values file:"
           cat "$VALUES_FILE"
@@ -313,10 +322,13 @@ jobs:
         timeout-minutes: 360
         env:
           ONE_SHOT_WITH_BLOCK_NODE: true
+          SOLO_CMD_OUTPUT: ${{ steps.solo-cmd.outputs.cmd }}
+          VALUES_FILE_PATH: ${{ steps.values-file.outputs.path }}
+          CYCLES_INPUT: ${{ inputs.cycles || 3 }}
         run: |
           export PATH=~/.solo/bin:${PATH}
-          SOLO_CMD="${{ steps.solo-cmd.outputs.cmd }}"
-          VALUES_FILE="${{ steps.values-file.outputs.path }}"
+          SOLO_CMD="${SOLO_CMD_OUTPUT}"
+          VALUES_FILE="${VALUES_FILE_PATH}"
 
           delete_clusters() {
             for cluster in $(kind get clusters 2>/dev/null); do
@@ -324,7 +336,7 @@ jobs:
             done
           }
 
-          CYCLES=${{ inputs.cycles || 3 }}
+          CYCLES=${CYCLES_INPUT}
           COLD_SAMPLES=()
           WARM_SAMPLES=()
 
@@ -397,18 +409,31 @@ jobs:
       - name: Timing Summary
         id: timing-summary
         if: ${{ !cancelled() }}
+        env:
+          COLD_MEDIAN_OUTPUT: ${{ steps.timing-cycles.outputs.cold-median }}
+          COLD_MIN_OUTPUT: ${{ steps.timing-cycles.outputs.cold-min }}
+          COLD_MAX_OUTPUT: ${{ steps.timing-cycles.outputs.cold-max }}
+          COLD_SAMPLES_OUTPUT: ${{ steps.timing-cycles.outputs.cold-samples }}
+          WARM_MEDIAN_OUTPUT: ${{ steps.timing-cycles.outputs.warm-median }}
+          WARM_MIN_OUTPUT: ${{ steps.timing-cycles.outputs.warm-min }}
+          WARM_MAX_OUTPUT: ${{ steps.timing-cycles.outputs.warm-max }}
+          WARM_SAMPLES_OUTPUT: ${{ steps.timing-cycles.outputs.warm-samples }}
+          BASELINE_OUTPUT: ${{ steps.calibration.outputs.baseline }}
+          CYCLES_INPUT: ${{ inputs.cycles || 3 }}
+          USE_RELEASED_SOLO_INPUT: ${{ inputs.use-released-solo }}
+          USE_LOCAL_BUILD_INPUT: ${{ inputs.use-local-build }}
         run: |
-          COLD_MEDIAN="${{ steps.timing-cycles.outputs.cold-median }}"
-          COLD_MIN="${{ steps.timing-cycles.outputs.cold-min }}"
-          COLD_MAX="${{ steps.timing-cycles.outputs.cold-max }}"
-          COLD_SAMPLES="${{ steps.timing-cycles.outputs.cold-samples }}"
-          WARM_MEDIAN="${{ steps.timing-cycles.outputs.warm-median }}"
-          WARM_MIN="${{ steps.timing-cycles.outputs.warm-min }}"
-          WARM_MAX="${{ steps.timing-cycles.outputs.warm-max }}"
-          WARM_SAMPLES="${{ steps.timing-cycles.outputs.warm-samples }}"
-          BASELINE="${{ steps.calibration.outputs.baseline }}"
+          COLD_MEDIAN="${COLD_MEDIAN_OUTPUT}"
+          COLD_MIN="${COLD_MIN_OUTPUT}"
+          COLD_MAX="${COLD_MAX_OUTPUT}"
+          COLD_SAMPLES="${COLD_SAMPLES_OUTPUT}"
+          WARM_MEDIAN="${WARM_MEDIAN_OUTPUT}"
+          WARM_MIN="${WARM_MIN_OUTPUT}"
+          WARM_MAX="${WARM_MAX_OUTPUT}"
+          WARM_SAMPLES="${WARM_SAMPLES_OUTPUT}"
+          BASELINE="${BASELINE_OUTPUT}"
 
-          echo "### One-Shot Timing Results (${{ inputs.cycles || 3 }} cycles)" >> "$GITHUB_STEP_SUMMARY"
+          echo "### One-Shot Timing Results (${CYCLES_INPUT} cycles)" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Metric | Duration |" >> "$GITHUB_STEP_SUMMARY"
           echo "|--------|----------|" >> "$GITHUB_STEP_SUMMARY"
@@ -454,23 +479,35 @@ jobs:
           fi
 
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Configuration:** use-released-solo=${{ inputs.use-released-solo }}, use-local-build=${{ inputs.use-local-build }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Configuration:** use-released-solo=${USE_RELEASED_SOLO_INPUT}, use-local-build=${USE_LOCAL_BUILD_INPUT}" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Format Slack Table
         id: slack-table
         if: ${{ !cancelled() }}
+        env:
+          COLD_MEDIAN_OUTPUT: ${{ steps.timing-cycles.outputs.cold-median }}
+          COLD_MIN_OUTPUT: ${{ steps.timing-cycles.outputs.cold-min }}
+          COLD_MAX_OUTPUT: ${{ steps.timing-cycles.outputs.cold-max }}
+          COLD_SAMPLES_OUTPUT: ${{ steps.timing-cycles.outputs.cold-samples }}
+          WARM_MEDIAN_OUTPUT: ${{ steps.timing-cycles.outputs.warm-median }}
+          WARM_MIN_OUTPUT: ${{ steps.timing-cycles.outputs.warm-min }}
+          WARM_MAX_OUTPUT: ${{ steps.timing-cycles.outputs.warm-max }}
+          WARM_SAMPLES_OUTPUT: ${{ steps.timing-cycles.outputs.warm-samples }}
+          BASELINE_OUTPUT: ${{ steps.calibration.outputs.baseline }}
+          IMPROVEMENT_DIFF_OUTPUT: ${{ steps.timing-summary.outputs.improvement-diff }}
+          IMPROVEMENT_DIR_OUTPUT: ${{ steps.timing-summary.outputs.improvement-direction }}
         run: |
-          COLD_MEDIAN="${{ steps.timing-cycles.outputs.cold-median }}"
-          COLD_MIN="${{ steps.timing-cycles.outputs.cold-min }}"
-          COLD_MAX="${{ steps.timing-cycles.outputs.cold-max }}"
-          COLD_SAMPLES="${{ steps.timing-cycles.outputs.cold-samples }}"
-          WARM_MEDIAN="${{ steps.timing-cycles.outputs.warm-median }}"
-          WARM_MIN="${{ steps.timing-cycles.outputs.warm-min }}"
-          WARM_MAX="${{ steps.timing-cycles.outputs.warm-max }}"
-          WARM_SAMPLES="${{ steps.timing-cycles.outputs.warm-samples }}"
-          BASELINE="${{ steps.calibration.outputs.baseline }}"
-          IMPROVEMENT_DIFF="${{ steps.timing-summary.outputs.improvement-diff }}"
-          IMPROVEMENT_DIR="${{ steps.timing-summary.outputs.improvement-direction }}"
+          COLD_MEDIAN="${COLD_MEDIAN_OUTPUT}"
+          COLD_MIN="${COLD_MIN_OUTPUT}"
+          COLD_MAX="${COLD_MAX_OUTPUT}"
+          COLD_SAMPLES="${COLD_SAMPLES_OUTPUT}"
+          WARM_MEDIAN="${WARM_MEDIAN_OUTPUT}"
+          WARM_MIN="${WARM_MIN_OUTPUT}"
+          WARM_MAX="${WARM_MAX_OUTPUT}"
+          WARM_SAMPLES="${WARM_SAMPLES_OUTPUT}"
+          BASELINE="${BASELINE_OUTPUT}"
+          IMPROVEMENT_DIFF="${IMPROVEMENT_DIFF_OUTPUT}"
+          IMPROVEMENT_DIR="${IMPROVEMENT_DIR_OUTPUT}"
 
           TABLE="\`\`\`"
           TABLE="${TABLE}"$'\n'"Metric                          | Duration"
@@ -530,9 +567,11 @@ jobs:
       - name: Collect Diagnostics on Failure
         if: ${{ failure() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          SOLO_CMD_OUTPUT: ${{ steps.solo-cmd.outputs.cmd }}
         run: |
           export PATH=~/.solo/bin:${PATH}
-          SOLO_CMD="${{ steps.solo-cmd.outputs.cmd }}"
+          SOLO_CMD="${SOLO_CMD_OUTPUT}"
           $SOLO_CMD deployment diagnostics logs -q --dev || true
 
       - name: Upload Logs
@@ -548,7 +587,9 @@ jobs:
       - name: Final Cleanup
         if: always()
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          SOLO_CMD_OUTPUT: ${{ steps.solo-cmd.outputs.cmd }}
         run: |
           export PATH=~/.solo/bin:${PATH}
-          SOLO_CMD="${{ steps.solo-cmd.outputs.cmd }}"
+          SOLO_CMD="${SOLO_CMD_OUTPUT}"
           $SOLO_CMD one-shot falcon destroy -q || true

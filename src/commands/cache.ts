@@ -776,8 +776,9 @@ export class CacheCommand extends BaseCommand {
             (edgeEnabled ? version.HEDERA_JSON_RPC_RELAY_EDGE_VERSION : version.HEDERA_JSON_RPC_RELAY_VERSION),
           explorerVersion || (edgeEnabled ? version.EXPLORER_EDGE_VERSION : version.EXPLORER_VERSION),
 
-          // These three are external/chart-internal and have no Solo edge variants.
+          // These are external/chart-internal and have no Solo edge variants.
           version.MINIO_OPERATOR_VERSION,
+          version.MINIO_IMAGE_DIGEST,
           version.SOLO_CHEETAH_VERSION,
           version.SOLO_CONTAINERS_VERSION,
         ),

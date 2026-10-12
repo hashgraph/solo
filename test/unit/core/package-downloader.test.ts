@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {expect} from 'chai';
-import {describe, it} from 'mocha';
+import {after, before, describe, it} from 'mocha';
 import sinon, {type SinonFakeTimers, type SinonSandbox, type SinonStub} from 'sinon';
 import {Readable} from 'node:stream';
+import http from 'node:http';
+import {type AddressInfo} from 'node:net';
 import got, {type OptionsInit} from 'got';
 
 import {PackageDownloader} from '../../../src/core/package-downloader.js';
@@ -22,6 +24,24 @@ describe('PackageDownloader', (): void => {
   const testLogger: SoloPinoLogger = new SoloPinoLogger('debug', true);
   const downloader: PackageDownloader = new PackageDownloader(testLogger);
   let sandbox: SinonSandbox;
+  let testServer: http.Server;
+  let testServerPort: number;
+
+  before(async (): Promise<void> => {
+    testServer = http.createServer((request: http.IncomingMessage, response: http.ServerResponse): void => {
+      const isValidArtifact: boolean = request.url === '/node/software/v0.42/build-v0.42.5.sha384';
+      response.statusCode = isValidArtifact ? 200 : 404;
+      response.end(isValidArtifact && request.method !== 'HEAD' ? 'checksum\n' : undefined);
+    });
+    await new Promise<void>((resolve): void => {
+      testServer.listen(0, '127.0.0.1', resolve);
+    });
+    testServerPort = (testServer.address() as AddressInfo).port;
+  });
+
+  after((): void => {
+    testServer?.close();
+  });
 
   beforeEach((): void => {
     sandbox = sinon.createSandbox();
@@ -57,23 +77,23 @@ describe('PackageDownloader', (): void => {
 
   describe('urlExists', (): void => {
     it('should return true if source URL is valid', async (): Promise<void> => {
-      const url: string = 'https://builds.hedera.com/node/software/v0.42/build-v0.42.5.sha384';
+      const url: string = `http://127.0.0.1:${testServerPort}/node/software/v0.42/build-v0.42.5.sha384`;
       await expect(downloader.urlExists(url)).to.eventually.equal(true);
     });
     it('should return false if source URL is invalid', async (): Promise<void> => {
-      const url: string = 'https://builds.hedera.com/node/software/v0.42/build-v0.42.5.INVALID';
+      const url: string = `http://127.0.0.1:${testServerPort}/node/software/v0.42/build-v0.42.5.INVALID`;
       await expect(downloader.urlExists(url)).to.eventually.equal(false);
     });
   });
 
   describe('checkUrl', (): void => {
     it('should report EXISTS for an available URL', async (): Promise<void> => {
-      const url: string = 'https://builds.hedera.com/node/software/v0.42/build-v0.42.5.sha384';
+      const url: string = `http://127.0.0.1:${testServerPort}/node/software/v0.42/build-v0.42.5.sha384`;
       await expect(downloader.checkUrl(url)).to.eventually.equal(UrlCheckOutcome.EXISTS);
     });
 
     it('should report MISSING when the server answers 404', async (): Promise<void> => {
-      const url: string = 'https://builds.hedera.com/node/software/v0.42/build-v0.42.5.INVALID';
+      const url: string = `http://127.0.0.1:${testServerPort}/node/software/v0.42/build-v0.42.5.INVALID`;
       await expect(downloader.checkUrl(url)).to.eventually.equal(UrlCheckOutcome.MISSING);
     });
 
@@ -120,7 +140,7 @@ describe('PackageDownloader', (): void => {
         const destinationPath: string = `${temporaryDirectory}/build-${tag}.sha384`;
 
         // we use the build-<tag>.sha384 file URL to test downloading a small file
-        const url: string = `https://builds.hedera.com/node/software/v0.42/build-${tag}.sha384`;
+        const url: string = `http://127.0.0.1:${testServerPort}/node/software/v0.42/build-${tag}.sha384`;
         await expect(downloader.fetchFile(url, destinationPath)).to.eventually.equal(destinationPath);
         expect(fs.existsSync(destinationPath)).to.be.ok;
 
@@ -396,6 +416,7 @@ describe('PackageDownloader', (): void => {
     });
     it('should fail if platform release artifact is not found', async (): Promise<void> => {
       const tag: string = 'v0.40.0-INVALID';
+      const fetchFileStub: SinonStub = sandbox.stub(downloader, 'fetchFile').rejects(new Error('not found'));
 
       try {
         const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'downloader-'));
@@ -405,6 +426,7 @@ describe('PackageDownloader', (): void => {
       } catch (error) {
         expect(error.cause).not.to.be.null;
         expect(error).to.be.instanceof(SoloError);
+        expect(fetchFileStub.calledOnce).to.equal(true);
       }
     });
 

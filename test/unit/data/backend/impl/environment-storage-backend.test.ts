@@ -26,6 +26,19 @@ describe('EnvironmentStorageBackend', (): void => {
     expect(keys.filter((key: string): boolean => key === expectedKey)).to.have.lengthOf(1);
   });
 
+  it('list ignores empty environment variables', async (): Promise<void> => {
+    const environmentVariableName: string = 'ENV_STORAGE_EMPTY';
+    process.env[environmentVariableName] = '';
+    try {
+      const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend();
+      const keys: string[] = await backend.list();
+      const emptyKey: string = environmentVariableName.toLowerCase().replaceAll('_', '.');
+      expect(keys).to.not.include(emptyKey);
+    } finally {
+      delete process.env[environmentVariableName];
+    }
+  });
+
   it('list with no process.env', async (): Promise<void> => {
     const environment: NodeJS.ProcessEnv = process.env;
     try {

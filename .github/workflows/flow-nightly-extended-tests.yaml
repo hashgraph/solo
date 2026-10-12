@@ -42,6 +42,12 @@ env:
   STEP_TIMEOUT_MINUTES: '5'
 
 jobs:
+  build-sea:
+    name: Build SEA Binaries
+    uses: $/.github/workflows/flow-build-sea.yaml
+    with:
+      node-version: ${{ inputs.node-version || '24' }}
+
   prepare-setup:
     name: Prepare Setup
     runs-on: hiero-solo-linux-medium
@@ -280,7 +286,7 @@ jobs:
     # called workflows automatically and cannot be passed here.
     uses: $/.github/workflows/flow-performance-test.yaml
     with:
-      cn-edge-version: v0.75.1
+      cn-edge-version: v0.76.4
       report-to-slack: true
     secrets:
       SLACK_TEST_WEBHOOK: ${{ secrets.SLACK_TEST_WEBHOOK }}
@@ -292,3 +298,5 @@ jobs:
     uses: $/.github/workflows/flow-standard-runner-one-shot-windows.yaml
     with:
       run-twice: true
+    # The called workflow only uses the automatically provided GITHUB_TOKEN;
+    # forwarding every repository secret is unnecessary and unsafe.

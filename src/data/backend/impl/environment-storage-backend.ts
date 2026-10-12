@@ -68,7 +68,10 @@ export class EnvironmentStorageBackend implements StorageBackend {
 
     const keys: string[] = Object.keys(environment);
     return keys
-      .filter((value): boolean => Prefix.matcher(value, this.prefix, EnvironmentKeyFormatter.instance()))
+      .filter(
+        (value): boolean =>
+          Prefix.matcher(value, this.prefix, EnvironmentKeyFormatter.instance()) && Boolean(environment[value]),
+      )
       .map((value): string => Prefix.strip(value, this.prefix));
   }
 

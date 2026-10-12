@@ -2,16 +2,11 @@
 
 import {expect} from 'chai';
 import {ImageCacheHandlerBuilder} from '../../../../src/integration/cache/impl/image-cache-handler-builder.js';
-import {StaticCacheTargetProvider} from '../../../../src/integration/cache/target-providers/static-cache-target-provider.js';
 import {ImageCacheHandler} from '../../../../src/integration/cache/impl/image-cache-handler.js';
 import {type ContainerEngineClient} from '../../../../src/integration/container-engine/container-engine-client.js';
 
 describe('ImageCacheHandlerBuilder', (): void => {
   const engine: Partial<ContainerEngineClient> = {
-    pullImage: async (): Promise<void> => undefined,
-    saveImage: async (): Promise<void> => undefined,
-    saveImageArchive: async (): Promise<void> => undefined,
-    loadImage: async (): Promise<void> => undefined,
     loadImageArchiveIntoCluster: async (): Promise<void> => undefined,
     removeImage: async (): Promise<void> => undefined,
   };
@@ -23,16 +18,13 @@ describe('ImageCacheHandlerBuilder', (): void => {
   });
 
   it('should throw when engine is missing', (): void => {
-    const provider: StaticCacheTargetProvider = new StaticCacheTargetProvider([]);
-    expect((): ImageCacheHandler => new ImageCacheHandlerBuilder().provider(provider).build()).to.throw(
+    expect((): ImageCacheHandler => ImageCacheHandlerBuilder.fromYaml('/tmp/images.yaml').build()).to.throw(
       'cache engine must be set',
     );
   });
 
   it('should build ImageCacheHandler when provider and engine are set', (): void => {
-    const provider: StaticCacheTargetProvider = new StaticCacheTargetProvider([]);
-    const result: ImageCacheHandler = new ImageCacheHandlerBuilder()
-      .provider(provider)
+    const result: ImageCacheHandler = ImageCacheHandlerBuilder.fromYaml('/tmp/images.yaml')
       .engine(engine as never)
       .build();
 

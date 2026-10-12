@@ -1,4 +1,3 @@
-
 relay:
   config:
     WORKERS_POOL_ENABLED: false
@@ -6,6 +5,10 @@ relay:
     LOG_LEVEL: error
     PRETTY_LOGS_ENABLED: false
     REDIS_ENABLED: false
+    # Mirror Web3 pods may be replaced during migration. Do not reuse an HTTP
+    # connection across a pod replacement, or an eth_call can remain pending
+    # in the relay while the mirror has already returned a response.
+    MIRROR_NODE_HTTP_KEEP_ALIVE: false
     GET_RECORD_DEFAULT_TO_CONSENSUS_NODE: true
     CACHE_MAX: 50
     CACHE_TTL: 300
@@ -42,6 +45,7 @@ ws:
     LOG_LEVEL: error
     PRETTY_LOGS_ENABLED: false
     REDIS_ENABLED: false
+    MIRROR_NODE_HTTP_KEEP_ALIVE: false
     CACHE_MAX: 50
     CACHE_TTL: 300
     OPERATOR_BALANCE_STARTUP_MAX_ATTEMPTS: 600

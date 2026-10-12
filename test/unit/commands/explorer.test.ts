@@ -17,6 +17,7 @@ import {SoloError} from '../../../src/core/errors/solo-error.js';
 import {type CommandFlag} from '../../../src/types/flag-types.js';
 import {ListrLock} from '../../../src/core/lock/listr-lock.js';
 import {type HelmChartValues} from '../../../src/integration/helm/model/values.js';
+import {Templates} from '../../../src/core/templates.js';
 
 type TaskContext = {
   config?: Record<string, unknown>;
@@ -62,6 +63,12 @@ type ExplorerHarness = {
 type ExplorerCommandInternal = {
   prepareHederaExplorerChartValues: (config: Record<string, unknown>) => Promise<HelmChartValues>;
   isLocalImageAvailableInDocker: (componentImage: string) => boolean;
+  isComponentImageAvailableForKind: (componentImage: string, componentImageArchive: string) => boolean;
+  loadComponentImage: (
+    componentImage: string | undefined,
+    componentImageArchive: string | undefined,
+    clusterContext: string,
+  ) => Promise<void>;
   kindLoadComponentImage: (componentImage: string, clusterContext: string) => Promise<void>;
 };
 
@@ -330,6 +337,10 @@ const createHarness: (sandbox: SinonSandbox) => Promise<ExplorerHarness> = async
       return (): Record<string, unknown> => secretsStubs;
     })(),
     namespaces: (): Record<string, unknown> => ({has: sandbox.stub().resolves(true)}),
+    services: ((): (() => Record<string, unknown>) => {
+      const servicesStubs: Record<string, unknown> = {list: sandbox.stub().resolves([])};
+      return (): Record<string, unknown> => servicesStubs;
+    })(),
   };
 
   sandbox.stub(k8Factory, 'getK8').returns(kubernetesClient);
@@ -405,19 +416,55 @@ describe('ExplorerCommand unit tests', (): void => {
     sandbox.restore();
   });
 
-  it('should use the direct mirror node REST service for API proxying', async (): Promise<void> => {
-    resetForTest();
-    const command: ExplorerCommandInternal = container.resolve(ExplorerCommand) as unknown as ExplorerCommandInternal;
+  it('should inject the mirror node service URLs backing the explorer proxyPass routing', async (): Promise<void> => {
+    const harness: ExplorerHarness = await createHarness(sandbox);
+    const command: ExplorerCommandInternal = harness.command as unknown as ExplorerCommandInternal;
 
     const chartValues: HelmChartValues = await command.prepareHederaExplorerChartValues(createDeployConfig('explorer'));
+    const helmArguments: string = chartValues.toArguments().join(' ');
 
+    // The path-based routing table lives in EXPLORER_VALUES_FILE; Solo only injects the service URLs it references.
     // eslint-disable-next-line unicorn/prefer-https
-    expect(chartValues.toArguments()).to.include('proxyPass./api=http://mirror-1-rest.mirror-ns.svc.cluster.local');
+    expect(helmArguments).to.include('mirrorNodeServices.rest=http://mirror-1-rest.mirror-ns.svc.cluster.local');
+    expect(helmArguments).to.include(
+      // eslint-disable-next-line unicorn/prefer-https
+      'mirrorNodeServices.restjava=http://mirror-1-restjava.mirror-ns.svc.cluster.local',
+    );
+    // eslint-disable-next-line unicorn/prefer-https
+    expect(helmArguments).to.include('mirrorNodeServices.web3=http://mirror-1-web3.mirror-ns.svc.cluster.local');
+    expect(helmArguments).to.not.include('proxyPass.');
+  });
+
+  it('should delegate the proxyPass routing to the mirror ingress controller when it is installed', async (): Promise<void> => {
+    const harness: ExplorerHarness = await createHarness(sandbox);
+    const command: ExplorerCommandInternal = harness.command as unknown as ExplorerCommandInternal;
+
+    // @ts-expect-error: Type '{}' has no call signatures (Kubernetes client methods are stubbed)
+    const kubernetesClient: Record<string, unknown> = harness.k8Factory.getK8('cluster-context-1') as Record<
+      string,
+      unknown
+    >;
+    const servicesClient: Record<string, unknown> = (kubernetesClient.services as () => Record<string, unknown>)();
+    const listServicesStub: SinonStub = servicesClient.list as SinonStub;
+    listServicesStub.resolves([{metadata: {name: 'mirror-ingress-controller-mirror-ns'}}]);
+
+    const chartValues: HelmChartValues = await command.prepareHederaExplorerChartValues(createDeployConfig('explorer'));
+    const helmArguments: string = chartValues.toArguments().join(' ');
+    const ingressControllerUrl: string = Templates.renderMirrorNodeIngressControllerUrl('mirror-ns');
+
+    // The lookup happens in the mirror namespace: the ingress controller belongs to the mirror node.
+    expect(listServicesStub.firstCall.args[0].name).to.equal('mirror-ns');
+
+    // Every backend entry points at the ingress controller, which owns the path-based routing rules.
+    expect(helmArguments).to.include(`mirrorNodeServices.rest=${ingressControllerUrl}`);
+    expect(helmArguments).to.include(`mirrorNodeServices.restjava=${ingressControllerUrl}`);
+    expect(helmArguments).to.include(`mirrorNodeServices.web3=${ingressControllerUrl}`);
+    expect(helmArguments).to.not.include('proxyPass.');
   });
 
   it('should set explorer service type to LoadBalancer only when load balancer is enabled', async (): Promise<void> => {
-    resetForTest();
-    const command: ExplorerCommandInternal = container.resolve(ExplorerCommand) as unknown as ExplorerCommandInternal;
+    const harness: ExplorerHarness = await createHarness(sandbox);
+    const command: ExplorerCommandInternal = harness.command as unknown as ExplorerCommandInternal;
 
     const defaultChartValues: HelmChartValues = await command.prepareHederaExplorerChartValues(
       createDeployConfig('explorer'),
@@ -539,20 +586,48 @@ describe('ExplorerCommand unit tests', (): void => {
       componentImage: 'localhost:5001/hiero-explorer:1.2.3',
     };
     const explorerCommandInternal: ExplorerCommandInternal = harness.command as unknown as ExplorerCommandInternal;
-    const kindLoadComponentImageStub: SinonStub = sandbox
-      .stub(explorerCommandInternal, 'kindLoadComponentImage')
-      .resolves();
+    const loadComponentImageStub: SinonStub = sandbox.stub(explorerCommandInternal, 'loadComponentImage').resolves();
     sandbox.stub(explorerCommandInternal, 'isLocalImageAvailableInDocker').returns(true);
     const chartUpgradeStub: SinonStub = sandbox.stub(harness.chartManager, 'upgrade').resolves();
 
     (harness.configManager.getConfig as SinonStub).returns(deployConfig);
     await harness.command.add({[flags.deployment.name]: 'deployment-1'} as never);
 
-    expect(kindLoadComponentImageStub).to.have.been.calledOnceWithExactly(
+    expect(loadComponentImageStub).to.have.been.calledOnceWithExactly(
       'localhost:5001/hiero-explorer:1.2.3',
+      undefined,
       'cluster-context-1',
     );
-    expect(kindLoadComponentImageStub).to.have.been.calledBefore(chartUpgradeStub.getCall(2));
+    expect(loadComponentImageStub).to.have.been.calledBefore(chartUpgradeStub.getCall(2));
+  });
+
+  it('loads an archived Explorer image and configures a Never pull policy before chart deployment', async (): Promise<void> => {
+    const harness: ExplorerHarness = await createHarness(sandbox);
+    const deployConfig: Record<string, unknown> = {
+      ...createDeployConfig('explorer-image-archive'),
+      componentImage: 'ghcr.io/hiero-ledger/explorer:1.2.3',
+      componentImageArchive: '/artifacts/explorer.tar',
+    };
+    const explorerCommandInternal: ExplorerCommandInternal = harness.command as unknown as ExplorerCommandInternal;
+    const loadComponentImageStub: SinonStub = sandbox.stub(explorerCommandInternal, 'loadComponentImage').resolves();
+    sandbox.stub(explorerCommandInternal, 'isComponentImageAvailableForKind').returns(true);
+    const chartUpgradeStub: SinonStub = sandbox.stub(harness.chartManager, 'upgrade').resolves();
+
+    (harness.configManager.getConfig as SinonStub).returns(deployConfig);
+    await harness.command.add({[flags.deployment.name]: 'deployment-1'} as never);
+
+    const explorerChartValues: HelmChartValues = chartUpgradeStub.getCall(2).args[5] as HelmChartValues;
+    const valueArguments: string[] = explorerChartValues.toArguments();
+    expect(valueArguments).to.include('image.registry=ghcr.io');
+    expect(valueArguments).to.include('image.repository=hiero-ledger/explorer');
+    expect(valueArguments).to.include('image.tag=1.2.3');
+    expect(valueArguments).to.include('image.pullPolicy=Never');
+    expect(loadComponentImageStub).to.have.been.calledOnceWithExactly(
+      'ghcr.io/hiero-ledger/explorer:1.2.3',
+      '/artifacts/explorer.tar',
+      'cluster-context-1',
+    );
+    expect(loadComponentImageStub).to.have.been.calledBefore(chartUpgradeStub.getCall(2));
   });
 
   it('upgrade builds the expected task flow and upgrades explorer state without reinstalling cert-manager', async (): Promise<void> => {

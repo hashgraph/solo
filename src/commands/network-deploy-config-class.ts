@@ -9,7 +9,6 @@ import {type ConsensusNode} from '../core/model/consensus-node.js';
 import {type BlockNodeStateSchema} from '../data/schema/model/remote/state/block-node-state-schema.js';
 
 export interface NetworkDeployConfigClass {
-  isUpgrade: boolean;
   applicationEnv: string;
   chainId: string;
   cacheDir: string;

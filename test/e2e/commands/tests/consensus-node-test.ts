@@ -254,6 +254,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
     options: BaseTestOptions,
     zipFile?: string,
     applicationPropertiesPath?: string,
+    postUpgradeSystemFilesDirectory?: string,
   ): string[] {
     const {newArgv, argvPushGlobalFlags, optionFromFlag} = ConsensusNodeTest;
     const {testName, deployment} = options;
@@ -277,6 +278,15 @@ export class ConsensusNodeTest extends BaseCommandTest {
 
     if (applicationPropertiesPath) {
       argv.push(optionFromFlag(flags.applicationProperties), applicationPropertiesPath);
+    }
+
+    if (postUpgradeSystemFilesDirectory) {
+      argv.push(
+        optionFromFlag(flags.simpleFeesSchedulesFile),
+        PathEx.join(postUpgradeSystemFilesDirectory, constants.SIMPLE_FEES_SCHEDULES_JSON),
+        optionFromFlag(flags.throttlesFile),
+        PathEx.join(postUpgradeSystemFilesDirectory, constants.THROTTLES_JSON),
+      );
     }
 
     argvPushGlobalFlags(argv, testName, true, true);
@@ -775,6 +785,13 @@ export class ConsensusNodeTest extends BaseCommandTest {
     const {testName, namespace, contexts} = options;
     const {soloConsensusNodeUpgradeArgv} = ConsensusNodeTest;
     const temporaryDirectory: string = getTemporaryDirectory();
+    // these files must come from the exact target release; bumping TEST_UPGRADE_TO_VERSION needs a new folder
+    const postUpgradeSystemFilesDirectory: string = PathEx.join(
+      'test',
+      'data',
+      'post-upgrade-system-files',
+      TEST_UPGRADE_TO_VERSION,
+    );
 
     it(`${testName}: consensus node upgrade [upgrade configs]`, async (): Promise<void> => {
       const localConfig: LocalConfigRuntimeState = container.resolve<LocalConfigRuntimeState>(
@@ -814,7 +831,14 @@ export class ConsensusNodeTest extends BaseCommandTest {
       remoteConfig.configuration.versions.consensusNode = new SemanticVersion<string>(TEST_UPGRADE_FROM_VERSION);
       await remoteConfig.persist();
 
-      await main(soloConsensusNodeUpgradeArgv(options, undefined, testApplicationPropertiesPath));
+      await main(
+        soloConsensusNodeUpgradeArgv(
+          options,
+          undefined,
+          testApplicationPropertiesPath,
+          postUpgradeSystemFilesDirectory,
+        ),
+      );
 
       await containerReference.copyFrom(applicationPropertiesFilePath, temporaryDirectory);
 
@@ -822,6 +846,37 @@ export class ConsensusNodeTest extends BaseCommandTest {
 
       expect(updatedContent.trimEnd()).to.equal(upgradedApplicationProperties.trimEnd());
     }).timeout(Duration.ofMinutes(10).toMillis());
+
+    it(`${testName}: consensus node upgrade [post-upgrade system files applied]`, async (): Promise<void> => {
+      const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
+      const pods: Pod[] = await k8Factory.default().pods().list(namespace, ['solo.hedera.com/type=network-node']);
+
+      for (const pod of pods) {
+        const containerReference: Container = k8Factory
+          .default()
+          .containers()
+          .readByRef(ContainerReference.of(PodReference.of(namespace, pod.podReference.name), ROOT_CONTAINER));
+
+        // the node runs its post-upgrade setup on the first transaction it handles after the restart
+        let postUpgradeLog: string = '';
+        for (let attempt: number = 0; attempt < 24 && !postUpgradeLog.includes('Doing post-upgrade setup'); attempt++) {
+          await sleep(Duration.ofSeconds(5));
+          postUpgradeLog = await containerReference.execContainer([
+            'bash',
+            '-c',
+            "grep -h -e 'Doing post-upgrade setup' -e 'Dispatching synthetic update' -e 'Failed to parse update file' " +
+              `${HEDERA_HAPI_PATH}/output/hgcaa*.log || true`,
+          ]);
+        }
+
+        for (const fileName of [constants.SIMPLE_FEES_SCHEDULES_JSON, constants.THROTTLES_JSON]) {
+          expect(postUpgradeLog).to.include(
+            `Dispatching synthetic update based on contents of ${HEDERA_HAPI_PATH}/data/config/${fileName}`,
+          );
+        }
+        expect(postUpgradeLog).to.not.include('Failed to parse update file');
+      }
+    }).timeout(Duration.ofMinutes(5).toMillis());
   }
 
   public static destroy(options: BaseTestOptions): void {

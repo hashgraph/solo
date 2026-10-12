@@ -24,6 +24,11 @@ export interface NodeUpgradeConfigClass extends NodeCommonConfigWithNodeAliases,
   treasuryKey: PrivateKey;
   curDate: Date;
   upgradeVersion: string;
+  upgradeZipFile: string;
+
+  // Post-upgrade system file flags
+  simpleFeesSchedulesFile: string;
+  throttlesFile: string;
 
   // Node Config Flags
   apiPermissionProperties: string;

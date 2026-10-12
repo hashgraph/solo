@@ -61,7 +61,9 @@ on:
       - main
       - 'release/*'
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  # Called workflows inherit the caller's workflow name and run ID. Include this workflow's
+  # identity so it does not compete with other reusable jobs in Nightly Extended Tests.
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-performance-test
   cancel-in-progress: true
 
 defaults:
@@ -81,8 +83,8 @@ jobs:
   performance-test:
     name: Performance Test
     if: >-
-      ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false ||
-      startsWith(github.event.pull_request.title, 'trunk-merge') && !cancelled() && !failure() }}
+      ${{ (github.event_name != 'pull_request' || github.event.pull_request.draft == false ||
+      startsWith(github.event.pull_request.title, 'trunk-merge')) && !cancelled() && !failure() }}
     timeout-minutes: 90
     runs-on: hiero-solo-linux-large
     steps:
@@ -177,6 +179,8 @@ jobs:
           export PATH=~/.solo/bin:${PATH}
           echo SOLO_TEST_CLUSTER=solo-e2e > .env
           echo ONE_SHOT_WITH_BLOCK_NODE=true >> .env
+          echo BLOCK_STREAM_STREAM_MODE=BLOCKS >> .env
+          echo ONE_SHOT_BLOCK_NODE_PERF=true >> .env
           CN_EDGE_VERSION="${CN_EDGE_VERSION_INPUT}"
           if [[ -n "${CN_EDGE_VERSION}" ]]; then
             echo "Using consensus node edge version: ${CN_EDGE_VERSION}"
@@ -197,6 +201,11 @@ jobs:
           echo MIRROR_NODE_PINGER_TPS=10 >> .env
           echo ONE_SHOT_METRICS_TEST_DURATION_IN_MINUTES=5 >> .env
           echo ONE_SHOT_BLOCK_NODE_PERF=false >> .env
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            echo PERFORMANCE_TEST_CONCISE_MODE=true >> .env
+          else
+            echo PERFORMANCE_TEST_CONCISE_MODE=false >> .env
+          fi
           cat .env
 
           # Start resource monitoring in background (30s interval for finer granularity)
@@ -375,17 +384,21 @@ jobs:
       - name: Write Runner Resource Usage to Workflow Summary
         if: ${{ !cancelled() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          CHART_GENERATED: ${{ steps.generate-chart.outputs.chart_generated }}
+          GENERATED_CHART_FILE: ${{ steps.generate-chart.outputs.chart_file }}
+          GENERATED_MERMAID_FILE: ${{ steps.generate-chart.outputs.mermaid_file }}
         run: |
           echo "## Runner Resource Usage — Performance Test" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ steps.generate-chart.outputs.chart_generated }}" == "true" ]]; then
-            CHART_FILE="${{ steps.generate-chart.outputs.chart_file }}"
+          if [[ "${CHART_GENERATED}" == "true" ]]; then
+            CHART_FILE="${GENERATED_CHART_FILE}"
             if [[ -f "$CHART_FILE" ]]; then
               echo '```' >> $GITHUB_STEP_SUMMARY
               cat "$CHART_FILE" >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
             fi
-            MERMAID_FILE="${{ steps.generate-chart.outputs.mermaid_file }}"
+            MERMAID_FILE="${GENERATED_MERMAID_FILE}"
             if [[ -n "$MERMAID_FILE" && -f "$MERMAID_FILE" ]]; then
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "### Pod Memory Distribution by Category" >> $GITHUB_STEP_SUMMARY
@@ -403,13 +416,15 @@ jobs:
         env:
           LOG_FILE: "${{ steps.log-metrics.outputs.solo_log_dir }}/log_file.md"
           JSON_INPUT: "${{ toJSON(fromJSON(steps.log-metrics.outputs.json_log)) }}"
+          CHART_GENERATED: ${{ steps.generate-chart.outputs.chart_generated }}
+          GENERATED_CHART_FILE: ${{ steps.generate-chart.outputs.chart_file }}
         run: |
           echo "## Log Metrics - Performance Test" >> $LOG_FILE
           echo "" >> $LOG_FILE
 
           # Add ASCII resource chart if available
-          if [[ "${{ steps.generate-chart.outputs.chart_generated }}" == "true" ]]; then
-            CHART_FILE="${{ steps.generate-chart.outputs.chart_file }}"
+          if [[ "${CHART_GENERATED}" == "true" ]]; then
+            CHART_FILE="${GENERATED_CHART_FILE}"
             if [[ -f "$CHART_FILE" ]]; then
               echo "<details>" >> $LOG_FILE
               echo "<summary>📊 Runner Resource Usage</summary>" >> $LOG_FILE
@@ -436,15 +451,19 @@ jobs:
       - name: Write Log Metrics to Workflow Summary
         if: ${{ !cancelled() && steps.log-metrics-file.conclusion == 'success' }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          LOG_METRICS_FILE: ${{ steps.log-metrics-file.outputs.log_file }}
         run: |
-          cat "${{ steps.log-metrics-file.outputs.log_file }}" >> $GITHUB_STEP_SUMMARY
+          cat "${LOG_METRICS_FILE}" >> $GITHUB_STEP_SUMMARY
 
       - name: Read Pod Memory Category Table
         id: pod-categories
         if: ${{ !cancelled() && steps.generate-chart.outputs.categories_file != '' }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          GENERATED_CATEGORIES_FILE: ${{ steps.generate-chart.outputs.categories_file }}
         run: |
-          CATEGORIES_FILE="${{ steps.generate-chart.outputs.categories_file }}"
+          CATEGORIES_FILE="${GENERATED_CATEGORIES_FILE}"
           if [[ -f "$CATEGORIES_FILE" ]]; then
             {
               echo "content<<EOF_CATEGORIES"
@@ -551,53 +570,25 @@ jobs:
             exit 1
           fi
 
-      - name: Build and Start Metrics Plotter tool
+      - name: Build and Start Metrics Plotter Tool
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
           cd ./scripts/metrics-plotter
           npm ci
           npm run build
           mkdir -p ~/.solo/metrics
-          mkdir src/data
           nohup npm start &
           echo $! > /tmp/metrics-plotter.pid
-          mkdir -p ./src/data       
+          mkdir -p ./src/data
           cp ~/.solo/logs/**/timeline-metrics.json ./src/data/timeline.json
 
-      - name: Install Puppeteer / Chrome dependencies
+      - name: Install Puppeteer / Chrome Dependencies
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        # npm ci already downloaded Chrome; --install-deps installs the apt packages listed in its deb.deps
         run: |
+          cd ./scripts/metrics-plotter
           sudo apt-get update
-          sudo apt-get install -y \
-            ca-certificates \
-            fonts-liberation \
-            libasound2 \
-            libatk-bridge2.0-0 \
-            libatk1.0-0 \
-            libatspi2.0-0 \
-            libcairo2 \
-            libdbus-1-3 \
-            libgdk-pixbuf2.0-0 \
-            libglib2.0-0 \
-            libgtk-3-0 \
-            libnspr4 \
-            libnss3 \
-            libx11-6 \
-            libx11-xcb1 \
-            libxcb1 \
-            libxcomposite1 \
-            libxcursor1 \
-            libxdamage1 \
-            libxext6 \
-            libxfixes3 \
-            libxi6 \
-            libxrandr2 \
-            libxrender1 \
-            libxss1 \
-            libxtst6 \
-            lsb-release \
-            xdg-utils \
-            libgbm1
+          sudo env "PATH=${PATH}" HOME="${HOME}" ./node_modules/.bin/puppeteer browsers install chrome --install-deps
 
       - name: Save Screenshots of Metrics Plotter
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
@@ -607,7 +598,7 @@ jobs:
           SCREENSHOT_WIDTH=1920 npm run screenshot -- http://127.0.0.1:8123\?hide-controls=true\&grouped=false\&data=timeline ~/.solo/metrics/chart.png
           cp ./src/data/timeline.json ~/.solo/metrics/timeline-metrics.json
 
-      - name: Stop Metrics Plotter tool
+      - name: Stop Metrics Plotter Tool
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
           if [ -f /tmp/metrics-plotter.pid ]; then

@@ -7,7 +7,7 @@ import {container} from 'tsyringe-neo';
 
 import {resetForTest} from '../../../test-container.js';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
-import {type CraneDependencyManager} from '../../../../src/core/dependency-managers/crane-dependency-manager.js';
+import {type NetavarkDependencyManager} from '../../../../src/core/dependency-managers/netavark-dependency-manager.js';
 import {type VfkitDependencyManager} from '../../../../src/core/dependency-managers/vfkit-dependency-manager.js';
 import {GitHubApiClient} from '../../../../src/core/github-api-client.js';
 import {type ReleaseInfo} from '../../../../src/types/index.js';
@@ -22,14 +22,14 @@ function stubReleases(tagName: string, assets: Record<string, unknown>[]): void 
 }
 
 describe('GitHubReleaseDependencyManager', (): void => {
-  let crane: CraneDependencyManager;
+  let netavark: NetavarkDependencyManager;
   let vfkit: VfkitDependencyManager;
 
   beforeEach((): void => {
     resetForTest();
     container.register(InjectTokens.OsPlatform, {useValue: 'linux'});
     container.register(InjectTokens.OsArch, {useValue: 'x64'});
-    crane = container.resolve<CraneDependencyManager>(InjectTokens.CraneDependencyManager);
+    netavark = container.resolve<NetavarkDependencyManager>(InjectTokens.NetavarkDependencyManager);
     vfkit = container.resolve<VfkitDependencyManager>(InjectTokens.VfkitDependencyManager);
   });
 
@@ -40,16 +40,20 @@ describe('GitHubReleaseDependencyManager', (): void => {
   it('should reject a release list that lacks the required tag', async (): Promise<void> => {
     stubReleases('v0.0.1', []);
 
-    await expect(crane['fetchReleaseInfo'](version.CRANE_VERSION)).to.be.rejectedWith(
-      `GitHub release not found for tag '${version.CRANE_VERSION}'`,
+    await expect(netavark['fetchReleaseInfo'](version.NETAVARK_VERSION)).to.be.rejectedWith(
+      `GitHub release not found for tag '${version.NETAVARK_VERSION}'`,
     );
   });
 
   it('should refuse an asset without a digest when the checksum is verified', async (): Promise<void> => {
-    const assetName: string = 'go-containerregistry_Linux_x86_64.tar.gz';
-    stubReleases(version.CRANE_VERSION, [{name: assetName, browser_download_url: `${DOWNLOAD_BASE_URL}/${assetName}`}]);
+    const assetName: string = 'netavark.gz';
+    stubReleases(version.NETAVARK_VERSION, [
+      {name: assetName, browser_download_url: `${DOWNLOAD_BASE_URL}/${assetName}`},
+    ]);
 
-    await expect(crane['fetchReleaseInfo'](version.CRANE_VERSION)).to.be.rejectedWith('Unable to read checksum file');
+    await expect(netavark['fetchReleaseInfo'](version.NETAVARK_VERSION)).to.be.rejectedWith(
+      'Unable to read checksum file',
+    );
   });
 
   it('should fall back to a placeholder checksum when verification is disabled', async (): Promise<void> => {

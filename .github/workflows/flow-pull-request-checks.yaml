@@ -22,7 +22,7 @@ on:
         description: "Consensus Node Version:"
         type: string
         required: false
-        default: "v0.75.1"
+        default: "v0.77.2"
       skip-unit-and-coverage:
         description: "Skip Unit Tests and Coverage"
         type: boolean
@@ -86,6 +86,8 @@ jobs:
     uses: $/.github/workflows/zxc-code-style.yaml
     with:
       custom-job-label: Standard
+    secrets:
+      codacy-project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
 
   check-production-overrides:
     name: Production Overrides

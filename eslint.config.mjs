@@ -175,6 +175,76 @@ const soloLocalPlugin = {
         };
       },
     },
+
+    // patchInject resolves an undefined constructor parameter from its token, which must match the @inject token.
+    'patch-inject-token-matches-inject': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description: "Require patchInject to use the same token as the constructor parameter's @inject decorator.",
+        },
+        schema: [],
+        messages: {
+          tokenMismatch: 'patchInject resolves "{{name}}" from {{actual}}, but its @inject token is {{expected}}.',
+        },
+      },
+      create(context) {
+        const sourceCode = context.sourceCode;
+
+        function parameterName(parameter) {
+          const binding = parameter.type === 'TSParameterProperty' ? parameter.parameter : parameter;
+          return (binding.type === 'AssignmentPattern' ? binding.left : binding).name;
+        }
+
+        function injectToken(parameter) {
+          const decorator = parameter.decorators?.find(
+            candidate =>
+              candidate.expression.type === 'CallExpression' &&
+              candidate.expression.callee.type === 'Identifier' &&
+              candidate.expression.callee.name === 'inject',
+          );
+          return decorator?.expression.arguments[0];
+        }
+
+        // Accepts both patchInject(parameter, ...) and patchInject(this.parameterProperty, ...).
+        function patchedName(argument) {
+          if (argument?.type === 'Identifier') {
+            return argument.name;
+          }
+          if (
+            argument?.type === 'MemberExpression' &&
+            argument.object.type === 'ThisExpression' &&
+            !argument.computed
+          ) {
+            return argument.property.name;
+          }
+          return undefined;
+        }
+
+        return {
+          'CallExpression[callee.name="patchInject"]'(node) {
+            const [patchedArgument, tokenArgument] = node.arguments;
+            const name = patchedName(patchedArgument);
+            if (!name || !tokenArgument) {
+              return;
+            }
+            const constructorNode = sourceCode
+              .getAncestors(node)
+              .findLast(ancestor => ancestor.type === 'MethodDefinition' && ancestor.kind === 'constructor');
+            const parameter = constructorNode?.value.params.find(candidate => parameterName(candidate) === name);
+            const expectedToken = parameter && injectToken(parameter);
+            if (!expectedToken) {
+              return;
+            }
+            const expected = sourceCode.getText(expectedToken);
+            const actual = sourceCode.getText(tokenArgument);
+            if (actual !== expected) {
+              context.report({node: tokenArgument, messageId: 'tokenMismatch', data: {name, actual, expected}});
+            }
+          },
+        };
+      },
+    },
   },
 };
 
@@ -293,7 +363,9 @@ export default [
       'n/no-unsupported-features/node-builtins': [
         'error',
         {
-          ignores: ['fs.cpSync', 'CryptoKey', 'fetch'],
+          // node:sea is still flagged experimental by Node itself even on the versions this
+          // project targets (>=22) — there is no non-experimental SEA API to migrate to.
+          ignores: ['fs.cpSync', 'CryptoKey', 'fetch', 'sea'],
         },
       ],
       'no-prototype-builtins': 'off',
@@ -397,12 +469,14 @@ export default [
     // No exported functions in source code — see §10.3.1.
     // One exported interface per file, filename matches interface name in kebab-case — see §3.5.
     // Explicit `shell` option on every child_process call — see #5869.
+    // patchInject token matches the constructor parameter's @inject token — see #6074.
     files: ['src/**/*.ts'],
     plugins: {solo: soloLocalPlugin},
     rules: {
       'solo/no-exported-function': 'error',
       'solo/exported-interface-in-own-file': 'error',
       'solo/require-explicit-shell': 'error',
+      'solo/patch-inject-token-matches-inject': 'error',
     },
   },
   {

@@ -21,7 +21,7 @@ export class HomebrewInstallFailedSoloError extends SoloError {
         'Check solo logs: tail -n 100 ~/.solo/logs/solo.log\n' +
         'Verify network connectivity\n' +
         'Install Homebrew manually from https://brew.sh\n' +
-        'Re-run initialization after installing Homebrew: solo init',
+        'Re-run the command after installing Homebrew',
     });
   }
 }
