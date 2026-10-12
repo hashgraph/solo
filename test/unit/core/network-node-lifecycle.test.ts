@@ -73,10 +73,11 @@ describe('NetworkNodeLifecycle', (): void => {
     expect(start).to.not.contain('curl');
   });
 
-  it('should extract archives with unzip or fall back to the jar tool', (): void => {
-    const command: string = NetworkNodeLifecycle.buildExtractArchiveCommand('/a/state.zip', '/a/saved');
-    expect(command).to.contain('unzip -o /a/state.zip -d /a/saved');
-    expect(command).to.contain('(cd /a/saved && jar xf /a/state.zip)');
+  it('should install zip and unzip only when they are missing', (): void => {
+    const command: string = NetworkNodeLifecycle.buildInstallArchiveToolsCommand();
+    expect(command).to.contain('command -v zip');
+    expect(command).to.contain('command -v unzip');
+    expect(command).to.contain('apt-get install -y -qq --no-install-recommends zip unzip');
   });
 
   it('should only change ownership when running as root', (): void => {

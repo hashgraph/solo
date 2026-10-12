@@ -247,10 +247,9 @@ describe('NodeCommandTasks local build path copy', (): void => {
     expect(command).to.include(`chmod -R u+rwX,g+rX,o+rX "${applicationDirectory}" "${libraryDirectory}"`);
     expect(command).to.include(`test -f "${applicationJar}"`);
     expect(command).to.include(
-      `/command/s6-setuidgid hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class"`,
+      `/command/s6-setuidgid hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class" | ` +
+        'grep -q "com/hedera/node/app/ServicesMain.class"',
     );
-    expect(command).to.include(`jar tf "${applicationJar}"`);
-    expect(command).to.include('grep -q "com/hedera/node/app/ServicesMain.class"');
   });
 
   it('stops the network node and disables autostart before replacing jars', async (): Promise<void> => {

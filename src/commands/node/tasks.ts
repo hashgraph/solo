@@ -1833,12 +1833,12 @@ export class NodeCommandTasks {
 
           await container.execContainer(['bash', '-c', `rm -rf ${constants.HEDERA_HAPI_PATH}/data/saved/*`]);
 
-          const stateZipPath: string = `${constants.HEDERA_HAPI_PATH}/data/${zipFileName}`;
-          const savedStateDirectory: string = `${constants.HEDERA_HAPI_PATH}/data/saved`;
           await container.execContainer([
-            'bash',
-            '-c',
-            NetworkNodeLifecycle.buildExtractArchiveCommand(stateZipPath, savedStateDirectory),
+            'unzip',
+            '-o',
+            `${constants.HEDERA_HAPI_PATH}/data/${zipFileName}`,
+            '-d',
+            `${constants.HEDERA_HAPI_PATH}/data/saved`,
           ]);
 
           // Fix ownership of extracted state files to hedera user
@@ -2499,10 +2499,7 @@ export class NodeCommandTasks {
       `  sync "${hapiPath}"`,
       'fi',
       `test -f "${applicationJar}" || { echo "missing ${applicationJar}" >&2; exit 1; }`,
-      // solo-containers runs as root and needs to drop to hedera; the consensus node image already runs as hedera
-      // and has no unzip, so read the jar listing with the JDK's jar tool there.
-      `if [ "$(id -u)" = "0" ]; then listing="$(/command/s6-setuidgid hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class")"; else listing="$(jar tf "${applicationJar}")"; fi`,
-      `echo "$listing" | grep -q "com/hedera/node/app/ServicesMain.class" || { echo "missing ServicesMain in ${applicationJar}" >&2; exit 1; }`,
+      `/command/s6-setuidgid hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class" | grep -q "com/hedera/node/app/ServicesMain.class" || { echo "missing ServicesMain in ${applicationJar}" >&2; exit 1; }`,
     ].join('\n');
   }
 
@@ -5195,11 +5192,8 @@ export class NodeCommandTasks {
         );
 
         // Use the -X to archive for cross-platform compatibility
-        // The consensus node image has no zip, so fall back to the JDK's jar tool, which writes a standard zip archive.
         const archiveCommand: string =
-          'if command -v zip >/dev/null 2>&1; then ' +
-          'cd "${states[0]}" && zip -rX "${states[0]}.zip" . >/dev/null && sleep 1 && cd ../ && mv "${states[0]}/${states[0]}.zip" "${states[0]}.zip"; ' +
-          'else cd "${states[0]}" && jar --create --no-manifest --file "../${states[0]}.zip" . && cd ../; fi';
+          'cd "${states[0]}" && zip -rX "${states[0]}.zip" . >/dev/null && sleep 1 && cd ../ && mv "${states[0]}/${states[0]}.zip" "${states[0]}.zip"';
 
         // zip the contents of the newest folder on node1 within /opt/hgcapp/services-hedera/HapiApp2.0/data/saved/com.hedera.services.ServicesMain/0/123/
         const zipFileName: string = await container.execContainer([
@@ -5247,9 +5241,7 @@ export class NodeCommandTasks {
           context,
         );
 
-        // The consensus node image has no unzip, so fall back to the JDK's jar tool.
-        const stateZipName: string = PathEx.basename(config.lastStateZipPath);
-        const extractCommand: string = `if command -v unzip >/dev/null 2>&1; then unzip ${stateZipName}; else jar xf ${stateZipName}; fi`;
+        const extractCommand: string = `unzip ${PathEx.basename(config.lastStateZipPath)}`;
 
         const normalizePreconsensusEventsCommand: string = [
           `cd ${savedStatePath}`,

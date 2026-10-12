@@ -178,13 +178,14 @@ export class NetworkNodeLifecycle {
   }
 
   /**
-   * Extracts a zip archive inside the root container. The consensus node image has no unzip, so it falls back to the
-   * JDK's jar tool, which extracts into the current directory.
+   * Installs zip and unzip in the root container when they are missing. The consensus node image ships without them,
+   * but Solo uses both to archive, extract and verify node state and platform archives. The image's hedera user has
+   * passwordless sudo.
    */
-  public static buildExtractArchiveCommand(archivePath: string, targetDirectory: string): string {
+  public static buildInstallArchiveToolsCommand(): string {
     return (
-      `if command -v unzip >/dev/null 2>&1; then unzip -o ${archivePath} -d ${targetDirectory}; ` +
-      `else (cd ${targetDirectory} && jar xf ${archivePath}); fi`
+      'command -v zip >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1 || ' +
+      '(sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends zip unzip)'
     );
   }
 

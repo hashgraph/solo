@@ -466,15 +466,12 @@ export class ConsensusNodeTest extends BaseCommandTest {
             .hasFile(`${HEDERA_HAPI_PATH}/data/config/genesis-network.json`),
         ).to.be.true;
 
-        // the consensus node image mounts output as a world-writable volume, so it is not owned by hedera
-        if (!NetworkNodeLifecycle.isConsensusNodeImage()) {
-          expect(
-            await k8
-              .containers()
-              .readByRef(rootContainer)
-              .execContainer(['bash', '-c', `ls -al ${HEDERA_HAPI_PATH} | grep output`]),
-          ).to.includes('hedera');
-        }
+        expect(
+          await k8
+            .containers()
+            .readByRef(rootContainer)
+            .execContainer(['bash', '-c', `ls -al ${HEDERA_HAPI_PATH} | grep output`]),
+        ).to.includes('hedera');
       }
     }).timeout(Duration.ofMinutes(2).toMillis());
   }

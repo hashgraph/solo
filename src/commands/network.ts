@@ -229,6 +229,34 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /**
+   * The consensus node image ships without zip and unzip, which Solo uses to archive, extract and verify node state
+   * and platform archives, so install them in each root container once its pod is running.
+   */
+  private installArchiveTools(): SoloListrTask<NetworkDeployContext> {
+    return {
+      title: 'Install zip and unzip in the consensus node image',
+      skip: (): boolean => !NetworkNodeLifecycle.isConsensusNodeImage(),
+      task: (context_, task): SoloListr<NetworkDeployContext> => {
+        const config: NetworkDeployConfigClass = context_.config;
+        const subTasks: SoloListrTask<NetworkDeployContext>[] = config.consensusNodes.map(
+          (consensusNode: ConsensusNode): SoloListrTask<NetworkDeployContext> => ({
+            title: `Install on node: ${chalk.yellow(consensusNode.name)}, cluster: ${chalk.yellow(consensusNode.cluster)}`,
+            task: async (): Promise<void> => {
+              const container: Container = await new K8Helper(consensusNode.context).getConsensusNodeRootContainer(
+                config.namespace,
+                consensusNode.name,
+              );
+              await container.execContainer(['bash', '-c', NetworkNodeLifecycle.buildInstallArchiveToolsCommand()]);
+            },
+          }),
+        );
+
+        return task.newListr(subTasks, {concurrent: true, rendererOptions: {collapseSubtasks: false}});
+      },
+    };
+  }
+
+  /**
    * Confirms each consensus node's persistent volume claims are mounted on the storage they asked
    * for. A claim can bind and mount successfully against a filesystem far too small to hold it —
    * directory-based provisioners do not enforce the requested size — so without this check a node
@@ -2028,6 +2056,7 @@ export class NetworkCommand extends BaseCommand {
           },
         },
         this.waitForNetworkPods(),
+        this.installArchiveTools(),
         this.verifyPersistentVolumeClaimMounts(),
         {
           title: 'Check proxy pods are running',

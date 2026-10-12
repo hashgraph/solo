@@ -105,16 +105,8 @@ if [[ "$useZip" = "true" ]]; then
   zip -Xv "${ZIP_FULLPATH}" -@ < "${FILE_LIST}" >> ${LOG_FILE} 2>&1
   zip -Xv -u "${ZIP_FULLPATH}" "${OUTPUT_DIR}/support-zip.log" >> ${LOG_FILE} 2>&1
 else
-  # jar expands every directory entry in the list recursively, which would pull back in the files filtered out above
-  # (e.g. the wraps proving keys under data/keys), unlike zip -@, which stores a directory entry without its content.
-  # Pass regular files only so the exclusions are honored.
-  FILE_ONLY_LIST="${FILE_LIST}.files"
-  while IFS= read -r entry; do
-    [[ -f "${entry}" ]] && echo "${entry}"
-  done < "${FILE_LIST}" > "${FILE_ONLY_LIST}"
-  jar cvfM "${ZIP_FULLPATH}" "@${FILE_ONLY_LIST}" >> ${LOG_FILE} 2>&1
+  jar cvfM "${ZIP_FULLPATH}" "@${FILE_LIST}" >> ${LOG_FILE} 2>&1
   jar -u -v --file="${ZIP_FULLPATH}" "${OUTPUT_DIR}/support-zip.log" >> ${LOG_FILE} 2>&1
-  rm -f "${FILE_ONLY_LIST}"
 fi
 echo "...end support-zip.sh" | tee -a ${LOG_FILE}
 

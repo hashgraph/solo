@@ -403,10 +403,7 @@ export class NetworkNodes {
         .execContainer([
           'sh',
           '-c',
-          // The consensus node image has no zip, so fall back to the JDK's jar tool, which writes a standard zip archive.
-          `(cd ${HEDERA_HAPI_PATH}/data/saved && ` +
-            `{ if command -v zip >/dev/null 2>&1; then zip -rX ${zipFileName} .; else jar --create --no-manifest --file ${zipFileName} .; fi; } ` +
-            `&& sync && test -f ${zipFileName})`,
+          `(cd ${HEDERA_HAPI_PATH}/data/saved && zip -rX ${zipFileName} . && sync && test -f ${zipFileName})`,
         ]);
       await sleep(Duration.ofSeconds(1));
       await k8.containers().readByRef(containerReference).copyFrom(`${zipFileName}`, targetDirectory);
