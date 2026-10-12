@@ -595,6 +595,15 @@ jobs:
           Write-Host "== mirror REST via 127.0.0.1:38081"
           curl.exe --silent --show-error --max-time 10 'http://127.0.0.1:38081/api/v1/blocks?limit=1'
           Write-Host "`n[curl exit code=$LASTEXITCODE]"
+          Write-Host "== relay /health/liveness: from Windows, from inside WSL, from inside the kind node"
+          curl.exe --silent --show-error --max-time 10 http://127.0.0.1:37546/health/liveness
+          Write-Host "`n[windows curl exit code=$LASTEXITCODE]"
+          wsl -u root curl --silent --show-error --max-time 10 http://127.0.0.1:37546/health/liveness
+          Write-Host "`n[wsl curl exit code=$LASTEXITCODE]"
+          docker exec solo-cluster-control-plane curl --silent --show-error --max-time 10 http://127.0.0.1:30006/health/liveness
+          Write-Host "`n[kind node curl exit code=$LASTEXITCODE]"
+          Write-Host "== Windows process listening on 37546"
+          Get-NetTCPConnection -LocalPort 37546 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Get-Process -Id $_.OwningProcess | Select-Object Id, ProcessName, Path | Format-List | Out-String }
           Write-Host "== Windows listeners on the static ports"
           netstat -ano | Select-String -Pattern ':37546\s|:38081\s'
           Write-Host "== WSL listeners and published container ports"
@@ -757,6 +766,15 @@ jobs:
           Write-Host "== mirror REST via 127.0.0.1:38081"
           curl.exe --silent --show-error --max-time 10 'http://127.0.0.1:38081/api/v1/blocks?limit=1'
           Write-Host "`n[curl exit code=$LASTEXITCODE]"
+          Write-Host "== relay /health/liveness: from Windows, from inside WSL, from inside the kind node"
+          curl.exe --silent --show-error --max-time 10 http://127.0.0.1:37546/health/liveness
+          Write-Host "`n[windows curl exit code=$LASTEXITCODE]"
+          wsl -u root curl --silent --show-error --max-time 10 http://127.0.0.1:37546/health/liveness
+          Write-Host "`n[wsl curl exit code=$LASTEXITCODE]"
+          docker exec solo-cluster-control-plane curl --silent --show-error --max-time 10 http://127.0.0.1:30006/health/liveness
+          Write-Host "`n[kind node curl exit code=$LASTEXITCODE]"
+          Write-Host "== Windows process listening on 37546"
+          Get-NetTCPConnection -LocalPort 37546 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Get-Process -Id $_.OwningProcess | Select-Object Id, ProcessName, Path | Format-List | Out-String }
           Write-Host "== Windows listeners on the static ports"
           netstat -ano | Select-String -Pattern ':37546\s|:38081\s'
           Write-Host "== WSL listeners and published container ports"
