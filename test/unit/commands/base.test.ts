@@ -49,7 +49,7 @@ interface BaseCommandInternal {
     clusterContext: Context,
   ) => Promise<void>;
   validateComponentImageArchive: (
-    componentImage: string | undefined,
+    componentImage: string | string[] | undefined,
     componentImageArchive: string | undefined,
   ) => void;
   logger: SoloLogger;
@@ -670,6 +670,35 @@ describe('BaseCommand', (): void => {
       expect((): void =>
         baseCommandInternal.validateComponentImageArchive('block-node-server:0.38.0', archivePath),
       ).to.not.throw();
+    });
+
+    it('should accept an archive whose manifest.json lists every image in an expected-images array', (): void => {
+      const archivePath: string = buildArchiveWithRepoTags([
+        'hedera-mirror-importer:0.157.0',
+        'hedera-mirror-grpc:0.157.0',
+      ]);
+
+      expect((): void =>
+        baseCommandInternal.validateComponentImageArchive(
+          ['hedera-mirror-importer:0.157.0', 'hedera-mirror-grpc:0.157.0'],
+          archivePath,
+        ),
+      ).to.not.throw();
+    });
+
+    it('should reject an archive missing some of an expected-images array, naming only the missing ones', (): void => {
+      const archivePath: string = buildArchiveWithRepoTags(['hedera-mirror-importer:0.157.0']);
+
+      expect((): void =>
+        baseCommandInternal.validateComponentImageArchive(
+          ['hedera-mirror-importer:0.157.0', 'hedera-mirror-grpc:0.157.0'],
+          archivePath,
+        ),
+      ).to.throw(
+        "Component image archive '" +
+          archivePath +
+          "' does not contain 'hedera-mirror-grpc:0.157.0'; it contains: 'hedera-mirror-importer:0.157.0'",
+      );
     });
   });
 

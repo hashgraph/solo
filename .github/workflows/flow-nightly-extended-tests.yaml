@@ -42,6 +42,12 @@ env:
   STEP_TIMEOUT_MINUTES: '5'
 
 jobs:
+  build-sea:
+    name: Build SEA Binaries
+    uses: $/.github/workflows/flow-build-sea.yaml
+    with:
+      node-version: ${{ inputs.node-version || '24' }}
+
   prepare-setup:
     name: Prepare Setup
     runs-on: hiero-solo-linux-medium
@@ -292,3 +298,5 @@ jobs:
     uses: $/.github/workflows/flow-standard-runner-one-shot-windows.yaml
     with:
       run-twice: true
+    # The called workflow only uses the automatically provided GITHUB_TOKEN;
+    # forwarding every repository secret is unnecessary and unsafe.

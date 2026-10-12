@@ -23,7 +23,6 @@ import {FalconPrepareSpecLoader} from './falcon-prepare-spec-loader.js';
 import {FALCON_DEPLOY_COMMAND, FALCON_PREPARE_COMMAND} from './one-shot-command-paths.js';
 import {patchInject} from '../../core/dependency-injection/container-helper.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
-import {UserInput} from '../../core/user-input.js';
 import fs from 'node:fs';
 import chalk from 'chalk';
 import {PathEx} from '../../business/utils/path-ex.js';
@@ -313,7 +312,7 @@ export class DefaultOneShotCommand extends BaseCommand implements OneShotCommand
   }
 
   private getOneShotOutputDirectory(deploymentName: string): string {
-    return PathEx.join(constants.SOLO_HOME_DIR, `one-shot-${UserInput.safeFilenameComponent(deploymentName)}`);
+    return Templates.renderOneShotOutputDirectory(deploymentName);
   }
 
   /** Prints the one-shot deployment's `accounts.json` file in the format given by `--output`. */

@@ -130,7 +130,7 @@ images:
     version: SOLO_CHEETAH_VERSION
     source: ghcr.io
 
-  - name: ghcr.io/hashgraph/solo-containers/debian-s6-java25
+  - name: ghcr.io/hiero-ledger/solo-containers/debian-s6-java25
     version: SOLO_CONTAINERS_VERSION
     source: ghcr.io
 

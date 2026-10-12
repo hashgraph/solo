@@ -102,6 +102,101 @@ describe('NetworkNodes', (): void => {
     }
   });
 
+  it('should prefer the latest non-freeze round over the freeze round when trimming for live resumption', async (): Promise<void> => {
+    const temporaryDirectory: string = fs.mkdtempSync(path.join(os.tmpdir(), 'network-nodes-test-'));
+    const namespaceDirectory: string = path.join(temporaryDirectory, 'namespace');
+    fs.mkdirSync(namespaceDirectory, {recursive: true});
+
+    try {
+      for (const nodeAlias of ['node1', 'node2']) {
+        const sourceDirectory: string = fs.mkdtempSync(path.join(os.tmpdir(), 'state-source-'));
+        for (const [round, freezeState] of [
+          ['100', 'false'],
+          ['200', 'true'],
+        ]) {
+          const roundDirectory: string = path.join(
+            sourceDirectory,
+            'com.hedera.services.ServicesMain',
+            '0',
+            '123',
+            round,
+          );
+          fs.mkdirSync(roundDirectory, {recursive: true});
+          fs.writeFileSync(
+            path.join(roundDirectory, 'stateMetadata.txt'),
+            `FREEZE_STATE: ${freezeState}\nSIGNING_WEIGHT_SUM: 3\nTOTAL_WEIGHT: 3\n`,
+          );
+          fs.writeFileSync(path.join(roundDirectory, 'preconsensus-events.pces'), 'pces');
+        }
+
+        const archive: AdmZip = new AdmZip();
+        archive.addLocalFolder(sourceDirectory);
+        await archive.writeZipPromise(path.join(namespaceDirectory, `network-${nodeAlias}-0-state.zip`));
+        fs.rmSync(sourceDirectory, {recursive: true, force: true});
+      }
+
+      const selectedRound: string = await networkNodes.normalizeDownloadedStateArchives(
+        NamespaceName.of('namespace'),
+        ['node1', 'node2'],
+        temporaryDirectory,
+        DeploymentPhase.FROZEN,
+        true,
+      );
+
+      expect(selectedRound).to.equal('100');
+      for (const nodeAlias of ['node1', 'node2']) {
+        const archive: AdmZip = new AdmZip(path.join(namespaceDirectory, `network-${nodeAlias}-0-state.zip`));
+        const entries: string[] = archive.getEntries().map((entry): string => entry.entryName);
+        expect(entries.some((entry: string): boolean => entry.includes('/100/'))).to.equal(true);
+        expect(entries.some((entry: string): boolean => entry.includes('/200/'))).to.equal(false);
+      }
+    } finally {
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    }
+  });
+
+  it('should fall back to the freeze round when trimming for live resumption but no non-freeze round exists', async (): Promise<void> => {
+    const temporaryDirectory: string = fs.mkdtempSync(path.join(os.tmpdir(), 'network-nodes-test-'));
+    const namespaceDirectory: string = path.join(temporaryDirectory, 'namespace');
+    fs.mkdirSync(namespaceDirectory, {recursive: true});
+
+    try {
+      for (const nodeAlias of ['node1', 'node2']) {
+        const sourceDirectory: string = fs.mkdtempSync(path.join(os.tmpdir(), 'state-source-'));
+        const roundDirectory: string = path.join(
+          sourceDirectory,
+          'com.hedera.services.ServicesMain',
+          '0',
+          '123',
+          '200',
+        );
+        fs.mkdirSync(roundDirectory, {recursive: true});
+        fs.writeFileSync(
+          path.join(roundDirectory, 'stateMetadata.txt'),
+          'FREEZE_STATE: true\nSIGNING_WEIGHT_SUM: 3\nTOTAL_WEIGHT: 3\n',
+        );
+        fs.writeFileSync(path.join(roundDirectory, 'preconsensus-events.pces'), 'pces');
+
+        const archive: AdmZip = new AdmZip();
+        archive.addLocalFolder(sourceDirectory);
+        await archive.writeZipPromise(path.join(namespaceDirectory, `network-${nodeAlias}-0-state.zip`));
+        fs.rmSync(sourceDirectory, {recursive: true, force: true});
+      }
+
+      const selectedRound: string = await networkNodes.normalizeDownloadedStateArchives(
+        NamespaceName.of('namespace'),
+        ['node1', 'node2'],
+        temporaryDirectory,
+        DeploymentPhase.FROZEN,
+        true,
+      );
+
+      expect(selectedRound).to.equal('200');
+    } finally {
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    }
+  });
+
   it('should fail fast when the pod has no SHA-256 tool instead of retrying until the timeout', async (): Promise<void> => {
     const execContainerStub: sinon.SinonStub = sinon.stub();
     execContainerStub.onFirstCall().resolves('');

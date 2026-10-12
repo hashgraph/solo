@@ -240,7 +240,7 @@ describe('ClusterCommand unit tests', (): void => {
     let tasks: ClusterCommandTasks;
     let chartManager: SinonStubbedInstance<ChartManager>;
     let clusterChecks: SinonStubbedInstance<ClusterChecks>;
-    let crdsStub: {readLabels: SinonStub};
+    let crdsStub: {readLabels: SinonStub; delete: SinonStub};
 
     afterEach((): void => {
       sandbox.restore();
@@ -249,7 +249,7 @@ describe('ClusterCommand unit tests', (): void => {
     beforeEach((): void => {
       const k8Factory: K8Factory = container.resolve(InjectTokens.K8Factory);
       // Undefined labels is how the client reports an absent CRD.
-      crdsStub = {readLabels: sandbox.stub().resolves()};
+      crdsStub = {readLabels: sandbox.stub().resolves(), delete: sandbox.stub().resolves()};
       sandbox
         .stub(k8Factory, 'getK8')
         .returns({crds: (): typeof crdsStub => crdsStub} as unknown as ReturnType<K8Factory['getK8']>);
@@ -260,6 +260,9 @@ describe('ClusterCommand unit tests', (): void => {
       sandbox.stub(resolvedChartManager, 'install').resolves(true);
       sandbox.stub(resolvedChartManager, 'uninstall').resolves(true);
       sandbox.stub(resolvedChartManager, 'getInstalledRelease').resolves();
+      // No other release running the minio-operator chart by default, so the "no release found" path in
+      // the tests below falls through to the orphaned-CRD cleanup rather than the ownership-gap skip.
+      sandbox.stub(resolvedChartManager, 'getInstalledReleases').resolves([]);
       chartManager = resolvedChartManager as SinonStubbedInstance<ChartManager>;
 
       const resolvedClusterChecks: ClusterChecks = container.resolve(InjectTokens.ClusterChecks);
@@ -337,6 +340,38 @@ describe('ClusterCommand unit tests', (): void => {
       expect(chartManager.uninstall.args[0][1]).to.equal(constants.MINIO_OPERATOR_RELEASE_NAME);
     });
 
+    // Helm never deletes CRDs on uninstall (SOLO-3035): without this, the CRDs this exact release owned
+    // outlive it and the next `cluster-ref config setup` refuses to proceed.
+    it('deletes the CRDs it owns after a successful uninstall', async (): Promise<void> => {
+      chartManager.getInstalledRelease.resolves({
+        name: constants.MINIO_OPERATOR_RELEASE_NAME,
+        namespace: configuredNamespace.name,
+        chart: soloChart,
+      } as unknown as ReleaseItem);
+
+      await runUninstall();
+
+      expect(crdsStub.delete.callCount).to.equal(constants.MINIO_OPERATOR_CRDS.length);
+      for (const crdName of constants.MINIO_OPERATOR_CRDS) {
+        expect(crdsStub.delete.calledWith(crdName)).to.be.true;
+      }
+    });
+
+    // A CRD is cluster-wide, so one failing to delete must not fail a reset that otherwise succeeded; it
+    // surfaces as SOLO-3035, with its remediation, the next time setup runs.
+    it('does not fail the reset when a CRD fails to delete', async (): Promise<void> => {
+      chartManager.getInstalledRelease.resolves({
+        name: constants.MINIO_OPERATOR_RELEASE_NAME,
+        namespace: configuredNamespace.name,
+        chart: soloChart,
+      } as unknown as ReleaseItem);
+      crdsStub.delete.rejects(new Error('the API server is unavailable'));
+
+      await runUninstall();
+
+      expect(chartManager.uninstall.calledOnce).to.be.true;
+    });
+
     it('uninstalls without consulting remote config when it is in the cluster-setup namespace', async (): Promise<void> => {
       chartManager.getInstalledRelease.resolves({
         name: constants.MINIO_OPERATOR_RELEASE_NAME,
@@ -363,6 +398,7 @@ describe('ClusterCommand unit tests', (): void => {
       await runUninstall();
 
       expect(chartManager.uninstall.notCalled).to.be.true;
+      expect(crdsStub.delete.notCalled).to.be.true;
     });
 
     it('leaves a release running a different chart alone', async (): Promise<void> => {
@@ -375,12 +411,42 @@ describe('ClusterCommand unit tests', (): void => {
       await runUninstall();
 
       expect(chartManager.uninstall.notCalled).to.be.true;
+      expect(crdsStub.delete.notCalled).to.be.true;
     });
 
     it('skips the uninstall when no release exists', async (): Promise<void> => {
       await runUninstall();
 
       expect(chartManager.uninstall.notCalled).to.be.true;
+    });
+
+    // No release anywhere owns these CRDs, so this is the orphaned state itself (SOLO-3035): without
+    // cleaning them up here too, they outlive every future reset since none will ever find a release to
+    // uninstall first.
+    it('deletes orphaned CRDs even when no release exists to uninstall', async (): Promise<void> => {
+      await runUninstall();
+
+      expect(crdsStub.delete.callCount).to.equal(constants.MINIO_OPERATOR_CRDS.length);
+      for (const crdName of constants.MINIO_OPERATOR_CRDS) {
+        expect(crdsStub.delete.calledWith(crdName)).to.be.true;
+      }
+    });
+
+    // A release named anything else that still runs the minio-operator chart owns these CRDs just as
+    // much as one named constants.MINIO_OPERATOR_RELEASE_NAME would. Concluding "orphaned" from a
+    // name-only miss would delete CRDs out from under that release's own Tenants cluster-wide.
+    it('leaves the CRDs alone when a differently-named release still runs the minio-operator chart', async (): Promise<void> => {
+      chartManager.getInstalledReleases.resolves([
+        {
+          name: 'my-own-minio',
+          namespace: 'someone-elses-namespace',
+          chart: soloChart,
+        } as unknown as ReleaseItem,
+      ]);
+
+      await runUninstall();
+
+      expect(crdsStub.delete.notCalled).to.be.true;
     });
   });
 });

@@ -166,6 +166,7 @@ export class PlatformInstaller {
       await container.execContainer(`chmod +x ${extractScript}`);
       await container.execContainer(`chown root:root ${extractScript}`);
       await container.execContainer([extractScript, tag]);
+      await this.verifyJarIntegrity(container);
 
       return true;
     } catch (error) {
@@ -180,6 +181,36 @@ export class PlatformInstaller {
       const message: string = `failed to extract platform code in this pod '${podReference}' while using the '${context}' context: ${error.message}`;
       throw new SoloErrors.system.containerOperationFailed(message, error);
     }
+  }
+
+  /**
+   * Verify that every JAR file under the `data/apps` and `data/lib` directories of the given HAPI
+   * directory is a valid ZIP archive, by running `unzip -t` against each of them. A truncated or
+   * otherwise corrupted JAR (for example from an interrupted copy) fails here instead of surfacing
+   * later as a `NoClassDefFoundError` and a `CATASTROPHIC_FAILURE` at node startup.
+   *
+   * @param container - the container to run the verification in
+   * @param hapiPath - the base directory holding the `data/apps` and `data/lib` JAR directories
+   */
+  public async verifyJarIntegrity(container: Container, hapiPath: string = constants.HEDERA_HAPI_PATH): Promise<void> {
+    const applicationsJarGlob: string = `${hapiPath}/${constants.HEDERA_DATA_APPS_DIR}/*.jar`;
+    const librariesJarGlob: string = `${hapiPath}/${constants.HEDERA_DATA_LIB_DIR}/*.jar`;
+    const verifyScriptLines: string[] = [
+      'set -euo pipefail',
+      "foundJarFile='false'",
+      `for jarFile in ${applicationsJarGlob} ${librariesJarGlob}; do`,
+      '  if [[ -f ${jarFile} ]]; then',
+      "    foundJarFile='true'",
+      '    unzip -t ${jarFile} >/dev/null',
+      '  fi',
+      'done',
+      "if [[ ${foundJarFile} != 'true' ]]; then",
+      `  echo 'No jar files found in ${hapiPath}' >&2`,
+      '  exit 1',
+      'fi',
+    ];
+    const verifyScript: string = verifyScriptLines.join('\n');
+    await container.execContainer(['bash', '-c', verifyScript]);
   }
 
   /**

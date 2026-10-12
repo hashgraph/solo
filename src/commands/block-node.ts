@@ -8,6 +8,7 @@ import {
   withTimeout,
 } from '../core/helpers.js';
 import * as constants from '../core/constants.js';
+import {UserInput} from '../core/user-input.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {type AnyListrContext, type ArgvStruct, type NodeAlias} from '../types/aliases.js';
@@ -78,6 +79,7 @@ interface BlockNodeDeployConfigClass {
   domainName: Optional<string>;
   enableIngress: boolean;
   quiet: boolean;
+  force: boolean;
   valuesFile: Optional<string>;
   releaseTag: string;
   imageTag: Optional<string>;
@@ -126,6 +128,7 @@ interface BlockNodeUpgradeConfigClass {
   deployment: DeploymentName;
   debugMode: boolean;
   quiet: boolean;
+  force: boolean;
   valuesFile: Optional<string>;
   namespace: NamespaceName;
   context: string;
@@ -244,6 +247,7 @@ export class BlockNodeCommand extends BaseCommand {
       flags.debugMode,
       flags.domainName,
       flags.enableIngress,
+      flags.force,
       flags.quiet,
       flags.valuesFile,
       // Keep deprecated legacy flag accepted for backward compatibility.
@@ -304,6 +308,7 @@ export class BlockNodeCommand extends BaseCommand {
       flags.quiet,
       flags.valuesFile,
       flags.upgradeVersion,
+      flags.consensusNodeVersion,
       flags.id,
     ],
   };
@@ -369,7 +374,7 @@ export class BlockNodeCommand extends BaseCommand {
     if ('domainName' in config && config.domainName) {
       chartValues
         .set('ingress.enabled', true)
-        .set('ingress.hosts[0].host', config.domainName)
+        .set('ingress.hosts[0].host', UserInput.escapeHelmTemplate(config.domainName))
         .set('ingress.hosts[0].paths[0].path', '/')
         .set('ingress.hosts[0].paths[0].pathType', 'ImplementationSpecific');
     }
@@ -458,6 +463,68 @@ export class BlockNodeCommand extends BaseCommand {
 
     const blockStreamMode: string = constants.getEnvironmentVariable('BLOCK_STREAM_STREAM_MODE') ?? 'BLOCKS';
     return blockStreamMode === 'BLOCKS' || blockStreamMode === 'BOTH';
+  }
+
+  /**
+   * Rejects a block node version that sits on the opposite side of the fixed 16-slot block root hash
+   * boundary (hiero-consensus-node#26918) from the consensus node it will serve. The consensus node
+   * streams every block to the block node for verification, so a mismatched pair is rejected with
+   * BAD_BLOCK_PROOF until the consensus node block buffer saturates and the network stalls.
+   *
+   * `consensusNodeVersion` must be the version that will actually be running alongside this block
+   * node. See {@link resolveConsensusNodeVersionForCompatibility} for how add picks it.
+   */
+  /**
+   * Picks the consensus node version that a block node being added will actually serve.
+   *
+   * An explicitly requested version wins, because a block node is often added before the consensus
+   * network exists — remote config then still holds solo's default rather than the version about to
+   * be deployed. With no explicit request, remote config is the ground truth for an already deployed
+   * network. Falls back to solo's default when neither is available.
+   *
+   * `--consensus-node-version` defaults to an empty string, which yargs drops, so its presence in
+   * argv means the caller supplied it. The deprecated `--release-tag` always carries solo's default
+   * into argv, so it only counts as explicit when it differs from that default.
+   */
+  private resolveConsensusNodeVersionForCompatibility(argv: ArgvStruct): string {
+    const requestedConsensusNodeVersion: string = argv[flags.consensusNodeVersion.name] as string;
+    if (requestedConsensusNodeVersion) {
+      return requestedConsensusNodeVersion;
+    }
+
+    const requestedReleaseTag: string = argv[flags.releaseTag.name] as string;
+    if (requestedReleaseTag && requestedReleaseTag !== versions.HEDERA_PLATFORM_VERSION) {
+      return requestedReleaseTag;
+    }
+
+    return this.remoteConfig.configuration.versions?.consensusNode?.toString() ?? versions.HEDERA_PLATFORM_VERSION;
+  }
+
+  private assertBlockProofCompatibility(blockNodeVersion: string, consensusNodeVersion: string, force: boolean): void {
+    const blockNodeUsesFixedSlots: boolean = new SemanticVersion<string>(blockNodeVersion).greaterThanOrEqual(
+      versions.MINIMUM_BLOCK_NODE_VERSION_FOR_16_SLOT_BLOCK_PROOF,
+    );
+    const consensusNodeUsesFixedSlots: boolean = new SemanticVersion<string>(consensusNodeVersion).greaterThanOrEqual(
+      versions.MINIMUM_CN_VERSION_FOR_16_SLOT_BLOCK_PROOF,
+    );
+
+    if (blockNodeUsesFixedSlots === consensusNodeUsesFixedSlots) {
+      return;
+    }
+
+    if (force) {
+      this.logger.warn(
+        `Force flag enabled, bypassing the block root hash compatibility check between block node ${blockNodeVersion} and consensus node ${consensusNodeVersion}`,
+      );
+      return;
+    }
+
+    throw new SoloErrors.validation.blockNodeBlockProofIncompatible(
+      blockNodeVersion,
+      consensusNodeVersion,
+      versions.MINIMUM_BLOCK_NODE_VERSION_FOR_16_SLOT_BLOCK_PROOF,
+      versions.MINIMUM_CN_VERSION_FOR_16_SLOT_BLOCK_PROOF,
+    );
   }
 
   private resolveMirrorNodeReleaseName(): string {
@@ -927,6 +994,11 @@ export class BlockNodeCommand extends BaseCommand {
               config.componentImage = `${constants.BLOCK_NODE_IMAGE_NAME}:${config.imageTag}`;
             }
 
+            this.assertBlockProofCompatibility(
+              config.chartVersion,
+              this.resolveConsensusNodeVersionForCompatibility(argv),
+              config.force,
+            );
             config.livenessCheckPort = this.getLivenessCheckPortNumber(
               config.chartVersion,
               config.componentImage,
@@ -1394,6 +1466,13 @@ export class BlockNodeCommand extends BaseCommand {
               config.upgradeVersion,
               this.remoteConfig.getComponentVersion(ComponentTypes.BlockNode),
               optionFromFlag(flags.upgradeVersion),
+            );
+
+            // On upgrade the consensus network is already deployed, so remote config is ground truth.
+            this.assertBlockProofCompatibility(
+              config.upgradeVersion,
+              this.remoteConfig.configuration.versions?.consensusNode?.toString() ?? versions.HEDERA_PLATFORM_VERSION,
+              config.force,
             );
 
             if (!this.oneShotState.isActive()) {

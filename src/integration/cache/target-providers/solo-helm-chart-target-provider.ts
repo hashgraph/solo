@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import * as constants from '../../../core/constants.js';
+import {SoloChartRepository} from '../../../core/solo-chart-repository.js';
 import * as version from '../../../../version.js';
 import {type CacheTargetProvider} from './cache-target-provider.js';
 import {type CacheTargetStructure} from '../models/cache-target-structure.js';
@@ -19,19 +20,19 @@ export class SoloHelmChartTargetProvider implements CacheTargetProvider {
         CacheArtifactEnum.HELM_CHART,
         constants.SOLO_DEPLOYMENT_CHART,
         version.SOLO_CHART_VERSION,
-        constants.SOLO_TESTING_CHART_URL,
+        SoloChartRepository.resolveUrl(version.SOLO_CHART_VERSION),
       ),
       new CacheTarget(
         CacheArtifactEnum.HELM_CHART,
         constants.SOLO_CERT_MANAGER_CHART,
         version.SOLO_CHART_VERSION,
-        constants.SOLO_TESTING_CHART_URL,
+        SoloChartRepository.resolveUrl(version.SOLO_CHART_VERSION),
       ),
       new CacheTarget(
         CacheArtifactEnum.HELM_CHART,
         constants.SOLO_SHARED_RESOURCES_CHART,
         version.SOLO_CHART_VERSION,
-        constants.SOLO_TESTING_CHART_URL,
+        SoloChartRepository.resolveUrl(version.SOLO_CHART_VERSION),
       ),
       new CacheTarget(
         CacheArtifactEnum.HELM_CHART,

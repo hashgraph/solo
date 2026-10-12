@@ -125,8 +125,16 @@ export const IGNORE_POD_METRICS: string[] = ignorePodMetricsEnvironment
   ? ignorePodMetricsEnvironment.split(',')
   : ['network-load-generator', 'metrics-server'];
 
+export const REDIS_SENTINEL_ENABLED: boolean = getEnvironmentVariable('REDIS_SENTINEL_ENABLED') === 'true' || false;
+export const REDIS_HOST: string =
+  getEnvironmentVariable('REDIS_HOST') || REDIS_SENTINEL_ENABLED
+    ? 'solo-shared-resources-redis'
+    : 'solo-shared-resources-redis-master';
 export const REDIS_IMAGE_REGISTRY: string = 'gcr.io';
 export const REDIS_IMAGE_REPOSITORY: string = 'mirrornode/redis';
+export const REDIS_REPLICA_REPLICACOUNT: number =
+  +getEnvironmentVariable('REDIS_REPLICA_REPLICACOUNT') || REDIS_SENTINEL_ENABLED ? 1 : 0;
+export const REDIS_SENTINEL_GETMASTERTIMEOUT: number = +getEnvironmentVariable('REDIS_SENTINEL_GETMASTERTIMEOUT') || 10;
 export const REDIS_SENTINEL_IMAGE_REGISTRY: string = 'gcr.io';
 export const REDIS_SENTINEL_IMAGE_REPOSITORY: string = 'mirrornode/redis-sentinel';
 export const REDIS_SENTINEL_MASTER_SET: string = 'mirror';
@@ -134,8 +142,6 @@ export const REDIS_SENTINEL_MASTER_SET: string = 'mirror';
 // --------------- Charts related constants ----------------------------------------------------------------------------
 export const SOLO_SETUP_NAMESPACE: NamespaceName = NamespaceName.of('solo-setup');
 
-// TODO: remove after migrated to resources/solo-config.yaml
-export const SOLO_TESTING_CHART_URL: string = 'oci://ghcr.io/hashgraph/solo-charts';
 // TODO: remove after migrated to resources/solo-config.yaml
 export const SOLO_DEPLOYMENT_CHART: string = 'solo-deployment';
 // TODO: remove after migrated to resources/solo-config.yaml
@@ -377,6 +383,11 @@ export const MIRROR_POSTGRES_TRUNCATE_SQL_FILE: string = PathEx.joinWithRealPath
   RESOURCES_DIR,
   'mirror-postgres-truncate.sql',
 );
+// psql client used to run SQL against an external mirror node database from inside the cluster.
+// Override for air-gapped or private registries.
+export const MIRROR_EXTERNAL_DATABASE_CLIENT_IMAGE: string =
+  getEnvironmentVariable('MIRROR_EXTERNAL_DATABASE_CLIENT_IMAGE') ||
+  'docker.io/bitnamilegacy/postgresql-repmgr:17.6.0-debian-12-r2';
 export const UPGRADE_MIGRATIONS_FILE: string = PathEx.join(RESOURCES_DIR, 'component-upgrade-migrations.json');
 export const SOLO_DEPLOYMENT_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'solo-values.yaml');
 export const BLOCK_NODE_TSS_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'block-node-tss-values.yaml');
@@ -395,6 +406,7 @@ export const SOLO_CACHE_IMAGES_TARGET_FILE: string = PathEx.joinWithRealPath(
 
 export const CONTAINER_COPY_MAX_ATTEMPTS: number = +getEnvironmentVariable('CONTAINER_COPY_MAX_ATTEMPTS') || 3;
 export const CONTAINER_COPY_BACKOFF_MS: number = +getEnvironmentVariable('CONTAINER_COPY_BACKOFF_MS') || 300;
+export const CONTAINER_COPY_CHUNK_SIZE_BYTES: number = 128 * 1024 * 1024;
 
 export const CHECK_WRAPS_DIRECTORY_MAX_ATTEMPTS: number =
   +getEnvironmentVariable('CHECK_WRAPS_DIRECTORY_MAX_ATTEMPTS') || 10;
@@ -596,6 +608,8 @@ export const NETWORK_LOAD_GENERATOR_POD_RUNNING_DELAY: number =
 export const PORT_FORWARDING_MESSAGE_GROUP: string = 'port-forwarding';
 // Collects images that failed to cache (pull) or load so a summary can be shown at the end of the run.
 export const CACHE_IMAGE_FAILURE_MESSAGE_GROUP: string = 'cache-image-failures';
+// Collects the housekeeping the image cache performed (pruned files) so a summary can be shown at the end of the run.
+export const CACHE_IMAGE_MAINTENANCE_MESSAGE_GROUP: string = 'cache-image-maintenance';
 export const GRPC_PORT: number = +getEnvironmentVariable('GRPC_PORT') || 50_211;
 export const GRPCS_PORT: number = GRPC_PORT + 1;
 export const GRPC_LOCAL_PORT: number = +getEnvironmentVariable('GRPC_LOCAL_PORT') || 35_211;
@@ -625,6 +639,15 @@ export const MIRROR_NODE_CHART_UPGRADE_RETRY_DELAY_SECS: number =
 export const NETWORK_DESTROY_WAIT_TIMEOUT: number = +getEnvironmentVariable('NETWORK_DESTROY_WAIT_TIMEOUT') || 120;
 
 export const DEFAULT_LOCAL_CONFIG_FILE: string = 'local-config.yaml';
+
+/**
+ * Operator-editable Solo configuration file, read from {@link SOLO_HOME_DIR}.
+ *
+ * Deliberately not `solo.yaml`: that name was used by older Solo versions for a `flags:` map and
+ * is still actively deleted by external tooling (the `solo:config:remove` task in
+ * hiero-consensus-node's CITR Taskfile), which would silently wipe an operator's settings.
+ */
+export const DEFAULT_SOLO_CONFIG_FILE: string = 'solo-config.yaml';
 export const NODE_OVERRIDE_FILE: string = 'node-overrides.yaml';
 export const GENESIS_NETWORK_FILE: string = 'genesis-network.json';
 /** Same contents as {@link GENESIS_NETWORK_FILE}; replaces the roster carried by a restored state. */
@@ -650,6 +673,8 @@ export const RELAY_IMAGE_NAME: string = 'hiero-json-rpc-relay';
 export const EXPLORER_IMAGE_NAME: string = 'hiero-explorer';
 export const APPLICATION_PROPERTIES: string = 'application.properties';
 export const APPLICATION_PROPERTIES_ENABLE_OVERWRITE_MARKER: string = 'SOLO_ENABLE_OVERWRITE=true';
+export const SIMPLE_FEES_SCHEDULES_JSON: string = 'simpleFeesSchedules.json';
+export const THROTTLES_JSON: string = 'throttles.json';
 export const BLOCK_NODES_JSON_FILE: string = 'block-nodes.json';
 export const NETWORK_NODE_SHARED_DATA_CONFIG_MAP_NAME: string = 'network-node-data-config-cm';
 export const enum StorageType {

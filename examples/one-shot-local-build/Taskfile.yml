@@ -219,9 +219,6 @@ tasks:
   deploy:
     desc: Deploy a complete Hiero network using one-shot falcon deploy with local builds
     cmds:
-      # Run solo init to install dependencies
-      - cmd: $SOLO_COMMAND init --dev
-
       # Checkout all component repos
       - task: checkout-repos
 

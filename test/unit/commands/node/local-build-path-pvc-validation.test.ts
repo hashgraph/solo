@@ -12,6 +12,7 @@ import {NamespaceName} from '../../../../src/types/namespace/namespace-name.js';
 import * as constants from '../../../../src/core/constants.js';
 import {Helpers} from '../../../../src/core/helpers.js';
 import {ConsensusNode} from '../../../../src/core/model/consensus-node.js';
+import {PlatformInstaller} from '../../../../src/core/platform-installer.js';
 import {PodReference} from '../../../../src/integration/kube/resources/pod/pod-reference.js';
 import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.js';
 
@@ -128,6 +129,40 @@ function invokeBuildRefreshLiveLocalBuildJarsCommand(nodeCommandTasks: NodeComma
   return builderFunction.call(nodeCommandTasks);
 }
 
+function createNodeCommandTasksWithPlatformInstaller(): NodeCommandTasks {
+  const nodeCommandTasks: NodeCommandTasks = Object.create(NodeCommandTasks.prototype) as NodeCommandTasks;
+  (nodeCommandTasks as unknown as {platformInstaller: PlatformInstaller}).platformInstaller = Object.create(
+    PlatformInstaller.prototype,
+  ) as PlatformInstaller;
+  (nodeCommandTasks as unknown as {logger: {warn: sinon.SinonStub}}).logger = {warn: sinon.stub()};
+
+  return nodeCommandTasks;
+}
+
+function isJarIntegrityVerification(command: string[] | string): boolean {
+  return Array.isArray(command) && (command[2] ?? '').includes('unzip -t');
+}
+
+function findJarIntegrityVerificationCallIndex(
+  execContainerStub: sinon.SinonStub,
+  startIndex: number = 0,
+  hapiPath?: string,
+): number {
+  const calls: sinon.SinonSpyCall[] = execContainerStub.getCalls();
+  for (let index: number = startIndex; index < calls.length; index++) {
+    const script: string = (calls[index].args[0] as string[])[2] ?? '';
+    if (!script.includes('unzip -t')) {
+      continue;
+    }
+    if (hapiPath !== undefined && !script.includes(`${hapiPath}/${constants.HEDERA_DATA_APPS_DIR}`)) {
+      continue;
+    }
+    return index;
+  }
+
+  return -1;
+}
+
 describe('NodeCommandTasks local build path PVC validation', (): void => {
   it('warns when local build path is used without node PVCs', async (): Promise<void> => {
     const {tasks, showUserMessages} = createNodeCommandTasksWithPvcData({
@@ -217,7 +252,7 @@ describe('NodeCommandTasks local build path copy', (): void => {
   });
 
   it('stops the network node and disables autostart before replacing jars', async (): Promise<void> => {
-    const nodeCommandTasks: NodeCommandTasks = Object.create(NodeCommandTasks.prototype) as NodeCommandTasks;
+    const nodeCommandTasks: NodeCommandTasks = createNodeCommandTasksWithPlatformInstaller();
     const execContainerStub: sinon.SinonStub = sinon.stub().resolves('');
     const copyToStub: sinon.SinonStub = sinon.stub().resolves();
     const hasDirectoryStub: sinon.SinonStub = sinon.stub().resolves(false);
@@ -235,7 +270,7 @@ describe('NodeCommandTasks local build path copy', (): void => {
     await expect(invokeCopyLocalBuildPathToNode(nodeCommandTasks, k8, configManager, '/tmp/local-build/data')).to
       .eventually.be.fulfilled;
 
-    expect(execContainerStub.callCount).to.equal(4);
+    expect(execContainerStub.callCount).to.equal(5);
     const expectedStopCommand: string = [
       'test -x "/command/network-node-lifecycle" || { ' +
         'echo "missing /command/network-node-lifecycle; update solo-container image" >&2; exit 1; }',
@@ -254,13 +289,16 @@ describe('NodeCommandTasks local build path copy', (): void => {
         `chmod -R u+rwX,g+rX,o+rX "${constants.HEDERA_HAPI_PATH}/${constants.HEDERA_DATA_APPS_DIR}" "${constants.HEDERA_HAPI_PATH}/${constants.HEDERA_DATA_LIB_DIR}"`,
       ].join('\n'),
     ]);
-    expect(execContainerStub.getCall(3).args[0]).to.deep.equal(['sync', constants.HEDERA_HAPI_PATH]);
+    const verificationScript: string = (execContainerStub.getCall(3).args[0] as string[])[2];
+    expect(verificationScript).to.include('unzip -t');
+    expect(execContainerStub.getCall(4).args[0]).to.deep.equal(['sync', constants.HEDERA_HAPI_PATH]);
     expect(hasDirectoryStub.calledOnceWith(`${constants.HEDERA_HAPI_PATH}/data/upgrade/current`)).to.equal(true);
     expect(copyToStub.calledOnceWith('/tmp/local-build/data', constants.HEDERA_HAPI_PATH)).to.equal(true);
+    expect(execContainerStub.getCall(3).calledAfter(copyToStub.firstCall)).to.equal(true);
   });
 
   it('copies local build jars into the prepared upgrade directory when present', async (): Promise<void> => {
-    const nodeCommandTasks: NodeCommandTasks = Object.create(NodeCommandTasks.prototype) as NodeCommandTasks;
+    const nodeCommandTasks: NodeCommandTasks = createNodeCommandTasksWithPlatformInstaller();
     const execContainerStub: sinon.SinonStub = sinon.stub().resolves('');
     const copyToStub: sinon.SinonStub = sinon.stub().resolves();
     const hasDirectoryStub: sinon.SinonStub = sinon.stub().resolves(true);
@@ -283,9 +321,9 @@ describe('NodeCommandTasks local build path copy', (): void => {
       `rm -rf ${upgradeDirectory}/${constants.HEDERA_DATA_LIB_DIR}/*.jar ` +
       `${upgradeDirectory}/${constants.HEDERA_DATA_APPS_DIR}/*.jar`;
 
-    expect(execContainerStub.callCount).to.equal(6);
-    expect(execContainerStub.getCall(3).args[0]).to.deep.equal(['bash', '-c', expectedUpgradeJarRemovalCommand]);
-    expect(execContainerStub.getCall(4).args[0]).to.deep.equal([
+    expect(execContainerStub.callCount).to.equal(8);
+    expect(execContainerStub.getCall(4).args[0]).to.deep.equal(['bash', '-c', expectedUpgradeJarRemovalCommand]);
+    expect(execContainerStub.getCall(5).args[0]).to.deep.equal([
       'bash',
       '-c',
       [
@@ -293,11 +331,117 @@ describe('NodeCommandTasks local build path copy', (): void => {
         `chmod -R u+rwX,g+rX,o+rX "${upgradeDirectory}/${constants.HEDERA_DATA_APPS_DIR}" "${upgradeDirectory}/${constants.HEDERA_DATA_LIB_DIR}"`,
       ].join('\n'),
     ]);
-    expect(execContainerStub.getCall(5).args[0]).to.deep.equal(['sync', constants.HEDERA_HAPI_PATH]);
+    expect(execContainerStub.getCall(7).args[0]).to.deep.equal(['sync', constants.HEDERA_HAPI_PATH]);
     expect(copyToStub.firstCall.args[0]).to.equal('/tmp/local-build/data');
     expect(copyToStub.firstCall.args[1]).to.equal(constants.HEDERA_HAPI_PATH);
     expect(copyToStub.secondCall.args[0]).to.equal('/tmp/local-build/data');
     expect(copyToStub.secondCall.args[1]).to.equal(upgradeDirectory);
+  });
+
+  it('verifies the copied jar integrity after each local build copy', async (): Promise<void> => {
+    const nodeCommandTasks: NodeCommandTasks = createNodeCommandTasksWithPlatformInstaller();
+    const execContainerStub: sinon.SinonStub = sinon.stub().resolves('');
+    const copyToStub: sinon.SinonStub = sinon.stub().resolves();
+    const hasDirectoryStub: sinon.SinonStub = sinon.stub().resolves(true);
+    const k8: FakeK8 = {
+      containers: (): {readByRef: () => FakeContainer} => ({
+        readByRef: (): FakeContainer => ({
+          execContainer: execContainerStub,
+          copyTo: copyToStub,
+          hasDir: hasDirectoryStub,
+        }),
+      }),
+    };
+    const configManager: {getFlag: sinon.SinonStub} = {getFlag: sinon.stub().returns('')};
+
+    await expect(invokeCopyLocalBuildPathToNode(nodeCommandTasks, k8, configManager, '/tmp/local-build/data')).to
+      .eventually.be.fulfilled;
+
+    const hapiVerificationIndex: number = findJarIntegrityVerificationCallIndex(execContainerStub);
+    const upgradeDirectory: string = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`;
+    const upgradeVerificationIndex: number = findJarIntegrityVerificationCallIndex(
+      execContainerStub,
+      hapiVerificationIndex + 1,
+      upgradeDirectory,
+    );
+
+    expect(hapiVerificationIndex).to.be.greaterThan(-1);
+    expect(upgradeVerificationIndex).to.be.greaterThan(hapiVerificationIndex);
+
+    // the integrity check must run after the copy it validates, otherwise a truncated jar goes unnoticed
+    expect(execContainerStub.getCall(hapiVerificationIndex).calledAfter(copyToStub.firstCall)).to.equal(true);
+    expect(execContainerStub.getCall(upgradeVerificationIndex).calledAfter(copyToStub.secondCall)).to.equal(true);
+  });
+
+  it('copies the local build again when the jar integrity check fails', async (): Promise<void> => {
+    const nodeCommandTasks: NodeCommandTasks = createNodeCommandTasksWithPlatformInstaller();
+    let verificationCount: number = 0;
+    const execContainerStub: sinon.SinonStub = sinon
+      .stub()
+      .callsFake(async (command: string[] | string): Promise<string> => {
+        if (isJarIntegrityVerification(command) && ++verificationCount === 1) {
+          throw new Error('unzip: cannot find zipfile directory');
+        }
+        return '';
+      });
+    const copyToStub: sinon.SinonStub = sinon.stub().resolves();
+    const k8: FakeK8 = {
+      containers: (): {readByRef: () => FakeContainer} => ({
+        readByRef: (): FakeContainer => ({
+          execContainer: execContainerStub,
+          copyTo: copyToStub,
+          hasDir: sinon.stub().resolves(false),
+        }),
+      }),
+    };
+    const configManager: {getFlag: sinon.SinonStub} = {getFlag: sinon.stub().returns('')};
+
+    await expect(invokeCopyLocalBuildPathToNode(nodeCommandTasks, k8, configManager, '/tmp/local-build/data')).to
+      .eventually.be.fulfilled;
+
+    // the first copy produced a corrupt jar, the second copy passed the check
+    expect(verificationCount).to.equal(2);
+    expect(copyToStub.callCount).to.equal(2);
+    expect(copyToStub.alwaysCalledWith('/tmp/local-build/data', constants.HEDERA_HAPI_PATH)).to.equal(true);
+    const secondVerificationIndex: number = findJarIntegrityVerificationCallIndex(
+      execContainerStub,
+      findJarIntegrityVerificationCallIndex(execContainerStub) + 1,
+    );
+    expect(execContainerStub.getCall(secondVerificationIndex).calledAfter(copyToStub.secondCall)).to.equal(true);
+  });
+
+  it('fails when every local build copy has a corrupt jar', async (): Promise<void> => {
+    const nodeCommandTasks: NodeCommandTasks = createNodeCommandTasksWithPlatformInstaller();
+    const execContainerStub: sinon.SinonStub = sinon
+      .stub()
+      .callsFake(async (command: string[] | string): Promise<string> => {
+        if (isJarIntegrityVerification(command)) {
+          throw new Error('unzip: cannot find zipfile directory');
+        }
+        return '';
+      });
+    const copyToStub: sinon.SinonStub = sinon.stub().resolves();
+    const k8: FakeK8 = {
+      containers: (): {readByRef: () => FakeContainer} => ({
+        readByRef: (): FakeContainer => ({
+          execContainer: execContainerStub,
+          copyTo: copyToStub,
+          hasDir: sinon.stub().resolves(false),
+        }),
+      }),
+    };
+    const configManager: {getFlag: sinon.SinonStub} = {getFlag: sinon.stub().returns('')};
+
+    await expect(
+      invokeCopyLocalBuildPathToNode(nodeCommandTasks, k8, configManager, '/tmp/local-build/data'),
+    ).to.eventually.be.rejectedWith('cannot find zipfile directory');
+
+    expect(copyToStub.callCount).to.equal(constants.CONTAINER_COPY_MAX_ATTEMPTS);
+    expect(
+      execContainerStub
+        .getCalls()
+        .filter((call: sinon.SinonSpyCall): boolean => isJarIntegrityVerification(call.args[0])),
+    ).to.have.length(constants.CONTAINER_COPY_MAX_ATTEMPTS);
   });
 });
 

@@ -30,9 +30,22 @@ export class PodmanClient {
    * valid configuration was persisted (Linux rootful only).
    */
   private containerConfigEnvironment(): Record<string, string> {
-    return container
-      .resolve<PodmanDependencyManager>(InjectTokens.PodmanDependencyManager)
-      .containerConfigEnvironment();
+    return PodmanClient.podmanDependencyManager().containerConfigEnvironment();
+  }
+
+  /**
+   * The PATH for a `sudo env` command: sudo's secure_path drops the Homebrew bin directory holding
+   * podman, and this solo invocation's inherited PATH may never have had it (non-login shell, CI,
+   * cron), so prepend the directory persisted when the cluster was bootstrapped.
+   */
+  private static sudoPath(path: string): string {
+    const podmanBinaryDirectory: string | undefined =
+      PodmanClient.podmanDependencyManager().getConfiguredRuntimeBinaryDirectory();
+    return podmanBinaryDirectory ? `${podmanBinaryDirectory}${PathEx.delimiter}${path}` : path;
+  }
+
+  private static podmanDependencyManager(): PodmanDependencyManager {
+    return container.resolve<PodmanDependencyManager>(InjectTokens.PodmanDependencyManager);
   }
 
   public async getKindContainerCommand(nodeName: string): Promise<ContainerEngineCommand | undefined> {
@@ -66,7 +79,7 @@ export class PodmanClient {
         '-n',
         'env',
         `KIND_EXPERIMENTAL_PROVIDER=${constants.PODMAN}`,
-        `PATH=${pathEnvironment}`,
+        `PATH=${PodmanClient.sudoPath(pathEnvironment)}`,
         ...PodmanDependencyManager.toEnvironmentArguments(configEnvironment),
         kindExecutable,
         ...kindArguments,
@@ -92,14 +105,14 @@ export class PodmanClient {
   }
 
   private sudoPodmanCommand(): ContainerEngineCommand {
-    // sudo resets both PATH (secure_path drops the brew bin directory holding podman) and the
-    // container configuration variables, so pass them back explicitly through `env`.
+    // sudo resets both PATH and the container configuration variables, so pass them back
+    // explicitly through `env`.
     return {
       executable: 'sudo',
       argumentsPrefix: [
         '-n',
         'env',
-        `PATH=${SubprocessEnvironment.currentPath()}`,
+        `PATH=${PodmanClient.sudoPath(SubprocessEnvironment.currentPath())}`,
         ...PodmanDependencyManager.toEnvironmentArguments(this.containerConfigEnvironment()),
         constants.PODMAN,
       ],

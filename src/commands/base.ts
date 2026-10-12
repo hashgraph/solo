@@ -326,14 +326,17 @@ export abstract class BaseCommand extends ShellRunner {
   }
 
   protected validateComponentImageArchive(
-    componentImage: Optional<string>,
+    componentImage: Optional<string | string[]>,
     componentImageArchive: Optional<string>,
   ): void {
     if (!this.hasComponentImageArchiveValue(componentImageArchive)) {
       return;
     }
 
-    if (!componentImage?.trim()) {
+    const expectedImages: string[] = (Array.isArray(componentImage) ? componentImage : [componentImage]).filter(
+      (image: Optional<string>): boolean => Boolean(image?.trim()),
+    );
+    if (expectedImages.length === 0) {
       throw new SoloErrors.validation.illegalArgument(
         `--${flags.componentImageArchive.name} requires --${flags.componentImage.name} to identify the image in the archive.`,
         componentImageArchive,
@@ -345,8 +348,10 @@ export abstract class BaseCommand extends ShellRunner {
     }
 
     const repoTags: Optional<string[]> = this.readComponentImageArchiveRepoTags(componentImageArchive);
-    if (repoTags !== undefined && !repoTags.includes(componentImage)) {
-      throw new SoloErrors.validation.componentImageArchiveTagMismatch(componentImage, componentImageArchive, repoTags);
+    const missingImages: string[] =
+      repoTags === undefined ? [] : expectedImages.filter((image: string): boolean => !repoTags.includes(image));
+    if (missingImages.length > 0) {
+      throw new SoloErrors.validation.componentImageArchiveTagMismatch(missingImages, componentImageArchive, repoTags);
     }
   }
 

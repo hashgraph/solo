@@ -24,7 +24,7 @@ export class DependencyVersionCheckFailedSoloError extends SoloError {
         troubleshootingSteps:
           `Verify ${dependency} is installed and available in your PATH\n` +
           `Check the installation: which ${dependency}\n` +
-          'Run solo init to install missing dependencies: solo init',
+          'Re-run the command; solo installs the dependencies it manages automatically',
       },
       cause,
     );

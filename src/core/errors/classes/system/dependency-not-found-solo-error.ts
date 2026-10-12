@@ -19,7 +19,7 @@ export class DependencyNotFoundSoloError extends SoloError {
       code: ErrorCodeRegistry.DEPENDENCY_NOT_FOUND,
       troubleshootingSteps:
         `Install the missing dependency: ${dependency}\n` +
-        'Run solo init to install all required dependencies: solo init\n' +
+        'Re-run the command; solo installs the dependencies it manages automatically\n' +
         `Verify the dependency is in your PATH: which ${dependency}`,
     });
   }

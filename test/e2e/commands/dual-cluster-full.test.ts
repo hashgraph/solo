@@ -58,7 +58,7 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
   .withTestSuiteCallback(
     (options: BaseTestOptions, preDestroy: (endToEndTestSuiteInstance: EndToEndTestSuite) => Promise<void>): void => {
       describe('Dual Cluster Full E2E Test', (): void => {
-        const {testCacheDirectory, testLogger, namespace, contexts} = options;
+        const {testCacheDirectory, testLogger, namespace, contexts, shard, realm} = options;
 
         // TODO the kube config context causes issues if it isn't one of the selected clusters we are deploying to
         before(async (): Promise<void> => {
@@ -130,6 +130,29 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
 
         ExplorerTest.add(options);
         RelayTest.add(options);
+
+        /**
+         * KNOWN BUG (https://github.com/hiero-ledger/solo/issues/6118): `explorer node upgrade` only
+         * updates the explorer's ConfigMap -- the running pod never picks up the change. So after a
+         * redeploy-without-ingress + upgrade, the explorer pod keeps proxying to the just-destroyed
+         * ingress controller and every request hangs. Re-enable this whole block (describe.skip -> describe)
+         * once the issue is fixed.
+         */
+        describe.skip('Explorer routing survives disabling mirror node ingress after the fact', (): void => {
+          // With ingress enabled (as deployed above), resolveMirrorNodeServices collapses
+          // rest/restjava/web3 to the same ingress-controller URL. Redeploy without ingress so the
+          // three become genuinely distinct backends, then re-run the same proxy-routing check again.
+          MirrorNodeTest.redeployWithoutIngress({...options, valuesFile: dualClusterValuesFile});
+          ExplorerTest.upgrade(options);
+
+          it(`${testName}: explorer proxy routes each mirror node API path correctly without mirror ingress`, async (): Promise<void> => {
+            const k8Factory: K8ClientFactory = container.resolve<K8ClientFactory>(InjectTokens.K8Factory);
+            const k8: K8 = k8Factory.getK8(contexts[1] || contexts[0]);
+            // Genesis treasury account: indexed first (and fastest) by the freshly-rebuilt importer.
+            // This suite deploys with a non-default shard/realm, so not assuming '0.0.2'.
+            await ExplorerTest.verifyExplorerDeployWasSuccessful(k8, namespace, `${shard}.${realm}.2`, testLogger, 30);
+          }).timeout(Duration.ofMinutes(7).toMillis());
+        });
 
         it('Should write log metrics', async (): Promise<void> => {
           await new MetricsServerImpl().logMetrics(

@@ -18,6 +18,7 @@ import {resetForTest} from '../../test-container.js';
 import fs from 'node:fs';
 import os from 'node:os';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
+import * as versions from '../../../version.js';
 
 interface BlockNodeK8Stub {
   services: () => BlockNodeServicesStub;
@@ -682,5 +683,77 @@ describe('BlockNodeCommand unit tests', (): void => {
       isLegacyChartInstalled: false,
     });
     expect(blockNodeCommandInternal.chartManager.isChartInstalled.firstCall.args[1]).to.equal('block-node-1');
+  });
+
+  describe('block proof compatibility', (): void => {
+    interface CompatibilityInternal {
+      remoteConfig: {configuration: {versions: {consensusNode: string}}};
+      resolveConsensusNodeVersionForCompatibility: (argv: Record<string, unknown>) => string;
+      assertBlockProofCompatibility: (blockNodeVersion: string, consensusNodeVersion: string, force: boolean) => void;
+    }
+
+    const internal: (deployedConsensusNodeVersion: string) => CompatibilityInternal = (
+      deployedConsensusNodeVersion: string,
+    ): CompatibilityInternal => {
+      const compatibilityInternal: CompatibilityInternal = blockNodeCommand as unknown as CompatibilityInternal;
+      compatibilityInternal.remoteConfig = {
+        configuration: {versions: {consensusNode: deployedConsensusNodeVersion}},
+      };
+      return compatibilityInternal;
+    };
+
+    // Regression: the version-upgrade example adds a v0.40.0 block node for a v0.74.0 consensus node
+    // that is not deployed yet, so remote config still holds solo's default. Trusting remote config
+    // there rejected a correctly matched pair.
+    it('prefers an explicitly requested consensus node version over remote config', (): void => {
+      const compatibilityInternal: CompatibilityInternal = internal('0.77.0-rc.11');
+
+      expect(
+        compatibilityInternal.resolveConsensusNodeVersionForCompatibility({'consensus-node-version': 'v0.74.0'}),
+      ).to.equal('v0.74.0');
+    });
+
+    it('treats a deprecated release tag that differs from the default as explicit', (): void => {
+      const compatibilityInternal: CompatibilityInternal = internal('0.77.0-rc.11');
+
+      expect(compatibilityInternal.resolveConsensusNodeVersionForCompatibility({'release-tag': 'v0.74.0'})).to.equal(
+        'v0.74.0',
+      );
+    });
+
+    // Regression: the migration test adds a block node without any consensus node flag, so yargs fills
+    // in solo's default. Remote config is the only source that knows the deployed version there.
+    it('falls back to remote config when the release tag only carries solo default', (): void => {
+      const compatibilityInternal: CompatibilityInternal = internal('0.74.0');
+
+      expect(
+        compatibilityInternal.resolveConsensusNodeVersionForCompatibility({
+          'release-tag': versions.HEDERA_PLATFORM_VERSION,
+        }),
+      ).to.equal('0.74.0');
+    });
+
+    it('accepts a block node and consensus node on the same side of the boundary', (): void => {
+      const compatibilityInternal: CompatibilityInternal = internal('0.74.0');
+
+      expect((): void => compatibilityInternal.assertBlockProofCompatibility('0.40.0', '0.74.0', false)).to.not.throw();
+      expect((): void =>
+        compatibilityInternal.assertBlockProofCompatibility('0.41.0', 'v0.77.2', false),
+      ).to.not.throw();
+    });
+
+    it('rejects a block node and consensus node on opposite sides of the boundary', (): void => {
+      const compatibilityInternal: CompatibilityInternal = internal('0.75.1');
+
+      expect((): void => compatibilityInternal.assertBlockProofCompatibility('0.41.0', '0.75.1', false)).to.throw(
+        /incompatible block root hashes/,
+      );
+    });
+
+    it('allows a mismatched pair through when force is set', (): void => {
+      const compatibilityInternal: CompatibilityInternal = internal('0.75.1');
+
+      expect((): void => compatibilityInternal.assertBlockProofCompatibility('0.41.0', '0.75.1', true)).to.not.throw();
+    });
   });
 });

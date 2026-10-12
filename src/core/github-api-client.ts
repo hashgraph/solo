@@ -8,6 +8,7 @@ export class GitHubApiClient {
   private static readonly RETRY_MAX_ATTEMPTS: number = 3;
   private static readonly RETRY_BASE_DELAY: Duration = Duration.ofSeconds(1);
   private static readonly RETRY_MAX_DELAY: Duration = Duration.ofMinutes(1);
+  private static readonly TOKEN_HOSTS: ReadonlySet<string> = new Set<string>(['api.github.com', 'github.com']);
 
   private constructor() {}
 
@@ -16,17 +17,27 @@ export class GitHubApiClient {
    * when GITHUB_TOKEN or GH_TOKEN is present in the environment.  The token raises the
    * unauthenticated rate-limit from 60 req/hour to 5 000 req/hour and
    * eliminates the shared-IP rate-limit problem on GitHub-hosted runners.
+   * The token is only sent to GitHub over HTTPS, so a caller-supplied URL on another host never receives it.
    */
-  private static buildHeaders(): Record<string, string> {
+  private static buildHeaders(url: string): Record<string, string> {
     const headers: Record<string, string> = {
       'User-Agent': constants.SOLO_USER_AGENT_HEADER,
       Accept: 'application/vnd.github.v3+json',
     };
     const token: string | undefined = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
-    if (token) {
+    if (token && GitHubApiClient.isGitHubUrl(url)) {
       headers['Authorization'] = `Bearer ${token}`;
     }
     return headers;
+  }
+
+  private static isGitHubUrl(url: string): boolean {
+    try {
+      const parsed: URL = new URL(url);
+      return parsed.protocol === 'https:' && GitHubApiClient.TOKEN_HOSTS.has(parsed.hostname);
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -60,7 +71,7 @@ export class GitHubApiClient {
    * @throws SoloError on network failure or a non-retryable HTTP error status.
    */
   public static async get(url: string): Promise<Response> {
-    const headers: Record<string, string> = GitHubApiClient.buildHeaders();
+    const headers: Record<string, string> = GitHubApiClient.buildHeaders(url);
     let lastStatus: number = 0;
 
     for (let attempt: number = 1; attempt <= GitHubApiClient.RETRY_MAX_ATTEMPTS; attempt++) {

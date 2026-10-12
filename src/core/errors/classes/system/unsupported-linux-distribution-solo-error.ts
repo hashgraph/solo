@@ -22,7 +22,7 @@ export class UnsupportedLinuxDistributionSoloError extends SoloError {
       code: ErrorCodeRegistry.UNSUPPORTED_LINUX_DISTRIBUTION,
       troubleshootingSteps:
         'Install one of the supported package managers (apt-get, dnf, yum, zypper, pacman, apk), or\n' +
-        'Install Solo and its dependencies (podman, git, iptables) manually, then re-run: solo init',
+        'Install Solo and its dependencies (podman, git, iptables) manually, then re-run the command',
     });
   }
 }

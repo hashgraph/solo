@@ -162,6 +162,33 @@ describe('GitHubApiClient', (): void => {
       }
     });
 
+    it('never sends the token to a host other than GitHub over HTTPS', async (): Promise<void> => {
+      const originalToken: string | undefined = process.env.GITHUB_TOKEN;
+      process.env.GITHUB_TOKEN = 'test-token';
+      try {
+        fetchStub.resolves(makeOkResponse());
+
+        await GitHubApiClient.get('https://github.com/hiero-ledger/solo/releases/download/v1.0.0/cache-manifest.json');
+        await GitHubApiClient.get('https://mirror.example.com/cache-manifest.json');
+        // eslint-disable-next-line unicorn/prefer-https
+        await GitHubApiClient.get('http://github.com/insecure');
+        await GitHubApiClient.get('https://github.com.example.com/lookalike');
+
+        const authorizations: (string | undefined)[] = fetchStub
+          .getCalls()
+          .map(
+            (call): string | undefined => (call.args[1] as {headers: Record<string, string>}).headers['Authorization'],
+          );
+        expect(authorizations).to.deep.equal(['Bearer test-token', undefined, undefined, undefined]);
+      } finally {
+        if (originalToken === undefined) {
+          delete process.env.GITHUB_TOKEN;
+        } else {
+          process.env.GITHUB_TOKEN = originalToken;
+        }
+      }
+    });
+
     it('retries on HTTP 403 and succeeds on the next attempt', async (): Promise<void> => {
       fetchStub.onFirstCall().resolves(makeErrorResponse(403));
       fetchStub.onSecondCall().resolves(makeOkResponse());

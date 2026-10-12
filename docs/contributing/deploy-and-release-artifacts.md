@@ -57,7 +57,6 @@
   - https://github.com/hiero-ledger/solo/actions/workflows/flow-deploy-release-artifact.yaml
 - Settings:
   - **Use workflow from:** `main`
-  - **Dual publish:** `true`
   - **Dry run:** `false`
 
 ## 8. Update npm `latest` Tags (Manual, if needed)
@@ -65,21 +64,27 @@
 > ⚠️ Requires npm access
 
 - npm dist-tag add @hiero-ledger/solo@<version> latest
-- During the dual-publish window, also run:
-  - npm dist-tag add @hashgraph/solo@<version> latest
 
-## 9. Verify npm Package (@hiero-ledger)
+## 9. Verify npm Package
 
 - https://www.npmjs.com/package/@hiero-ledger/solo?activeTab=versions
 
-## 10. Verify JFrog Artifactory (@hiero-ledger)
+## 10. Verify JFrog Artifactory
 
 - https://artifacts.hashgraph.io/ui/packages/npm:%2F%2F@hiero-ledger%2Fsolo/
 
-## 11. Verify npm Package (@hashgraph)
+## 11. Verify Release Asset Signatures
 
-- https://www.npmjs.com/package/@hashgraph/solo?activeTab=versions
+- Workflow (runs automatically after the release workflow):
+  - https://github.com/hiero-ledger/solo/actions/workflows/flow-sign-release-assets.yaml
+- Every release asset should have a matching `<asset>.sigstore.json` bundle. To verify one:
 
-## 12. Verify JFrog Artifactory (@hashgraph)
+```bash
+cosign verify-blob \
+  --bundle example-hardhat-with-solo.zip.sigstore.json \
+  --certificate-identity https://github.com/hiero-ledger/solo/.github/workflows/flow-sign-release-assets.yaml@refs/heads/main \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  example-hardhat-with-solo.zip
+```
 
-- https://artifacts.hashgraph.io/ui/packages/npm:%2F%2F@hashgraph%2Fsolo/
+- If a bundle is missing or fails to verify, run the workflow manually from `main` with the release tag.

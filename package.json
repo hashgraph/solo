@@ -1,6 +1,6 @@
 {
   "name": "@hiero-ledger/solo",
-  "version": "0.91.0",
+  "version": "0.92.0",
   "description": "An opinionated CLI tool to deploy and manage private Hedera Networks.",
   "main": "./dist/src/index.js",
   "type": "module",
@@ -95,6 +95,7 @@
     "eslint-plugin-tsdoc": "0.5.2",
     "eslint-plugin-unicorn": "65.0.1",
     "eslint-plugin-unused-imports": "4.4.1",
+    "fast-check": "4.9.0",
     "globals": "17.7.0",
     "jsdoc": "4.0.5",
     "mocha": "11.7.6",
@@ -118,6 +119,8 @@
     "typescript-eslint": "8.65.0"
   },
   "overrides": {
+    "fast-check@^4.0.0": "4.9.0",
+    "pure-rand@^8.0.0": "8.4.2",
     "@hiero-ledger/sdk@^2.0.0": "2.87.0",
     "ansi-styles@^7.0.0": "7.0.0",
     "commander@^9.0.0": "9.5.0",
