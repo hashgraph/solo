@@ -82,10 +82,11 @@ Where it runs today: in `index.ts`, after `ArgumentProcessor.process` returns. A
 - At most one check every 24 hours. The cached answer is reused in between. This fixes the interval to
   `Duration.ofHours(24).toMillis()`.
 - 2 s timeout per request. Offline, timed out or any other error: no banner and no prompt, only a debug log line.
+- Off by default for SEA binaries until the `enableUpdateCheck` feature flag is removed (§4.4).
 - Skipped when stdin or stdout is not a TTY, when `CI` is set, when `--quiet-mode` is set, when
-  `SOLO_NO_UPDATE_CHECK=true`, and for `solo update` itself. If the feature-flag work
-  ([#6021](https://github.com/hiero-ledger/solo/pull/6021)) lands first, the switch is declared there instead of as a
-  loose environment variable.
+  `SOLO_NO_UPDATE_CHECK=true`, and for `solo update` itself. While the flag exists, setting it also runs the
+  request without a TTY and with `CI` set (§4.4). `SOLO_NO_UPDATE_CHECK` is the lasting off switch for users. The
+  flag is only for the rollout.
 - No LaunchAgent, scheduled task or other background job. The macOS proposal mentioned one. It would need its own
   entry in the uninstall design, and the check on the next command does the same job.
 
@@ -108,12 +109,41 @@ Where it runs today: in `index.ts`, after `ArgumentProcessor.process` returns. A
 - `skippedVersion`: the version the user said no to (§5).
 - `lastPromptEpochMilliseconds`: when Solo last asked (§5).
 
+### 4.4 Rollout behind a feature flag
+
+The `releases/latest` redirect is not part of the REST API limit (§4.1), but GitHub does not document a limit for
+it either. So the automatic check on SEA binaries starts behind a feature flag that is off by default, and Solo's
+own workflows turn it on first to see if GitHub rate limits it.
+
+The flag uses the feature-flag mechanism from [#6021](https://github.com/hiero-ledger/solo/pull/6021):
+
+| Item             | Value                                                                                              |
+|------------------|----------------------------------------------------------------------------------------------------|
+| Flag             | `enableUpdateCheck` on `FeatureFlagsSchema`, default `false`                                       |
+| Read at          | `VersionUpdateNotifier`, before it makes the GitHub request                                        |
+| Turn on (env)    | `SOLO_FF_ENABLE_UPDATE_CHECK=true`, or the generated `SOLO_FEATURE_FLAGS_ENABLE_UPDATE_CHECK=true` |
+| Turn on (config) | `featureFlags.enableUpdateCheck: true` in `~/.solo/solo-config.yaml`                               |
+
+- **Flag off (the default):** a SEA binary makes no automatic request to GitHub and never prompts (§5). npm installs
+  keep today's npm registry banner. It never calls GitHub, so it is not gated.
+- **Flag on:** the check in §4.2 runs. It also runs without a TTY and with `CI` set, so CI jobs make the request.
+  The banner and the prompt still need a TTY and no `CI`.
+- **CI.** Every Solo workflow that runs a SEA binary sets `SOLO_FF_ENABLE_UPDATE_CHECK=true`
+  (`flow-build-sea.yaml` and `flow-linux-install-script.yaml` today). A fresh runner has no cache, so each job
+  makes one request. A failed check logs the HTTP status, so a `403` or `429` from github.com shows in the job log.
+- **`solo update` is not gated.** The user asked for the lookup, and it is one request per run (§6).
+
+Removing the flag: once the flag has been on in those workflows for two releases with no `403` or `429` from
+github.com, and the check has not slowed or failed a command, a follow-up deletes the flag as the "Retiring" steps in
+`docs/contributing/feature-flags.md` describe. The check is then on by default, with the skips in §4.2.
+
 ---
 
 ## 5. Prompt
 
 When the check finds a newer version and Solo can install it on this channel (SEA binary, macOS `.pkg`, Windows
-installer), Solo asks after the command's own output:
+installer), Solo asks after the command's own output. The prompt needs the automatic check, so there is no prompt
+while the `enableUpdateCheck` flag is off (§4.4):
 
 ```text
 Solo 0.92.0 is available (you have 0.91.0).
@@ -145,6 +175,8 @@ solo update [--version <tag>] [--quiet-mode]
 | (none)            | Look up the latest release (§4.1, ignoring the cache), show the current and the new version, ask to confirm, then install.                                                                                         |
 | `--version <tag>` | Install exactly this release, newer or older. This is how a user goes back from a bad release. Going back prints a warning that the older version may not read config written by the newer one.                  |
 | `--quiet-mode`    | No confirmation.                                                                                                                                                                                                     |
+
+`solo update` does not depend on the `enableUpdateCheck` flag (§4.4). It works the same with the flag off.
 
 On the latest release already, it prints `Solo 0.91.0 is the latest release` and exits with `0`. Any failure is a
 coded `SoloError` with a non-zero exit code.
@@ -301,13 +333,15 @@ update removes it. At most two versions stay on disk.
 1. This document closes #5722.
 2. #5728 builds it, in this order:
    1. **Version check and prompt** (§4, §5): the channel-aware source, the cache fields, the 30-second prompt and the
-      24-hour interval fix. This part needs no release with SEA assets: npm installs only get the improved banner, and
-      a SEA build finds no assets and stays quiet until the first release has them.
+      24-hour interval fix, behind the `enableUpdateCheck` flag (§4.4), which needs #6021 merged. This part needs no
+      release with SEA assets: npm installs only get the improved banner, and a SEA build finds no assets and stays
+      quiet until the first release has them.
    2. **`solo update` with the binary swap** (§6, §7, §8, §10) for Linux and macOS SEA binaries. Blocked until
       #6093 and #6102 merge, #5901 merges, and one release ships with signed SEA assets. Before that, tests can serve
       the assets from a local folder, the way the install script's `--base-url` does.
    3. **macOS `.pkg` path** (§9.1). Blocked on #5724, which still has to choose between a `.pkg` and a DMG.
    4. **Windows installer path** (§9.2). Blocked on #5723.
+   5. **Remove the `enableUpdateCheck` flag** when the exit criteria in §4.4 are met.
 
 ---
 
@@ -319,6 +353,9 @@ update removes it. At most two versions stay on disk.
   finds. This is the same risk as installing an older npm version today. Solo warns but does not block.
 - **The `releases/latest` redirect is not a documented API.** It has been stable for years, and the install script
   already depends on it. If it changes, the check finds nothing and stays quiet. It does not fail the command.
+- **GitHub may rate limit the redirect** even though it is not part of the REST API limit. The check starts behind
+  the `enableUpdateCheck` flag and runs in Solo's own CI first (§4.4). A rate-limited check acts like an offline one:
+  no banner, no prompt, the command still succeeds.
 - **The two `latest` values can disagree for a short time** during a release (npm published, GitHub assets still
   uploading). Each channel reads its own source, so each one only offers what it can install.
 - **Shared macOS binary.** A `.pkg` update changes the binary for every user on the machine. Other users' unpacked
@@ -345,4 +382,4 @@ update removes it. At most two versions stay on disk.
 
 ---
 
-*Last updated: 2026-10-01*
+*Last updated: 2026-10-12*
