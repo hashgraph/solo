@@ -14,7 +14,6 @@ import {type NamespaceName} from '../../types/namespace/namespace-name.js';
 import {InjectTokens} from '../dependency-injection/inject-tokens.js';
 import {LockAcquisitionError} from './lock-acquisition-error.js';
 import {type RemoteConfigRuntimeStateApi} from '../../business/runtime-state/api/remote-config-runtime-state-api.js';
-import {type LocalConfigRuntimeState} from '../../business/runtime-state/config/local/local-config-runtime-state.js';
 import {type Context} from '../../types/index.js';
 import {DEFAULT_SOLO_NAMESPACE_LABELS} from '../constants.js';
 
@@ -31,7 +30,6 @@ export class LockManager {
    * @param k8Factory - the Kubernetes client.
    * @param configManager - the configuration manager.
    * @param remoteConfigRuntimeState
-   * @param localConfig - the local configuration, maps cluster references to kube contexts.
    */
   public constructor(
     @inject(InjectTokens.LockRenewalService) private readonly _renewalService?: LockRenewalService,
@@ -40,7 +38,6 @@ export class LockManager {
     @inject(InjectTokens.ConfigManager) private readonly configManager?: ConfigManager,
     @inject(InjectTokens.RemoteConfigRuntimeState)
     private readonly remoteConfigRuntimeState?: RemoteConfigRuntimeStateApi,
-    @inject(InjectTokens.LocalConfigRuntimeState) private readonly localConfig?: LocalConfigRuntimeState,
   ) {
     this._renewalService = patchInject(_renewalService, InjectTokens.LockRenewalService, this.constructor.name);
     this._logger = patchInject(_logger, InjectTokens.SoloLogger, this.constructor.name);
@@ -51,7 +48,6 @@ export class LockManager {
       InjectTokens.RemoteConfigRuntimeState,
       this.constructor.name,
     );
-    this.localConfig = patchInject(localConfig, InjectTokens.LocalConfigRuntimeState, this.constructor.name);
   }
 
   /**
@@ -61,17 +57,16 @@ export class LockManager {
    */
   public async create(): Promise<Lock> {
     let namespace: NamespaceName;
-    let context: Context;
     try {
       namespace = this.remoteConfigRuntimeState.getNamespace();
-      // A deployment can span many clusters. Every command and every user must lock the same one,
-      // so the lease always lives on the first cluster of the remote config (the same on all clusters).
-      const firstClusterReference: string = this.remoteConfigRuntimeState.configuration.clusters.at(0)?.name;
-      context = this.localConfig.configuration.clusterRefs.get(firstClusterReference)?.toString();
     } catch {
       // If the remote config is not loaded, we will use the context and namespace from the flags.
     }
-    context ||= this.configManager.getFlag<Context>(flags.context) || this.k8Factory.default().contexts().readCurrent();
+    // A deployment can span many clusters. Every command and every user must lock the same one, so with a loaded
+    // remote config the lease lives on its first cluster. getLeaseContext() throws if that cluster is not mapped.
+    const context: Context = namespace
+      ? this.remoteConfigRuntimeState.getLeaseContext()
+      : this.configManager.getFlag<Context>(flags.context) || this.k8Factory.default().contexts().readCurrent();
     if (!namespace) {
       namespace = await this.currentNamespace(context);
     }

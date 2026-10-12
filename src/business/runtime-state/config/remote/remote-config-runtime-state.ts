@@ -753,6 +753,28 @@ export class RemoteConfigRuntimeState implements RemoteConfigRuntimeStateApi {
     return NamespaceName.of(this.configuration.clusters?.at(0)?.namespace);
   }
 
+  /**
+   * The kube context of the cluster that holds the deployment lease: the first cluster of the remote config, mapped to
+   * a context through the local config. The remote config is the same on all clusters, so every command and every user
+   * locks the same cluster. Not to be confused with getContextForFirstCluster(), which follows the local deployment's
+   * cluster order.
+   *
+   * @throws ClusterReferenceNotFoundError if the local config has no context for that cluster.
+   */
+  public getLeaseContext(): Context {
+    const clusterReference: ClusterReferenceName = this.configuration.clusters?.at(0)?.name;
+    const context: Context = this.localConfig.configuration.clusterRefs.get(clusterReference)?.toString();
+    if (!context) {
+      // Falling back to --context or the current context would lock a different cluster than other users do.
+      throw new SoloErrors.deployment.clusterRefNotFound(
+        clusterReference,
+        flags.getFormattedFlagKey(flags.clusterRef),
+        flags.getFormattedFlagKey(flags.context),
+      );
+    }
+    return context;
+  }
+
   public extractContextFromConsensusNodes(nodeAlias: NodeAlias): Optional<string> {
     return Helpers.extractContextFromConsensusNodes(nodeAlias, this.getConsensusNodes());
   }

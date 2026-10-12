@@ -13,7 +13,6 @@ import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
 import {type K8} from '../../../../src/integration/kube/k8.js';
 import {type ConfigManager} from '../../../../src/core/config-manager.js';
 import {type RemoteConfigRuntimeStateApi} from '../../../../src/business/runtime-state/api/remote-config-runtime-state-api.js';
-import {type LocalConfigRuntimeState} from '../../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
 import {SoloErrors} from '../../../../src/core/errors/solo-errors.js';
 
 describe('LockManager', (): void => {
@@ -23,14 +22,17 @@ describe('LockManager', (): void => {
     },
   } as unknown as RemoteConfigRuntimeStateApi;
 
-  // a deployment spanning two clusters; the remote config is the same on both clusters
+  // a deployment spanning two clusters; the lease context is the first cluster of the remote config
   const multiClusterRemoteConfig: RemoteConfigRuntimeStateApi = {
     getNamespace: (): NamespaceName => NamespaceName.of('solo-ns'),
-    configuration: {
-      clusters: [
-        {name: 'cluster-1', namespace: 'solo-ns'},
-        {name: 'cluster-2', namespace: 'solo-ns'},
-      ],
+    getLeaseContext: (): string => 'context-1',
+  } as unknown as RemoteConfigRuntimeStateApi;
+
+  // a loaded remote config whose first cluster has no context in the local config
+  const unmappedFirstClusterRemoteConfig: RemoteConfigRuntimeStateApi = {
+    getNamespace: (): NamespaceName => NamespaceName.of('solo-ns'),
+    getLeaseContext: (): never => {
+      throw new SoloErrors.deployment.clusterRefNotFound('cluster-1', '--cluster-ref', '--context');
     },
   } as unknown as RemoteConfigRuntimeStateApi;
 
@@ -39,14 +41,6 @@ describe('LockManager', (): void => {
     flagValues: Record<string, unknown>,
     currentContext: string,
   ): LockManager {
-    const localConfig: LocalConfigRuntimeState = {
-      configuration: {
-        clusterRefs: new Map<string, string>([
-          ['cluster-1', 'context-1'],
-          ['cluster-2', 'context-2'],
-        ]),
-      },
-    } as unknown as LocalConfigRuntimeState;
     const configManager: ConfigManager = {
       getFlag: (flag: CommandFlag): unknown => flagValues[flag.name],
     } as unknown as ConfigManager;
@@ -55,14 +49,7 @@ describe('LockManager', (): void => {
       default: (): K8 => ({contexts: (): object => ({readCurrent: (): string => currentContext})}) as unknown as K8,
     };
 
-    return new LockManager(
-      {} as LockRenewalService,
-      {} as SoloLogger,
-      k8Factory,
-      configManager,
-      remoteConfig,
-      localConfig,
-    );
+    return new LockManager({} as LockRenewalService, {} as SoloLogger, k8Factory, configManager, remoteConfig);
   }
 
   it('should lock the first cluster of the deployment, whatever the --context flag or the kube current context', async (): Promise<void> => {
@@ -76,6 +63,21 @@ describe('LockManager', (): void => {
 
     expect(lock.context).to.equal('context-1');
     expect(lock.namespace.name).to.equal('solo-ns');
+  });
+
+  it('should fail, not fall back to --context or the current context, when the first cluster is not mapped locally', async (): Promise<void> => {
+    const lockManager: LockManager = createLockManager(
+      unmappedFirstClusterRemoteConfig,
+      {[flags.context.name]: 'context-2'},
+      'context-2',
+    );
+
+    const error: Error = await lockManager.create().then(
+      (): Error => undefined,
+      (error: Error): Error => error,
+    );
+
+    expect(error).to.be.instanceOf(SoloErrors.deployment.clusterRefNotFound);
   });
 
   it('should use the --context flag when the remote config is not loaded', async (): Promise<void> => {
