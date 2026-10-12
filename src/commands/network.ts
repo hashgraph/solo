@@ -2440,7 +2440,11 @@ export class NetworkCommand extends BaseCommand {
             };
 
             const onTimeoutCallback: NodeJS.Timeout = setTimeout((): void => {
-              void destroyOnTimeout();
+              destroyOnTimeout().catch((error: unknown): void => {
+                // best-effort cleanup after the timeout: report the failure without crashing the destroy command
+                this.logger.error('Cleanup after the consensus network destroy timeout failed', error);
+                this.logger.showUser(chalk.red('Cleanup after the destroy timeout failed, see solo.log for details'));
+              });
             }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1000);
 
             await this.destroyTask(task, namespace, deletePvcs, deleteSecrets, contexts);

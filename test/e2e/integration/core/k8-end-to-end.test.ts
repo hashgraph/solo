@@ -229,7 +229,7 @@ describe('K8', (): void => {
               .pods()
               .readByReference(podReference)
               .stopPortForward(server)
-              .then((): void => done());
+              .then((): void => done(), done);
           });
 
           s.on('error', (error: Error): void => {
@@ -239,13 +239,16 @@ describe('K8', (): void => {
               .pods()
               .readByReference(podReference)
               .stopPortForward(server)
-              .then((): void =>
-                done(new SoloError(`could not connect to local port '${localPort}': ${error.message}`, error)),
+              .then(
+                (): void =>
+                  done(new SoloError(`could not connect to local port '${localPort}': ${error.message}`, error)),
+                done,
               );
           });
 
           s.connect(localPort);
-        });
+        })
+        .catch(done);
     } catch (error) {
       testLogger.showUserError(error);
       expect.fail();
