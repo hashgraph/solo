@@ -54,30 +54,20 @@ describe('NetworkNodeLifecycle', (): void => {
     expect(NetworkNodeLifecycle.buildDefaultsValues('v0.77.2', soloContainer)).to.equal(undefined);
   });
 
-  it('should read the platform status without curl in the consensus node image mode', (): void => {
-    const command: string = NetworkNodeLifecycle.buildPlatformStatusCommand(consensusNodeImage);
-    expect(command).to.contain('/dev/tcp/127.0.0.1/9999');
-    expect(command).to.contain('grep platform_PlatformStatus');
-    expect(command).to.not.contain('curl');
-    expect(NetworkNodeLifecycle.buildPlatformStatusCommand(soloContainer)).to.contain(
-      'curl -s http://localhost:9999/metrics',
-    );
-  });
-
-  it('should stage the config files and avoid ps and curl when starting the consensus node image', (): void => {
+  it('should stage the config files and avoid ps when starting the consensus node image', (): void => {
     const start: string = NetworkNodeLifecycle.buildStartCommand(consensusNodeImage);
     expect(start).to.contain('/etc/network-node/config/*');
     expect(start).to.contain('/shared-hapiapp');
     expect(start).to.contain('data/config/genesis-network.json');
     expect(start).to.not.contain('ps -ef');
-    expect(start).to.not.contain('curl');
   });
 
-  it('should install zip and unzip only when they are missing', (): void => {
-    const command: string = NetworkNodeLifecycle.buildInstallArchiveToolsCommand();
-    expect(command).to.contain('command -v zip');
-    expect(command).to.contain('command -v unzip');
-    expect(command).to.contain('apt-get install -y -qq --no-install-recommends zip unzip');
+  it('should install zip, unzip and curl only when they are missing', (): void => {
+    const command: string = NetworkNodeLifecycle.buildInstallToolsCommand();
+    for (const tool of ['zip', 'unzip', 'curl']) {
+      expect(command).to.contain(`command -v ${tool}`);
+    }
+    expect(command).to.contain('apt-get install -y -qq --no-install-recommends zip unzip curl');
   });
 
   it('should only change ownership when running as root', (): void => {

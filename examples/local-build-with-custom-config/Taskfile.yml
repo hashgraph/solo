@@ -127,9 +127,8 @@ tasks:
 
           for pod in $PODS; do
             echo "Checking metrics endpoint on pod ${pod}"
-            # bash /dev/tcp instead of curl, which the consensus node image does not have
-            if ! kubectl -n {{ .NAMESPACE }} exec "$pod" -c root-container -- bash -c \
-              "( exec 3<>/dev/tcp/127.0.0.1/9999 && printf 'GET /metrics HTTP/1.0\\r\\n\\r\\n' >&3 && cat <&3 ) 2>/dev/null | grep -m1 '^platform_PlatformStatus'" >/tmp/"${pod}"-metrics-check.log; then
+            if ! kubectl -n {{ .NAMESPACE }} exec "$pod" -c root-container -- sh -c \
+              "curl -sf http://127.0.0.1:9999/metrics | grep -m1 '^platform_PlatformStatus'" >/tmp/"${pod}"-metrics-check.log; then
               echo "Consensus metrics endpoint check failed for pod ${pod}"
               kubectl -n {{ .NAMESPACE }} logs "$pod" -c root-container --tail=200 || true
               exit 1

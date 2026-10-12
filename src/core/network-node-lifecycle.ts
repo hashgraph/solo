@@ -62,8 +62,8 @@ export class NetworkNodeLifecycle {
   }
 
   /**
-   * Start command for the consensus node image. That image has no ps, pgrep or curl, and none of solo-containers'
-   * startup staging, so the ACTIVE check uses /proc and /dev/tcp, and the files that solo-containers' stage_files.sh
+   * Start command for the consensus node image. That image has no ps or pgrep, and none of solo-containers'
+   * startup staging, so the JVM is found through /proc, and the files that solo-containers' stage_files.sh
    * links or copies into the application directory are staged here before the service starts.
    */
   private static buildConsensusNodeImageStartCommand(): string {
@@ -82,19 +82,11 @@ export class NetworkNodeLifecycle {
       NetworkNodeLifecycle.JVM_PIDS_FUNCTION,
       // ACTIVE nodes are left running. A JVM that is alive but not ACTIVE is stopped first.
       'if [ -n "$(jvm_pids)" ]; then',
-      `  if ${NetworkNodeLifecycle.buildMetricsFetchCommand()} | grep 'platform_PlatformStatus' | grep -q ' 2[.]0$'; then exit 0; fi`,
+      `  if curl -s http://localhost:9999/metrics | grep 'platform_PlatformStatus' | grep -q ' 2[.]0$'; then exit 0; fi`,
       'fi',
       ...NetworkNodeLifecycle.buildStopServiceCommands(),
       `"${serviceControl}" -o "${servicePath}"`,
     ].join('\n');
-  }
-
-  /** Command used to read the node's platform status metric from inside the root container. */
-  public static buildPlatformStatusCommand(mode: string = constants.NETWORK_NODE_LIFECYCLE_MODE): string {
-    const metrics: string = NetworkNodeLifecycle.isConsensusNodeImage(mode)
-      ? NetworkNodeLifecycle.buildMetricsFetchCommand()
-      : 'curl -s http://localhost:9999/metrics';
-    return String.raw`${metrics} | grep platform_PlatformStatus | grep -v \#`;
   }
 
   /**
@@ -113,11 +105,6 @@ export class NetworkNodeLifecycle {
       '  if [ -n "$running_pids" ]; then kill -KILL $running_pids; sleep 1; fi',
       'fi',
     ];
-  }
-
-  /** Fetches the node metrics over /dev/tcp, because the consensus node image has no curl. */
-  private static buildMetricsFetchCommand(): string {
-    return String.raw`( exec 3<>/dev/tcp/127.0.0.1/9999 && printf 'GET /metrics HTTP/1.0\r\n\r\n' >&3 && cat <&3 ) 2>/dev/null`;
   }
 
   /** Command used by `consensus node stop` to stop the node process. */
@@ -183,25 +170,25 @@ export class NetworkNodeLifecycle {
   }
 
   /**
-   * Installs zip and unzip in the root container when they are missing. The consensus node image ships without them,
-   * but Solo uses both to archive, extract and verify node state and platform archives. The image's hedera user has
-   * passwordless sudo.
+   * Installs zip, unzip and curl in the root container when any is missing. The consensus node image ships without
+   * them, but Solo uses zip and unzip to archive, extract and verify node state and platform archives, and curl to read
+   * the node metrics. The image's hedera user has passwordless sudo.
    */
-  public static buildInstallArchiveToolsCommand(): string {
+  public static buildInstallToolsCommand(): string {
     return (
-      'command -v zip >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1 || ' +
-      '(sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends zip unzip)'
+      'command -v zip >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1 && command -v curl >/dev/null 2>&1 || ' +
+      '(sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends zip unzip curl)'
     );
   }
 
-  /** Runs {@link buildInstallArchiveToolsCommand} in the root container of the given consensus node's pod. */
-  public static async installArchiveTools(
+  /** Runs {@link buildInstallToolsCommand} in the root container of the given consensus node's pod. */
+  public static async installRootContainerTools(
     context: Context,
     namespace: NamespaceName,
     nodeAlias: NodeAlias,
   ): Promise<void> {
     const container: Container = await new K8Helper(context).getConsensusNodeRootContainer(namespace, nodeAlias);
-    await container.execContainer(['bash', '-c', NetworkNodeLifecycle.buildInstallArchiveToolsCommand()]);
+    await container.execContainer(['bash', '-c', NetworkNodeLifecycle.buildInstallToolsCommand()]);
   }
 
   /**

@@ -229,12 +229,12 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /**
-   * The consensus node image ships without zip and unzip, which Solo uses to archive, extract and verify node state
-   * and platform archives, so install them in each root container once its pod is running.
+   * The consensus node image ships without zip, unzip and curl, which Solo uses to archive, extract and verify node
+   * state and platform archives and to read node metrics, so install them in each root container once its pod is running.
    */
-  private installArchiveTools(): SoloListrTask<NetworkDeployContext> {
+  private installRootContainerTools(): SoloListrTask<NetworkDeployContext> {
     return {
-      title: 'Install zip and unzip in the consensus node image',
+      title: 'Install zip, unzip and curl in the consensus node image',
       skip: (): boolean => !NetworkNodeLifecycle.isConsensusNodeImage(),
       task: (context_, task): SoloListr<NetworkDeployContext> => {
         const config: NetworkDeployConfigClass = context_.config;
@@ -242,7 +242,7 @@ export class NetworkCommand extends BaseCommand {
           (consensusNode: ConsensusNode): SoloListrTask<NetworkDeployContext> => ({
             title: `Install on node: ${chalk.yellow(consensusNode.name)}, cluster: ${chalk.yellow(consensusNode.cluster)}`,
             task: async (): Promise<void> => {
-              await NetworkNodeLifecycle.installArchiveTools(
+              await NetworkNodeLifecycle.installRootContainerTools(
                 consensusNode.context,
                 config.namespace,
                 consensusNode.name,
@@ -2056,7 +2056,7 @@ export class NetworkCommand extends BaseCommand {
           },
         },
         this.waitForNetworkPods(),
-        this.installArchiveTools(),
+        this.installRootContainerTools(),
         this.verifyPersistentVolumeClaimMounts(),
         {
           title: 'Check proxy pods are running',

@@ -350,7 +350,7 @@ tasks:
           for node in $(echo {{ .NODE_ALIASES }} | tr ',' ' '); do
             # platform_PlatformStatus value 6 == FREEZE_COMPLETE (see NodeStatusCodes in src/core/enumerations.ts)
             kubectl exec network-${node}-0 -n {{ .NAMESPACE }} -c root-container -- \
-              bash -c '( exec 3<>/dev/tcp/127.0.0.1/9999 && printf "GET /metrics HTTP/1.0\\r\\n\\r\\n" >&3 && cat <&3 ) 2>/dev/null | grep platform_PlatformStatus | grep -v "^#" | grep -q " 6\\.0$"'
+              sh -c 'curl -sf http://localhost:9999/metrics | grep platform_PlatformStatus | grep -v "^#" | grep -q " 6\\.0$"'
             if kubectl logs network-${node}-0 -n {{ .NAMESPACE }} -c root-container --tail=500 | grep -q "Invalid State Signature"; then
               echo "⚠️  Invalid state signature found in restored ${node} logs"
               exit 1
