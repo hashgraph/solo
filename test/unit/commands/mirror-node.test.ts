@@ -22,6 +22,8 @@ import path from 'node:path';
 import yaml from 'yaml';
 import {SemanticVersion} from '../../../src/business/utils/semantic-version.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {Flags} from '../../../src/commands/flags.js';
+import {FlagValidation} from '../../../src/commands/validation/flag-validation.js';
 
 interface MirrorNodeMemoryOverrideConfig {
   mirrorNodeVersion: string;
@@ -62,6 +64,7 @@ interface MirrorNodeCommandInternal {
   initializeSharedPostgresDatabaseTask: () => SoloListrTask<MirrorNodeDatabaseTaskContext>;
   primePostgresSecretTask: () => SoloListrTask<MirrorNodeDatabaseTaskContext>;
   waitForMirrorNodeSchemaTask: () => SoloListrTask<MirrorNodeSchemaWaitTaskContext>;
+  enableDebuggerPortForwardingTask: () => SoloListrTask<MirrorNodeDebuggerTaskContext>;
   k8Factory: {getK8: (context: string) => {pods: () => MirrorNodeSchemaWaitPodsStub}};
   prepareBlockNodeIntegrationValues: (config: {
     cacheDir: string;
@@ -107,6 +110,10 @@ interface MirrorNodeSchemaWaitTaskContext {
     clusterContext: string;
     namespace: {name: string};
   };
+}
+
+interface MirrorNodeDebuggerTaskContext {
+  config: MirrorNodeSchemaWaitTaskContext['config'] & {debugMirrorNodeComponent: string};
 }
 
 interface MirrorNodeSchemaWaitPodsStub {
@@ -419,6 +426,86 @@ describe('MirrorNodeCommand unit tests', (): void => {
     expect(valueArguments).to.not.include('monitor.image.pullPolicy=Never');
     expect(valueArguments).to.include('importer.image.repository=library/hedera-mirror-importer');
     expect(valueArguments).to.include('grpc.image.repository=library/hedera-mirror-grpc');
+  });
+
+  it('should add the importer debug values before user values only when --debug-mirror-node-component is importer', async (): Promise<void> => {
+    const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+      mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+    sinon.stub(mirrorNodeCommandInternal, 'prepareBlockNodeIntegrationValues').returns(new HelmChartValues());
+    const userValuesFile: string = PathEx.join(fs.mkdtempSync(PathEx.join(os.tmpdir(), 'mirror-debug-')), 'user.yaml');
+    fs.writeFileSync(userValuesFile, '{}');
+    const prepare: (debugMirrorNodeComponent: string) => Promise<string[]> = async (
+      debugMirrorNodeComponent: string,
+    ): Promise<string[]> => {
+      const chartValues: HelmChartValues = await mirrorNodeCommandInternal.prepareHelmChartValues({
+        debugMirrorNodeComponent,
+        valuesFile: userValuesFile,
+        mirrorNodeVersion: '0.163.0',
+        mirrorNodeChartDirectory: '',
+        storageType: constants.StorageType.MINIO_ONLY,
+        useExternalDatabase: false,
+        namespace: NamespaceName.of('mirror'),
+      });
+      return chartValues.toArguments();
+    };
+
+    const debugArguments: string[] = await prepare('importer');
+    expect(debugArguments.indexOf(constants.MIRROR_NODE_DEBUG_VALUES_FILE)).to.be.greaterThan(-1);
+    expect(debugArguments.indexOf(constants.MIRROR_NODE_DEBUG_VALUES_FILE)).to.be.lessThan(
+      debugArguments.indexOf(userValuesFile),
+    );
+    expect(await prepare('')).to.not.include(constants.MIRROR_NODE_DEBUG_VALUES_FILE);
+  });
+
+  it('should accept only importer for --debug-mirror-node-component', (): void => {
+    expect(FlagValidation.violationOf(Flags.debugMirrorNodeComponent, 'importer')).to.be.undefined;
+    expect(FlagValidation.violationOf(Flags.debugMirrorNodeComponent, 'web3')).to.equal('must be one of: importer');
+  });
+
+  describe('enableDebuggerPortForwardingTask', (): void => {
+    const debuggerContext: MirrorNodeDebuggerTaskContext = {
+      config: {
+        releaseName: 'mirror-1',
+        clusterContext: 'kind-a',
+        namespace: {name: 'solo'},
+        debugMirrorNodeComponent: 'importer',
+      },
+    };
+
+    it('should be skipped unless --debug-mirror-node-component is set', (): void => {
+      const task: SoloListrTask<MirrorNodeDebuggerTaskContext> = (
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal
+      ).enableDebuggerPortForwardingTask();
+      const skip: (context: MirrorNodeDebuggerTaskContext) => boolean = task.skip as (
+        context: MirrorNodeDebuggerTaskContext,
+      ) => boolean;
+
+      expect(skip({config: {...debuggerContext.config, debugMirrorNodeComponent: ''}})).to.equal(true);
+      expect(skip(debuggerContext)).to.equal(false);
+    });
+
+    it('should port-forward the JVM debug port of the importer pod', async (): Promise<void> => {
+      const portForward: sinon.SinonStub = sinon.stub().resolves(constants.JVM_DEBUG_PORT);
+      const list: sinon.SinonStub = sinon.stub().resolves([{portForward}]);
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal = stubImporterPods(mirrorNodeCommand, {
+        list,
+      } as unknown as MirrorNodeSchemaWaitPodsStub);
+
+      const task: SoloListrTask<MirrorNodeDebuggerTaskContext> =
+        mirrorNodeCommandInternal.enableDebuggerPortForwardingTask();
+      await (task.task as (context: MirrorNodeDebuggerTaskContext) => Promise<void>)(debuggerContext);
+
+      expect(list.firstCall.args[1]).to.deep.equal([
+        'app.kubernetes.io/component=importer',
+        'app.kubernetes.io/instance=mirror-1',
+      ]);
+      expect(portForward.firstCall.args.slice(0, 4)).to.deep.equal([
+        constants.JVM_DEBUG_PORT,
+        constants.JVM_DEBUG_PORT,
+        true,
+        true,
+      ]);
+    });
   });
 
   describe('loadMirrorNodeComponentImages', (): void => {
