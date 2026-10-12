@@ -581,6 +581,26 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics connections -d one-shot --check
 
+      - name: Check Static Ports Before Docker Restart
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # Report-only: the smoke test reaches the relay and mirror through the one-shot static host
+          # ports (relay 37546, mirror 38081). Record whether they answer from Windows and what is
+          # listening on them, so a failure after the Docker restart can be told apart from a port path
+          # that never worked on Windows over WSL2.
+          Write-Host "== relay eth_chainId via 127.0.0.1:37546"
+          curl.exe --silent --show-error --max-time 10 -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' http://127.0.0.1:37546
+          Write-Host "`n[curl exit code=$LASTEXITCODE]"
+          Write-Host "== mirror REST via 127.0.0.1:38081"
+          curl.exe --silent --show-error --max-time 10 'http://127.0.0.1:38081/api/v1/blocks?limit=1'
+          Write-Host "`n[curl exit code=$LASTEXITCODE]"
+          Write-Host "== Windows listeners on the static ports"
+          netstat -ano | Select-String -Pattern ':37546\s|:38081\s'
+          Write-Host "== WSL listeners and published container ports"
+          wsl -u root bash -lc "ss -ltnp | grep -E ':37546|:38081' || echo 'nothing listening in WSL on 37546/38081'; docker ps --format '{{.Names}} {{.Ports}}' | head -5"
+          $global:LASTEXITCODE = 0
+
       - name: Stop Consensus Nodes Before Docker Restart
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
@@ -723,12 +743,32 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- ledger account create --deployment one-shot --hbar-amount 100 --generate-ecdsa-key --set-alias --dev
 
+      - name: Check Static Ports After Docker Restart
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # Report-only: the smoke test reaches the relay and mirror through the one-shot static host
+          # ports (relay 37546, mirror 38081). Record whether they answer from Windows and what is
+          # listening on them, so a failure after the Docker restart can be told apart from a port path
+          # that never worked on Windows over WSL2.
+          Write-Host "== relay eth_chainId via 127.0.0.1:37546"
+          curl.exe --silent --show-error --max-time 10 -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' http://127.0.0.1:37546
+          Write-Host "`n[curl exit code=$LASTEXITCODE]"
+          Write-Host "== mirror REST via 127.0.0.1:38081"
+          curl.exe --silent --show-error --max-time 10 'http://127.0.0.1:38081/api/v1/blocks?limit=1'
+          Write-Host "`n[curl exit code=$LASTEXITCODE]"
+          Write-Host "== Windows listeners on the static ports"
+          netstat -ano | Select-String -Pattern ':37546\s|:38081\s'
+          Write-Host "== WSL listeners and published container ports"
+          wsl -u root bash -lc "ss -ltnp | grep -E ':37546|:38081' || echo 'nothing listening in WSL on 37546/38081'; docker ps --format '{{.Names}} {{.Ports}}' | head -5"
+          $global:LASTEXITCODE = 0
+
       - name: Run Smoke Test Script After Docker Restart
         shell: bash
         timeout-minutes: ${{ fromJSON(env.SMOKE_TEST_TIMEOUT_MINUTES) }}
         env:
           SOLO_DEPLOYMENT: one-shot
-          SOLO_NAMESPACE: solo-e2e
+          SOLO_NAMESPACE: one-shot
         run: |
           export PATH="$HOME/.solo/bin:${PATH}"
           .github/workflows/script/solo_smoke_test.sh true
