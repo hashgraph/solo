@@ -27,7 +27,6 @@ import {CacheCommandDefinition} from '../../../command-definitions/cache-command
 import {SINGLE_DESTROY_COMMAND} from '../../one-shot-command-paths.js';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import yaml from 'yaml';
 import {Templates} from '../../../../core/templates.js';
@@ -235,7 +234,7 @@ export class DeployArgvBuilders {
         ],
       },
     });
-    const filePath: string = path.join(os.tmpdir(), 'bn-rsa-bootstrap-init-container.yaml');
+    const filePath: string = path.join(Helpers.getTemporaryDirectory(), 'bn-rsa-bootstrap-init-container.yaml');
     fs.writeFileSync(filePath, content, 'utf8');
     return filePath;
   }
