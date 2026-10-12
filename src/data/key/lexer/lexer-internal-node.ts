@@ -114,7 +114,11 @@ export class LexerInternalNode extends LexerNode {
           throw new ConfigKeyError('Array index must be a number');
         }
 
-        object[index] = (child as LexerInternalNode).toObject();
+        // An array of scalars (e.g. `subprocess.additionalEnvironmentVariables.helm`) holds leaf children,
+        // which carry a value rather than a subtree; only an array of objects has internal children.
+        object[index] = child.isLeaf()
+          ? DeclaredTypeCoercer.readLeafValue(child.path(), (child as LexerLeafNode).value)
+          : (child as LexerInternalNode).toObject();
       } else {
         object[child.name] = child.isLeaf()
           ? DeclaredTypeCoercer.readLeafValue(child.path(), (child as LexerLeafNode).value)

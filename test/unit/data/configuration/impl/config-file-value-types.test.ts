@@ -132,6 +132,19 @@ describe('config file value types', (): void => {
     });
   });
 
+  describe('arrays', (): void => {
+    // The lexer rebuilt every array element as a subtree, but an array of scalars holds leaf nodes. Reading
+    // the config back threw as soon as an operator declared a subprocess allowlist — the documented use of
+    // this file — which broke every command once the file became a live source.
+    it('reads a subprocess allowlist back as an array of strings', async (): Promise<void> => {
+      const config: SoloConfigSchema = await loadConfigFile(
+        'subprocess:\n  additionalEnvironmentVariables:\n    helm:\n      - FOO\n      - BAR\n',
+      );
+
+      expect(config.subprocess.additionalEnvironmentVariables.helm).to.deep.equal(['FOO', 'BAR']);
+    });
+  });
+
   describe('the environment reads the same values the same way', (): void => {
     it(
       'rejects `off` from an environment variable too',
