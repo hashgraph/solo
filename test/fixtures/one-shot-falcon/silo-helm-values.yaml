@@ -1,0 +1,10 @@
+minio-server:
+  tenant:
+    buckets:
+      - name: solo-streams
+      - name: solo-backups
+      - name: falcon-values-file-override
+    image:
+      repository: docker.io/pgsty/silo
+      tag: RELEASE.2026-09-16T00-00-00Z
+      pullPolicy: IfNotPresent

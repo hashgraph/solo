@@ -86,6 +86,8 @@ jobs:
     uses: $/.github/workflows/zxc-code-style.yaml
     with:
       custom-job-label: Standard
+    secrets:
+      codacy-project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
 
   unit-tests:
     name: Unit Tests

@@ -41,4 +41,24 @@ export class K8ClientCrds implements Crds {
       );
     }
   }
+
+  public async delete(crdName: string): Promise<void> {
+    try {
+      await this.networkingApi.deleteCustomResourceDefinition({name: crdName});
+      this.logger.debug(`CRD ${crdName} deleted.`);
+    } catch (error) {
+      if (KubeApiResponse.isNotFound(error)) {
+        // Already gone: deleting a CRD that was never created, or was removed by someone else, is a no-op.
+        this.logger.info(`CRD ${crdName} does not exist, nothing to delete.`);
+        return;
+      }
+      KubeApiResponse.throwError(
+        error,
+        ResourceOperation.DELETE,
+        ResourceType.CLUSTER_ROLE_DEFINITION,
+        undefined,
+        crdName,
+      );
+    }
+  }
 }

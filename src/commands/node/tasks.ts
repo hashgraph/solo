@@ -70,6 +70,10 @@ import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
 import {
   HEDERA_PLATFORM_VERSION,
+  HIERO_PLATFORM_VERSION_WITH_INCOMPLETE_SIMPLE_FEES,
+  MINIMUM_HIERO_PLATFORM_VERSION_REQUIRING_TOPIC_MESSAGE_FEE_ENTRY,
+  MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_SIMPLE_FEES,
+  MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_THROTTLES,
   MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS,
   MINIMUM_SOLO_CHART_VERSION,
 } from '../../../version.js';
@@ -178,6 +182,7 @@ import {Contexts} from '../../integration/kube/resources/context/contexts.js';
 import {K8Helper} from '../../business/utils/k8-helper.js';
 import {Secret} from '../../integration/kube/resources/secret/secret.js';
 import {NodeUpgradeConfigClass} from './config-interfaces/node-upgrade-config-class.js';
+import {type NodePrepareUpgradeConfigClass} from './config-interfaces/node-prepare-upgrade-config-class.js';
 import {NodeCollectJfrLogsContext} from './config-interfaces/node-collect-jfr-logs-context.js';
 import {NodeCollectJfrLogsConfigClass} from './config-interfaces/node-collect-jfr-logs-config-class.js';
 import {PackageDownloader} from '../../core/package-downloader.js';
@@ -387,16 +392,21 @@ export class NodeCommandTasks {
     return FileId.fromString(entityId(shard, realm, constants.UPGRADE_FILE_ID_NUM));
   }
 
-  private async _prepareUpgradeZip(stagingDirectory: string, upgradeVersion?: string): Promise<string> {
+  private async _prepareUpgradeZip(
+    stagingDirectory: string,
+    upgradeVersion?: string,
+    postUpgradeSystemFiles: Map<string, string> = new Map(),
+  ): Promise<string> {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
     // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
     // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
     // Note however that in DAB phase-2, we won't need to trigger this fake upgrade process
     const zipper: Zippy = new Zippy(this.logger);
-    const upgradeConfigDirectory: string = PathEx.join(stagingDirectory, 'mock-upgrade', 'data', 'config');
-    if (!fs.existsSync(upgradeConfigDirectory)) {
-      fs.mkdirSync(upgradeConfigDirectory, {recursive: true});
-    }
+    const mockUpgradeDirectory: string = PathEx.join(stagingDirectory, 'mock-upgrade');
+    const upgradeConfigDirectory: string = PathEx.join(mockUpgradeDirectory, 'data', 'config');
+    // start clean so files staged for a previous upgrade are not shipped again
+    fs.rmSync(mockUpgradeDirectory, {recursive: true, force: true});
+    fs.mkdirSync(upgradeConfigDirectory, {recursive: true});
 
     // bump field hedera.config.version or use the version passed in
     const fileBytes: Buffer = fs.readFileSync(
@@ -417,10 +427,11 @@ export class NodeCommandTasks {
     }
     fs.writeFileSync(PathEx.join(upgradeConfigDirectory, constants.APPLICATION_PROPERTIES), newLines.join('\n'));
 
-    return await zipper.zip(
-      PathEx.join(stagingDirectory, 'mock-upgrade'),
-      PathEx.join(stagingDirectory, 'mock-upgrade.zip'),
-    );
+    for (const [fileName, sourcePath] of postUpgradeSystemFiles) {
+      fs.copyFileSync(sourcePath, PathEx.join(upgradeConfigDirectory, fileName));
+    }
+
+    return await zipper.zip(mockUpgradeDirectory, PathEx.join(stagingDirectory, 'mock-upgrade.zip'));
   }
 
   private async _uploadUpgradeZip(
@@ -1143,9 +1154,15 @@ export class NodeCommandTasks {
     return {
       title: 'Prepare upgrade zip file for node upgrade process',
       task: async (context_): Promise<void> => {
-        const config: NodeAddConfigClass | NodeUpdateConfigClass | NodeUpgradeConfigClass | NodeDestroyConfigClass =
-          context_.config;
+        const config:
+          | NodeAddConfigClass
+          | NodeUpdateConfigClass
+          | NodeUpgradeConfigClass
+          | NodeDestroyConfigClass
+          | NodePrepareUpgradeConfigClass = context_.config;
         const {upgradeZipFile, deployment} = context_.config;
+        const postUpgradeSystemFiles: Map<string, string> =
+          'throttlesFile' in config ? this.resolvePostUpgradeSystemFiles(config) : new Map();
         if (upgradeZipFile) {
           context_.upgradeZipFile = upgradeZipFile;
           this.logger.debug(`Using upgrade zip file: ${context_.upgradeZipFile}`);
@@ -1176,11 +1193,101 @@ export class NodeCommandTasks {
 
           const upgradeVersion: string | undefined =
             'upgradeVersion' in config ? (config.upgradeVersion as string) : undefined;
-          context_.upgradeZipFile = await this._prepareUpgradeZip(config.stagingDir, upgradeVersion);
+          if (
+            upgradeVersion &&
+            !postUpgradeSystemFiles.has(constants.SIMPLE_FEES_SCHEDULES_JSON) &&
+            NodeCommandTasks.upgradeLeavesTopicMessageFeeEntryMissing(
+              this.remoteConfig.configuration.versions.consensusNode,
+              upgradeVersion,
+            )
+          ) {
+            this.logger.showUser(
+              chalk.yellow(
+                `Warning: Upgrading from consensus node ${this.remoteConfig.configuration.versions.consensusNode} ` +
+                  `to ${upgradeVersion} leaves the fee ` +
+                  'schedule without an entry that topic messages require, so topic message submissions will fail ' +
+                  "with FAIL_INVALID. Pass --simple-fees-schedules-file with the target version's " +
+                  'simpleFeesSchedules.json to avoid this. See ' +
+                  'https://solo.hiero.org/docs/troubleshooting/#topic-messages-fail-with-fail_invalid-after-a-network-upgrade',
+              ),
+            );
+          }
+          context_.upgradeZipFile = await this._prepareUpgradeZip(
+            config.stagingDir,
+            upgradeVersion,
+            postUpgradeSystemFiles,
+          );
         }
         context_.upgradeZipHash = await this._uploadUpgradeZip(context_.upgradeZipFile, config.nodeClient, deployment);
       },
     };
+  }
+
+  /**
+   * v0.72.x creates the fee schedule file without the entry that topic messages require from v0.73.0, and the
+   * file is never replaced unless the upgrade supplies a new copy.
+   */
+  private static upgradeLeavesTopicMessageFeeEntryMissing(
+    currentVersion: SemanticVersion<string>,
+    upgradeVersion: string,
+  ): boolean {
+    return (
+      currentVersion.greaterThanOrEqual(HIERO_PLATFORM_VERSION_WITH_INCOMPLETE_SIMPLE_FEES) &&
+      currentVersion.lessThan(MINIMUM_HIERO_PLATFORM_VERSION_REQUIRING_TOPIC_MESSAGE_FEE_ENTRY) &&
+      new SemanticVersion<string>(upgradeVersion).greaterThanOrEqual(
+        MINIMUM_HIERO_PLATFORM_VERSION_REQUIRING_TOPIC_MESSAGE_FEE_ENTRY,
+      )
+    );
+  }
+
+  /** Maps each post-upgrade system file name the node expects to the validated local file the user passed. */
+  private resolvePostUpgradeSystemFiles(
+    config: NodeUpgradeConfigClass | NodePrepareUpgradeConfigClass,
+  ): Map<string, string> {
+    // dev-freeze prepare-upgrade has neither --upgrade-zip-file nor --upgrade-version
+    const upgradeZipFile: string | undefined = 'upgradeZipFile' in config ? config.upgradeZipFile : undefined;
+    const upgradeVersion: string | undefined = 'upgradeVersion' in config ? config.upgradeVersion : undefined;
+    const systemFileFlags: [CommandFlag, string, string, string][] = [
+      [
+        flags.simpleFeesSchedulesFile,
+        config.simpleFeesSchedulesFile,
+        constants.SIMPLE_FEES_SCHEDULES_JSON,
+        MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_SIMPLE_FEES,
+      ],
+      [
+        flags.throttlesFile,
+        config.throttlesFile,
+        constants.THROTTLES_JSON,
+        MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_THROTTLES,
+      ],
+    ];
+    const postUpgradeSystemFiles: Map<string, string> = new Map();
+
+    for (const [flag, sourceFilePath, fileName, minimumVersion] of systemFileFlags) {
+      if (!sourceFilePath) {
+        continue;
+      }
+      if (upgradeZipFile) {
+        throw new SoloErrors.validation.upgradeSystemFileWithZipFile(flag.name);
+      }
+      // without --upgrade-version (e.g. --local-build-path upgrades) there is no target version to check
+      if (upgradeVersion && new SemanticVersion<string>(upgradeVersion).lessThan(minimumVersion)) {
+        throw new SoloErrors.validation.postUpgradeSystemFileVersionUnsupported(
+          flag.name,
+          minimumVersion,
+          upgradeVersion,
+        );
+      }
+
+      const currentWorkingDirectory: string = process.env.INIT_CWD || process.cwd();
+      const sourceAbsoluteFilePath: string = PathEx.resolve(currentWorkingDirectory, sourceFilePath);
+      if (!fs.existsSync(sourceAbsoluteFilePath)) {
+        throw new SoloErrors.validation.configFileNotFound(flag.name, sourceAbsoluteFilePath, sourceFilePath);
+      }
+      postUpgradeSystemFiles.set(fileName, sourceAbsoluteFilePath);
+    }
+
+    return postUpgradeSystemFiles;
   }
 
   public loadAdminKey(): SoloListrTask<NodeUpdateContext | NodeUpgradeContext | NodeDestroyContext> {
@@ -4311,6 +4418,37 @@ export class NodeCommandTasks {
       task: ({config: {keysDir}}): void => {
         if (keysDir && fs.existsSync(keysDir)) {
           fs.rmSync(keysDir, {recursive: true, force: true});
+        }
+      },
+    };
+  }
+
+  public promotePostUpgradeSystemFiles(): SoloListrTask<NodeUpgradeContext> {
+    return {
+      title: 'Promote post-upgrade system files into node config',
+      task: async ({config}): Promise<void> => {
+        const upgradeConfigDirectory: string = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/config`;
+        const liveConfigDirectory: string = `${constants.HEDERA_HAPI_PATH}/data/config`;
+        // the node only applies these on restart if they sit in its live config dir, but the freeze
+        // upgrade extracts them to data/upgrade/current; application.properties is left out because
+        // the staged copy is only a version marker, not the node's real configuration.
+        // Live copies from earlier upgrades are kept; a file is only replaced when the user passes a new one.
+        const commands: string[] = [
+          'set -e',
+          ...[constants.SIMPLE_FEES_SCHEDULES_JSON, constants.THROTTLES_JSON].map(
+            (fileName: string): string =>
+              `if [ -f "${upgradeConfigDirectory}/${fileName}" ]; then ` +
+              `cp -f "${upgradeConfigDirectory}/${fileName}" "${liveConfigDirectory}/${fileName}"; ` +
+              `chown hedera:hedera "${liveConfigDirectory}/${fileName}"; fi`,
+          ),
+        ];
+
+        for (const consensusNode of config.consensusNodes) {
+          const rootContainer: Container = await new K8Helper(consensusNode.context).getConsensusNodeRootContainer(
+            config.namespace,
+            consensusNode.name,
+          );
+          await rootContainer.execContainer(['bash', '-c', commands.join('\n')]);
         }
       },
     };

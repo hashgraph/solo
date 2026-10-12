@@ -8,6 +8,7 @@ import {
   withTimeout,
 } from '../core/helpers.js';
 import * as constants from '../core/constants.js';
+import {UserInput} from '../core/user-input.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {type AnyListrContext, type ArgvStruct, type NodeAlias} from '../types/aliases.js';
@@ -373,7 +374,7 @@ export class BlockNodeCommand extends BaseCommand {
     if ('domainName' in config && config.domainName) {
       chartValues
         .set('ingress.enabled', true)
-        .set('ingress.hosts[0].host', config.domainName)
+        .set('ingress.hosts[0].host', UserInput.escapeHelmTemplate(config.domainName))
         .set('ingress.hosts[0].paths[0].path', '/')
         .set('ingress.hosts[0].paths[0].pathType', 'ImplementationSpecific');
     }

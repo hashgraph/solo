@@ -484,6 +484,27 @@ export class Flags {
     },
   };
 
+  public static readonly simpleFeesSchedulesFile: CommandFlag = {
+    constName: 'simpleFeesSchedulesFile',
+    name: 'simple-fees-schedules-file',
+    definition: {
+      describe:
+        'simpleFeesSchedules.json file applied to the network during the upgrade; must match the target version',
+      defaultValue: '',
+      type: 'string',
+    },
+  };
+
+  public static readonly throttlesFile: CommandFlag = {
+    constName: 'throttlesFile',
+    name: 'throttles-file',
+    definition: {
+      describe: 'throttles.json file applied to the network during the upgrade; must match the target version',
+      defaultValue: '',
+      type: 'string',
+    },
+  };
+
   public static readonly releaseTag: CommandFlag = {
     constName: 'releaseTag',
     name: 'release-tag',
@@ -555,7 +576,8 @@ export class Flags {
         'Docker image override. Supports a published registry reference (e.g. ghcr.io/hiero-ledger/component:1.2.3), ' +
         'a locally built image (e.g. component:1.2.3), or a Kind-attached local registry ' +
         '(e.g. localhost:5001/component:1.2.3). Locally available images are loaded into every target Kind ' +
-        'cluster and use pullPolicy: Never. For non-Kind targets, publish the image to a registry reachable by the cluster.',
+        'cluster and use pullPolicy: Never. For non-Kind targets, publish the image to a registry reachable by the cluster. ' +
+        'Some multi-module components treat the value as a repository prefix and derive and load each module image from it.',
       defaultValue: '',
       type: 'string',
       alias: 'relay-image',
@@ -2930,10 +2952,12 @@ export class Flags {
     Flags.replicaCount,
     Flags.setAlias,
     Flags.settingTxt,
+    Flags.simpleFeesSchedulesFile,
     Flags.soloChartVersion,
     Flags.stakeAmounts,
     Flags.stateFile,
     Flags.storageType,
+    Flags.throttlesFile,
     Flags.transplant,
     Flags.gcsWriteAccessKey,
     Flags.gcsWriteSecrets,

@@ -297,7 +297,6 @@ jobs:
       - generate_matrix
     uses: $/.github/workflows/flow-standard-runner-one-shot-windows.yaml
     with:
-      cn-edge-version: v0.77.2
       run-twice: true
     # The called workflow only uses the automatically provided GITHUB_TOKEN;
     # forwarding every repository secret is unnecessary and unsafe.

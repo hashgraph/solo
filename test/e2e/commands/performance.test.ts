@@ -58,6 +58,7 @@ const stableTransactionPerSecondTarget: number = 100;
 const maxEndToEndRtt: number = 600;
 const nftTransferLoadTestTimeoutMultiplier: number = 6;
 const mirrorImporterWarmupSeconds: number = 60;
+const performanceTestConciseModeEnabled: boolean = process.env.PERFORMANCE_TEST_CONCISE_MODE === 'true';
 let startTime: Date;
 let metricsInterval: NodeJS.Timeout;
 let events: string[] = [];
@@ -272,44 +273,44 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           await NetworkLoadGeneratorTest.deployChart(deploymentName);
         }).timeout(Duration.ofMinutes(20).toMillis());
 
-        it('TokenTransferLoadTest', async (): Promise<void> => {
-          logEvent('Starting TokenTransferLoadTest');
-          await runLoadTest(
-            'TokenTransferLoadTest',
-            `-c ${clients} -a ${accounts} -T ${tokens} -A ${associations} -R -t ${duration}`,
-          );
-        }).timeout(Duration.ofSeconds(duration * 2 + mirrorImporterWarmupSeconds).toMillis());
+        if (!performanceTestConciseModeEnabled) {
+          it('TokenTransferLoadTest', async (): Promise<void> => {
+            logEvent('Starting TokenTransferLoadTest');
+            await runLoadTest(
+              'TokenTransferLoadTest',
+              `-c ${clients} -a ${accounts} -T ${tokens} -A ${associations} -R -t ${duration}`,
+            );
+          }).timeout(Duration.ofSeconds(duration * 2 + mirrorImporterWarmupSeconds).toMillis());
 
-        it('NftTransferLoadTest', async (): Promise<void> => {
-          logEvent('Starting NftTransferLoadTest');
-          await runLoadTest(
-            'NftTransferLoadTest',
-            `-c ${clients} -a ${accounts} -T ${nfts} -n ${accounts} -S flat -p ${percent} -t ${duration}`,
+          it('NftTransferLoadTest', async (): Promise<void> => {
+            logEvent('Starting NftTransferLoadTest');
+            await runLoadTest(
+              'NftTransferLoadTest',
+              `-c ${clients} -a ${accounts} -T ${nfts} -n ${accounts} -S flat -p ${percent} -t ${duration}`,
+            );
+          }).timeout(
+            Duration.ofSeconds(
+              duration * nftTransferLoadTestTimeoutMultiplier + mirrorImporterWarmupSeconds,
+            ).toMillis(),
           );
-        }).timeout(
-          Duration.ofSeconds(duration * nftTransferLoadTestTimeoutMultiplier + mirrorImporterWarmupSeconds).toMillis(),
-        );
+        }
 
         it('CryptoTransferLoadTest', async (): Promise<void> => {
           logEvent('Starting CryptoTransferLoadTest');
           await runLoadTest('CryptoTransferLoadTest', `-c ${clients} -a ${accounts} -R -t ${duration}`);
         }).timeout(Duration.ofSeconds(duration * 2 + mirrorImporterWarmupSeconds).toMillis());
 
-        it('HCSLoadTest', async (): Promise<void> => {
-          logEvent('Starting HCSLoadTest');
-          await runLoadTest('HCSLoadTest', `-c ${clients} -a ${accounts} -R -t ${duration}`);
-        }).timeout(Duration.ofSeconds(duration * 2 + mirrorImporterWarmupSeconds).toMillis());
+        if (!performanceTestConciseModeEnabled) {
+          it('HCSLoadTest', async (): Promise<void> => {
+            logEvent('Starting HCSLoadTest');
+            await runLoadTest('HCSLoadTest', `-c ${clients} -a ${accounts} -R -t ${duration}`);
+          }).timeout(Duration.ofSeconds(duration * 2 + mirrorImporterWarmupSeconds).toMillis());
 
-        // Disabled until hiero-block-node fixes VerificationServicePlugin gating backpressure
-        // (hiero-block-node#3150): the Disruptor ring buffer fills cumulatively across tests
-        // 1–4 at ~100 TPS and overflows before SmartContractLoadTest can start, freezing the
-        // mirror importer.  Increasing the ring buffer to 8 M prevented overflow but required
-        // ~6 GB of block-node heap, which is disproportionate.  Skipping SmartContractLoadTest
-        // keeps the ring under 4 M entries so the 4 M buffer is sufficient and memory stays low.
-        it.skip('SmartContractLoadTest', async (): Promise<void> => {
-          logEvent('Starting SmartContractLoadTest');
-          await runLoadTest('SmartContractLoadTest', `-c ${clients} -a ${accounts} -R -t ${duration}`);
-        }).timeout(Duration.ofSeconds(duration * 6 + mirrorImporterWarmupSeconds).toMillis());
+          it('SmartContractLoadTest', async (): Promise<void> => {
+            logEvent('Starting SmartContractLoadTest');
+            await runLoadTest('SmartContractLoadTest', `-c ${clients} -a ${accounts} -R -t ${duration}`);
+          }).timeout(Duration.ofSeconds(duration * 6 + mirrorImporterWarmupSeconds).toMillis());
+        }
 
         async function runLoadTest(performanceTest: string, argumentsString: string): Promise<void> {
           // Wait for the mirror importer to drain the block backlog created during the deploy

@@ -34,6 +34,8 @@ import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {type CertificateManager} from '../../../src/core/certificate-manager.js';
 import {type PlatformInstaller} from '../../../src/core/platform-installer.js';
 import fs from 'node:fs';
+import * as os from 'node:os';
+import {FilePermissions} from '../../../src/business/utils/file-permissions.js';
 import {type InstanceOverrides} from '../../../src/core/dependency-injection/container-init.js';
 import {ValueContainer} from '../../../src/core/dependency-injection/value-container.js';
 import {type LocalConfigRuntimeState} from '../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
@@ -62,6 +64,16 @@ argv.setArg(flags.chartDirectory, undefined);
 if (new SemanticVersion<string>(version.HEDERA_PLATFORM_VERSION).lessThan('v0.61.0')) {
   argv.setArg(flags.releaseTag, 'v0.61.0');
 }
+
+// Typed view over the private cache writer, so the tests exercise the real implementation.
+const writeCacheFile: (destinationPath: string, content: string) => void = (
+  NetworkCommand as unknown as {writeCacheFile: (destinationPath: string, content: string) => void}
+).writeCacheFile;
+
+// Typed view over the private CRD validator, exercised directly so nothing has to hit the network.
+const validatePodLogsCrdYaml: (sourceUrl: string, crdYaml: string) => void = (
+  NetworkCommand as unknown as {validatePodLogsCrdYaml: (sourceUrl: string, crdYaml: string) => void}
+).validatePodLogsCrdYaml;
 
 describe('NetworkCommand unit tests', (): void => {
   before(async (): Promise<void> => {
@@ -712,6 +724,139 @@ describe('NetworkCommand unit tests', (): void => {
         }
         sinon.restore();
       }
+    });
+
+    describe('ensurePodLogsCrd cached-file error wrapping', (): void => {
+      // #5302: a cache file an older solo left unreadable must surface as CachedFileInaccessibleSoloError,
+      // with repair steps, rather than the bare EACCES/EPERM that removing it under the hood raises.
+      it('wraps a failure to remove an unreadable cache file', async (): Promise<void> => {
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // The PodLogs CRD itself must look missing so ensurePodLogsCrd attempts to (re)install it
+        // instead of short-circuiting on the happy path exercised by the tests above.
+        options.k8Factory.getK8().crds = sinon.stub().returns({readLabels: sinon.stub().resolves()});
+        sinon.stub(FilePermissions, 'isReadable').returns(false);
+        sinon.stub(fs, 'rmSync').throws(Object.assign(new Error('access denied'), {code: 'EACCES'}));
+
+        const config: NetworkDeployConfigClass = {contexts: ['context-1']} as unknown as NetworkDeployConfigClass;
+
+        await expect(
+          // @ts-expect-error - to access private method
+          networkCommand.ensurePodLogsCrd(config),
+        )
+          .to.be.rejectedWith(/Cached file is not accessible/)
+          .and.eventually.have.property('code', 'SOLO-5089');
+      });
+
+      // The same cache file surfaces its inaccessibility at apply time instead, when the readability probe
+      // and the removal it would gate both happen to succeed but the file still cannot be used by kubectl.
+      it('wraps an EPERM from applying the cached manifest', async (): Promise<void> => {
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        options.k8Factory.getK8().crds = sinon.stub().returns({readLabels: sinon.stub().resolves()});
+        sinon.stub(FilePermissions, 'isReadable').returns(true);
+        options.k8Factory.getK8().manifests = sinon.stub().returns({
+          applyManifest: sinon.stub().rejects(Object.assign(new Error('operation not permitted'), {code: 'EPERM'})),
+        });
+
+        const config: NetworkDeployConfigClass = {contexts: ['context-1']} as unknown as NetworkDeployConfigClass;
+
+        await expect(
+          // @ts-expect-error - to access private method
+          networkCommand.ensurePodLogsCrd(config),
+        )
+          .to.be.rejectedWith(/Cached file is not accessible/)
+          .and.eventually.have.property('code', 'SOLO-5089');
+      });
+    });
+  });
+  // #5302: a cache file left unreadable by an older solo still satisfies existsSync, so the deploy would
+  // reuse it and fail at apply time. writeCacheFile is the replacement path; it stages the content under a
+  // unique name and renames it into place, so nothing tests the destination before writing to it.
+  describe('writeCacheFile', (): void => {
+    // chmod does not deny the owner on Windows, and root ignores mode bits, so the poisoned case can only
+    // be staged as an unprivileged POSIX user.
+    const canDenyReads: boolean = process.platform !== 'win32' && process.getuid?.() !== 0;
+    let cacheRoot: string;
+    let cachedFile: string;
+
+    beforeEach((): void => {
+      cacheRoot = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'network-cache-'));
+      cachedFile = PathEx.join(cacheRoot, 'podlogs-crd-v1.11.3.yaml');
+    });
+
+    afterEach((): void => {
+      fs.rmSync(cacheRoot, {recursive: true, force: true});
+    });
+
+    it('writes the content and leaves no staging file behind', (): void => {
+      writeCacheFile(cachedFile, 'kind: CustomResourceDefinition\n');
+
+      expect(fs.readFileSync(cachedFile, 'utf8')).to.equal('kind: CustomResourceDefinition\n');
+      expect(fs.readdirSync(cacheRoot).filter((entry: string): boolean => entry.includes('partial'))).to.be.empty;
+    });
+
+    it('replaces an existing cache file rather than checking it first', (): void => {
+      fs.writeFileSync(cachedFile, 'stale content');
+
+      writeCacheFile(cachedFile, 'fresh content');
+
+      expect(fs.readFileSync(cachedFile, 'utf8')).to.equal('fresh content');
+    });
+
+    (canDenyReads ? it : it.skip)('recovers a cache file that can no longer be read', (): void => {
+      fs.writeFileSync(cachedFile, 'poisoned by an older solo');
+      fs.chmodSync(cachedFile, 0o000);
+
+      // The reuse decision the deploy makes: unreadable means discard and re-create.
+      expect(FilePermissions.isReadable(cachedFile), 'the poisoned file must not look reusable').to.be.false;
+      fs.rmSync(cachedFile, {force: true});
+      writeCacheFile(cachedFile, 'kind: CustomResourceDefinition\n');
+
+      expect(FilePermissions.isReadable(cachedFile)).to.be.true;
+      expect(fs.readFileSync(cachedFile, 'utf8')).to.equal('kind: CustomResourceDefinition\n');
+    });
+  });
+
+  // #5302 follow-up: the response fed to writeCacheFile comes from a network fetch, so a proxy error
+  // page or an upstream file move must not be cached and applied. Shape check the payload first.
+  describe('validatePodLogsCrdYaml', (): void => {
+    const sourceUrl: string = 'https://example.invalid/podlogs.yaml';
+
+    const validCrd: string = [
+      'apiVersion: apiextensions.k8s.io/v1',
+      'kind: CustomResourceDefinition',
+      'metadata:',
+      '  name: podlogs.monitoring.grafana.com',
+      'spec: {}',
+      '',
+    ].join('\n');
+
+    it('accepts the pinned PodLogs CRD', (): void => {
+      expect((): void => validatePodLogsCrdYaml(sourceUrl, validCrd)).to.not.throw();
+    });
+
+    it('rejects a wrong kind', (): void => {
+      const wrongKind: string = validCrd.replace('CustomResourceDefinition', 'ConfigMap');
+
+      expect((): void => validatePodLogsCrdYaml(sourceUrl, wrongKind))
+        .to.throw()
+        .with.property('code', 'SOLO-5090');
+    });
+
+    it('rejects a wrong metadata.name', (): void => {
+      const wrongName: string = validCrd.replace(
+        'podlogs.monitoring.grafana.com',
+        'something-else.monitoring.grafana.com',
+      );
+
+      expect((): void => validatePodLogsCrdYaml(sourceUrl, wrongName))
+        .to.throw()
+        .with.property('code', 'SOLO-5090');
+    });
+
+    it('rejects malformed YAML', (): void => {
+      expect((): void => validatePodLogsCrdYaml(sourceUrl, ':::not-yaml:::\n  - [unterminated'))
+        .to.throw()
+        .with.property('code', 'SOLO-5090');
     });
   });
 });

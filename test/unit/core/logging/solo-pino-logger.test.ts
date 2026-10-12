@@ -34,11 +34,21 @@ function createFakeStream(): FakeStream {
 // Typed view over the private members flush() and the constructor manage.
 type LoggerInternals = {
   rotatingStreams: FakeStream[];
+  rotatingDestinations: FakeStream[];
   pinoLogger: {flush: (callback: (error?: Error) => void) => void};
 };
 
 function internalsOf(logger: SoloPinoLogger): LoggerInternals {
   return logger as unknown as LoggerInternals;
+}
+
+/**
+ * Registers a fake as both a stream flush() ends and a destination it waits on, mirroring the
+ * NDJSON stream, which writes straight to its own file.
+ */
+function pushDirectStream(internals: LoggerInternals, stream: FakeStream): void {
+  internals.rotatingStreams.push(stream);
+  internals.rotatingDestinations.push(stream);
 }
 
 describe('SoloPinoLogger user-facing output', (): void => {
@@ -239,7 +249,8 @@ describe('SoloPinoLogger flush', (): void => {
   it('ends every rotating stream and invokes the callback only after all have closed', (): void => {
     const first: FakeStream = createFakeStream();
     const second: FakeStream = createFakeStream();
-    internals.rotatingStreams.push(first, second);
+    pushDirectStream(internals, first);
+    pushDirectStream(internals, second);
     const callback: SinonStub = sinon.stub();
 
     logger.flush(callback);
@@ -260,13 +271,34 @@ describe('SoloPinoLogger flush', (): void => {
 
   it('invokes the callback exactly once even if a stream emits close more than once', (): void => {
     const stream: FakeStream = createFakeStream();
-    internals.rotatingStreams.push(stream);
+    pushDirectStream(internals, stream);
     const callback: SinonStub = sinon.stub();
 
     logger.flush(callback);
     stream.emit('close');
     stream.emit('close');
 
+    expect(callback.calledOnce).to.be.true;
+  });
+
+  it('waits for the destination behind a transform, not the transform itself', (): void => {
+    // The pretty output is a pino-pretty transform in front of a rotating file. The transform closes
+    // as soon as its own side ends, while the file behind it is still writing, so settling on the
+    // transform would let the caller exit with the tail of solo.log missing.
+    const transform: FakeStream = createFakeStream();
+    const destination: FakeStream = createFakeStream();
+    internals.rotatingStreams.push(transform);
+    internals.rotatingDestinations.push(destination);
+    const callback: SinonStub = sinon.stub();
+
+    logger.flush(callback);
+
+    expect(transform.end.calledOnce).to.be.true;
+
+    transform.emit('close');
+    expect(callback.called).to.be.false;
+
+    destination.emit('close');
     expect(callback.calledOnce).to.be.true;
   });
 
@@ -283,7 +315,7 @@ describe('SoloPinoLogger flush', (): void => {
 
     it('invokes the callback via the safety timeout when a stream never closes', (): void => {
       const stream: FakeStream = createFakeStream();
-      internals.rotatingStreams.push(stream);
+      pushDirectStream(internals, stream);
       const callback: SinonStub = sinon.stub();
 
       logger.flush(callback);
@@ -296,7 +328,7 @@ describe('SoloPinoLogger flush', (): void => {
 
     it('does not invoke the callback a second time when a stream closes after the timeout fired', (): void => {
       const stream: FakeStream = createFakeStream();
-      internals.rotatingStreams.push(stream);
+      pushDirectStream(internals, stream);
       const callback: SinonStub = sinon.stub();
 
       logger.flush(callback);
@@ -311,7 +343,7 @@ describe('SoloPinoLogger flush', (): void => {
 
     it('does not fire the safety timeout again after all streams closed normally', (): void => {
       const stream: FakeStream = createFakeStream();
-      internals.rotatingStreams.push(stream);
+      pushDirectStream(internals, stream);
       const callback: SinonStub = sinon.stub();
 
       logger.flush(callback);

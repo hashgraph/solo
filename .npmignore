@@ -16,6 +16,9 @@ output/
 # SEA build output
 sea/
 
+# Standalone installers
+installers/
+
 # Scripts
 Taskfile*
 examples/

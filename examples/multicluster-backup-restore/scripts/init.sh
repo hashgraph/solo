@@ -54,6 +54,8 @@ grant readwrite to temporary_admin;
 
 -- Create users
 alter user :ownerUsername with createrole;
+-- PostgreSQL 16+: CREATEROLE alone no longer lets the owner grant readonly to mirror_rest
+grant readonly to :ownerUsername with admin option;
 
 -- Grant temp schema admin privileges
 grant temporary_admin to :ownerUsername;

@@ -33,7 +33,7 @@ export const INGRESS_CONTROLLER_VERSION: string =
   constants.getEnvironmentVariable('INGRESS_CONTROLLER_VERSION') || '0.14.5';
 // If this version changes, regenerate test/data/proto.zip (see test/data/get-block.sh for steps) —
 // a stale vendored schema causes intermittent grpcurl unmarshal failures (see issue #5848).
-export const BLOCK_NODE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_VERSION') || '0.42.0';
+export const BLOCK_NODE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_VERSION') || '0.43.0';
 
 export const METALLB_CHART_VERSION: string = constants.getEnvironmentVariable('METALLB_CHART_VERSION') || '0.15.3';
 export const MINIO_OPERATOR_VERSION: string = constants.getEnvironmentVariable('MINIO_OPERATOR_VERSION') || '7.1.1';
@@ -75,12 +75,12 @@ export const SOLO_CHART_EDGE_VERSION: string =
 export const HEDERA_PLATFORM_EDGE_VERSION: string =
   constants.getEnvironmentVariable('CONSENSUS_NODE_EDGE_VERSION') || 'v0.77.2';
 export const MIRROR_NODE_EDGE_VERSION: string =
-  constants.getEnvironmentVariable('MIRROR_NODE_EDGE_VERSION') || 'v0.163.1';
+  constants.getEnvironmentVariable('MIRROR_NODE_EDGE_VERSION') || 'v0.164.0';
 export const EXPLORER_EDGE_VERSION: string =
   constants.getEnvironmentVariable('EXPLORER_EDGE_VERSION') || EXPLORER_VERSION;
 export const HEDERA_JSON_RPC_RELAY_EDGE_VERSION: string =
-  constants.getEnvironmentVariable('RELAY_EDGE_VERSION') || '0.78.5';
-export const BLOCK_NODE_EDGE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_EDGE_VERSION') || '0.42.0';
+  constants.getEnvironmentVariable('RELAY_EDGE_VERSION') || '0.79.0';
+export const BLOCK_NODE_EDGE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_EDGE_VERSION') || '0.44.0';
 
 // -------------------------------------------------------------------- //
 
@@ -88,6 +88,12 @@ export const MEMORY_ENHANCEMENTS_MIRROR_NODE_VERSION: string = '0.152.0';
 export const MINIMUM_MIRROR_NODE_VERSION_FOR_ARM64_WEB3_NATIVE_IMAGE: string = '0.155.0';
 
 export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS: string = 'v0.74.0-0';
+// first consensus node releases that apply these files from data/config after a freeze upgrade
+export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_SIMPLE_FEES: string = 'v0.68.0-0';
+export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_THROTTLES: string = 'v0.54.0-0';
+// v0.72.x creates the simple fees schedule file without the entry that topic messages require from v0.73.0
+export const HIERO_PLATFORM_VERSION_WITH_INCOMPLETE_SIMPLE_FEES: string = 'v0.72.0-0';
+export const MINIMUM_HIERO_PLATFORM_VERSION_REQUIRING_TOPIC_MESSAGE_FEE_ENTRY: string = 'v0.73.0-0';
 export const MINIMUM_MIRROR_NODE_CHART_VERSION_FOR_PINGER_ENV_VARS_UPDATE: string = '0.153.0-0';
 
 export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_NETWORK_LOAD_GENERATOR: string = 'v0.72.0-0';

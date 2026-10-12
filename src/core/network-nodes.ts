@@ -231,10 +231,32 @@ export class NetworkNodes {
 
       const commonSignedRounds: Set<string> = this.intersectRoundSets(roundSets);
       const commonFreezeRounds: Set<string> = this.intersectRoundSets(freezeRoundSets);
-      const preferFreezeRound: boolean = deploymentPhase === DeploymentPhase.FROZEN;
-      const selectedRound: string | undefined = this.selectHighestRound(
-        preferFreezeRound && commonFreezeRounds.size > 0 ? commonFreezeRounds : commonSignedRounds,
-      );
+
+      let candidateRounds: Set<string>;
+      if (trimPreconsensusEventsToSelectedRound) {
+        // A freeze round's own state already reflects the completed freeze, so trimming trailing
+        // PCES events (birthRound > selectedRound) can never exclude the freeze transaction that
+        // produced that round — replay would just re-commit the same freeze and land the restored
+        // node back in FREEZE_COMPLETE instead of resuming live processing. Baseline on the latest
+        // non-freeze round instead, so the freeze transaction's birth round falls after the
+        // boundary and gets trimmed away.
+        const commonNonFreezeRounds: Set<string> = new Set<string>(
+          [...commonSignedRounds].filter((round: string): boolean => !commonFreezeRounds.has(round)),
+        );
+        if (commonNonFreezeRounds.size > 0) {
+          candidateRounds = commonNonFreezeRounds;
+        } else {
+          this.logger.warn(
+            'No common non-freeze signed round found while normalizing state for live resumption; ' +
+              'falling back to the freeze round, so the restored node(s) may land back in FREEZE_COMPLETE.',
+          );
+          candidateRounds = commonSignedRounds;
+        }
+      } else {
+        const preferFreezeRound: boolean = deploymentPhase === DeploymentPhase.FROZEN;
+        candidateRounds = preferFreezeRound && commonFreezeRounds.size > 0 ? commonFreezeRounds : commonSignedRounds;
+      }
+      const selectedRound: string | undefined = this.selectHighestRound(candidateRounds);
 
       if (!selectedRound) {
         throw new SoloErrors.validation.illegalArgument(

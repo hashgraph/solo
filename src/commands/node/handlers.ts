@@ -516,6 +516,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.downloadNodeUpgradeFiles(),
       this.tasks.upgradeNodeConfigurationFilesWithChart(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
+      this.tasks.promotePostUpgradeSystemFiles(),
       this.tasks.updateConsensusNodeVersionInRemoteConfig(),
       this.tasks.addWrapsLib(),
       this.markNodesConfiguredWhenNodeStartSkipped(),
