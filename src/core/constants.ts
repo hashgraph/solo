@@ -316,6 +316,10 @@ export const POD_CONDITION_STATUS_TRUE: string = 'True';
 export const EXPLORER_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'hiero-explorer-values.yaml');
 export const RELAY_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'relay-values.yaml');
 export const MIRROR_NODE_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'mirror-node-values.yaml');
+export const MIRROR_NODE_DEBUG_VALUES_FILE: string = PathEx.joinWithRealPath(
+  RESOURCES_DIR,
+  'mirror-node-debug-values.yaml',
+);
 export const PROMETHEUS_STACK_VALUES_FILE: string = PathEx.joinWithRealPath(
   RESOURCES_DIR,
   'prometheus-stack-values.yaml',

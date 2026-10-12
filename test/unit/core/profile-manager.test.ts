@@ -462,6 +462,39 @@ describe('ProfileManager', (): void => {
     });
   });
 
+  describe('_setChartItems', (): void => {
+    it('should flatten nested objects and arrays into the YAML root', (): void => {
+      const yamlRoot: AnyObject = {defaults: {keep: true}};
+      const date: Date = new Date(0);
+      profileManager._setChartItems(
+        'defaults',
+        {
+          root: {extraEnvironment: [{name: 'JAVA_OPTS', value: '-Xmx1g'}], date},
+          list: [[1, 2], {nested: [{deep: 'x'}]}],
+          empty: {},
+          emptyList: [],
+        },
+        yamlRoot,
+      );
+
+      expect(yamlRoot).to.deep.equal({
+        defaults: {
+          keep: true,
+          root: {extraEnvironment: [{name: 'JAVA_OPTS', value: '-Xmx1g'}], date},
+          list: [[1, 2], {nested: [{deep: 'x'}]}],
+          empty: {},
+          emptyList: [],
+        },
+      });
+    });
+
+    it('should do nothing when items are undefined', (): void => {
+      const yamlRoot: AnyObject = {a: 1};
+      profileManager._setChartItems('', undefined, yamlRoot);
+      expect(yamlRoot).to.deep.equal({a: 1});
+    });
+  });
+
   describe('prepareConfigText', (): void => {
     it('should write and return the path to the config.txt file', async (): Promise<void> => {
       const destinationPath: string = PathEx.join(temporaryDirectory, 'staging');
