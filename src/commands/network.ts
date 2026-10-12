@@ -242,11 +242,11 @@ export class NetworkCommand extends BaseCommand {
           (consensusNode: ConsensusNode): SoloListrTask<NetworkDeployContext> => ({
             title: `Install on node: ${chalk.yellow(consensusNode.name)}, cluster: ${chalk.yellow(consensusNode.cluster)}`,
             task: async (): Promise<void> => {
-              const container: Container = await new K8Helper(consensusNode.context).getConsensusNodeRootContainer(
+              await NetworkNodeLifecycle.installArchiveTools(
+                consensusNode.context,
                 config.namespace,
                 consensusNode.name,
               );
-              await container.execContainer(['bash', '-c', NetworkNodeLifecycle.buildInstallArchiveToolsCommand()]);
             },
           }),
         );

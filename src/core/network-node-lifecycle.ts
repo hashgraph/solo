@@ -2,6 +2,11 @@
 
 import * as constants from './constants.js';
 import * as versions from '../../version.js';
+import {K8Helper} from '../business/utils/k8-helper.js';
+import {type NamespaceName} from '../types/namespace/namespace-name.js';
+import {type Container} from '../integration/kube/resources/container/container.js';
+import {type Context} from '../types/index.js';
+import {type NodeAlias} from '../types/aliases.js';
 
 /**
  * Builds the shell commands Solo runs in the root container to control the consensus node process.
@@ -187,6 +192,16 @@ export class NetworkNodeLifecycle {
       'command -v zip >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1 || ' +
       '(sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends zip unzip)'
     );
+  }
+
+  /** Runs {@link buildInstallArchiveToolsCommand} in the root container of the given consensus node's pod. */
+  public static async installArchiveTools(
+    context: Context,
+    namespace: NamespaceName,
+    nodeAlias: NodeAlias,
+  ): Promise<void> {
+    const container: Container = await new K8Helper(context).getConsensusNodeRootContainer(namespace, nodeAlias);
+    await container.execContainer(['bash', '-c', NetworkNodeLifecycle.buildInstallArchiveToolsCommand()]);
   }
 
   /**

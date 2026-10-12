@@ -5155,6 +5155,35 @@ export class NodeCommandTasks {
     };
   }
 
+  /**
+   * The consensus node image ships without zip and unzip, which Solo uses to archive, extract and verify node state
+   * and platform archives, so install them in every node's recreated pod once it is running.
+   */
+  public installArchiveTools(): SoloListrTask<NodeUpdateContext | NodeAddContext | NodeDestroyContext> {
+    return {
+      title: 'Install zip and unzip in the consensus node image',
+      skip: (): boolean => !NetworkNodeLifecycle.isConsensusNodeImage(),
+      task: (context_, task): any => {
+        const config: any = context_.config;
+        const subTasks: SoloListrTask<NodeUpdateContext | NodeAddContext | NodeDestroyContext>[] =
+          config.allNodeAliases.map(
+            (nodeAlias: NodeAlias): SoloListrTask<NodeUpdateContext | NodeAddContext | NodeDestroyContext> => ({
+              title: `Install on node: ${chalk.yellow(nodeAlias)}`,
+              task: async (): Promise<void> => {
+                await NetworkNodeLifecycle.installArchiveTools(
+                  extractContextFromConsensusNodes(nodeAlias, config.consensusNodes),
+                  config.namespace,
+                  nodeAlias,
+                );
+              },
+            }),
+          );
+
+        return task.newListr(subTasks, {concurrent: true, rendererOptions: {collapseSubtasks: false}});
+      },
+    };
+  }
+
   public sleep(title: string, milliseconds: number): SoloListrTask<AnyListrContext> {
     return {
       title,
