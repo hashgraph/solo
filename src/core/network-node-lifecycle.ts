@@ -82,7 +82,7 @@ export class NetworkNodeLifecycle {
       NetworkNodeLifecycle.JVM_PIDS_FUNCTION,
       // ACTIVE nodes are left running. A JVM that is alive but not ACTIVE is stopped first.
       'if [ -n "$(jvm_pids)" ]; then',
-      `  if curl -s http://localhost:9999/metrics | grep 'platform_PlatformStatus' | grep -q ' 2[.]0$'; then exit 0; fi`,
+      "  if curl -s http://localhost:9999/metrics | grep 'platform_PlatformStatus' | grep -q ' 2[.]0$'; then exit 0; fi",
       'fi',
       ...NetworkNodeLifecycle.buildStopServiceCommands(),
       `"${serviceControl}" -o "${servicePath}"`,
