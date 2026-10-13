@@ -581,35 +581,6 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics connections -d one-shot --check
 
-      - name: Check Static Ports Before Docker Restart
-        shell: pwsh
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: |
-          # Report-only: the smoke test reaches the relay and mirror through the one-shot static host
-          # ports (relay 37546, mirror 38081). Record whether they answer from Windows and what is
-          # listening on them, so a failure after the Docker restart can be told apart from a port path
-          # that never worked on Windows over WSL2.
-          Write-Host "== relay eth_chainId via 127.0.0.1:37546"
-          curl.exe --silent --show-error --max-time 10 -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' http://127.0.0.1:37546
-          Write-Host "`n[curl exit code=$LASTEXITCODE]"
-          Write-Host "== mirror REST via 127.0.0.1:38081"
-          curl.exe --silent --show-error --max-time 10 'http://127.0.0.1:38081/api/v1/blocks?limit=1'
-          Write-Host "`n[curl exit code=$LASTEXITCODE]"
-          Write-Host "== relay /health/liveness: from Windows, from inside WSL, from inside the kind node"
-          curl.exe --silent --show-error --max-time 10 http://127.0.0.1:37546/health/liveness
-          Write-Host "`n[windows curl exit code=$LASTEXITCODE]"
-          wsl -u root curl --silent --show-error --max-time 10 http://127.0.0.1:37546/health/liveness
-          Write-Host "`n[wsl curl exit code=$LASTEXITCODE]"
-          docker exec solo-cluster-control-plane curl --silent --show-error --max-time 10 http://127.0.0.1:30006/health/liveness
-          Write-Host "`n[kind node curl exit code=$LASTEXITCODE]"
-          Write-Host "== Windows process listening on 37546"
-          Get-NetTCPConnection -LocalPort 37546 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Get-Process -Id $_.OwningProcess | Select-Object Id, ProcessName, Path | Format-List | Out-String }
-          Write-Host "== Windows listeners on the static ports"
-          netstat -ano | Select-String -Pattern ':37546\s|:38081\s'
-          Write-Host "== WSL listeners and published container ports"
-          wsl -u root bash -lc "ss -ltnp | grep -E ':37546|:38081' || echo 'nothing listening in WSL on 37546/38081'; docker ps --format '{{.Names}} {{.Ports}}' | head -5"
-          $global:LASTEXITCODE = 0
-
       - name: Stop Consensus Nodes Before Docker Restart
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
@@ -752,44 +723,48 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- ledger account create --deployment one-shot --hbar-amount 100 --generate-ecdsa-key --set-alias --dev
 
-      - name: Check Static Ports After Docker Restart
+      - name: Verify Relay and Mirror After Docker Restart
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
-          # Report-only: the smoke test reaches the relay and mirror through the one-shot static host
-          # ports (relay 37546, mirror 38081). Record whether they answer from Windows and what is
-          # listening on them, so a failure after the Docker restart can be told apart from a port path
-          # that never worked on Windows over WSL2.
-          Write-Host "== relay eth_chainId via 127.0.0.1:37546"
-          curl.exe --silent --show-error --max-time 10 -X POST -H 'content-type: application/json' --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' http://127.0.0.1:37546
-          Write-Host "`n[curl exit code=$LASTEXITCODE]"
-          Write-Host "== mirror REST via 127.0.0.1:38081"
-          curl.exe --silent --show-error --max-time 10 'http://127.0.0.1:38081/api/v1/blocks?limit=1'
-          Write-Host "`n[curl exit code=$LASTEXITCODE]"
-          Write-Host "== relay /health/liveness: from Windows, from inside WSL, from inside the kind node"
-          curl.exe --silent --show-error --max-time 10 http://127.0.0.1:37546/health/liveness
-          Write-Host "`n[windows curl exit code=$LASTEXITCODE]"
-          wsl -u root curl --silent --show-error --max-time 10 http://127.0.0.1:37546/health/liveness
-          Write-Host "`n[wsl curl exit code=$LASTEXITCODE]"
-          docker exec solo-cluster-control-plane curl --silent --show-error --max-time 10 http://127.0.0.1:30006/health/liveness
-          Write-Host "`n[kind node curl exit code=$LASTEXITCODE]"
-          Write-Host "== Windows process listening on 37546"
-          Get-NetTCPConnection -LocalPort 37546 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Get-Process -Id $_.OwningProcess | Select-Object Id, ProcessName, Path | Format-List | Out-String }
-          Write-Host "== Windows listeners on the static ports"
-          netstat -ano | Select-String -Pattern ':37546\s|:38081\s'
-          Write-Host "== WSL listeners and published container ports"
-          wsl -u root bash -lc "ss -ltnp | grep -E ':37546|:38081' || echo 'nothing listening in WSL on 37546/38081'; docker ps --format '{{.Names}} {{.Ports}}' | head -5"
-          $global:LASTEXITCODE = 0
+          # solo_smoke_test.sh reaches the relay and mirror through the one-shot static NodePort host
+          # ports (37546/38081). Solo only creates those NodePort services for a kind cluster it
+          # configured itself; this job supplies its own rendered kind config, so one-shot falls back to
+          # kubectl port-forwards and the static ports serve nothing. Use the forwards Solo recorded.
+          $forwardsFile = Get-ChildItem -Path (Join-Path $env:USERPROFILE '.solo') -Filter forwards -Recurse -File |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $forwardsFile) { throw "Solo forwards file not found under $env:USERPROFILE\.solo" }
+          $forwards = Get-Content -LiteralPath $forwardsFile.FullName -Raw
+          Write-Host $forwards
+          $relayPort = [regex]::Match($forwards, 'JSON RPC Relay port forward enabled on 127\.0\.0\.1:(\d+)').Groups[1].Value
+          $mirrorPort = [regex]::Match($forwards, 'Mirror ingress controller port forward enabled on 127\.0\.0\.1:(\d+)').Groups[1].Value
+          if (-not $relayPort -or -not $mirrorPort) { throw "Could not read relay/mirror ports from $($forwardsFile.FullName)" }
 
-      - name: Run Smoke Test Script After Docker Restart
-        shell: bash
-        timeout-minutes: ${{ fromJSON(env.SMOKE_TEST_TIMEOUT_MINUTES) }}
-        env:
-          SOLO_DEPLOYMENT: one-shot
-          SOLO_NAMESPACE: one-shot
-        run: |
-          export PATH="$HOME/.solo/bin:${PATH}"
-          .github/workflows/script/solo_smoke_test.sh true
+          function Invoke-RelayCall([string]$Method) {
+            $body = @{jsonrpc = '2.0'; id = 1; method = $Method; params = @()} | ConvertTo-Json -Compress
+            (Invoke-RestMethod -Uri "http://127.0.0.1:$relayPort" -Method Post -ContentType 'application/json' -Body $body -TimeoutSec 10).result
+          }
+          function Get-LatestMirrorBlock() {
+            (Invoke-RestMethod -Uri "http://127.0.0.1:$mirrorPort/api/v1/blocks?limit=1&order=desc" -TimeoutSec 10).blocks[0].number
+          }
+
+          $chainId = $null
+          for ($attempt = 1; $attempt -le 30 -and -not $chainId; $attempt++) {
+            try { $chainId = Invoke-RelayCall 'eth_chainId' } catch { Start-Sleep -Seconds 5 }
+          }
+          if ($chainId -ne '0x12a') { throw "Relay on port $relayPort returned chain id '$chainId', expected 0x12a" }
+          Write-Host "Relay on port $relayPort answers eth_chainId=$chainId, eth_blockNumber=$(Invoke-RelayCall 'eth_blockNumber')"
+
+          # The mirror importer must keep ingesting blocks from the restarted network.
+          $firstBlock = Get-LatestMirrorBlock
+          $advanced = $false
+          for ($attempt = 1; $attempt -le 30 -and -not $advanced; $attempt++) {
+            Start-Sleep -Seconds 5
+            $latestBlock = Get-LatestMirrorBlock
+            $advanced = $latestBlock -gt $firstBlock
+          }
+          if (-not $advanced) { throw "Mirror on port $mirrorPort did not ingest new blocks after restart (stuck at block $firstBlock)" }
+          Write-Host "Mirror on port $mirrorPort advanced from block $firstBlock to $latestBlock"
 
       - name: Verify Solo Cache Files Are Readable
         shell: pwsh
