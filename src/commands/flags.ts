@@ -23,6 +23,8 @@ import {FlagRules} from './validation/flag-rules.js';
 import {FlagValidation} from './validation/flag-validation.js';
 
 const TLS_CLUSTER_ISSUER_TYPES: string[] = ['acme-staging', 'acme-prod', 'self-signed'];
+// Each component needs its own JVM image swap and values overlay (rest-java, web3 and grpc are native images too).
+const MIRROR_NODE_DEBUG_COMPONENTS: string[] = ['importer'];
 
 export class Flags {
   public static KEY_COMMON: string = '_COMMON_';
@@ -1689,6 +1691,20 @@ export class Flags {
     prompt: undefined,
   };
 
+  public static readonly debugMirrorNodeComponent: CommandFlag = {
+    constName: 'debugMirrorNodeComponent',
+    name: 'debug-mirror-node-component',
+    definition: {
+      describe:
+        'Open the default jvm debug port (5005) on the given mirror node component and port-forward it to localhost. ' +
+        `Allowed values: ${MIRROR_NODE_DEBUG_COMPONENTS.join(', ')}`,
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+    rules: [FlagRules.oneOf(...MIRROR_NODE_DEBUG_COMPONENTS)],
+  };
+
   public static readonly debugNodeAlias: CommandFlag = {
     constName: 'debugNodeAlias',
     name: 'debug-node-alias',
@@ -2868,6 +2884,7 @@ export class Flags {
     Flags.clusterSetupNamespace,
     Flags.context,
     Flags.createAmount,
+    Flags.debugMirrorNodeComponent,
     Flags.debugNodeAlias,
     Flags.deletePvcs,
     Flags.deleteSecrets,
