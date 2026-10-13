@@ -136,7 +136,7 @@ Use the exact packaging code the release workflow uses for the published artifac
 Taskfile step could break:
 
 ```bash
-task -t scripts/Taskfile.release.yml dual-publish:pack OUTPUT_DIR=output/release-smoke-test
+task -t scripts/Taskfile.release.yml pack OUTPUT_DIR=output/release-smoke-test
 ```
 
 **Verify `dist/` is actually real before trusting the tarball.** `Taskfile.yml`'s `build`/`build:compile`
@@ -153,7 +153,7 @@ tar -tzf "${TARBALL}" | grep -qE '^package/dist/solo\.js$' && tar -tzf "${TARBAL
   || { echo "BROKEN PACK: dist/ entry points missing — forcing a real rebuild and repacking"; \
        rm -rf dist output/release-smoke-test; \
        task build --force; \
-       task -t scripts/Taskfile.release.yml dual-publish:pack OUTPUT_DIR=output/release-smoke-test; }
+       task -t scripts/Taskfile.release.yml pack OUTPUT_DIR=output/release-smoke-test; }
 ```
 
 If this triggers, also tell the user afterward — a task caching bug that can silently ship a broken

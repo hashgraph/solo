@@ -10,6 +10,8 @@ const PREPARE_UPGRADE_FLAGS_OPTIONAL_FLAGS: CommandFlag[] = [
   flags.debugMode,
   flags.quiet,
   flags.skipNodeAlias,
+  flags.simpleFeesSchedulesFile,
+  flags.throttlesFile,
 ];
 export const PREPARE_UPGRADE_FLAGS: {optional: CommandFlag[]; required: CommandFlag[]} = {
   required: PREPARE_UPGRADE_FLAGS_REQUIRED_FLAGS,
@@ -30,6 +32,8 @@ const COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS: CommandFlag[] = [
   flags.localBuildPath,
   flags.force,
   flags.upgradeZipFile,
+  flags.simpleFeesSchedulesFile,
+  flags.throttlesFile,
   flags.upgradeVersion,
   flags.freezeBlockDrainSeconds,
   flags.skipNodeStart,

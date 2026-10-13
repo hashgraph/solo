@@ -706,13 +706,19 @@ TEMP_SOURCE_RELAY_VALUES_FILE="$(mktemp -t source-relay-values-XXXX.yaml)"
 cat > "${TEMP_SOURCE_RELAY_VALUES_FILE}" <<'EOF'
 # The source deployment uses a prior Solo release, so its bundled relay values may
 # predate the keep-alive fix in the current checkout. Keep migration smoke requests
-# from reusing connections across Mirror Web3 pod replacement.
+# from reusing connections across Mirror Web3 pod replacement. The prior release's
+# bundled defaults also set LOG_LEVEL=error, which omits per-request logs entirely;
+# raise it to debug here so a request that silently stalls (e.g. the ERC-20 smoke
+# test's transferFrom() polling a receipt that never arrives) leaves a trail instead
+# of just running out the mocha timeout with nothing to diagnose from.
 relay:
   config:
     MIRROR_NODE_HTTP_KEEP_ALIVE: false
+    LOG_LEVEL: debug
 ws:
   config:
     MIRROR_NODE_HTTP_KEEP_ALIVE: false
+    LOG_LEVEL: debug
 EOF
 
 cp resources/templates/application.properties "${TEMP_SOURCE_APPLICATION_PROPERTIES_FILE}"

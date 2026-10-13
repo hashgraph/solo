@@ -4,7 +4,6 @@ import {SoloErrors} from './errors/solo-errors.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as yaml from 'yaml';
-import dot from 'dot-object';
 import {readFile, writeFile} from 'node:fs/promises';
 
 import {Flags as flags} from '../commands/flags.js';
@@ -122,22 +121,27 @@ export class ProfileManager {
       return;
     }
 
-    const dotItems: AnyObject = dot.dot(items) as AnyObject;
+    for (const [itemKey, value] of ProfileManager.flattenItems(items)) {
+      this._setValue(itemPath ? `${itemPath}.${itemKey}` : itemKey, value, yamlRoot);
+    }
+  }
 
-    for (const key in dotItems) {
-      let itemKey: string = key;
-
-      // if it is an array key like extraEnvironment[0].JAVA_OPTS, convert it into a dot separated key as extraEnvironment.0.JAVA_OPTS
-      if (key.includes('[')) {
-        itemKey = key.replace('[', '.').replace(']', '');
-      }
-
-      if (itemPath) {
-        this._setValue(`${itemPath}.${itemKey}`, dotItems[key], yamlRoot);
+  /**
+   * Flatten a nested object into [dot.separated.path, leaf value] pairs. Array indexes become path
+   * parts (extraEnvironment.0.name). Empty objects/arrays and non-plain objects (e.g. Date) are leaves.
+   */
+  private static flattenItems(items: AnyObject, prefix: string = ''): [string, unknown][] {
+    const entries: [string, unknown][] = [];
+    for (const [key, value] of Object.entries(items)) {
+      const itemKey: string = prefix ? `${prefix}.${key}` : key;
+      const isContainer: boolean = Array.isArray(value) || Object.prototype.toString.call(value) === '[object Object]';
+      if (isContainer && Object.keys(value as object).length > 0) {
+        entries.push(...ProfileManager.flattenItems(value as AnyObject, itemKey));
       } else {
-        this._setValue(itemKey, dotItems[key], yamlRoot);
+        entries.push([itemKey, value]);
       }
     }
+    return entries;
   }
 
   public async prepareStagingDirectory(

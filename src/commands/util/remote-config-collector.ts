@@ -10,20 +10,13 @@ import {type K8} from '../../integration/kube/k8.js';
 import {type Contexts} from '../../integration/kube/resources/context/contexts.js';
 import {type ConfigMap} from '../../integration/kube/resources/config-map/config-map.js';
 import {type NamespaceName} from '../../types/namespace/namespace-name.js';
+import {UserInput} from '../../core/user-input.js';
 
 export class RemoteConfigCollector {
   public constructor(
     private readonly k8Factory: K8Factory,
     private readonly logger: SoloLogger,
   ) {}
-
-  /**
-   * Sanitize a string for safe use as a filename on all platforms.
-   * Replaces characters invalid on Windows with underscores.
-   */
-  private sanitizeFilename(input: string): string {
-    return input.replaceAll(/[^A-Za-z0-9._-]/g, '_');
-  }
 
   public async collect(
     customOutputDirectory: string = '',
@@ -53,7 +46,7 @@ export class RemoteConfigCollector {
 
         for (const configMap of configMaps) {
           const namespace: string = configMap.namespace.name;
-          const outputFileName: string = `${this.sanitizeFilename(context)}-${this.sanitizeFilename(namespace)}-${this.sanitizeFilename(configMap.name)}.json`;
+          const outputFileName: string = `${UserInput.safeFilenameComponent(context)}-${UserInput.safeFilenameComponent(namespace)}-${UserInput.safeFilenameComponent(configMap.name)}.json`;
           const outputFilePath: string = PathEx.join(outputDirectory, outputFileName);
 
           fs.writeFileSync(

@@ -111,6 +111,22 @@ describe('PodmanDependencyManager', (): void => {
 
       expect(podmanDependencyManager.containerConfigEnvironment()).to.deep.equal({});
     });
+
+    it('should read the podman binary directory back from the persisted runtime path', (): void => {
+      sinon.stub(OperatingSystem, 'isLinux').returns(true);
+      writeContainersConfig(existingRuntimePath);
+
+      expect(podmanDependencyManager.getConfiguredRuntimeBinaryDirectory()).to.equal(
+        PathEx.dirname(existingRuntimePath),
+      );
+    });
+
+    it('should have no podman binary directory when the config is stale', (): void => {
+      sinon.stub(OperatingSystem, 'isLinux').returns(true);
+      writeContainersConfig(PathEx.join(os.tmpdir(), 'solo-nonexistent-crun'));
+
+      expect(podmanDependencyManager.getConfiguredRuntimeBinaryDirectory()).to.equal(undefined);
+    });
   });
 
   describe('setupConfig in rootful mode', (): void => {
@@ -165,6 +181,12 @@ describe('PodmanDependencyManager', (): void => {
         CONTAINERS_CONF: PathEx.join(configDirectory, 'containers.conf'),
         CONTAINERS_REGISTRIES_CONF: PathEx.join(configDirectory, 'registries.conf'),
       });
+    });
+
+    it('should expose the configured runtime directory through getConfiguredRuntimeBinaryDirectory()', async (): Promise<void> => {
+      await podmanDependencyManager.setupConfig(runtimeBinaryDirectory);
+
+      expect(podmanDependencyManager.getConfiguredRuntimeBinaryDirectory()).to.equal(runtimeBinaryDirectory);
     });
 
     it('should reject when the runtime binary directory is missing', async (): Promise<void> => {

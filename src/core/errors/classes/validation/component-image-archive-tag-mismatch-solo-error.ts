@@ -13,10 +13,10 @@ export class ComponentImageArchiveTagMismatchSoloError extends SoloError {
   protected override readonly retryable: boolean = false;
   protected override readonly ownership: ErrorOwnership = ErrorOwnership.User;
 
-  public constructor(componentImage: string, componentImageArchive: string, repoTags: string[]) {
+  public constructor(missingImages: string[], componentImageArchive: string, repoTags: string[]) {
     super({
       message:
-        `Component image archive '${componentImageArchive}' does not contain '${componentImage}'; ` +
+        `Component image archive '${componentImageArchive}' does not contain '${missingImages.join("', '")}'; ` +
         `it contains: '${repoTags.join("', '")}'`,
       code: ErrorCodeRegistry.COMPONENT_IMAGE_ARCHIVE_TAG_MISMATCH,
       troubleshootingSteps:

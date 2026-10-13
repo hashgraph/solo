@@ -1,0 +1,191 @@
+##
+# Copyright (C) 2026 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+# Tests the Linux install script (installers/linux/install.sh) on every supported distribution:
+# the script-logic harness with a stand-in binary, then a real install of the linux-x64 SEA binary
+# built in this run, served from a local release directory over file://.
+# Tracked by hiero-ledger/solo#5725.
+name: 'Linux Install Script'
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'installers/linux/**'
+      - 'sea/**'
+      - '.github/workflows/flow-linux-install-script.yaml'
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-sea:
+    name: 'Build SEA (linux-x64)'
+    runs-on: hiero-solo-linux-medium
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Compile TypeScript
+        run: npx tsc
+
+      - name: Build SEA Binary
+        run: npx tsx sea/build.ts
+
+      - name: Upload SEA Binary
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: solo-linux-x64
+          path: sea/dist/solo-linux-x64
+          if-no-files-found: error
+          retention-days: 1
+
+  install-script:
+    name: 'Install Script (${{ matrix.distro }})'
+    needs: build-sea
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Same distributions as flow-install-validation.yaml. `bootstrap` adds what checkout and the
+        # script need; `libc` selects whether the linux-x64 SEA binary is expected to install.
+        include:
+          - distro: ubuntu
+            image: ubuntu:24.04
+            bootstrap: 'apt-get update && apt-get install -y git curl ca-certificates'
+            libc: glibc
+          - distro: debian
+            image: debian:12
+            bootstrap: 'apt-get update && apt-get install -y git curl ca-certificates'
+            libc: glibc
+          - distro: fedora
+            image: fedora:44
+            bootstrap: 'dnf install -y --allowerasing git curl ca-certificates tar gzip'
+            libc: glibc
+          - distro: rocky
+            image: quay.io/rockylinux/rockylinux:9
+            bootstrap: 'dnf install -y --allowerasing git curl ca-certificates tar gzip'
+            libc: glibc
+          - distro: alma
+            image: almalinux:9
+            bootstrap: 'dnf install -y --allowerasing git curl ca-certificates tar gzip'
+            libc: glibc
+          - distro: oraclelinux
+            image: oraclelinux:9
+            bootstrap: 'dnf install -y --allowerasing git curl ca-certificates tar gzip'
+            libc: glibc
+          - distro: opensuse
+            image: opensuse/leap:16.0
+            bootstrap: 'zypper --non-interactive install git curl ca-certificates tar gzip'
+            libc: glibc
+          # Rolling release, so the tag cannot be pinned; the accepted exception is tracked in #5957.
+          - distro: arch
+            image: archlinux:latest
+            bootstrap: 'pacman -Syu --noconfirm --needed git curl ca-certificates'
+            libc: glibc
+          # GNU tar is required because busybox tar cannot serve the actions that unpack downloads.
+          - distro: alpine
+            image: alpine:3.21
+            bootstrap: 'apk update && apk add git curl ca-certificates tar'
+            libc: musl
+    container:
+      # The arch row intentionally uses a floating 'latest' tag; see the comment on that row.
+      image: ${{ matrix.image }} # zizmor: ignore[unpinned-images]
+      # Some images declare no PATH (see flow-install-validation.yaml), so declare the standard one.
+      env:
+        PATH: '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    defaults:
+      run:
+        # The script under test is POSIX sh, and Alpine has no bash.
+        shell: sh
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Bootstrap Container
+        run: ${{ matrix.bootstrap }}
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test Install Script Logic
+        run: sh installers/linux/test-install.sh
+
+      - name: Download SEA Binary
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: solo-linux-x64
+          path: sea-binary
+
+      - name: Stage Local Release
+        run: |
+          set -eu
+          release_directory="${RUNNER_TEMP}/release/latest/download"
+          mkdir -p "${release_directory}"
+          cp sea-binary/solo-linux-x64 "${release_directory}/solo-linux-x64"
+          cd "${release_directory}"
+          sha256sum solo-linux-x64 >SHA256SUMS
+
+      - name: Install SEA Binary
+        if: matrix.libc == 'glibc'
+        run: |
+          set -eu
+          sh installers/linux/install.sh --base-url "file://${RUNNER_TEMP}/release" --skip-image-cache
+          expected_version="$(sed -n 's/^  "version": "\(.*\)",$/\1/p' package.json)"
+          actual_version="$("${HOME}/.solo/bin/solo" --version)"
+          echo "installed: ${actual_version}"
+          echo "${actual_version}" | grep -qF "${expected_version}"
+
+      - name: Reject Missing musl Binary
+        if: matrix.libc == 'musl'
+        run: |
+          set -eu
+          if sh installers/linux/install.sh --base-url "file://${RUNNER_TEMP}/release" --skip-image-cache 2>install.log; then
+            echo 'expected the install to fail: the release has no musl binary'
+            exit 1
+          fi
+          cat install.log
+          grep -qF 'no Solo binary for this machine (solo-linux-x64-musl)' install.log

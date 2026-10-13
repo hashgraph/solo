@@ -128,10 +128,14 @@ jobs:
                 // trusted anywhere in the log.
                 description: 'tool download could not reach its host',
                 // Deploy steps can fetch a chart during environment creation. Keep this explicit
-                // rather than making every product step eligible for generic network errors.
-                stepPrefixes: [...setupStepPrefixes, 'one-shot single deploy'],
+                // rather than making every product step eligible for generic network errors. Most
+                // example Taskfiles (11 of 16) deploy the explorer chart, which is pulled from
+                // ghcr.io by Helm's own OCI client - a chart pull can stall there regardless of
+                // which example or E2E suite is running, so both families are gated in alongside
+                // the deploy step rather than hard-coding one test name.
+                stepPrefixes: [...setupStepPrefixes, 'one-shot single deploy', 'run example test', 'run e2e tests'],
                 required:
-                  /Unexpected HTTP response: (429|5\d\d)|failed to fetch [^\n]*: (429|5\d\d) |getaddrinfo (EAI_AGAIN|ENOTFOUND)|(?:fetch|download|install|request)[^\n]*(?:ECONNRESET|ETIMEDOUT|socket hang up|connection timed out|connection failed)|(?:ECONNRESET|ETIMEDOUT|socket hang up|connection timed out|connection failed)[^\n]*(?:fetch|download|install|request)|npm (?:ERR!|error) code (?:ECONNRESET|ETIMEDOUT|EAI_AGAIN)[\s\S]{0,500}npm (?:ERR!|error) network\b/i,
+                  /Unexpected HTTP response: (429|5\d\d)|failed to fetch [^\n]*: (429|5\d\d) |getaddrinfo (EAI_AGAIN|ENOTFOUND)|(?:fetch|download|install|request)[^\n]*(?:ECONNRESET|ETIMEDOUT|socket hang up|connection timed out|connection failed)|(?:ECONNRESET|ETIMEDOUT|socket hang up|connection timed out|connection failed)[^\n]*(?:fetch|download|install|request)|npm (?:ERR!|error) code (?:ECONNRESET|ETIMEDOUT|EAI_AGAIN)[\s\S]{0,500}npm (?:ERR!|error) network\b|failed to do request:[^\n]*dial tcp [^\n]*i\/o timeout/i,
                 forbidden: /error TS\d{4}/,
               },
               {

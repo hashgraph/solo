@@ -4,7 +4,7 @@
     "test-script": "test-e2e-dual-cluster-full",
     "coverage-subdirectory": "e2e-dual-cluster-full",
     "coverage-report-name": "E2E_Dual_Cluster_Full_Tests_Coverage_Report",
-    "test-timeout-minutes": 35,
+    "test-timeout-minutes": 40,
     "local-java-build": false,
     "install-dependencies": true,
     "runner": "hiero-solo-linux-large",

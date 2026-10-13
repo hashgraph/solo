@@ -94,9 +94,10 @@ export class Middlewares {
           },
           {
             title: 'Create local configuration',
-            skip: (): boolean => this.localConfig.configFileExists(),
-            task: async (): Promise<void> => {
-              await this.localConfig.load();
+            task: async (_, task): Promise<void> => {
+              if (!(await this.localConfig.createIfMissing())) {
+                task.skip();
+              }
             },
           },
           {

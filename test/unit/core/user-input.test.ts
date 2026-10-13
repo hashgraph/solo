@@ -59,24 +59,6 @@ describe('UserInput.sanitize', (): void => {
   });
 });
 
-describe('UserInput.escapeShell', (): void => {
-  it('passes plain input through unchanged', (): void => {
-    expect(UserInput.escapeShell('hello')).to.equal('hello');
-    expect(UserInput.escapeShell('safe-value.123')).to.equal('safe-value.123');
-  });
-
-  it('escapes shell metacharacters in double-quote context', (): void => {
-    expect(UserInput.escapeShell('a"b')).to.equal(String.raw`a\"b`);
-    expect(UserInput.escapeShell('a$b')).to.equal(String.raw`a\$b`);
-    expect(UserInput.escapeShell('a`b`c')).to.equal('a\\`b\\`c');
-    expect(UserInput.escapeShell('a!b')).to.equal(String.raw`a\!b`);
-  });
-
-  it('escapes backslashes first so it does not double-escape downstream', (): void => {
-    expect(UserInput.escapeShell(String.raw`a\b`)).to.equal(String.raw`a\\b`);
-  });
-});
-
 describe('UserInput.escapeHelmTemplate', (): void => {
   it('passes plain input through unchanged', (): void => {
     expect(UserInput.escapeHelmTemplate('hello')).to.equal('hello');
@@ -85,26 +67,6 @@ describe('UserInput.escapeHelmTemplate', (): void => {
   it('escapes `{` and `}` so Helm treats them as literals', (): void => {
     expect(UserInput.escapeHelmTemplate('{{.Values.foo}}')).to.equal(String.raw`\{\{.Values.foo\}\}`);
     expect(UserInput.escapeHelmTemplate('a{b}c')).to.equal(String.raw`a\{b\}c`);
-  });
-});
-
-describe('UserInput.escapeRegex', (): void => {
-  it('passes plain input through unchanged', (): void => {
-    expect(UserInput.escapeRegex('hello')).to.equal('hello');
-  });
-
-  it('escapes every regex metacharacter', (): void => {
-    expect(UserInput.escapeRegex('.')).to.equal(String.raw`\.`);
-    expect(UserInput.escapeRegex(String.raw`a.b*c+d?e^f$g(h)i{j}k|l[m]n\o`)).to.equal(
-      String.raw`a\.b\*c\+d\?e\^f\$g\(h\)i\{j\}k\|l\[m\]n\\o`,
-    );
-  });
-
-  it('produces a string that matches the original literally when used in RegExp', (): void => {
-    const dangerous: string = 'a.b*c[d]e';
-    const pattern: RegExp = new RegExp(UserInput.escapeRegex(dangerous));
-    expect(pattern.test(dangerous)).to.equal(true);
-    expect(pattern.test('axbXcYdZe')).to.equal(false);
   });
 });
 
@@ -132,6 +94,27 @@ describe('UserInput.safeJsonKey', (): void => {
   });
 });
 
+describe('UserInput.stripUnsafeJsonKeys', (): void => {
+  it('drops prototype-pollution keys at every depth', (): void => {
+    const parsed: Record<string, unknown> = JSON.parse(
+      '{"a":1,"__proto__":{"polluted":true},"nested":{"constructor":9,"b":2}}',
+    );
+    const cleaned: Record<string, unknown> = UserInput.stripUnsafeJsonKeys(parsed);
+    expect(cleaned).to.deep.equal({a: 1, nested: {b: 2}});
+    expect(Object.prototype.hasOwnProperty.call(cleaned, '__proto__')).to.equal(false);
+  });
+
+  it('filters object keys inside arrays', (): void => {
+    const value: unknown[] = [{constructor: 1, keep: 2}, 'plain', 3];
+    expect(UserInput.stripUnsafeJsonKeys(value)).to.deep.equal([{keep: 2}, 'plain', 3]);
+  });
+
+  it('passes primitives through unchanged', (): void => {
+    expect(UserInput.stripUnsafeJsonKeys('x')).to.equal('x');
+    expect(UserInput.stripUnsafeJsonKeys(42)).to.equal(42);
+  });
+});
+
 describe('UserInput.safeFilenameComponent', (): void => {
   it('passes safe filename components through unchanged', (): void => {
     expect(UserInput.safeFilenameComponent('foo.bar')).to.equal('foo.bar');
@@ -141,5 +124,9 @@ describe('UserInput.safeFilenameComponent', (): void => {
   it('replaces filesystem-unsafe characters with underscores', (): void => {
     expect(UserInput.safeFilenameComponent(String.raw`a/b\c:d*e?f"g<h>i|j`)).to.equal('a_b_c_d_e_f_g_h_i_j');
     expect(UserInput.safeFilenameComponent('with spaces')).to.equal('with_spaces');
+  });
+
+  it('strips path traversal before normalizing (via sanitize)', (): void => {
+    expect(UserInput.safeFilenameComponent('../../etc/passwd')).to.equal('etc_passwd');
   });
 });

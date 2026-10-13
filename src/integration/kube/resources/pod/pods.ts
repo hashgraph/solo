@@ -108,6 +108,7 @@ export interface Pods {
    * @param containerImage - the image of the container
    * @param containerCommand - the command to run in the container
    * @param startupProbeCommand - the command to run in the startup probe
+   * @param [environment] - environment variables for the container, e.g. credentials that must stay off exec command lines
    * @returns the pod that was created
    */
   create(
@@ -117,6 +118,7 @@ export interface Pods {
     containerImage: string,
     containerCommand: string[],
     startupProbeCommand: string[],
+    environment?: Record<string, string>,
   ): Promise<Pod>;
 
   /**

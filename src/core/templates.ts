@@ -20,8 +20,19 @@ import {PathEx} from '../business/utils/path-ex.js';
 import {type ConsensusNode} from './model/consensus-node.js';
 import {HEDERA_PLATFORM_VERSION} from '../../version.js';
 import {OperatingSystem} from '../business/utils/operating-system.js';
+import {UserInput} from './user-input.js';
 
 export class Templates {
+  /**
+   * Render the on-disk output directory for a one-shot deployment. The deployment name is a
+   * user-supplied value that becomes a filesystem path component, so it is normalized with
+   * {@link UserInput.safeFilenameComponent} to strip path separators and traversal characters
+   * before it is joined under {@link constants.SOLO_HOME_DIR}.
+   */
+  public static renderOneShotOutputDirectory(deploymentName: string): string {
+    return PathEx.join(constants.SOLO_HOME_DIR, `one-shot-${UserInput.safeFilenameComponent(deploymentName)}`);
+  }
+
   public static renderNetworkPodName(nodeAlias: NodeAlias): PodName {
     return PodName.of(`network-${nodeAlias}-0`);
   }

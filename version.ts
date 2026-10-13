@@ -88,6 +88,12 @@ export const MEMORY_ENHANCEMENTS_MIRROR_NODE_VERSION: string = '0.152.0';
 export const MINIMUM_MIRROR_NODE_VERSION_FOR_ARM64_WEB3_NATIVE_IMAGE: string = '0.155.0';
 
 export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS: string = 'v0.74.0-0';
+// first consensus node releases that apply these files from data/config after a freeze upgrade
+export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_SIMPLE_FEES: string = 'v0.68.0-0';
+export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_THROTTLES: string = 'v0.54.0-0';
+// v0.72.x creates the simple fees schedule file without the entry that topic messages require from v0.73.0
+export const HIERO_PLATFORM_VERSION_WITH_INCOMPLETE_SIMPLE_FEES: string = 'v0.72.0-0';
+export const MINIMUM_HIERO_PLATFORM_VERSION_REQUIRING_TOPIC_MESSAGE_FEE_ENTRY: string = 'v0.73.0-0';
 export const MINIMUM_MIRROR_NODE_CHART_VERSION_FOR_PINGER_ENV_VARS_UPDATE: string = '0.153.0-0';
 
 export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_NETWORK_LOAD_GENERATOR: string = 'v0.72.0-0';
