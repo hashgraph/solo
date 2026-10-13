@@ -73,6 +73,9 @@ export class NetworkNodeLifecycle {
 
     return [
       `test -x "${serviceControl}" || { echo "missing ${serviceControl}; update the consensus node image" >&2; exit 1; }`,
+      // A restarted container loses the tools installed earlier in its writable layer, and the status checks that follow
+      // a start read the node metrics with curl, so make sure they are present on every start.
+      NetworkNodeLifecycle.buildInstallToolsCommand(),
       // log4j2.xml and settings.txt come from the hapi-app config map; hedera.crt and hedera.key from the secrets
       `for file_path in /etc/network-node/config/*; do [ -e "$file_path" ] || break; ln -sf "$file_path" "${applicationDirectory}/$(basename "$file_path")"; done`,
       `if [ -d /shared-hapiapp ] && [ -n "$(ls -A /shared-hapiapp)" ]; then cp -f /shared-hapiapp/* "${applicationDirectory}/"; fi`,
@@ -190,7 +193,13 @@ export class NetworkNodeLifecycle {
     namespace: NamespaceName,
     nodeAlias: NodeAlias,
   ): Promise<void> {
-    const container: Container = await new K8Helper(context).getConsensusNodeRootContainer(namespace, nodeAlias);
+    await NetworkNodeLifecycle.installToolsInContainer(
+      await new K8Helper(context).getConsensusNodeRootContainer(namespace, nodeAlias),
+    );
+  }
+
+  /** Runs {@link buildInstallToolsCommand} in the given root container. */
+  public static async installToolsInContainer(container: Container): Promise<void> {
     await container.execContainer(['bash', '-c', NetworkNodeLifecycle.buildInstallToolsCommand()]);
   }
 

@@ -844,6 +844,10 @@ export class BackupRestoreCommand extends BaseCommand {
 
         // Unzip the log file
         this.logger.showUser(chalk.gray(`    Extracting log file in pod: ${podName}`));
+        if (NetworkNodeLifecycle.isConsensusNodeImage()) {
+          // pods deployed by restore-network are not covered by the network deploy install step
+          await NetworkNodeLifecycle.installToolsInContainer(container);
+        }
         await container.execContainer([
           'unzip',
           '-o',

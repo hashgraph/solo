@@ -247,9 +247,11 @@ describe('NodeCommandTasks local build path copy', (): void => {
     expect(command).to.include(`chmod -R u+rwX,g+rX,o+rX "${applicationDirectory}" "${libraryDirectory}"`);
     expect(command).to.include(`test -f "${applicationJar}"`);
     expect(command).to.include(
-      `/command/s6-setuidgid hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class" | ` +
+      `run_as_hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class" | ` +
         'grep -q "com/hedera/node/app/ServicesMain.class"',
     );
+    // s6-setuidgid needs root, which the consensus node image does not run as
+    expect(command).to.include('if [ "$(id -u)" = "0" ]; then /command/s6-setuidgid hedera "$@"; else "$@"; fi');
   });
 
   it('stops the network node and disables autostart before replacing jars', async (): Promise<void> => {

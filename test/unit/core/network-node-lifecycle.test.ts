@@ -58,6 +58,7 @@ describe('NetworkNodeLifecycle', (): void => {
     const start: string = NetworkNodeLifecycle.buildStartCommand(consensusNodeImage);
     expect(start).to.contain('/etc/network-node/config/*');
     expect(start).to.contain('/shared-hapiapp');
+    expect(start).to.contain(NetworkNodeLifecycle.buildInstallToolsCommand());
     expect(start).to.contain('data/config/genesis-network.json');
     expect(start).to.not.contain('ps -ef');
   });

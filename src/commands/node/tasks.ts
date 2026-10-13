@@ -2499,7 +2499,9 @@ export class NodeCommandTasks {
       `  sync "${hapiPath}"`,
       'fi',
       `test -f "${applicationJar}" || { echo "missing ${applicationJar}" >&2; exit 1; }`,
-      `/command/s6-setuidgid hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class" | grep -q "com/hedera/node/app/ServicesMain.class" || { echo "missing ServicesMain in ${applicationJar}" >&2; exit 1; }`,
+      // s6-setuidgid needs root; the consensus node image already runs as the hedera user
+      'run_as_hedera() { if [ "$(id -u)" = "0" ]; then /command/s6-setuidgid hedera "$@"; else "$@"; fi; }',
+      `run_as_hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class" | grep -q "com/hedera/node/app/ServicesMain.class" || { echo "missing ServicesMain in ${applicationJar}" >&2; exit 1; }`,
     ].join('\n');
   }
 
