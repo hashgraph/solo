@@ -67,6 +67,7 @@ describe('NetworkNodeLifecycle', (): void => {
     for (const tool of ['zip', 'unzip', 'curl']) {
       expect(command).to.contain(`command -v ${tool}`);
     }
+    expect(command).to.contain('mkdir -p /var/cache/apt/archives/partial');
     expect(command).to.contain('apt-get install -y -qq --no-install-recommends zip unzip curl');
   });
 

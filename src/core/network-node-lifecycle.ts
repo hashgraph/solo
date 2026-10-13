@@ -177,7 +177,10 @@ export class NetworkNodeLifecycle {
   public static buildInstallToolsCommand(): string {
     return (
       'command -v zip >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1 && command -v curl >/dev/null 2>&1 || ' +
-      '(sudo apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends zip unzip curl)'
+      // the image build deletes /var/cache and /var/log, and apt refuses to run without its working directories
+      '(sudo mkdir -p /var/cache/apt/archives/partial /var/lib/apt/lists/partial /var/log/apt && ' +
+      'sudo apt-get update -qq && ' +
+      'sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends zip unzip curl)'
     );
   }
 
