@@ -213,7 +213,59 @@ Build constraints from the SEA binary (#5716):
 - EV certificates normally live on a hardware token or cloud signing service, so the CI signing step depends on
   what #5717 provisions.
 
-## 7. Risks
+## 7. NSIS Installer Design (Deferred Option)
+
+Not part of the first release (§6.2). This section records the design so the option can be picked up without
+re-research. It implements [#5723](https://github.com/hiero-ledger/solo/issues/5723).
+
+### 7.1 What it produces
+
+[NSIS](https://sourceforge.net/projects/nsis/) compiles a script (`solo.nsi`) with `makensis` into a single
+`solo-setup.exe`. The installer embeds the signed `solo.exe` and the pinned MSYS2 files (§4.6) and lays them out
+in the same per-user directory structure as the script install, so both paths produce the same result.
+
+### 7.2 Installer behavior
+
+| Step      | Behavior                                                                     |
+| --------- | ---------------------------------------------------------------------------- |
+| Elevation | `RequestExecutionLevel user`: per-user install, no admin prompt              |
+| Files     | `File` for `solo.exe`; `File /r` for the staged `msys2\` tree                |
+| PATH      | Add the bin directory to the **user** PATH only                              |
+| Post-step | Run `solo cache image pull` after copying (skippable)                        |
+| Uninstall | `WriteUninstaller`, plus an Add/Remove Programs entry (`HKCU\...\Uninstall`) |
+| Silent    | `/S` for unattended installs, used by CI                                     |
+
+The uninstall section runs the shared uninstall logic from
+[#5721](https://github.com/hiero-ledger/solo/issues/5721) (`solo uninstall` once it exists, §6.3), then removes the
+PATH entry and the install directory.
+
+### 7.3 Build pipeline
+
+1. **Stage:** an earlier job produces the signed `solo.exe` and downloads the pinned MSYS2 files into a `stage\`
+   folder, uploaded as a workflow artifact.
+2. **Build:** a Windows runner installs a pinned NSIS (for example `choco install nsis --version <pinned>`) and
+   runs `makensis solo.nsi`.
+3. **Sign:** Authenticode-sign `solo-setup.exe` and the generated uninstaller (§6.4).
+4. **Test:** install silently, run a one-shot deploy and destroy against the installed binary, then uninstall and
+   check nothing is left behind.
+5. **Publish:** attach `solo-setup.exe` and its checksum to the release.
+
+### 7.4 Runner requirements
+
+- Use a pinned Windows runner image. It is needed for `signtool` and for the install test in any case.
+- Install NSIS during the job with its version pinned. Pin GitHub Actions by commit hash, as the existing Windows
+  workflow does.
+- A Linux runner with `apt install nsis` can cross-compile, but some plugins are Windows-only and generating a
+  signed uninstaller normally requires running a Windows executable during the build. Linux is therefore not used.
+
+### 7.5 Notes
+
+- The uninstaller is a separate executable generated at build time, so it needs its own signing step.
+- NSIS owns the Add/Remove Programs entry, so `solo uninstall` and that entry must stay consistent. A machine with
+  both a script install and an NSIS install must be detected.
+- Sharing inputs with the script path (§6.2) keeps the installer a thin wrapper, not a second install process.
+
+## 8. Risks
 
 | Risk                                                 | Mitigation                                                                      |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------- |
