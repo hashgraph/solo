@@ -731,6 +731,15 @@ jobs:
           # ports (37546/38081). Solo only creates those NodePort services for a kind cluster it
           # configured itself; this job supplies its own rendered kind config, so one-shot falls back to
           # kubectl port-forwards and the static ports serve nothing. Use the forwards Solo recorded.
+          #
+          # A kubectl port-forward is bound to one pod connection and dies when that connection breaks
+          # (the mirror forward was refused here while the relay forward still worked), so restore any
+          # missing forward first; the refresh is idempotent and reuses the recorded ports.
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- deployment refresh port-forwards --deployment one-shot --dev
+          if ($LASTEXITCODE -ne 0) { throw "Refreshing port-forwards failed with exit code $LASTEXITCODE" }
           $forwardsFile = Get-ChildItem -Path (Join-Path $env:USERPROFILE '.solo') -Filter forwards -Recurse -File |
             Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $forwardsFile) { throw "Solo forwards file not found under $env:USERPROFILE\.solo" }
@@ -745,7 +754,15 @@ jobs:
             (Invoke-RestMethod -Uri "http://127.0.0.1:$relayPort" -Method Post -ContentType 'application/json' -Body $body -TimeoutSec 10).result
           }
           function Get-LatestMirrorBlock() {
-            (Invoke-RestMethod -Uri "http://127.0.0.1:$mirrorPort/api/v1/blocks?limit=1&order=desc" -TimeoutSec 10).blocks[0].number
+            for ($try = 1; $try -le 30; $try++) {
+              try {
+                return (Invoke-RestMethod -Uri "http://127.0.0.1:$mirrorPort/api/v1/blocks?limit=1&order=desc" -TimeoutSec 10).blocks[0].number
+              } catch {
+                # best-effort: the forward or mirror REST may still be settling, so retry until the budget is used
+                Start-Sleep -Seconds 5
+              }
+            }
+            throw "Mirror REST on port $mirrorPort never answered /api/v1/blocks"
           }
 
           $chainId = $null
