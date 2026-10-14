@@ -144,6 +144,12 @@ export class PcesTrimmer {
   }
 
   private static readLengthDelimitedField(messageBytes: Buffer, targetFieldNumber: number): Buffer | undefined {
+    return PcesTrimmer.readAllLengthDelimitedFields(messageBytes, targetFieldNumber)[0];
+  }
+
+  /** Same field lookup as {@link readLengthDelimitedField}, but collects every occurrence — needed for repeated fields like GossipEvent.transactions. */
+  private static readAllLengthDelimitedFields(messageBytes: Buffer, targetFieldNumber: number): Buffer[] {
+    const matches: Buffer[] = [];
     let offset: number = 0;
     while (offset < messageBytes.length) {
       const tagRead: VarintRead = PcesTrimmer.readVarint(messageBytes, offset);
@@ -154,13 +160,15 @@ export class PcesTrimmer {
       if (fieldNumber === targetFieldNumber && wireType === WIRE_TYPE_LENGTH_DELIMITED) {
         const lengthRead: VarintRead = PcesTrimmer.readVarint(messageBytes, offset);
         const fieldStart: number = lengthRead.nextOffset;
-        return messageBytes.subarray(fieldStart, fieldStart + Number(lengthRead.value));
+        const fieldEnd: number = fieldStart + Number(lengthRead.value);
+        matches.push(messageBytes.subarray(fieldStart, fieldEnd));
+        offset = fieldEnd;
+      } else {
+        offset = PcesTrimmer.skipField(messageBytes, offset, wireType);
       }
-
-      offset = PcesTrimmer.skipField(messageBytes, offset, wireType);
     }
 
-    return undefined;
+    return matches;
   }
 
   private static readVarintField(messageBytes: Buffer, targetFieldNumber: number): number | undefined {

@@ -33,7 +33,7 @@ export const INGRESS_CONTROLLER_VERSION: string =
   constants.getEnvironmentVariable('INGRESS_CONTROLLER_VERSION') || '0.14.5';
 // If this version changes, regenerate test/data/proto.zip (see test/data/get-block.sh for steps) —
 // a stale vendored schema causes intermittent grpcurl unmarshal failures (see issue #5848).
-export const BLOCK_NODE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_VERSION') || '0.43.0';
+export const BLOCK_NODE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_VERSION') || '0.44.2';
 
 export const METALLB_CHART_VERSION: string = constants.getEnvironmentVariable('METALLB_CHART_VERSION') || '0.15.3';
 export const MINIO_OPERATOR_VERSION: string = constants.getEnvironmentVariable('MINIO_OPERATOR_VERSION') || '7.1.1';
@@ -80,7 +80,7 @@ export const EXPLORER_EDGE_VERSION: string =
   constants.getEnvironmentVariable('EXPLORER_EDGE_VERSION') || EXPLORER_VERSION;
 export const HEDERA_JSON_RPC_RELAY_EDGE_VERSION: string =
   constants.getEnvironmentVariable('RELAY_EDGE_VERSION') || '0.79.0';
-export const BLOCK_NODE_EDGE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_EDGE_VERSION') || '0.44.0';
+export const BLOCK_NODE_EDGE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_EDGE_VERSION') || '0.44.2';
 
 // -------------------------------------------------------------------- //
 
@@ -115,6 +115,17 @@ export const MINIMUM_HIERO_BLOCK_NODE_VERSION_FOR_DEDICATED_HEALTH_PORT: string 
 // suffix makes pre-releases (e.g. v0.77.2) satisfy the check.
 export const MINIMUM_CN_VERSION_FOR_16_SLOT_BLOCK_PROOF: string = 'v0.77.0-0';
 export const MINIMUM_BLOCK_NODE_VERSION_FOR_16_SLOT_BLOCK_PROOF: string = 'v0.41.0-0';
+
+// Consensus node v0.79 hashes blocks and state with SHA-256 instead of SHA-384, and only block node
+// 0.45+ and mirror node 0.165+ can consume that output. This is a hard floor rather than a matched
+// pair: the newer block and mirror nodes still work with an older consensus node.
+export const MINIMUM_CN_VERSION_FOR_SHA256_HASHING: string = 'v0.79.0-0';
+export const MINIMUM_BLOCK_NODE_VERSION_FOR_SHA256_HASHING: string = 'v0.45.0-0';
+export const MINIMUM_MIRROR_NODE_VERSION_FOR_SHA256_HASHING: string = 'v0.165.0-0';
+
+// Consensus node v0.79 changes the TSS library, which does not convert existing keys or proofs, so a
+// network on an older version cannot be upgraded across this boundary; it has to be redeployed.
+export const CN_VERSION_REQUIRING_REDEPLOY: string = 'v0.79.0-0';
 
 export function getSoloVersion(): Version {
   // In SEA mode the bootstrap (sea/sea-main.template.cjs) sets SOLO_SEA_VERSION before any

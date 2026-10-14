@@ -191,6 +191,19 @@ export const MINIO_OPERATOR_RELEASE_NAME: string = 'operator';
  */
 export const MINIO_OPERATOR_CRDS: string[] = ['tenants.minio.min.io', 'policybindings.sts.min.io'];
 
+export const PROMETHEUS_OPERATOR_CRDS: string[] = [
+  'alertmanagerconfigs.monitoring.coreos.com',
+  'alertmanagers.monitoring.coreos.com',
+  'podmonitors.monitoring.coreos.com',
+  'probes.monitoring.coreos.com',
+  'prometheusagents.monitoring.coreos.com',
+  'prometheuses.monitoring.coreos.com',
+  'prometheusrules.monitoring.coreos.com',
+  'scrapeconfigs.monitoring.coreos.com',
+  'servicemonitors.monitoring.coreos.com',
+  'thanosrulers.monitoring.coreos.com',
+];
+
 export const METRICS_SERVER_CHART_URL: string =
   getEnvironmentVariable('METRICS_SERVER_CHART_URL') ?? 'https://kubernetes-sigs.github.io/metrics-server/';
 export const METRICS_SERVER_CHART: string = 'metrics-server';
@@ -316,6 +329,10 @@ export const POD_CONDITION_STATUS_TRUE: string = 'True';
 export const EXPLORER_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'hiero-explorer-values.yaml');
 export const RELAY_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'relay-values.yaml');
 export const MIRROR_NODE_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'mirror-node-values.yaml');
+export const MIRROR_NODE_DEBUG_VALUES_FILE: string = PathEx.joinWithRealPath(
+  RESOURCES_DIR,
+  'mirror-node-debug-values.yaml',
+);
 export const PROMETHEUS_STACK_VALUES_FILE: string = PathEx.joinWithRealPath(
   RESOURCES_DIR,
   'prometheus-stack-values.yaml',
@@ -362,6 +379,7 @@ export const ONE_SHOT_MIRROR_INGRESS_NODEPORT_VALUES_FILE: string = PathEx.joinW
 // extraPortMappings map it to ingress-controller NodePort 30003 inside the cluster. Must match the
 // hostPort in resources/templates/small-memory/kind-config.yaml.
 export const ONE_SHOT_MIRROR_REST_HOST_PORT: number = 38_081;
+export const ONE_SHOT_MIRROR_REST_NODE_PORT: number = 30_003;
 // One-shot only: fixed NodePorts for the explorer, JSON RPC relay, and consensus node gRPC
 // (node1 HAProxy) services created by the one-shot deploy orchestrator, plus the host ports the
 // Kind extraPortMappings publish them on. Each host port matches the legacy kubectl port-forward
@@ -375,10 +393,6 @@ export const ONE_SHOT_CONSENSUS_GRPC_NODE_PORT: number = 30_007;
 export const ONE_SHOT_CONSENSUS_GRPC_HOST_PORT: number = 35_211;
 export const BLOCK_NODE_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'block-node-values.yaml');
 export const BLOCK_NODE_SOLO_DEV_FILE: string = BLOCK_NODE_VALUES_FILE;
-export const BLOCK_NODE_MESSAGING_WORKAROUND_FILE: string = PathEx.joinWithRealPath(
-  RESOURCES_DIR,
-  'block-node-messaging-workaround.yaml',
-);
 export const MIRROR_POSTGRES_TRUNCATE_SQL_FILE: string = PathEx.joinWithRealPath(
   RESOURCES_DIR,
   'mirror-postgres-truncate.sql',
@@ -394,7 +408,6 @@ export const BLOCK_NODE_TSS_VALUES_FILE: string = PathEx.joinWithRealPath(RESOUR
 export const RENAME_STATE_NODE_ID_SCRIPT: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'rename-state-node-id.sh');
 export const NODE_LOG_FAILURE_MSG: string = 'failed to download logs from pod';
 export const ONE_SHOT_WITH_BLOCK_NODE: string = getEnvironmentVariable('ONE_SHOT_WITH_BLOCK_NODE') || 'false';
-export const ONE_SHOT_BLOCK_NODE_PERF: string = getEnvironmentVariable('ONE_SHOT_BLOCK_NODE_PERF') || 'false';
 export const ONE_SHOT_DEPLOYMENT_NAME: string = 'one-shot';
 export const RAPID_FIRE_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'rapid-fire', 'nlg-values.yaml');
 
@@ -664,6 +677,7 @@ export const MINIO_SECRET_NAME: string = 'minio-secrets';
 export const BACKUP_SECRET_NAME: string = 'backup-uploader-secrets';
 export const MIRROR_INGRESS_TLS_SECRET_NAME: string = 'ca-secret-mirror-node';
 export const EXPLORER_INGRESS_TLS_SECRET_NAME: string = 'ca-secret-hiero-explorer';
+export const NODE_TLS_KEYS_SECRET_NAME: string = 'network-node-hapi-app-secrets';
 
 export const BLOCK_STREAM_STREAM_MODE: string = getEnvironmentVariable('BLOCK_STREAM_STREAM_MODE') || 'BOTH';
 export const BLOCK_STREAM_WRITER_MODE: string = getEnvironmentVariable('BLOCK_STREAM_WRITER_MODE') || 'FILE_AND_GRPC';

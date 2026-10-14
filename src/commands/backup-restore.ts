@@ -8,7 +8,6 @@ import {type CommandFlags} from '../types/flag-types.js';
 import chalk from 'chalk';
 import yaml from 'yaml';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import {type ConfigMap} from '../integration/kube/resources/config-map/config-map.js';
@@ -28,7 +27,7 @@ import {
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
 import {NetworkNodes} from '../core/network-nodes.js';
-import {extractContextFromConsensusNodes, sleep} from '../core/helpers.js';
+import {extractContextFromConsensusNodes, Helpers, sleep} from '../core/helpers.js';
 import {Duration} from '../core/time/duration.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
@@ -1839,12 +1838,13 @@ export class BackupRestoreCommand extends BaseCommand {
         [applicationPropertiesFileName]: updated,
       });
 
-      const temporaryFile: string = path.join(os.tmpdir(), applicationPropertiesFileName);
-      fs.writeFileSync(temporaryFile, updated);
+      const temporaryDirectory: string = Helpers.getTemporaryDirectory();
       try {
+        const temporaryFile: string = path.join(temporaryDirectory, applicationPropertiesFileName);
+        fs.writeFileSync(temporaryFile, updated);
         await container.copyTo(temporaryFile, targetDirectory);
       } finally {
-        fs.unlinkSync(temporaryFile);
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
       }
 
       this.logger.info(`Reset blockStream.writerMode to FILE_AND_GRPC for ${consensusNode.name}`);
