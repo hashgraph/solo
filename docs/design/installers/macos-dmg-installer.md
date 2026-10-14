@@ -117,7 +117,9 @@ artifacts than a `.pkg` would.
 
 - **Apple Silicon refuses to run unsigned arm64 code.** An ad-hoc signature satisfies this, and `sea/build.ts`
   already strips the stock Node signature before postject injects the SEA blob and ad-hoc re-signs afterward.
-  The install-script channel therefore works today without any Apple certificate.
+  The install-script channel therefore works today without any Apple certificate. An ad-hoc signature makes
+  the binary runnable, not authentic: it carries no Team ID, and anyone can ad-hoc sign a modified binary. On
+  this channel, tamper protection comes from `SHA256SUMS` + `cosign` (last bullet), as on Linux.
 - **Developer ID signing and notarization are still needed** for every path that sets the quarantine
   attribute: a user downloading the binary from the GitHub Release page in a browser, or an agent fetching it
   through a quarantine-aware tool. Without them, Gatekeeper blocks the first run with no override short of
@@ -132,8 +134,8 @@ artifacts than a `.pkg` would.
   `com.apple.security.cs.allow-unsigned-executable-memory`. Start from the entitlements set Node.js ships its
   own macOS binaries with, and trim it during #5724. Signing must happen _after_ the postject injection,
   which `sea/build.ts` already orders correctly for the ad-hoc case.
-- **`SHA256SUMS` + keyless `cosign`** is shared with Linux (its §6.1) and covers the same post-publish tamper
-  case on macOS.
+- **`SHA256SUMS` + keyless `cosign`** is shared with Linux (its §6.1) and is the authenticity check on macOS
+  too. Developer ID signing adds a second, OS-level check once #5717 lands; it doesn't replace this one.
 
 ---
 
@@ -163,9 +165,13 @@ then `rename()` over the current binary. macOS-specific constraints:
   new bytes into the existing file (e.g. `cp` over it) makes the next launch die with `Killed: 9` (code
   signature invalid). Renaming a separate file into place creates a new vnode and avoids this. The Linux
   design's rename step is therefore required on macOS, not just preferred.
-- **Re-verify the code signature before the swap**, not only the checksum: `codesign --verify --strict` on the
-  temp file, and a check that its Team ID matches the running binary's. macOS offers an OS-level signature to
-  check against, unlike Linux.
+- **Authenticity comes from `SHA256SUMS` + `cosign`, as on Linux, not from the code signature.** Release
+  binaries are ad-hoc signed until Developer ID signing ships (§6). An ad-hoc signature has no Team ID and can
+  be produced by anyone, so `codesign` can't tell a genuine binary from a tampered one.
+- **`codesign --verify --strict` on the temp file is a launchability check only.** It rejects a binary whose
+  signature is broken, which would otherwise die with `Killed: 9` after the swap.
+- **Team ID pinning follows Developer ID signing.** Once #5717 lands, if the running binary has a Team ID,
+  require the new binary to carry the same one. Before that, there's no Team ID to compare.
 - **Architecture**: resolve the download URL with the same Rosetta-aware detection as the script (§5), so an
   x86_64 shell on Apple Silicon doesn't downgrade the user to the Intel binary.
 - **Non-interactive safety**: `VersionUpdateNotifier` only shows its banner when stdout is a TTY. The epic's
@@ -247,5 +253,6 @@ only one Apple certificate.
 
 ---
 
-_Last updated: 2026-10-06 (rewritten after Homebrew removal: install script adopted as the macOS channel,
-`.pkg` and DMG ruled out; supersedes PR #5873)_
+_Last updated: 2026-10-14 (§6, §7.3: authenticity relies on `SHA256SUMS` + `cosign`; Team ID pinning deferred
+until Developer ID signing ships. 2026-10-06: rewritten after Homebrew removal, install script adopted as the
+macOS channel, `.pkg` and DMG ruled out; supersedes PR #5873)_
