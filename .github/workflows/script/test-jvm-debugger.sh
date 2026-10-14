@@ -169,7 +169,7 @@ if [[ "$SKIP_BOOTSTRAP" == false ]]; then
   kind delete cluster --name "$SOLO_CLUSTER_NAME" >/dev/null 2>&1 || true
   /bin/rm -rf ~/.solo 2>/dev/null || true
 
-  kind create cluster --name "$SOLO_CLUSTER_NAME" --image kindest/node:v1.34.0 --wait 5m --config .github/workflows/script/kind-config.yaml
+  kind create cluster --name "$SOLO_CLUSTER_NAME" --image kindest/node:v1.34.0@sha256:7416a61b42b1662ca6ca89f02028ac133a309a2a30ba309614e8ec94d976dc5a --wait 5m --config .github/workflows/script/kind-config.yaml
 
   npm run solo-test -- cluster-ref config connect --cluster-ref "$SOLO_CLUSTER_NAME" --context "kind-$SOLO_CLUSTER_NAME"
   npm run solo-test -- deployment config create --namespace "$SOLO_NAMESPACE" --deployment "$SOLO_DEPLOYMENT"
