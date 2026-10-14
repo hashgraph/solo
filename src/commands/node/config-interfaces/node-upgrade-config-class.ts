@@ -25,6 +25,7 @@ export interface NodeUpgradeConfigClass extends NodeCommonConfigWithNodeAliases,
   curDate: Date;
   upgradeVersion: string;
   upgradeZipFile: string;
+  force: boolean;
 
   // Post-upgrade system file flags
   simpleFeesSchedulesFile: string;

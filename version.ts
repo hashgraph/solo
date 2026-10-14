@@ -116,6 +116,17 @@ export const MINIMUM_HIERO_BLOCK_NODE_VERSION_FOR_DEDICATED_HEALTH_PORT: string 
 export const MINIMUM_CN_VERSION_FOR_16_SLOT_BLOCK_PROOF: string = 'v0.77.0-0';
 export const MINIMUM_BLOCK_NODE_VERSION_FOR_16_SLOT_BLOCK_PROOF: string = 'v0.41.0-0';
 
+// Consensus node v0.79 hashes blocks and state with SHA-256 instead of SHA-384, and only block node
+// 0.45+ and mirror node 0.165+ can consume that output. This is a hard floor rather than a matched
+// pair: the newer block and mirror nodes still work with an older consensus node.
+export const MINIMUM_CN_VERSION_FOR_SHA256_HASHING: string = 'v0.79.0-0';
+export const MINIMUM_BLOCK_NODE_VERSION_FOR_SHA256_HASHING: string = 'v0.45.0-0';
+export const MINIMUM_MIRROR_NODE_VERSION_FOR_SHA256_HASHING: string = 'v0.165.0-0';
+
+// Consensus node v0.79 changes the TSS library, which does not convert existing keys or proofs, so a
+// network on an older version cannot be upgraded across this boundary; it has to be redeployed.
+export const CN_VERSION_REQUIRING_REDEPLOY: string = 'v0.79.0-0';
+
 export function getSoloVersion(): Version {
   // In SEA mode the bootstrap (sea/sea-main.template.cjs) sets SOLO_SEA_VERSION before any
   // module initializes, so we can return it without a filesystem read.

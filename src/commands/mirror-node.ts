@@ -52,6 +52,7 @@ import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentCompatibility} from '../business/compatibility/component-compatibility.js';
 import {MirrorNodeStateSchema} from '../data/schema/model/remote/state/mirror-node-state-schema.js';
 import {Lock} from '../core/lock/lock.js';
 import {Base64} from 'js-base64';
@@ -96,6 +97,7 @@ interface MirrorNodeDeployConfigClass {
   chartValues: HelmChartValues;
   quiet: boolean;
   mirrorNodeVersion: string;
+  force: boolean;
   componentImage: string;
   componentImageArchive: string;
   pinger: boolean;
@@ -116,6 +118,7 @@ interface MirrorNodeDeployConfigClass {
   externalDatabaseReadonlyPassword: Optional<string>;
   domainName: Optional<string>;
   forcePortForward: Optional<boolean>;
+  debugMirrorNodeComponent: Optional<string>;
   releaseName: string;
   ingressReleaseName: string;
   newMirrorNodeComponent: MirrorNodeStateSchema;
@@ -148,6 +151,7 @@ interface MirrorNodeUpgradeConfigClass {
   chartValues: HelmChartValues;
   quiet: boolean;
   mirrorNodeVersion: string;
+  force: boolean;
   componentImage: string;
   componentImageArchive: string;
   pinger: boolean;
@@ -168,6 +172,7 @@ interface MirrorNodeUpgradeConfigClass {
   externalDatabaseReadonlyPassword: Optional<string>;
   domainName: Optional<string>;
   forcePortForward: Optional<boolean>;
+  debugMirrorNodeComponent: Optional<string>;
   releaseName: string;
   ingressReleaseName: string;
   isLegacyChartInstalled: boolean;
@@ -297,10 +302,12 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.externalDatabaseReadonlyPassword,
       flags.domainName,
       flags.forcePortForward,
+      flags.debugMirrorNodeComponent,
       flags.externalAddress,
       flags.soloChartVersion,
       flags.forceBlockNodeIntegration, // Used to bypass version requirements for block node integration
       flags.parallelDeploy,
+      flags.force,
     ],
   };
 
@@ -338,10 +345,12 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.externalDatabaseReadonlyPassword,
       flags.domainName,
       flags.forcePortForward,
+      flags.debugMirrorNodeComponent,
       flags.externalAddress,
       flags.id,
       flags.soloChartVersion,
       flags.forceBlockNodeIntegration, // Used to bypass version requirements for block node integration
+      flags.force,
     ],
   };
 
@@ -709,6 +718,11 @@ export class MirrorNodeCommand extends BaseCommand {
 
     chartValues.add(this.prepareBlockNodeIntegrationValues(config));
 
+    // The flag only accepts `importer` for now, and the overlay is importer-only.
+    if (config.debugMirrorNodeComponent === 'importer') {
+      chartValues.file(constants.MIRROR_NODE_DEBUG_VALUES_FILE);
+    }
+
     return chartValues;
   }
 
@@ -720,6 +734,21 @@ export class MirrorNodeCommand extends BaseCommand {
    */
   private shouldApplyMirrorNodeImageTagOverrides(mirrorNodeChartDirectory: string): boolean {
     return !mirrorNodeChartDirectory || this.configManager.wasFlagProvidedByUser(flags.mirrorNodeVersion);
+  }
+
+  /**
+   * Rejects a mirror node version that cannot ingest the output of the deployed consensus node.
+   */
+  private assertMirrorNodeCompatibility(mirrorNodeVersion: string, force: boolean): void {
+    ComponentCompatibility.assertCompatible(
+      {
+        ...ComponentCompatibility.deployedVersions(this.remoteConfig),
+        [ComponentTypes.MirrorNode]: mirrorNodeVersion,
+      },
+      ComponentTypes.MirrorNode,
+      force,
+      this.logger,
+    );
   }
 
   private addMirrorNodeImageTagOverrides(chartValues: HelmChartValues, mirrorNodeVersion: string): void {
@@ -1628,6 +1657,38 @@ export class MirrorNodeCommand extends BaseCommand {
     };
   }
 
+  private enableDebuggerPortForwardingTask(): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Enable port forwarding for mirror node JVM debugger',
+      skip: ({config}: MirrorNodeDeployContext | MirrorNodeUpgradeContext): boolean => !config.debugMirrorNodeComponent,
+      task: async ({config}: MirrorNodeDeployContext | MirrorNodeUpgradeContext): Promise<void> => {
+        const externalAddress: string = this.configManager.getFlag<string>(flags.externalAddress);
+        const [debugPod]: Pod[] = await this.k8Factory
+          .getK8(config.clusterContext)
+          .pods()
+          .list(config.namespace, [
+            `app.kubernetes.io/component=${config.debugMirrorNodeComponent}`,
+            `app.kubernetes.io/instance=${config.releaseName}`,
+          ]);
+        if (!debugPod) {
+          throw new SoloErrors.system.mirrorNodePodsNotFound(config.releaseName, config.namespace.name);
+        }
+
+        // Not tracked in remote config, same as the consensus node --debug-node-alias forward
+        const localPort: number = await debugPod.portForward(
+          constants.JVM_DEBUG_PORT,
+          constants.JVM_DEBUG_PORT,
+          true,
+          true,
+          externalAddress,
+        );
+        this.logger.showUser(
+          `Mirror node ${config.debugMirrorNodeComponent} JVM debugger is available on localhost:${localPort}`,
+        );
+      },
+    };
+  }
+
   public async add(argv: ArgvStruct): Promise<boolean> {
     let lease: Lock;
 
@@ -1659,6 +1720,8 @@ export class MirrorNodeCommand extends BaseCommand {
             ) as MirrorNodeDeployConfigClass;
 
             context_.config = config;
+
+            this.assertMirrorNodeCompatibility(config.mirrorNodeVersion, config.force);
 
             const hasMirrorNodeMemoryImprovements: boolean = new SemanticVersion<string>(
               config.mirrorNodeVersion,
@@ -1867,6 +1930,7 @@ export class MirrorNodeCommand extends BaseCommand {
         },
         this.checkPodsAreReadyNodeTask(),
         this.enablePortForwardingTask(),
+        this.enableDebuggerPortForwardingTask(),
         {
           title: 'Show user messages',
           skip: (): boolean => this.oneShotState.isActive(),
@@ -1968,6 +2032,8 @@ export class MirrorNodeCommand extends BaseCommand {
               this.remoteConfig.getComponentVersion(ComponentTypes.MirrorNode),
               optionFromFlag(flags.mirrorNodeVersion),
             );
+
+            this.assertMirrorNodeCompatibility(config.mirrorNodeVersion, config.force);
 
             context_.config.soloChartVersion = SemanticVersion.getValidSemanticVersion(
               context_.config.soloChartVersion,
@@ -2138,6 +2204,7 @@ export class MirrorNodeCommand extends BaseCommand {
         this.enableMirrorNodeTask(MirrorNodeCommandType.UPGRADE),
         this.checkPodsAreReadyNodeTask(),
         this.enablePortForwardingTask(),
+        this.enableDebuggerPortForwardingTask(),
         // TODO only show this if we are not running in quick-start mode
         // {
         //   title: 'Show user messages',

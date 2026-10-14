@@ -271,6 +271,7 @@ export const REFRESH_FLAGS: CommandFlags = {
     flags.domainNames,
     flags.gossipEndpointPort,
     flags.serviceEndpointPort,
+    flags.force,
   ],
 };
 
@@ -308,6 +309,7 @@ export const START_FLAGS: CommandFlags = {
     flags.nodeAliasesUnparsed,
     flags.debugNodeAlias,
     flags.stateFile,
+    flags.resumeFromFreeze,
     flags.transplant,
     flags.stakeAmounts,
     flags.forcePortForward,
@@ -347,6 +349,7 @@ export const SETUP_FLAGS: CommandFlags = {
     flags.domainNames,
     flags.gossipEndpointPort,
     flags.serviceEndpointPort,
+    flags.force,
   ],
 };
 

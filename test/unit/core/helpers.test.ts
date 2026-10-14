@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {PathEx} from '../../../src/business/utils/path-ex.js';
+
 import {expect} from 'chai';
 import {describe, it, beforeEach, afterEach} from 'mocha';
 import each from 'mocha-each';
@@ -111,6 +113,58 @@ describe('Helpers', (): void => {
     const ipV4Address: string = '192.168.0.1';
     const byteString: string = ipV4ToBase64(ipV4Address);
     expect(byteString).to.equal('wKgAAQ==');
+  });
+
+  describe('resolveValidJsonFilePath', (): void => {
+    let temporaryDirectory: string;
+    let defaultFile: string;
+
+    // writes the candidate file, or leaves it missing when contents is undefined
+    const candidateFile: (contents?: string) => string = (contents?: string): string => {
+      const filePath: string = path.join(temporaryDirectory, 'candidate.json');
+      fs.rmSync(filePath, {force: true});
+      if (contents !== undefined) {
+        fs.writeFileSync(filePath, contents);
+      }
+      return filePath;
+    };
+
+    beforeEach((): void => {
+      temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'solo-json-file-'));
+      defaultFile = path.join(temporaryDirectory, 'default.json');
+      fs.writeFileSync(defaultFile, '{}');
+    });
+
+    afterEach((): void => {
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    });
+
+    it('returns the resolved path of a valid JSON file', (): void => {
+      const filePath: string = candidateFile('{"valid": true}');
+      expect(Helpers.resolveValidJsonFilePath(filePath, defaultFile)).to.equal(fs.realpathSync(filePath));
+    });
+
+    it('falls back on the default for a missing, empty or invalid file', (): void => {
+      for (const contents of [undefined, '', 'not json']) {
+        expect(Helpers.resolveValidJsonFilePath(candidateFile(contents), defaultFile)).to.equal(
+          fs.realpathSync(defaultFile),
+        );
+      }
+    });
+
+    it('reports a missing file without a default as not found', (): void => {
+      expect((): string => Helpers.resolveValidJsonFilePath(candidateFile())).to.throw(SoloErrors.system.fileNotFound);
+    });
+
+    it('reports an empty file without a default as empty', (): void => {
+      expect((): string => Helpers.resolveValidJsonFilePath(candidateFile(''))).to.throw(SoloErrors.system.fileEmpty);
+    });
+
+    it('reports an invalid file without a default as invalid JSON', (): void => {
+      expect((): string => Helpers.resolveValidJsonFilePath(candidateFile('not json'))).to.throw(
+        SoloErrors.system.fileInvalidJson,
+      );
+    });
   });
 
   describe('resolveBlockStreamModeForConsensusVersion', (): void => {
@@ -507,6 +561,126 @@ describe('Helpers', (): void => {
       const rows: string[] = remoteConfigsToDeploymentsTable(remoteConfigs);
 
       expect(rows).to.deep.equal(['Namespace : deployment']);
+    });
+  });
+
+  describe('hasExplicitMinioEnabled', (): void => {
+    it('returns false when no file paths are provided', (): void => {
+      expect(helmValuesHelper.hasExplicitMinioEnabled()).to.be.false;
+      expect(helmValuesHelper.hasExplicitMinioEnabled([])).to.be.false;
+    });
+
+    it('returns false for unreadable or non-existent file paths', (): void => {
+      expect(helmValuesHelper.hasExplicitMinioEnabled(['/non/existent/file.yaml'])).to.be.false;
+    });
+
+    it('returns false when values file contains only non-MinIO configs', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const temporaryFile: string = PathEx.join(temporaryDirectory, 'values.yaml');
+      fs.writeFileSync(temporaryFile, 'hedera:\n  nodes:\n    - name: node1\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([temporaryFile])).to.be.false;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns false when values file defines only minio-server overrides without cloud.minio.enabled', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const temporaryFile: string = PathEx.join(temporaryDirectory, 'silo-values.yaml');
+      fs.writeFileSync(temporaryFile, 'minio-server:\n  tenant:\n    buckets:\n      - name: falcon-bucket\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([temporaryFile])).to.be.false;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns true when values file defines cloud.minio.enabled: true', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const temporaryFile: string = PathEx.join(temporaryDirectory, 'cloud-minio.yaml');
+      fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: true\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([temporaryFile])).to.be.true;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns false when values file defines cloud.minio.enabled: false', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const temporaryFile: string = PathEx.join(temporaryDirectory, 'cloud-minio-false.yaml');
+      fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: false\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([temporaryFile])).to.be.false;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns false when cloud.minio.enabled: true is followed by cloud.minio.enabled: false', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const fileTrue: string = PathEx.join(temporaryDirectory, 'minio-true.yaml');
+      const fileFalse: string = PathEx.join(temporaryDirectory, 'minio-false.yaml');
+      fs.writeFileSync(fileTrue, 'cloud:\n  minio:\n    enabled: true\n', 'utf8');
+      fs.writeFileSync(fileFalse, 'cloud:\n  minio:\n    enabled: false\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([fileTrue, fileFalse])).to.be.false;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns true when cloud.minio.enabled: false is followed by cloud.minio.enabled: true', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const fileFalse: string = PathEx.join(temporaryDirectory, 'minio-false.yaml');
+      const fileTrue: string = PathEx.join(temporaryDirectory, 'minio-true.yaml');
+      fs.writeFileSync(fileFalse, 'cloud:\n  minio:\n    enabled: false\n', 'utf8');
+      fs.writeFileSync(fileTrue, 'cloud:\n  minio:\n    enabled: true\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([fileFalse, fileTrue])).to.be.true;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('preserves the last explicitly defined value across multiple files even when later files do not configure MinIO', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const fileTrue: string = PathEx.join(temporaryDirectory, 'minio-true.yaml');
+      const fileFalse: string = PathEx.join(temporaryDirectory, 'minio-false.yaml');
+      const fileUnrelated: string = PathEx.join(temporaryDirectory, 'unrelated.yaml');
+      fs.writeFileSync(fileTrue, 'cloud:\n  minio:\n    enabled: true\n', 'utf8');
+      fs.writeFileSync(fileFalse, 'cloud:\n  minio:\n    enabled: false\n', 'utf8');
+      fs.writeFileSync(fileUnrelated, 'hedera:\n  nodes:\n    - name: node1\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([fileTrue, fileFalse, fileUnrelated])).to.be.false;
+        expect(helmValuesHelper.hasExplicitMinioEnabled([fileFalse, fileTrue, fileUnrelated])).to.be.true;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns false when cloud.minio.enabled: false is combined with unrelated minio-server configuration', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const temporaryFile: string = PathEx.join(temporaryDirectory, 'silo-minio-false.yaml');
+      fs.writeFileSync(
+        temporaryFile,
+        'cloud:\n  minio:\n    enabled: false\nminio-server:\n  tenant:\n    buckets:\n      - name: falcon-bucket\n',
+        'utf8',
+      );
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([temporaryFile])).to.be.false;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
     });
   });
 

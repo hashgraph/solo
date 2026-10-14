@@ -22,7 +22,8 @@ import {negatedOptionFromFlag} from '../../../../src/commands/command-helpers.js
 import * as constants from '../../../../src/core/constants.js';
 import fs from 'node:fs';
 import {ShellRunner} from '../../../../src/core/shell-runner.js';
-import {type AnyObject} from '../../../../src/types/aliases.js';
+import {type AnyObject, type NodeAlias} from '../../../../src/types/aliases.js';
+import {Templates} from '../../../../src/core/templates.js';
 import {ConsensusNodeTest} from './consensus-node-test.js';
 import {type HelmClient} from '../../../../src/integration/helm/helm-client.js';
 import {Repository} from '../../../../src/integration/helm/model/repository.js';
@@ -599,6 +600,37 @@ export class MirrorNodeTest extends BaseCommandTest {
         this.postgresReadonlyUsername,
         this.postgresReadonlyPassword,
       ]);
+    }).timeout(Duration.ofMinutes(2).toMillis());
+  }
+
+  /** Verifies that the mirror node's address book serves each node's service endpoints with its custom domain name. */
+  public static verifyAddressBookServiceEndpoints(options: BaseTestOptions): void {
+    const {testName, contexts, namespace, consensusNodesCount, domainNames} = options;
+
+    it(`${testName}: mirror node address book lists the custom service endpoint domain names`, async (): Promise<void> => {
+      const createdSrv: number = await MirrorNodeTest.forwardMirrorIngressServicePort(contexts, namespace, testName);
+      const srv: number = createdSrv || MIRROR_NODE_PORT;
+
+      try {
+        const stdOut: string[] = await new ShellRunner().run('curl', [`http://localhost:${srv}/api/v1/network/nodes`]);
+        const addressBook: AnyObject = JSON.parse(stdOut.join(''));
+        expect(addressBook.nodes, 'mirror node address book node count').to.have.lengthOf(consensusNodesCount);
+
+        for (const node of addressBook.nodes) {
+          const nodeAlias: NodeAlias = Templates.renderNodeAliasFromNumber(node.node_id + 1);
+          const domainNamesOfNode: string[] = node.service_endpoints.map(
+            (endpoint: AnyObject): string => endpoint.domain_name,
+          );
+          expect(domainNamesOfNode, `${nodeAlias} mirror node service endpoint domain names`).to.deep.equal([
+            domainNames[nodeAlias],
+            domainNames[nodeAlias],
+          ]);
+        }
+      } finally {
+        if (createdSrv) {
+          await MirrorNodeTest.stopPortForward(contexts, createdSrv);
+        }
+      }
     }).timeout(Duration.ofMinutes(2).toMillis());
   }
 

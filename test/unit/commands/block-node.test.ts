@@ -6,7 +6,8 @@ import sinon from 'sinon';
 import {container} from 'tsyringe-neo';
 import {BlockNodeCommand} from '../../../src/commands/block-node.js';
 import * as constants from '../../../src/core/constants.js';
-import {type SemanticVersion} from '../../../src/business/utils/semantic-version.js';
+import {SemanticVersion} from '../../../src/business/utils/semantic-version.js';
+import {ComponentTypes} from '../../../src/core/config/remote/enumerations/component-types.js';
 import {ClusterSchema} from '../../../src/data/schema/model/common/cluster-schema.js';
 import {DeploymentPhase} from '../../../src/data/schema/model/remote/deployment-phase.js';
 import {BlockNodeStateSchema} from '../../../src/data/schema/model/remote/state/block-node-state-schema.js';
@@ -685,11 +686,15 @@ describe('BlockNodeCommand unit tests', (): void => {
     expect(blockNodeCommandInternal.chartManager.isChartInstalled.firstCall.args[1]).to.equal('block-node-1');
   });
 
-  describe('block proof compatibility', (): void => {
+  describe('component version compatibility', (): void => {
     interface CompatibilityInternal {
-      remoteConfig: {configuration: {versions: {consensusNode: string}}};
+      remoteConfig: {
+        configuration: {versions: {consensusNode: string}};
+        getComponentPhasesMap: () => Map<ComponentTypes, DeploymentPhase>;
+        getComponentVersion: (type: ComponentTypes) => SemanticVersion<string>;
+      };
       resolveConsensusNodeVersionForCompatibility: (argv: Record<string, unknown>) => string;
-      assertBlockProofCompatibility: (blockNodeVersion: string, consensusNodeVersion: string, force: boolean) => void;
+      assertBlockNodeCompatibility: (blockNodeVersion: string, consensusNodeVersion: string, force: boolean) => void;
     }
 
     const internal: (deployedConsensusNodeVersion: string) => CompatibilityInternal = (
@@ -698,6 +703,9 @@ describe('BlockNodeCommand unit tests', (): void => {
       const compatibilityInternal: CompatibilityInternal = blockNodeCommand as unknown as CompatibilityInternal;
       compatibilityInternal.remoteConfig = {
         configuration: {versions: {consensusNode: deployedConsensusNodeVersion}},
+        getComponentPhasesMap: (): Map<ComponentTypes, DeploymentPhase> =>
+          new Map([[ComponentTypes.ConsensusNode, DeploymentPhase.STARTED]]),
+        getComponentVersion: (): SemanticVersion<string> => new SemanticVersion<string>(deployedConsensusNodeVersion),
       };
       return compatibilityInternal;
     };
@@ -736,24 +744,30 @@ describe('BlockNodeCommand unit tests', (): void => {
     it('accepts a block node and consensus node on the same side of the boundary', (): void => {
       const compatibilityInternal: CompatibilityInternal = internal('0.74.0');
 
-      expect((): void => compatibilityInternal.assertBlockProofCompatibility('0.40.0', '0.74.0', false)).to.not.throw();
-      expect((): void =>
-        compatibilityInternal.assertBlockProofCompatibility('0.41.0', 'v0.77.2', false),
-      ).to.not.throw();
+      expect((): void => compatibilityInternal.assertBlockNodeCompatibility('0.40.0', '0.74.0', false)).to.not.throw();
+      expect((): void => compatibilityInternal.assertBlockNodeCompatibility('0.41.0', 'v0.77.2', false)).to.not.throw();
     });
 
     it('rejects a block node and consensus node on opposite sides of the boundary', (): void => {
       const compatibilityInternal: CompatibilityInternal = internal('0.75.1');
 
-      expect((): void => compatibilityInternal.assertBlockProofCompatibility('0.41.0', '0.75.1', false)).to.throw(
-        /incompatible block root hashes/,
+      expect((): void => compatibilityInternal.assertBlockNodeCompatibility('0.41.0', '0.75.1', false)).to.throw(
+        /Unsupported component version combination/,
+      );
+    });
+
+    it('rejects a block node below the floor of the consensus node it will serve', (): void => {
+      const compatibilityInternal: CompatibilityInternal = internal('0.78.2');
+
+      expect((): void => compatibilityInternal.assertBlockNodeCompatibility('0.44.2', 'v0.79.0', false)).to.throw(
+        /block node 0\.45\.0 or newer/,
       );
     });
 
     it('allows a mismatched pair through when force is set', (): void => {
       const compatibilityInternal: CompatibilityInternal = internal('0.75.1');
 
-      expect((): void => compatibilityInternal.assertBlockProofCompatibility('0.41.0', '0.75.1', true)).to.not.throw();
+      expect((): void => compatibilityInternal.assertBlockNodeCompatibility('0.41.0', '0.75.1', true)).to.not.throw();
     });
   });
 });

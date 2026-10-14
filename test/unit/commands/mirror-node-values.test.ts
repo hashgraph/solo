@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {expect} from 'chai';
-import {describe, it} from 'mocha';
+import {before, describe, it} from 'mocha';
 import fs from 'node:fs';
 import yaml from 'yaml';
 import * as constants from '../../../src/core/constants.js';
@@ -75,5 +75,35 @@ describe('Mirror node performance (JFR) values', (): void => {
     expect(jfrMountPath, 'JFR volume must be mounted at the repository collect-jfr reads from').to.equal(
       constants.MIRROR_NODE_JFR_REPOSITORY_DIRECTORY,
     );
+  });
+});
+
+describe('Mirror node debug (JDWP) values', (): void => {
+  type DebugValues = MirrorNodePerformanceValuesConfig & {importer?: {livenessProbe?: unknown; startupProbe?: unknown}};
+  let debugValues: DebugValues;
+
+  before((): void => {
+    debugValues = yaml.parse(fs.readFileSync(constants.MIRROR_NODE_DEBUG_VALUES_FILE, 'utf8')) as DebugValues;
+  });
+
+  it('should run the importer on the JVM image so the debug agent loads', (): void => {
+    // Solo's default importer is a GraalVM native image, which ignores JAVA_TOOL_OPTIONS.
+    expect(debugValues.importer?.image?.registry).to.equal('gcr.io');
+    expect(debugValues.importer?.image?.repository).to.equal('mirrornode/hedera-mirror-importer');
+    expect(debugValues.importer?.image?.tag, 'Solo pins the tag from the mirror node version').to.be.undefined;
+  });
+
+  it('should open a non-suspending JDWP agent on constants.JVM_DEBUG_PORT', (): void => {
+    expect(debugValues.importer?.env?.JAVA_TOOL_OPTIONS).to.equal(
+      `-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:${constants.JVM_DEBUG_PORT}`,
+    );
+  });
+
+  it('should drop the importer startup and liveness probes so a paused debugger does not restart the pod', (): void => {
+    // Helm deletes a key set to null, so the chart default and Solo's base probes are both dropped.
+    // eslint-disable-next-line unicorn/no-null
+    expect(debugValues.importer).to.have.property('livenessProbe', null);
+    // eslint-disable-next-line unicorn/no-null
+    expect(debugValues.importer).to.have.property('startupProbe', null);
   });
 });
