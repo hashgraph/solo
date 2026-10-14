@@ -14,11 +14,11 @@
 # limitations under the License.
 ##
 
-# Tests the Linux install script (installers/linux/install.sh) on every supported distribution:
-# the script-logic harness with a stand-in binary, then a real install of the linux-x64 SEA binary
-# built in this run, served from a local release directory over file://.
-# Tracked by hiero-ledger/solo#5725.
-name: 'Linux Install Script'
+# Tests the install script (installers/linux/install.sh) on every supported Linux distribution and on
+# macOS: the script-logic harness with a stand-in binary, then a real install of the SEA binary built in
+# this run, served from a local release directory over file://.
+# Tracked by hiero-ledger/solo#5725 (Linux) and hiero-ledger/solo#5724 (macOS).
+name: 'Install Script'
 
 on:
   workflow_dispatch:
@@ -189,3 +189,92 @@ jobs:
           fi
           cat install.log
           grep -qF 'no Solo binary for this machine (solo-linux-x64-musl)' install.log
+
+  install-script-macos:
+    name: 'Install Script (macOS ${{ matrix.arch }})'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Same runners as flow-build-sea.yaml.
+        include:
+          - os: macos-latest
+            arch: arm64
+          - os: macos-15-intel
+            arch: x64
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test Install Script Logic
+        # /bin/sh is the shell users pipe the script into: bash 3.2 in POSIX mode.
+        run: /bin/sh installers/linux/test-install.sh
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Compile TypeScript
+        run: npx tsc
+
+      - name: Build SEA Binary
+        run: npx tsx sea/build.ts
+
+      - name: Stage Local Release
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          set -eu
+          release_directory="${RUNNER_TEMP}/release/latest/download"
+          mkdir -p "${release_directory}"
+          cp "sea/dist/solo-darwin-${ARCH}" "${release_directory}/"
+          cd "${release_directory}"
+          shasum -a 256 "solo-darwin-${ARCH}" >SHA256SUMS
+
+      - name: Install SEA Binary
+        run: |
+          set -eu
+          export HOME="${RUNNER_TEMP}/home-native"
+          mkdir -p "${HOME}"
+          SHELL=/bin/zsh /bin/sh installers/linux/install.sh --base-url "file://${RUNNER_TEMP}/release" --skip-image-cache
+          expected_version="$(node -p "require('./package.json').version")"
+          actual_version="$("${HOME}/.solo/bin/solo" --version)"
+          echo "installed: ${actual_version}"
+          echo "${actual_version}" | grep -qF "${expected_version}"
+          grep -qF '# >>> solo installer >>>' "${HOME}/.zshrc"
+          codesign --verify --strict "${HOME}/.solo/bin/solo"
+
+      - name: Reinstall Over the Existing Binary
+        # A copy over the existing file would keep its cached code signature and die with "Killed: 9".
+        run: |
+          set -eu
+          export HOME="${RUNNER_TEMP}/home-native"
+          /bin/sh installers/linux/install.sh --base-url "file://${RUNNER_TEMP}/release" --skip-image-cache
+          "${HOME}/.solo/bin/solo" --version
+
+      - name: Install From a Rosetta Shell
+        # Under Rosetta uname -m reports x86_64; the script must still install the arm64 binary, which is
+        # the only one in the local release.
+        if: matrix.arch == 'arm64'
+        run: |
+          set -eu
+          if ! /usr/bin/arch -x86_64 /usr/bin/true 2>/dev/null; then
+            echo '::notice::Rosetta is not installed on this runner; skipping'
+            exit 0
+          fi
+          export HOME="${RUNNER_TEMP}/home-rosetta"
+          mkdir -p "${HOME}"
+          /usr/bin/arch -x86_64 /bin/sh installers/linux/install.sh --base-url "file://${RUNNER_TEMP}/release" --skip-image-cache
+          "${HOME}/.solo/bin/solo" --version

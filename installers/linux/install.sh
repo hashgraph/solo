@@ -1,7 +1,7 @@
 #!/bin/sh
 # SPDX-License-Identifier: Apache-2.0
 #
-# Installs the Solo CLI as a standalone binary on Linux, no Node.js required.
+# Installs the Solo CLI as a standalone binary on Linux and macOS, no Node.js required.
 #
 #   curl -fsSL https://github.com/hiero-ledger/solo/releases/latest/download/install.sh | sh
 #   curl -fsSL https://github.com/hiero-ledger/solo/releases/latest/download/install.sh | sh -s -- --version v0.92.0
@@ -25,7 +25,7 @@ staged_binary=''
 
 usage() {
   cat <<EOF
-Install the Solo CLI on Linux.
+Install the Solo CLI on Linux or macOS.
 
 Usage: install.sh [options]
 
@@ -97,12 +97,15 @@ parse_arguments() {
   done
 }
 
-# Prints the release asset name for this machine, for example solo-linux-x64 or solo-linux-x64-musl.
+# Prints the release asset name for this machine, for example solo-linux-x64, solo-linux-x64-musl or
+# solo-darwin-arm64.
 detect_asset_name() {
   operating_system="$(uname -s)"
-  if [ "${operating_system}" != 'Linux' ]; then
-    fail "this installer supports Linux only (found ${operating_system}); install with: npm install -g @hiero-ledger/solo"
-  fi
+  case "${operating_system}" in
+    Linux) platform='linux' ;;
+    Darwin) platform='darwin' ;;
+    *) fail "this installer supports Linux and macOS only (found ${operating_system}); install with: npm install -g @hiero-ledger/solo" ;;
+  esac
 
   machine="$(uname -m)"
   case "${machine}" in
@@ -111,15 +114,23 @@ detect_asset_name() {
     *) fail "unsupported CPU architecture: ${machine}; install with: npm install -g @hiero-ledger/solo" ;;
   esac
 
-  libc_suffix=''
-  # Trust ldd first: a glibc system with the musl package installed also has /lib/ld-musl-* on disk.
-  if ldd --version 2>&1 | grep -qi musl; then
-    libc_suffix='-musl'
-  elif ! command -v ldd >/dev/null 2>&1 && ls /lib/ld-musl-* >/dev/null 2>&1; then
-    libc_suffix='-musl'
+  # A shell running under Rosetta reports x86_64 on Apple silicon; install the native binary instead.
+  if [ "${platform}" = 'darwin' ] && [ "${architecture}" = 'x64' ] &&
+    [ "$(sysctl -n sysctl.proc_translated 2>/dev/null || true)" = '1' ]; then
+    architecture='arm64'
   fi
 
-  printf 'solo-linux-%s%s' "${architecture}" "${libc_suffix}"
+  libc_suffix=''
+  if [ "${platform}" = 'linux' ]; then
+    # Trust ldd first: a glibc system with the musl package installed also has /lib/ld-musl-* on disk.
+    if ldd --version 2>&1 | grep -qi musl; then
+      libc_suffix='-musl'
+    elif ! command -v ldd >/dev/null 2>&1 && ls /lib/ld-musl-* >/dev/null 2>&1; then
+      libc_suffix='-musl'
+    fi
+  fi
+
+  printf 'solo-%s-%s%s' "${platform}" "${architecture}" "${libc_suffix}"
 }
 
 download() {
@@ -142,6 +153,7 @@ release_url() {
   fi
 }
 
+# macOS ships shasum but not reliably sha256sum.
 compute_sha256() {
   if command -v sha256sum >/dev/null 2>&1; then
     sha256sum "$1" | awk '{print $1}'
@@ -210,6 +222,8 @@ install_binary() {
   if ! version_output="$("${staged_binary}" --version </dev/null 2>&1)"; then
     fail "the downloaded solo binary does not run on this system: ${version_output}"
   fi
+  # Rename, never copy over the target: macOS caches a binary's code signature per vnode, so rewriting the
+  # bytes of an existing file makes its next launch die with "Killed: 9".
   mv -f "${staged_binary}" "${target}"
 
   # solo --version prints a banner; keep only the value of its "Version :" line.
@@ -217,10 +231,28 @@ install_binary() {
   info "installed solo ${installed_version:-${version}} to ${target}"
 }
 
+# Prints the startup file bash reads on macOS. Terminal starts login shells, which read only the first of
+# these that exists, so creating ~/.bash_profile next to an existing ~/.profile would hide the latter.
+bash_login_startup_file() {
+  for candidate in .bash_profile .bash_login .profile; do
+    if [ -f "${HOME}/${candidate}" ]; then
+      printf '%s/%s' "${HOME}" "${candidate}"
+      return 0
+    fi
+  done
+  printf '%s/.bash_profile' "${HOME}"
+}
+
 # Prints the startup file for the user's shell, or nothing when the shell is not supported.
 shell_startup_file() {
   case "$(basename "${SHELL:-}")" in
-    bash) printf '%s/.bashrc' "${HOME}" ;;
+    bash)
+      if [ "$(uname -s)" = 'Darwin' ]; then
+        bash_login_startup_file
+      else
+        printf '%s/.bashrc' "${HOME}"
+      fi
+      ;;
     zsh) printf '%s/.zshrc' "${ZDOTDIR:-${HOME}}" ;;
     fish) printf '%s/.config/fish/conf.d/solo.fish' "${HOME}" ;;
     *) ;;
@@ -271,11 +303,18 @@ EOF
   printf '\n  %s\n\n' "${path_line}"
 }
 
-# ~/.solo/bin is appended to PATH, so an earlier solo (for example from npm) keeps winning.
+# The Homebrew formula no longer receives updates, and its bin directory usually comes before ~/.solo/bin.
+warn_if_homebrew_installed() {
+  if command -v brew >/dev/null 2>&1 && brew list --formula solo </dev/null >/dev/null 2>&1; then
+    warn "the Homebrew solo formula is installed; it no longer receives updates and may shadow ${install_directory}/solo on your PATH; remove it with: brew uninstall solo"
+  fi
+}
+
+# ~/.solo/bin is appended to PATH, so an earlier solo (for example from npm or Homebrew) keeps winning.
 warn_if_shadowed() {
   resolved="$(command -v solo 2>/dev/null || true)"
   if [ -n "${resolved}" ] && [ "${resolved}" != "${install_directory}/solo" ]; then
-    warn "${resolved} comes before ${install_directory}/solo on your PATH; remove it (npm: npm uninstall -g @hiero-ledger/solo) to use this install"
+    warn "${resolved} comes before ${install_directory}/solo on your PATH; remove it (npm: npm uninstall -g @hiero-ledger/solo, Homebrew: brew uninstall solo) to use this install"
   fi
 }
 
@@ -309,6 +348,7 @@ main() {
   download_and_verify "${asset_name}"
   install_binary
   configure_path
+  warn_if_homebrew_installed
   warn_if_shadowed
   warm_image_cache
   info 'done'

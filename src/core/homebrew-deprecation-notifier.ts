@@ -2,7 +2,6 @@
 
 import chalk from 'chalk';
 import * as constants from './constants.js';
-import {PACKAGE_NAME} from './constants.js';
 import {type SoloLogger} from './logging/solo-logger.js';
 
 /**
@@ -19,6 +18,13 @@ export class HomebrewDeprecationNotifier {
 
   /** Published documentation for installing and upgrading Solo. */
   private static readonly UPGRADE_GUIDE_URL: string = 'https://solo.hiero.org/docs/simple-solo-setup/upgrading-solo/';
+
+  /**
+   * Installs the standalone Solo binary, which needs no Node.js. npm would reintroduce the Node.js
+   * prerequisite that a Homebrew user never had to manage.
+   */
+  private static readonly INSTALL_SCRIPT_COMMAND: string =
+    'curl -fsSL https://github.com/hiero-ledger/solo/releases/latest/download/install.sh | sh';
 
   /**
    * Matches the Cellar path segment Homebrew installs every formula under, for both the `solo`
@@ -60,8 +66,9 @@ export class HomebrewDeprecationNotifier {
       chalk.yellow('  This Solo came from Homebrew, which stops being updated after'),
       chalk.red(HomebrewDeprecationNotifier.END_OF_UPDATES_DATE + '.'),
     );
-    logger.showUser(chalk.yellow('  Switch to npm to keep receiving updates:'));
-    logger.showUser(chalk.cyan(`    brew uninstall solo && npm install -g ${PACKAGE_NAME}`));
+    logger.showUser(chalk.yellow('  Switch to the install script to keep receiving updates:'));
+    logger.showUser(chalk.cyan('    brew uninstall solo'));
+    logger.showUser(chalk.cyan(`    ${HomebrewDeprecationNotifier.INSTALL_SCRIPT_COMMAND}`));
     logger.showUser(chalk.yellow('  Upgrade guide:'), chalk.cyan(HomebrewDeprecationNotifier.UPGRADE_GUIDE_URL));
     logger.showUser(chalk.yellow('='.repeat(width) + '\n'));
   }

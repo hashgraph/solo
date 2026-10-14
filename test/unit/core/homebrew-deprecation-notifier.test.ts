@@ -5,7 +5,6 @@ import {describe, it, beforeEach, afterEach} from 'mocha';
 import sinon, {type SinonStub} from 'sinon';
 
 import {HomebrewDeprecationNotifier} from '../../../src/core/homebrew-deprecation-notifier.js';
-import {PACKAGE_NAME} from '../../../src/core/constants.js';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
 
 /** Where Homebrew installs the `solo` formula on Apple silicon. */
@@ -81,14 +80,17 @@ describe('HomebrewDeprecationNotifier', (): void => {
     }
   });
 
-  it('shows the banner with the end-of-updates date and the npm install command', (): void => {
+  it('shows the banner with the end-of-updates date and the install script command', (): void => {
     stubHomebrewInstall(true);
 
     notify();
 
     const output: string = bannerText();
     expect(output).to.include('August 31, 2026');
-    expect(output).to.include(`npm install -g ${PACKAGE_NAME}`);
+    expect(output).to.include('brew uninstall solo');
+    expect(output).to.include(
+      'curl -fsSL https://github.com/hiero-ledger/solo/releases/latest/download/install.sh | sh',
+    );
     expect(output).to.include('https://solo.hiero.org/docs/simple-solo-setup/upgrading-solo/');
   });
 
