@@ -654,11 +654,15 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- one-shot single destroy --quiet-mode --dev
 
-      - name: Raise Block Buffer For Docker Restart Recovery
+      - name: Raise Block Buffer (Docker Restart Recovery Is Validated With Increased Buffer)
         if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
+          # SCOPE: the Docker restart recovery steps below validate recovery with an INCREASED block
+          # buffer (1000), not with Solo's shipped default (5). Recovery with the default buffer is not
+          # covered by this nightly, so a green run does not prove it.
+          #
           # The one-shot small-memory template caps blockStream.buffer.maxBlocks at 5. After a Docker
           # restart the consensus node replays old blocks the block node never acks again, which
           # saturates that buffer, blocks the transaction handler and leaves the node stuck in
@@ -677,7 +681,8 @@ jobs:
       - name: One-Shot Single Redeploy
         # Second deploy cycle on the same cluster — no cluster deletion between rounds.
         # This validates that redeployment works correctly after a destroy (issue #6003).
-        # Only runs when called from the nightly workflow with run-twice: true.
+        # Only runs when called from the nightly workflow with run-twice: true. Deploys with the block
+        # node and the raised block buffer from the preceding step.
         if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: 70
