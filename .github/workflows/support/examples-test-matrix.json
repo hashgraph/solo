@@ -56,10 +56,5 @@
     "name": "Mirror Node Component Image",
     "directory": "mirror-node-component-image",
     "local-java-build": true
-  },
-  {
-    "name": "Prometheus Existing CRDs",
-    "directory": "prometheus-existing-crds",
-    "local-java-build": false
   }
 ]
