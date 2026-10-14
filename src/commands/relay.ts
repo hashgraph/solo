@@ -4,6 +4,7 @@ import {SoloErrors} from '../core/errors/solo-errors.js';
 import {Listr} from 'listr2';
 import {parseNodeAliases, showVersionBanner, sleep} from '../core/helpers.js';
 import * as constants from '../core/constants.js';
+import {UserInput} from '../core/user-input.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
@@ -354,7 +355,7 @@ export class RelayCommand extends BaseCommand {
     if (domainName) {
       chartValues
         .set('relay.ingress.enabled', true)
-        .set('relay.ingress.hosts[0].host', domainName)
+        .set('relay.ingress.hosts[0].host', UserInput.escapeHelmTemplate(domainName))
         .set('relay.ingress.hosts[0].paths[0].path', '/')
         .set('relay.ingress.hosts[0].paths[0].pathType', 'ImplementationSpecific');
     }

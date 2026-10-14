@@ -22,7 +22,7 @@ const SOLO_SEA_VERSION = '__SOLO_SEA_VERSION__';
 const SOLO_SEA_BUILD_ID = '__SOLO_SEA_BUILD_ID__';
 const SOLO_SEA_ASSET_KEYS = ['__SOLO_SEA_ASSET_KEYS__'];
 
-let bundleFileUrl;
+let rootDirectory;
 if (sea.isSea()) {
   process.env['SOLO_SEA_VERSION'] = SOLO_SEA_VERSION;
 
@@ -48,21 +48,31 @@ if (sea.isSea()) {
     fs.writeFileSync(markerPath, SOLO_SEA_BUILD_ID);
   }
 
-  bundleFileUrl = url.pathToFileURL(path.join(seaRoot, 'solo-src-bundle.cjs')).href;
+  rootDirectory = seaRoot;
 } else {
   // Not running as SEA (e.g. development test of the built artefacts).
-  bundleFileUrl = url.pathToFileURL(path.join(__dirname, 'solo-src-bundle.cjs')).href;
+  rootDirectory = __dirname;
 }
 
-// import() uses the regular module loader and can access the filesystem — unlike require()
-// in SEA mode which is restricted to built-ins. Importing a .cjs file returns its
-// module.exports as the default export.
-import(bundleFileUrl)
-  .then(function (mod) {
-    const soloModule = mod.default || mod;
-    return soloModule.CliBootstrap.run(process.argv, soloModule.main);
-  })
-  .catch(function (error) {
-    process.exitCode = 1;
-    console.error(error);
-  });
+function fail(error) {
+  process.exitCode = 1;
+  console.error(error);
+}
+
+// Hidden entry used by k8-client-pod.ts to run the persistent port-forward worker from this
+// binary, so Node.js does not need to be on PATH. The worker reads its arguments from
+// process.argv[2..], so drop the flag first. Importing the worker bundle starts it.
+if (process.argv[2] === '--internal-persist-port-forward') {
+  process.argv.splice(2, 1);
+  import(url.pathToFileURL(path.join(rootDirectory, 'scripts', 'persist-port-forward.cjs')).href).catch(fail);
+} else {
+  // import() uses the regular module loader and can access the filesystem — unlike require()
+  // in SEA mode which is restricted to built-ins. Importing a .cjs file returns its
+  // module.exports as the default export.
+  import(url.pathToFileURL(path.join(rootDirectory, 'solo-src-bundle.cjs')).href)
+    .then(function (mod) {
+      const soloModule = mod.default || mod;
+      return soloModule.CliBootstrap.run(process.argv, soloModule.main);
+    })
+    .catch(fail);
+}

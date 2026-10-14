@@ -201,6 +201,11 @@ jobs:
           echo MIRROR_NODE_PINGER_TPS=10 >> .env
           echo ONE_SHOT_METRICS_TEST_DURATION_IN_MINUTES=5 >> .env
           echo ONE_SHOT_BLOCK_NODE_PERF=false >> .env
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            echo PERFORMANCE_TEST_CONCISE_MODE=true >> .env
+          else
+            echo PERFORMANCE_TEST_CONCISE_MODE=false >> .env
+          fi
           cat .env
 
           # Start resource monitoring in background (30s interval for finer granularity)
@@ -565,53 +570,25 @@ jobs:
             exit 1
           fi
 
-      - name: Build and Start Metrics Plotter tool
+      - name: Build and Start Metrics Plotter Tool
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
           cd ./scripts/metrics-plotter
           npm ci
           npm run build
           mkdir -p ~/.solo/metrics
-          mkdir src/data
           nohup npm start &
           echo $! > /tmp/metrics-plotter.pid
-          mkdir -p ./src/data       
+          mkdir -p ./src/data
           cp ~/.solo/logs/**/timeline-metrics.json ./src/data/timeline.json
 
-      - name: Install Puppeteer / Chrome dependencies
+      - name: Install Puppeteer / Chrome Dependencies
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        # npm ci already downloaded Chrome; --install-deps installs the apt packages listed in its deb.deps
         run: |
+          cd ./scripts/metrics-plotter
           sudo apt-get update
-          sudo apt-get install -y \
-            ca-certificates \
-            fonts-liberation \
-            libasound2 \
-            libatk-bridge2.0-0 \
-            libatk1.0-0 \
-            libatspi2.0-0 \
-            libcairo2 \
-            libdbus-1-3 \
-            libgdk-pixbuf2.0-0 \
-            libglib2.0-0 \
-            libgtk-3-0 \
-            libnspr4 \
-            libnss3 \
-            libx11-6 \
-            libx11-xcb1 \
-            libxcb1 \
-            libxcomposite1 \
-            libxcursor1 \
-            libxdamage1 \
-            libxext6 \
-            libxfixes3 \
-            libxi6 \
-            libxrandr2 \
-            libxrender1 \
-            libxss1 \
-            libxtst6 \
-            lsb-release \
-            xdg-utils \
-            libgbm1
+          sudo env "PATH=${PATH}" HOME="${HOME}" ./node_modules/.bin/puppeteer browsers install chrome --install-deps
 
       - name: Save Screenshots of Metrics Plotter
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
@@ -621,7 +598,7 @@ jobs:
           SCREENSHOT_WIDTH=1920 npm run screenshot -- http://127.0.0.1:8123\?hide-controls=true\&grouped=false\&data=timeline ~/.solo/metrics/chart.png
           cp ./src/data/timeline.json ~/.solo/metrics/timeline-metrics.json
 
-      - name: Stop Metrics Plotter tool
+      - name: Stop Metrics Plotter Tool
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
           if [ -f /tmp/metrics-plotter.pid ]; then

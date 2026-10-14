@@ -1,53 +1,11 @@
 version: '3'
-# This Taskfile handles dual-namespace publishing tasks for the release process.
+# This Taskfile handles release packaging tasks.
 # It can be used in CI/CD pipelines or run locally.
 # Example usage:
-# task -t scripts/Taskfile.release.yml dual-publish:rename SOURCE_PKG_NAME=@hiero-ledger/solo TARGET_PKG_NAME=@hashgraph/solo
-# task -t scripts/Taskfile.release.yml dual-publish:pack DRY_RUN=true OUTPUT_DIR=output/hg
-# task -t scripts/Taskfile.release.yml dual-publish:restore
+# task -t scripts/Taskfile.release.yml pack DRY_RUN=true OUTPUT_DIR=output/hl
 
 tasks:
-  dual-publish:rename:
-    desc: Rename package references between the primary and secondary Solo namespaces
-    dir: '{{.TASKFILE_DIR}}/..'
-    vars:
-      SOURCE_PKG_NAME: '{{.SOURCE_PKG_NAME | default "@hashgraph/solo"}}'
-      TARGET_PKG_NAME: '{{.TARGET_PKG_NAME | default "@hiero-ledger/solo"}}'
-      IGNORE_LIST_FILE: '{{.IGNORE_LIST_FILE | default ".github/workflows/support/.ignore-deploy-release"}}'
-    cmds:
-      - |
-        cp package.json package.json.tmp
-        jq --arg to "{{.TARGET_PKG_NAME}}" '.name = $to' package.json.tmp > package.json
-        rm package.json.tmp
-      - |
-        tracked_files=$(git grep -rl --text "{{.SOURCE_PKG_NAME}}" || true)
-        if [[ -z "${tracked_files}" ]]; then
-          echo "No files found containing '{{.SOURCE_PKG_NAME}}'; skipping."
-          exit 0
-        fi
-
-        if [[ ! -f "{{.IGNORE_LIST_FILE}}" ]]; then
-          echo "Warning: ignore list '{{.IGNORE_LIST_FILE}}' not found; skipping filter step."
-          filtered_files="${tracked_files}"
-        else
-          filtered_files=$(echo "${tracked_files}" | grep -vFf "{{.IGNORE_LIST_FILE}}" || true)
-        fi
-
-        if [[ -z "${filtered_files}" ]]; then
-          echo "No files to update after filtering; skipping replacement."
-          exit 0
-        fi
-
-        if [[ "{{OS}}" == "darwin" ]]; then
-          echo "${filtered_files}" | tr '\n' '\0' | \
-            xargs -0 sed -i '' 's|{{.SOURCE_PKG_NAME}}|{{.TARGET_PKG_NAME}}|g'
-        else
-          echo "${filtered_files}" | tr '\n' '\0' | \
-            xargs -0 sed -i 's|{{.SOURCE_PKG_NAME}}|{{.TARGET_PKG_NAME}}|g'
-        fi
-        echo "Updated $(echo "${filtered_files}" | wc -l | tr -d ' ') files."
-
-  dual-publish:pack:
+  pack:
     desc: Install dependencies, build, and pack the npm package
     dir: '{{.TASKFILE_DIR}}/..'
     vars:
@@ -60,14 +18,7 @@ tasks:
       - mkdir -p "{{.OUTPUT_DIR}}"
       - |
         FLAGS=""
-        if [ "{{.DRY_RUN}}" == "true" ]; then 
+        if [ "{{.DRY_RUN}}" == "true" ]; then
           FLAGS="--dry-run"
         fi
         npm pack --pack-destination "{{.OUTPUT_DIR}}" ${FLAGS}
-
-  # Assumes no git ops have been performed since the rename task.
-  dual-publish:restore:
-    desc: Restore original package references after packing
-    dir: '{{.TASKFILE_DIR}}/..'
-    cmds:
-      - git restore .

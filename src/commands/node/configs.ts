@@ -58,6 +58,9 @@ import {type NodeConnectionsContext} from './config-interfaces/node-connections-
 import {NodeCollectJfrLogsConfigClass} from './config-interfaces/node-collect-jfr-logs-config-class.js';
 import {NodeCollectJfrLogsContext} from './config-interfaces/node-collect-jfr-logs-context.js';
 import {optionFromFlag} from '../command-helpers.js';
+import {type SoloLogger} from '../../core/logging/solo-logger.js';
+import {ComponentTypes} from '../../core/config/remote/enumerations/component-types.js';
+import {ComponentCompatibility} from '../../business/compatibility/component-compatibility.js';
 import {type AccountIdWithKeyPairObject, type ComponentData, type Context} from '../../types/index.js';
 import {type K8} from '../../integration/kube/k8.js';
 
@@ -79,12 +82,30 @@ export class NodeCommandConfigs {
     @inject(InjectTokens.RemoteConfigRuntimeState) private readonly remoteConfig: RemoteConfigRuntimeStateApi,
     @inject(InjectTokens.K8Factory) private readonly k8Factory: K8Factory,
     @inject(InjectTokens.AccountManager) private readonly accountManager: AccountManager,
+    @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
   ) {
     this.configManager = patchInject(configManager, InjectTokens.ConfigManager, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfigRuntimeState, this.constructor.name);
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
     this.remoteConfig = patchInject(remoteConfig, InjectTokens.RemoteConfigRuntimeState, this.constructor.name);
+    this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
+  }
+
+  /**
+   * Rejects a consensus node version that cannot run alongside the deployed block and mirror nodes; with `bypass`
+   * the conflict is only logged.
+   */
+  private assertConsensusNodeCompatibility(consensusNodeVersion: string, bypass: boolean): void {
+    ComponentCompatibility.assertCompatible(
+      {
+        ...ComponentCompatibility.deployedVersions(this.remoteConfig),
+        [ComponentTypes.ConsensusNode]: consensusNodeVersion,
+      },
+      ComponentTypes.ConsensusNode,
+      bypass,
+      this.logger,
+    );
   }
 
   private async initializeSetup(config: AnyObject, k8Factory: K8Factory): Promise<void> {
@@ -192,6 +213,22 @@ export class NodeCommandConfigs {
         this.remoteConfig.configuration.versions.consensusNode,
         optionFromFlag(flags.upgradeVersion),
       );
+
+      ComponentCompatibility.assertUpgradeInPlace(
+        ComponentTypes.ConsensusNode,
+        this.remoteConfig.configuration.versions.consensusNode.toString(),
+        context_.config.upgradeVersion,
+        context_.config.force,
+        this.logger,
+      );
+
+      // With --skip-node-start the upgraded nodes stay stopped until `consensus node start`, which is how a
+      // component that must cross a boundary together with the consensus node is upgraded in between, so a
+      // conflict is only reported, not rejected.
+      this.assertConsensusNodeCompatibility(
+        context_.config.upgradeVersion,
+        context_.config.force || context_.config.skipNodeStart,
+      );
     }
 
     await this.initializeSetup(context_.config, this.k8Factory);
@@ -252,6 +289,7 @@ export class NodeCommandConfigs {
 
     // check consensus releaseTag to make sure it is a valid semantic version string starting with 'v'
     config.releaseTag = SemanticVersion.getValidSemanticVersion(config.releaseTag, true, 'Consensus release tag');
+    this.assertConsensusNodeCompatibility(config.releaseTag, config.force);
 
     const freezeAdminAccountId: AccountId = this.accountManager.getFreezeAccountId(config.deployment);
     const accountKeys: AccountIdWithKeyPairObject = await this.accountManager.getAccountKeysFromSecret(
@@ -364,6 +402,8 @@ export class NodeCommandConfigs {
     ]) as NodeAddConfigClass;
 
     context_.config = config;
+
+    this.assertConsensusNodeCompatibility(config.releaseTag, config.force);
 
     context_.adminKey = argv[flags.adminKey?.name]
       ? PrivateKey.fromStringED25519(argv[flags.adminKey?.name])
@@ -498,6 +538,8 @@ export class NodeCommandConfigs {
     ]) as NodeRefreshConfigClass;
 
     context_.config = config;
+
+    this.assertConsensusNodeCompatibility(config.releaseTag, config.force);
 
     config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
     config.nodeAliases = parseNodeAliases(
@@ -705,6 +747,8 @@ export class NodeCommandConfigs {
     ) {
       throw new SoloErrors.validation.nodeVersionMismatch(savedVersion.toString(), config.releaseTag);
     }
+
+    this.assertConsensusNodeCompatibility(config.releaseTag, config.force);
 
     config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
     config.consensusNodes = this.remoteConfig.getConsensusNodes();

@@ -420,6 +420,13 @@ export class RapidFireCommand extends BaseCommand {
 
     // Forward directly to the mirror REST pod rather than through the HAProxy ingress.
     // This eliminates the ingress hop and makes the port-forward more reliable in CI.
+    //
+    // NOTE: Every request made through this port-forward, skipping the proxy, will be served by the
+    // mirror node rest service only, and never by the rest-java or the web3 services.
+    // If those services are needed with this command, forward to that pod instead or proxy through the
+    // mirror ingress controller (Templates.renderMirrorNodeIngressControllerUrl), which owns the path
+    // routing. You can find the actual mappings in this repo ./resources/hiero-explorer-values.yaml or
+    // in the Mirror Node's repo: (https://github.com/hiero-ledger/hiero-mirror-node/blob/0859d58ff02cffc9526669e974596c532a382f04/docker-compose.yml#L184)
     const restPods: Pod[] = await this.k8Factory
       .getK8(config.context)
       .pods()

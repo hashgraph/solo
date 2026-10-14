@@ -20,6 +20,7 @@ import {DeployArgvBuilders} from '../../../../../../src/commands/one-shot/orches
 import {negatedOptionFromFlag, optionFromFlag} from '../../../../../../src/commands/command-helpers.js';
 import {Flags} from '../../../../../../src/commands/flags.js';
 import {type AnyObject, type ArgvStruct} from '../../../../../../src/types/aliases.js';
+import {ComponentTypes} from '../../../../../../src/core/config/remote/enumerations/component-types.js';
 
 afterEach((): void => {
   delete process.env.ONE_SHOT_WITH_BLOCK_NODE;
@@ -851,5 +852,44 @@ describe('resolveOneShotComponentVersions', (): void => {
 
     const versions: OneShotVersionsObject = await DeployArgvBuilders.resolveOneShotComponentVersions(argv, false);
     expect(versions.consensus).to.equal('v0.74.0-rc.5');
+  });
+});
+
+describe('buildComponentVersionTuple', (): void => {
+  const versions: OneShotVersionsObject = {
+    soloChart: '0.60.0',
+    consensus: 'v0.79.0',
+    mirror: 'v0.165.0',
+    explorer: '26.0.0',
+    relay: '0.75.0',
+    blockNode: 'v0.45.0',
+  };
+
+  it('includes every component one-shot deploys', (): void => {
+    process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
+
+    expect(DeployArgvBuilders.buildComponentVersionTuple(makeConfig({versions}))).to.deep.equal({
+      [ComponentTypes.ConsensusNode]: 'v0.79.0',
+      [ComponentTypes.BlockNode]: 'v0.45.0',
+      [ComponentTypes.MirrorNode]: 'v0.165.0',
+      [ComponentTypes.RelayNodes]: '0.75.0',
+      [ComponentTypes.Explorer]: '26.0.0',
+    });
+  });
+
+  it('leaves out the components one-shot skips', (): void => {
+    expect(
+      DeployArgvBuilders.buildComponentVersionTuple(
+        makeConfig({versions, deployMirrorNode: false, deployRelay: false, deployExplorer: false}),
+      ),
+    ).to.deep.equal({[ComponentTypes.ConsensusNode]: 'v0.79.0'});
+  });
+
+  it('includes the relay and explorer in a minimal setup', (): void => {
+    const tuple: object = DeployArgvBuilders.buildComponentVersionTuple(
+      makeConfig({versions, deployRelay: false, deployExplorer: false, minimalSetup: true}),
+    );
+
+    expect(tuple).to.include.keys(ComponentTypes.RelayNodes, ComponentTypes.Explorer);
   });
 });

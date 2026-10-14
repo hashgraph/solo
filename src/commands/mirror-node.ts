@@ -36,6 +36,8 @@ import {Pod} from '../integration/kube/resources/pod/pod.js';
 import {type Pods} from '../integration/kube/resources/pod/pods.js';
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import {type Container} from '../integration/kube/resources/container/container.js';
+import {ContainerName} from '../integration/kube/resources/container/container-name.js';
+import {PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {KubePodNotFoundError} from '../integration/kube/errors/kube-pod-not-found-error.js';
 import {KubePodNotReadyError} from '../integration/kube/errors/kube-pod-not-ready-error.js';
 import chalk from 'chalk';
@@ -43,11 +45,13 @@ import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {KeyManager} from '../core/key-manager.js';
+import {UserInput} from '../core/user-input.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentCompatibility} from '../business/compatibility/component-compatibility.js';
 import {MirrorNodeStateSchema} from '../data/schema/model/remote/state/mirror-node-state-schema.js';
 import {Lock} from '../core/lock/lock.js';
 import {Base64} from 'js-base64';
@@ -70,6 +74,8 @@ import {MirrorNodeDeployedEvent} from '../core/events/event-types/mirror-node-de
 import {type SoloEventBus} from '../core/events/solo-event-bus.js';
 import {optionFromFlag} from './command-helpers.js';
 import {ImageReference, type ParsedImageReference} from '../business/utils/image-reference.js';
+import {MirrorNodeModuleImages} from './mirror-node-module-images.js';
+import {type MirrorNodeModuleImageReference} from './mirror-node-module-image-reference.js';
 import {HelmChartValues} from '../integration/helm/model/values.js';
 import {K8} from '../integration/kube/k8.js';
 import {HelmSchedulingValues} from '../core/util/helm-scheduling-values.js';
@@ -90,6 +96,7 @@ interface MirrorNodeDeployConfigClass {
   chartValues: HelmChartValues;
   quiet: boolean;
   mirrorNodeVersion: string;
+  force: boolean;
   componentImage: string;
   componentImageArchive: string;
   pinger: boolean;
@@ -110,6 +117,7 @@ interface MirrorNodeDeployConfigClass {
   externalDatabaseReadonlyPassword: Optional<string>;
   domainName: Optional<string>;
   forcePortForward: Optional<boolean>;
+  debugMirrorNodeComponent: Optional<string>;
   releaseName: string;
   ingressReleaseName: string;
   newMirrorNodeComponent: MirrorNodeStateSchema;
@@ -142,6 +150,7 @@ interface MirrorNodeUpgradeConfigClass {
   chartValues: HelmChartValues;
   quiet: boolean;
   mirrorNodeVersion: string;
+  force: boolean;
   componentImage: string;
   componentImageArchive: string;
   pinger: boolean;
@@ -162,6 +171,7 @@ interface MirrorNodeUpgradeConfigClass {
   externalDatabaseReadonlyPassword: Optional<string>;
   domainName: Optional<string>;
   forcePortForward: Optional<boolean>;
+  debugMirrorNodeComponent: Optional<string>;
   releaseName: string;
   ingressReleaseName: string;
   isLegacyChartInstalled: boolean;
@@ -289,10 +299,12 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.externalDatabaseReadonlyPassword,
       flags.domainName,
       flags.forcePortForward,
+      flags.debugMirrorNodeComponent,
       flags.externalAddress,
       flags.soloChartVersion,
       flags.forceBlockNodeIntegration, // Used to bypass version requirements for block node integration
       flags.parallelDeploy,
+      flags.force,
     ],
   };
 
@@ -330,10 +342,12 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.externalDatabaseReadonlyPassword,
       flags.domainName,
       flags.forcePortForward,
+      flags.debugMirrorNodeComponent,
       flags.externalAddress,
       flags.id,
       flags.soloChartVersion,
       flags.forceBlockNodeIntegration, // Used to bypass version requirements for block node integration
+      flags.force,
     ],
   };
 
@@ -568,35 +582,28 @@ export class MirrorNodeCommand extends BaseCommand {
     const environmentVariablePrefix: string = MirrorNodeCommand.MIRROR_ENVIRONMENT_VARIABLE_PREFIX;
 
     if (config.componentImage) {
-      const parsedImageReference: ParsedImageReference = ImageReference.parseImageReference(config.componentImage);
-      chartValues
-        .setLiteral('importer.image.registry', parsedImageReference.registry)
-        .setLiteral('grpc.image.registry', parsedImageReference.registry)
-        .setLiteral('rest.image.registry', parsedImageReference.registry)
-        .setLiteral('restjava.image.registry', parsedImageReference.registry)
-        .setLiteral('web3.image.registry', parsedImageReference.registry)
-        .setLiteral('monitor.image.registry', parsedImageReference.registry)
-        .setLiteral('importer.image.repository', parsedImageReference.repository)
-        .setLiteral('grpc.image.repository', parsedImageReference.repository)
-        .setLiteral('rest.image.repository', parsedImageReference.repository)
-        .setLiteral('restjava.image.repository', parsedImageReference.repository)
-        .setLiteral('web3.image.repository', parsedImageReference.repository)
-        .setLiteral('monitor.image.repository', parsedImageReference.repository)
-        .setLiteral('importer.image.tag', parsedImageReference.tag)
-        .setLiteral('grpc.image.tag', parsedImageReference.tag)
-        .setLiteral('rest.image.tag', parsedImageReference.tag)
-        .setLiteral('restjava.image.tag', parsedImageReference.tag)
-        .setLiteral('web3.image.tag', parsedImageReference.tag)
-        .setLiteral('monitor.image.tag', parsedImageReference.tag);
+      const moduleImages: MirrorNodeModuleImageReference[] = MirrorNodeModuleImages.expand(config.componentImage);
 
-      if (this.isComponentImageAvailableForKind(config.componentImage, config.componentImageArchive)) {
+      for (const {chartKey, imageReference} of moduleImages) {
+        const parsedImageReference: ParsedImageReference = ImageReference.parseImageReference(imageReference);
         chartValues
-          .setLiteral('importer.image.pullPolicy', 'Never')
-          .setLiteral('grpc.image.pullPolicy', 'Never')
-          .setLiteral('rest.image.pullPolicy', 'Never')
-          .setLiteral('restjava.image.pullPolicy', 'Never')
-          .setLiteral('web3.image.pullPolicy', 'Never')
-          .setLiteral('monitor.image.pullPolicy', 'Never');
+          .setLiteral(`${chartKey}.image.registry`, parsedImageReference.registry)
+          .setLiteral(`${chartKey}.image.repository`, parsedImageReference.repository)
+          .setLiteral(`${chartKey}.image.tag`, parsedImageReference.tag);
+      }
+
+      if (this.hasComponentImageArchiveValue(config.componentImageArchive)) {
+        this.validateComponentImageArchive(
+          moduleImages.map(({imageReference}: MirrorNodeModuleImageReference): string => imageReference),
+          config.componentImageArchive,
+        );
+        for (const {chartKey} of moduleImages) {
+          chartValues.setLiteral(`${chartKey}.image.pullPolicy`, 'Never');
+        }
+      } else {
+        for (const {chartKey} of this.getLocallyAvailableModuleImages(moduleImages)) {
+          chartValues.setLiteral(`${chartKey}.image.pullPolicy`, 'Never');
+        }
       }
     } else if (this.shouldApplyMirrorNodeImageTagOverrides(config.mirrorNodeChartDirectory)) {
       this.addMirrorNodeImageTagOverrides(chartValues, config.mirrorNodeVersion);
@@ -661,7 +668,7 @@ export class MirrorNodeCommand extends BaseCommand {
       chartValues
         .set('ingress.enabled', true)
         .set('ingress.tls.enabled', false)
-        .setLiteral('ingress.hosts[0].host', config.domainName);
+        .setLiteral('ingress.hosts[0].host', UserInput.escapeHelmTemplate(config.domainName));
     }
 
     // if the useExternalDatabase populate all the required values before installing the chart
@@ -708,6 +715,11 @@ export class MirrorNodeCommand extends BaseCommand {
 
     chartValues.add(this.prepareBlockNodeIntegrationValues(config));
 
+    // The flag only accepts `importer` for now, and the overlay is importer-only.
+    if (config.debugMirrorNodeComponent === 'importer') {
+      chartValues.file(constants.MIRROR_NODE_DEBUG_VALUES_FILE);
+    }
+
     return chartValues;
   }
 
@@ -719,6 +731,21 @@ export class MirrorNodeCommand extends BaseCommand {
    */
   private shouldApplyMirrorNodeImageTagOverrides(mirrorNodeChartDirectory: string): boolean {
     return !mirrorNodeChartDirectory || this.configManager.wasFlagProvidedByUser(flags.mirrorNodeVersion);
+  }
+
+  /**
+   * Rejects a mirror node version that cannot ingest the output of the deployed consensus node.
+   */
+  private assertMirrorNodeCompatibility(mirrorNodeVersion: string, force: boolean): void {
+    ComponentCompatibility.assertCompatible(
+      {
+        ...ComponentCompatibility.deployedVersions(this.remoteConfig),
+        [ComponentTypes.MirrorNode]: mirrorNodeVersion,
+      },
+      ComponentTypes.MirrorNode,
+      force,
+      this.logger,
+    );
   }
 
   private addMirrorNodeImageTagOverrides(chartValues: HelmChartValues, mirrorNodeVersion: string): void {
@@ -831,7 +858,11 @@ export class MirrorNodeCommand extends BaseCommand {
       commandType,
     );
 
-    await this.loadComponentImage(config.componentImage, config.componentImageArchive, config.clusterContext);
+    await this.loadMirrorNodeComponentImages(
+      config.componentImage,
+      config.componentImageArchive,
+      config.clusterContext,
+    );
 
     await this.upgradeMirrorNodeChart(config, shouldReuseValues);
 
@@ -925,6 +956,53 @@ export class MirrorNodeCommand extends BaseCommand {
             constants.INGRESS_CONTROLLER_PREFIX + constants.MIRROR_INGRESS_CONTROLLER,
           );
       }
+    }
+  }
+
+  /**
+   * Filters the given Mirror Node module images down to those found in the local Docker daemon.
+   * Shared by `prepareHelmChartValues` (deciding `pullPolicy: Never` per chart key) and
+   * `loadMirrorNodeComponentImages` (deciding which images to Kind-load), so the two call sites
+   * cannot drift on what "locally available" means.
+   */
+  private getLocallyAvailableModuleImages(
+    moduleImages: MirrorNodeModuleImageReference[],
+  ): MirrorNodeModuleImageReference[] {
+    return moduleImages.filter(({imageReference}: MirrorNodeModuleImageReference): boolean =>
+      this.isLocalImageAvailableInDocker(imageReference),
+    );
+  }
+
+  /**
+   * Loads the six Mirror Node module images derived from `--component-image` into the target Kind
+   * clusters. An archive is loaded as a whole (it may already contain all six images), while the
+   * live-Docker path loads each module image only if that specific image was found locally, mirroring
+   * `BaseCommand.loadComponentImage`'s single-image semantics.
+   */
+  private async loadMirrorNodeComponentImages(
+    componentImage: Optional<string>,
+    componentImageArchive: Optional<string>,
+    clusterContext: Context,
+  ): Promise<void> {
+    if (this.hasComponentImageArchiveValue(componentImageArchive)) {
+      const expectedImages: Optional<string | string[]> = componentImage
+        ? MirrorNodeModuleImages.expand(componentImage).map(
+            ({imageReference}: MirrorNodeModuleImageReference): string => imageReference,
+          )
+        : componentImage;
+      this.validateComponentImageArchive(expectedImages, componentImageArchive);
+      await this.kindLoadComponentImageArchive(componentImageArchive, clusterContext, this.remoteConfig.getContexts());
+      return;
+    }
+
+    if (!componentImage) {
+      return;
+    }
+
+    for (const {imageReference} of this.getLocallyAvailableModuleImages(
+      MirrorNodeModuleImages.expand(componentImage),
+    )) {
+      await this.kindLoadComponentImage(imageReference, clusterContext, this.remoteConfig.getContexts());
     }
   }
 
@@ -1235,6 +1313,7 @@ export class MirrorNodeCommand extends BaseCommand {
               },
             },
             this.waitForMirrorNodeSchemaTask(),
+            this.grantExternalDatabaseReadonlyRoleTask(),
           ],
           constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
         ),
@@ -1294,6 +1373,83 @@ export class MirrorNodeCommand extends BaseCommand {
           constants.MIRROR_NODE_SCHEMA_READY_MAX_ATTEMPTS,
           constants.MIRROR_NODE_SCHEMA_READY_DELAY,
         );
+      },
+    };
+  }
+
+  /**
+   * The importer's V1.0__Init.sql migration creates mirror_rest without the readonly role, so on an
+   * external database it lacks SELECT on every table added by a later migration. Solo cannot exec
+   * into a database it does not own, so it starts a short-lived psql pod in the mirror node
+   * namespace, grants the role over the network with the owner credentials, and deletes the pod.
+   * The DO block is idempotent and a no-op when either role is missing.
+   *
+   * A failed grant only warns: REST still starts without it, as it did before Solo ran the grant,
+   * and on PostgreSQL 16+ a non-superuser owner needs ADMIN OPTION on readonly, which only the
+   * database administrator can give.
+   */
+  private grantExternalDatabaseReadonlyRoleTask(): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Grant readonly role to mirror_rest on external database',
+      skip: (context_): boolean => !context_.config.useExternalDatabase,
+      task: async (context_, task): Promise<void> => {
+        const config: MirrorNodeDeployConfigClass | MirrorNodeUpgradeConfigClass = context_.config;
+        const pods: Pods = this.k8Factory.getK8(config.clusterContext).pods();
+        const podName: string = `${config.releaseName}-external-db-client-${Date.now().toString(36)}`;
+        const podReference: PodReference = PodReference.of(config.namespace, PodName.of(podName));
+        const containerName: ContainerName = ContainerName.of('psql');
+        const grantSql: string =
+          "DO $grant$ BEGIN IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'readonly') " +
+          "AND EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'mirror_rest') " +
+          'THEN GRANT readonly TO mirror_rest; END IF; END $grant$;';
+
+        try {
+          // The password goes in the pod env, not the exec command, which execContainer writes to solo.log.
+          await pods.create(
+            podReference,
+            {'solo.hedera.com/type': 'external-db-client', 'solo.hedera.com/pod': podName},
+            containerName,
+            constants.MIRROR_EXTERNAL_DATABASE_CLIENT_IMAGE,
+            ['sleep', 'infinity'],
+            ['psql', '--version'],
+            {PGPASSWORD: config.externalDatabaseOwnerPassword},
+          );
+          try {
+            await pods.waitForReadyStatus(
+              config.namespace,
+              [`solo.hedera.com/pod=${podName}`],
+              constants.PODS_READY_MAX_ATTEMPTS,
+              constants.PODS_READY_DELAY,
+            );
+            await this.k8Factory
+              .getK8(config.clusterContext)
+              .containers()
+              .readByRef(ContainerReference.of(podReference, containerName))
+              .execContainer([
+                'psql',
+                '-h',
+                config.externalDatabaseHost,
+                '-U',
+                config.externalDatabaseOwnerUsername,
+                '-d',
+                'mirror_node',
+                '-v',
+                'ON_ERROR_STOP=1',
+                '-c',
+                grantSql,
+              ]);
+          } finally {
+            await pods.delete(podReference);
+          }
+        } catch (error) {
+          // Warn instead of failing: the mirror node is already deployed and REST starts without the
+          // grant, so the worst case matches the old manual step. The reason names the SQL to run.
+          const reason: string =
+            'could not grant readonly to mirror_rest; REST may fail to read tables added after the first migration. ' +
+            `Run as a database administrator: GRANT readonly TO mirror_rest; (or GRANT readonly TO ${config.externalDatabaseOwnerUsername} WITH ADMIN OPTION; and re-run)`;
+          this.logger.warn(reason, error);
+          task.skip(`${task.title} ${chalk.yellow('[SKIPPING]')} ${chalk.grey(reason)}`);
+        }
       },
     };
   }
@@ -1493,6 +1649,38 @@ export class MirrorNodeCommand extends BaseCommand {
     };
   }
 
+  private enableDebuggerPortForwardingTask(): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Enable port forwarding for mirror node JVM debugger',
+      skip: ({config}: MirrorNodeDeployContext | MirrorNodeUpgradeContext): boolean => !config.debugMirrorNodeComponent,
+      task: async ({config}: MirrorNodeDeployContext | MirrorNodeUpgradeContext): Promise<void> => {
+        const externalAddress: string = this.configManager.getFlag<string>(flags.externalAddress);
+        const [debugPod]: Pod[] = await this.k8Factory
+          .getK8(config.clusterContext)
+          .pods()
+          .list(config.namespace, [
+            `app.kubernetes.io/component=${config.debugMirrorNodeComponent}`,
+            `app.kubernetes.io/instance=${config.releaseName}`,
+          ]);
+        if (!debugPod) {
+          throw new SoloErrors.system.mirrorNodePodsNotFound(config.releaseName, config.namespace.name);
+        }
+
+        // Not tracked in remote config, same as the consensus node --debug-node-alias forward
+        const localPort: number = await debugPod.portForward(
+          constants.JVM_DEBUG_PORT,
+          constants.JVM_DEBUG_PORT,
+          true,
+          true,
+          externalAddress,
+        );
+        this.logger.showUser(
+          `Mirror node ${config.debugMirrorNodeComponent} JVM debugger is available on localhost:${localPort}`,
+        );
+      },
+    };
+  }
+
   public async add(argv: ArgvStruct): Promise<boolean> {
     let lease: Lock;
 
@@ -1524,6 +1712,8 @@ export class MirrorNodeCommand extends BaseCommand {
             ) as MirrorNodeDeployConfigClass;
 
             context_.config = config;
+
+            this.assertMirrorNodeCompatibility(config.mirrorNodeVersion, config.force);
 
             const hasMirrorNodeMemoryImprovements: boolean = new SemanticVersion<string>(
               config.mirrorNodeVersion,
@@ -1732,6 +1922,7 @@ export class MirrorNodeCommand extends BaseCommand {
         },
         this.checkPodsAreReadyNodeTask(),
         this.enablePortForwardingTask(),
+        this.enableDebuggerPortForwardingTask(),
         {
           title: 'Show user messages',
           skip: (): boolean => this.oneShotState.isActive(),
@@ -1833,6 +2024,8 @@ export class MirrorNodeCommand extends BaseCommand {
               this.remoteConfig.getComponentVersion(ComponentTypes.MirrorNode),
               optionFromFlag(flags.mirrorNodeVersion),
             );
+
+            this.assertMirrorNodeCompatibility(config.mirrorNodeVersion, config.force);
 
             context_.config.soloChartVersion = SemanticVersion.getValidSemanticVersion(
               context_.config.soloChartVersion,
@@ -2003,6 +2196,7 @@ export class MirrorNodeCommand extends BaseCommand {
         this.enableMirrorNodeTask(MirrorNodeCommandType.UPGRADE),
         this.checkPodsAreReadyNodeTask(),
         this.enablePortForwardingTask(),
+        this.enableDebuggerPortForwardingTask(),
         // TODO only show this if we are not running in quick-start mode
         // {
         //   title: 'Show user messages',

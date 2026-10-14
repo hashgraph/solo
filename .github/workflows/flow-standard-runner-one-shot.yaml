@@ -168,7 +168,7 @@ jobs:
         if: ${{ matrix.install-mode == 'global-package' }}
         timeout-minutes: 10
         run: |
-          task -t scripts/Taskfile.release.yml dual-publish:pack OUTPUT_DIR=output/hl
+          task -t scripts/Taskfile.release.yml pack OUTPUT_DIR=output/hl
 
       # This installs the tarball the "pack" step just built from this checkout, not a
       # registry package — there is no version to pin or lockfile to point at.

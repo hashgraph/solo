@@ -25,6 +25,7 @@ export interface NodeUpdateConfigClass extends NodeCommonConfigWithNodeAlias, Ch
   newAccountNumber: string;
   newAdminKey: PrivateKey;
   releaseTag: string;
+  force: boolean;
   tlsPrivateKey: string;
   tlsPublicKey: string;
   adminKey: PrivateKey;

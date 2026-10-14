@@ -88,6 +88,12 @@ export const MEMORY_ENHANCEMENTS_MIRROR_NODE_VERSION: string = '0.152.0';
 export const MINIMUM_MIRROR_NODE_VERSION_FOR_ARM64_WEB3_NATIVE_IMAGE: string = '0.155.0';
 
 export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS: string = 'v0.74.0-0';
+// first consensus node releases that apply these files from data/config after a freeze upgrade
+export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_SIMPLE_FEES: string = 'v0.68.0-0';
+export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_THROTTLES: string = 'v0.54.0-0';
+// v0.72.x creates the simple fees schedule file without the entry that topic messages require from v0.73.0
+export const HIERO_PLATFORM_VERSION_WITH_INCOMPLETE_SIMPLE_FEES: string = 'v0.72.0-0';
+export const MINIMUM_HIERO_PLATFORM_VERSION_REQUIRING_TOPIC_MESSAGE_FEE_ENTRY: string = 'v0.73.0-0';
 export const MINIMUM_MIRROR_NODE_CHART_VERSION_FOR_PINGER_ENV_VARS_UPDATE: string = '0.153.0-0';
 
 export const MINIMUM_HIERO_PLATFORM_VERSION_FOR_NETWORK_LOAD_GENERATOR: string = 'v0.72.0-0';
@@ -109,6 +115,17 @@ export const MINIMUM_HIERO_BLOCK_NODE_VERSION_FOR_DEDICATED_HEALTH_PORT: string 
 // suffix makes pre-releases (e.g. v0.77.2) satisfy the check.
 export const MINIMUM_CN_VERSION_FOR_16_SLOT_BLOCK_PROOF: string = 'v0.77.0-0';
 export const MINIMUM_BLOCK_NODE_VERSION_FOR_16_SLOT_BLOCK_PROOF: string = 'v0.41.0-0';
+
+// Consensus node v0.79 hashes blocks and state with SHA-256 instead of SHA-384, and only block node
+// 0.45+ and mirror node 0.165+ can consume that output. This is a hard floor rather than a matched
+// pair: the newer block and mirror nodes still work with an older consensus node.
+export const MINIMUM_CN_VERSION_FOR_SHA256_HASHING: string = 'v0.79.0-0';
+export const MINIMUM_BLOCK_NODE_VERSION_FOR_SHA256_HASHING: string = 'v0.45.0-0';
+export const MINIMUM_MIRROR_NODE_VERSION_FOR_SHA256_HASHING: string = 'v0.165.0-0';
+
+// Consensus node v0.79 changes the TSS library, which does not convert existing keys or proofs, so a
+// network on an older version cannot be upgraded across this boundary; it has to be redeployed.
+export const CN_VERSION_REQUIRING_REDEPLOY: string = 'v0.79.0-0';
 
 export function getSoloVersion(): Version {
   // In SEA mode the bootstrap (sea/sea-main.template.cjs) sets SOLO_SEA_VERSION before any

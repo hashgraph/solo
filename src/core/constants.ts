@@ -316,6 +316,10 @@ export const POD_CONDITION_STATUS_TRUE: string = 'True';
 export const EXPLORER_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'hiero-explorer-values.yaml');
 export const RELAY_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'relay-values.yaml');
 export const MIRROR_NODE_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'mirror-node-values.yaml');
+export const MIRROR_NODE_DEBUG_VALUES_FILE: string = PathEx.joinWithRealPath(
+  RESOURCES_DIR,
+  'mirror-node-debug-values.yaml',
+);
 export const PROMETHEUS_STACK_VALUES_FILE: string = PathEx.joinWithRealPath(
   RESOURCES_DIR,
   'prometheus-stack-values.yaml',
@@ -362,6 +366,7 @@ export const ONE_SHOT_MIRROR_INGRESS_NODEPORT_VALUES_FILE: string = PathEx.joinW
 // extraPortMappings map it to ingress-controller NodePort 30003 inside the cluster. Must match the
 // hostPort in resources/templates/small-memory/kind-config.yaml.
 export const ONE_SHOT_MIRROR_REST_HOST_PORT: number = 38_081;
+export const ONE_SHOT_MIRROR_REST_NODE_PORT: number = 30_003;
 // One-shot only: fixed NodePorts for the explorer, JSON RPC relay, and consensus node gRPC
 // (node1 HAProxy) services created by the one-shot deploy orchestrator, plus the host ports the
 // Kind extraPortMappings publish them on. Each host port matches the legacy kubectl port-forward
@@ -383,6 +388,11 @@ export const MIRROR_POSTGRES_TRUNCATE_SQL_FILE: string = PathEx.joinWithRealPath
   RESOURCES_DIR,
   'mirror-postgres-truncate.sql',
 );
+// psql client used to run SQL against an external mirror node database from inside the cluster.
+// Override for air-gapped or private registries.
+export const MIRROR_EXTERNAL_DATABASE_CLIENT_IMAGE: string =
+  getEnvironmentVariable('MIRROR_EXTERNAL_DATABASE_CLIENT_IMAGE') ||
+  'docker.io/bitnamilegacy/postgresql-repmgr:17.6.0-debian-12-r2';
 export const UPGRADE_MIGRATIONS_FILE: string = PathEx.join(RESOURCES_DIR, 'component-upgrade-migrations.json');
 export const SOLO_DEPLOYMENT_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'solo-values.yaml');
 export const BLOCK_NODE_TSS_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'block-node-tss-values.yaml');
@@ -659,6 +669,7 @@ export const MINIO_SECRET_NAME: string = 'minio-secrets';
 export const BACKUP_SECRET_NAME: string = 'backup-uploader-secrets';
 export const MIRROR_INGRESS_TLS_SECRET_NAME: string = 'ca-secret-mirror-node';
 export const EXPLORER_INGRESS_TLS_SECRET_NAME: string = 'ca-secret-hiero-explorer';
+export const NODE_TLS_KEYS_SECRET_NAME: string = 'network-node-hapi-app-secrets';
 
 export const BLOCK_STREAM_STREAM_MODE: string = getEnvironmentVariable('BLOCK_STREAM_STREAM_MODE') || 'BOTH';
 export const BLOCK_STREAM_WRITER_MODE: string = getEnvironmentVariable('BLOCK_STREAM_WRITER_MODE') || 'FILE_AND_GRPC';
@@ -668,6 +679,8 @@ export const RELAY_IMAGE_NAME: string = 'hiero-json-rpc-relay';
 export const EXPLORER_IMAGE_NAME: string = 'hiero-explorer';
 export const APPLICATION_PROPERTIES: string = 'application.properties';
 export const APPLICATION_PROPERTIES_ENABLE_OVERWRITE_MARKER: string = 'SOLO_ENABLE_OVERWRITE=true';
+export const SIMPLE_FEES_SCHEDULES_JSON: string = 'simpleFeesSchedules.json';
+export const THROTTLES_JSON: string = 'throttles.json';
 export const BLOCK_NODES_JSON_FILE: string = 'block-nodes.json';
 export const NETWORK_NODE_SHARED_DATA_CONFIG_MAP_NAME: string = 'network-node-data-config-cm';
 export const enum StorageType {

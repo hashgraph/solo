@@ -138,6 +138,11 @@ jobs:
           echo "$ACTUAL" | grep -q "$EXPECTED" || { echo "version mismatch: expected $EXPECTED, got: $ACTUAL"; exit 1; }
           echo "✓ Smoke test passed (version $EXPECTED)"
 
+          # The embedded persist port-forward worker prints its usage and exits 2 when given no arguments.
+          RC=0; "$BIN" --internal-persist-port-forward || RC=$?
+          [[ $RC -eq 2 ]] || { echo "embedded persist-port-forward worker failed to start (exit $RC)"; exit 1; }
+          echo "✓ Embedded persist-port-forward worker starts"
+
       - name: Upload Binary Artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

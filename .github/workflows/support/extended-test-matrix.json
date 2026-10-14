@@ -20,6 +20,13 @@
       "path": ".github/workflows/script/test-mirror-node-endpoints.sh",
       "description": "Test all major mirror node endpoints (REST, gRPC, Web3, GraphQL)",
       "timeout_minutes": 40
+    },
+    {
+      "name": "solo-containers-image",
+      "type": "script",
+      "path": ".github/workflows/script/test-solo-containers-image.sh",
+      "description": "Build the solo-containers root image, load it into Kind and deploy a consensus node on it",
+      "timeout_minutes": 45
     }
   ]
 }

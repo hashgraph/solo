@@ -1,0 +1,29 @@
+# Headroom above Solo's default resources/mirror-node-values.yaml limits for this example's
+# deployment only (not a change to Solo's shared defaults). A cold start of each module — DB
+# connection, Flyway migrations, Spring context init — can transiently spike above Solo's
+# steady-state-tuned defaults before settling down, which was observed to OOMKill importer, grpc,
+# rest-java, and web3 at their default limits during local smoke testing of this example.
+importer:
+  resources:
+    limits:
+      memory: 768Mi
+grpc:
+  resources:
+    limits:
+      memory: 384Mi
+rest:
+  resources:
+    limits:
+      memory: 384Mi
+restjava:
+  resources:
+    limits:
+      memory: 512Mi
+web3:
+  resources:
+    limits:
+      memory: 512Mi
+monitor:
+  resources:
+    limits:
+      memory: 384Mi

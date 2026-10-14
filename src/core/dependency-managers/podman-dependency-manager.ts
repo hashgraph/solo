@@ -309,13 +309,39 @@ export class PodmanDependencyManager extends BaseDependencyManager {
    */
   private static referencedRuntimeExists(containersConfigPath: string): boolean {
     try {
-      const content: string = fs.readFileSync(containersConfigPath, 'utf8');
-      const match: RegExpMatchArray | null = content.match(/crun\s*=\s*\["([^"]+)"\]/);
+      const crunPath: string | undefined = PodmanDependencyManager.referencedRuntimePath(containersConfigPath);
       // If the file has no runtime line to check, trust it rather than second-guessing.
-      return !match || fs.existsSync(match[1]);
+      return !crunPath || fs.existsSync(crunPath);
     } catch {
       // best-effort: treat an unreadable config as unusable so callers skip it
       return false;
+    }
+  }
+
+  /** The crun path the given containers.conf pins, or undefined when it has no runtime line. */
+  private static referencedRuntimePath(containersConfigPath: string): string | undefined {
+    const content: string = fs.readFileSync(containersConfigPath, 'utf8');
+    return content.match(/crun\s*=\s*\["([^"]+)"\]/)?.[1];
+  }
+
+  /**
+   * The Homebrew bin directory holding the podman {@link setupConfig} configured, read back from the
+   * persisted containers.conf (crun is generated beside podman there). `sudo` drops that directory
+   * via secure_path, and a later solo invocation that never sourced `brew shellenv` does not have it
+   * on its PATH either, so rootful podman commands prepend it explicitly. Undefined unless a valid
+   * rootful configuration is persisted.
+   */
+  public getConfiguredRuntimeBinaryDirectory(): string | undefined {
+    const containersConfigPath: string | undefined = this.containerConfigEnvironment().CONTAINERS_CONF;
+    if (!containersConfigPath) {
+      return undefined;
+    }
+    try {
+      const crunPath: string | undefined = PodmanDependencyManager.referencedRuntimePath(containersConfigPath);
+      return crunPath ? PathEx.dirname(crunPath) : undefined;
+    } catch {
+      // best-effort: an unreadable config leaves the inherited PATH as the only podman lookup
+      return undefined;
     }
   }
 

@@ -44,7 +44,13 @@ on:
         description: "Release tag to sign or repair (e.g. v0.88.0)"
         type: string
         required: true
-  workflow_run:
+  # workflow_run runs in the base repository context with access to secrets, which is dangerous
+  # when a workflow checks out or restores artifacts from the triggering run. This workflow does
+  # neither: it has no actions/checkout step and downloads no artifacts from the triggering run,
+  # only release assets from this repository's own Releases API via gh release download. The
+  # target releases are resolved from the triggering run's start time and this repository's own
+  # release metadata, never from the triggering run's payload content.
+  workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: ["Deploy Release Artifact", "Deploy Hugo Build and Deploy Site to Pages"]
     types:
       - completed

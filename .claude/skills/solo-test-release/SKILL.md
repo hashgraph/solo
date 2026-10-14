@@ -1,13 +1,13 @@
 ---
 name: solo-test-release
-description: Smoke-test a Solo release candidate before dispatching the release workflow — pack the npm tarball with the exact release packaging code, install it globally in isolation, verify the version, then run a full one-shot network deploy/verify/destroy cycle against the packed CLI in a fully isolated Solo home and Kind cluster, including functional checks that submit a real transaction and confirm it through consensus, mirror node ingestion, and the JSON-RPC relay. Use when the user asks to "test the release", "smoke test before releasing", "verify the release candidate", or "sanity check before running the release workflow".
+description: Smoke-test a Solo release candidate before dispatching the release workflow — pack the npm tarball with the exact release packaging code, install it globally in isolation, verify the version, then run a full one-shot network deploy/verify/destroy cycle against the packed CLI in a fully isolated Solo home and Kind cluster, including functional checks that submit a real transaction and confirm it through consensus, mirror node ingestion, and the JSON-RPC relay. Optionally runs a second full pass with the block node enabled (`ONE_SHOT_WITH_BLOCK_NODE=true`) to also prove the consensus -> block node -> mirror node path. Use when the user asks to "test the release", "smoke test before releasing", "verify the release candidate", "sanity check before running the release workflow", or "also test with the block node".
 license: Apache-2.0
 allowed-tools: Bash, Read
 metadata:
-  version: "0.3.1"
+  version: "0.4.1"
   domain: release-management
   scope: hiero-ledger/solo
-  triggers: test the release, smoke test release, verify release candidate, test before release workflow, pre-release check
+  triggers: test the release, smoke test release, verify release candidate, test before release workflow, pre-release check, test release with block node, include block node in release test
   related-skills: solo-prepare-release
 ---
 
@@ -31,6 +31,11 @@ Run everything from the `solo/` repo root (the directory containing `version.ts`
 
 - The user wants to sanity-check a release candidate (any branch/commit — main, a release PR branch,
   a `chore-prepare-release-*` branch) before someone runs `flow-deploy-release-artifact.yaml`.
+- The base flow (Steps 0-9) always runs. If the user additionally asks to test with the block node —
+  phrases like "also test with the block node", "include the block node", "test the block node too" —
+  also run the **Step 10** variant below, which is a second, independent full deploy/verify/destroy
+  pass with `ONE_SHOT_WITH_BLOCK_NODE=true`. Without that ask, do not run it: it roughly doubles total
+  wall-clock time and the block node is off by default in a real one-shot deploy too.
 
 Do **not** use for:
 - Actually cutting/publishing the release (that's the GitHub Actions workflow).
@@ -40,9 +45,11 @@ Do **not** use for:
 ## Requirements
 
 Docker/Podman (12 GB RAM, 6 CPU cores), `task`, `kind`, `helm`, `kubectl`, Node.js >= 22 / npm >= 9.8.1.
-The deploy step below spins up a real Kind cluster and a full network (consensus, mirror, block,
-relay, explorer nodes) — expect **20–60+ minutes** wall clock, and confirm with the user before
-starting if this hasn't been made explicit already.
+The deploy step below spins up a real Kind cluster and a full network (consensus, mirror, relay,
+explorer nodes; block node only in the Step 10 variant) — expect **20–60+ minutes** wall clock, and
+confirm with the user before starting if this hasn't been made explicit already. If the user also
+wants the block node variant (Step 10), that is a second full pass of the same duration — confirm it
+separately.
 
 ## Isolation — why this design, read before running anything
 
@@ -91,6 +98,34 @@ kind get clusters 2>/dev/null | grep -Fx "solo-cluster" && echo "COLLISION: a re
 If `solo-cluster` already exists, **stop and ask the user** how to proceed (reuse it, ask them to
 rename/remove it first, or pick another day) — do not delete it yourself; it may be real work.
 
+**Also check the fixed one-shot host ports are free**, not just the cluster name. One-shot always
+publishes `38080` (explorer), `38081` (mirror REST), `37546` (relay), `35211` (consensus gRPC), and
+`30004` on the Kind cluster's `extraPortMappings` — these are hardcoded in
+`ONE_SHOT_EXPLORER_HOST_PORT` / `ONE_SHOT_MIRROR_REST_HOST_PORT` / `ONE_SHOT_RELAY_HOST_PORT` /
+`ONE_SHOT_CONSENSUS_GRPC_HOST_PORT` in `src/core/constants.ts` with no flag or env var to relocate
+them, so a collision here cannot be worked around by reconfiguring the test — only by freeing the
+port. Confirmed by testing: an unrelated pre-existing `kubectl port-forward` on `38081`/`35211` made
+`kind create cluster` fail outright with `address already in use`, discovered only once the real
+20+-minute deploy had already started. Check before starting, not after:
+
+```bash
+for p in 38080 38081 37546 35211 30004; do
+  echo -n "port ${p}: "
+  lsof -nP -iTCP:${p} -sTCP:LISTEN 2>/dev/null >/dev/null && echo "IN USE" || echo "free"
+done
+```
+
+If any port is in use, identify the process (`lsof -nP -iTCP:<port> -sTCP:LISTEN`, then
+`ps -p <pid> -o pid,ppid,etime,command`) before touching it — it is very likely the developer's own
+unrelated work (e.g. a `kubectl port-forward` to a real deployment), not something this skill created.
+**Never kill it without asking the user first.** If it turns out to be a Solo-managed port-forward
+(tracked in a real deployment's remote config), prefer `solo deployment port-forwards stop --deployment
+<name>` over a raw `kill` — it cleanly deregisters the forward, and the developer can restore it
+afterward with `solo deployment port-forwards refresh --deployment <name>`. Figure out `<name>` from
+the developer's real `~/.solo/local-config.yaml` (e.g. `grep -B5 <namespace> ~/.solo/local-config.yaml`
+to find the deployment name owning that namespace) — do this read-only, against their real config, not
+the scratch one from Step 3.
+
 Confirm the required tools are present (`task`, `kind`, `helm`, `kubectl`, `node`, `npm`) and Docker
 is running, and confirm with the user that the 20–60+ minute run is acceptable before continuing.
 
@@ -101,7 +136,7 @@ Use the exact packaging code the release workflow uses for the published artifac
 Taskfile step could break:
 
 ```bash
-task -t scripts/Taskfile.release.yml dual-publish:pack OUTPUT_DIR=output/release-smoke-test
+task -t scripts/Taskfile.release.yml pack OUTPUT_DIR=output/release-smoke-test
 ```
 
 **Verify `dist/` is actually real before trusting the tarball.** `Taskfile.yml`'s `build`/`build:compile`
@@ -118,7 +153,7 @@ tar -tzf "${TARBALL}" | grep -qE '^package/dist/solo\.js$' && tar -tzf "${TARBAL
   || { echo "BROKEN PACK: dist/ entry points missing — forcing a real rebuild and repacking"; \
        rm -rf dist output/release-smoke-test; \
        task build --force; \
-       task -t scripts/Taskfile.release.yml dual-publish:pack OUTPUT_DIR=output/release-smoke-test; }
+       task -t scripts/Taskfile.release.yml pack OUTPUT_DIR=output/release-smoke-test; }
 ```
 
 If this triggers, also tell the user afterward — a task caching bug that can silently ship a broken
@@ -348,3 +383,67 @@ proves the packed CLI deploys a *functionally working* network, not that
 `flow-deploy-release-artifact.yaml` itself will succeed (that workflow's own `dry-run-enabled` input,
 npm/JFrog publish steps, and docs build are still untested by this skill). The user still triggers
 that workflow manually.
+
+If Step 10 was also run, report it as its own pass/fail line in the same message (reachability, Block
+Nodes count/version, the pod-ready check, and whether Step 6's checks passed under the block-node
+deploy) — don't fold it silently into the base-pass result, since it validates a materially different
+code path (consensus -> block node -> mirror node, instead of consensus -> mirror node directly).
+
+## Step 10 (optional) — Also test with the block node included
+
+Only run this when the user asked for it (see "When to use"). It is a **second, independent full
+pass** — pack/verify-version/install, deploy, verify, functional checks, diagnostics, and teardown —
+with one difference: `ONE_SHOT_WITH_BLOCK_NODE=true` exported for the whole run. This flag is read by
+`ONE_SHOT_WITH_BLOCK_NODE` in `src/core/constants.ts`, which gates
+`DeployArgvBuilders.shouldDeployBlockNode()` — with it unset (the base pass), `one-shot single deploy`
+never adds a block node component at all.
+
+Expect another 20-60+ minutes on top of the base pass, and confirm this with the user separately
+before starting — the Step 0 confirmation covers only the base run.
+
+Repeat Steps 0 through 8 exactly as written, with these deltas:
+
+- **Step 3**: also append `export ONE_SHOT_WITH_BLOCK_NODE=true` to
+  `/tmp/solo-release-smoke-test-env.sh` so every later `source` of that file picks it up, and export
+  it in the current shell before Step 4's deploy. If this variant is run back-to-back with the base
+  pass in the same session, repeat Steps 1-3 in full rather than reusing the base pass's tarball/
+  install — Step 8 of the base pass deletes `output/release-smoke-test` and the scratch install.
+- **Step 4**: deploying with the block node enabled can take longer than the base pass — the deploy
+  orchestrator gates completion on a `BlockNodeDeployed` event with up to a 10-minute wait on top of
+  normal network bring-up, so don't treat a longer Step 4 as a hang on its own.
+- **Step 5, additional check** — the reachability checks prove the deploy succeeded, but not that a
+  block node was actually created. Confirm the component is present (not `one-shot single info` —
+  that subcommand does not exist; the actual command is `one-shot show deployment`, confirmed by
+  testing, and it auto-detects the most recent one-shot deployment with no `--deployment`/`-d` flag
+  needed):
+
+  ```bash
+  source /tmp/solo-release-smoke-test-env.sh
+  export PATH="${SCRATCH_PREFIX}/bin:${SCRATCH_PREFIX}:${PATH}"
+  solo one-shot show deployment | grep -E "Block Node(s|.*Version):"
+  ```
+
+  Expect a `✓ Block Nodes: 1` line and a non-empty `Block Node Version` line. Then confirm the pod
+  itself is actually ready, not just registered in remote config:
+
+  ```bash
+  kubectl get pods -n one-shot -l "block-node.hiero.com/type=block-node" -o wide
+  ```
+
+  Expect exactly one pod, `Running` / `1/1 Ready`.
+
+- **Step 6 still applies, and now proves more**: with the block node enabled, the consensus network's
+  block stream is written to the block node instead of being read directly by the mirror node
+  importer (wired via the "Copy block-nodes.json" step). So a passing mirror-ingestion check in Step 6
+  (the `/api/v1/transactions` and `eth_...` checks) is no longer just proving consensus -> mirror
+  connectivity — under this variant it is proving the full consensus -> block node -> mirror node
+  path, which is the entire point of running it. No separate transaction needs to be submitted
+  specifically "through" the block node; Step 6's existing transaction already routes through it.
+- **Step 7**: `solo deployment diagnostics logs` already understands block node logs
+  (`blocknode-<n>.log`) and already suppresses known-transient block-node read retries (the mirror
+  importer retrying a block read while the block node catches up, which a later successful read
+  proves recovered). A genuine, persistent block-node failure still surfaces as a finding — treat it
+  as a real failure, the same as any other component's.
+- **Step 8**: identical — `one-shot single destroy` already tears down the block node component when
+  the remote config shows `components.state.blockNodes.length > 0`, and `kind delete cluster --name
+  solo-cluster` still applies regardless of which components were deployed.
