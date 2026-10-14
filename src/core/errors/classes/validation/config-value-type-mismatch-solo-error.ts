@@ -5,21 +5,12 @@ import {ErrorOwnership} from '../../error-ownership.js';
 import {ErrorCodeRegistry} from '../../error-code-registry.js';
 
 /**
- * @description Thrown when a configuration value holds something the field's declared type cannot accept —
- * a numeric field given `abc`, or a boolean flag given `maybe`. Without this the value would reach the
- * schema as a raw string, where `"abc"` compares as never-less-than and any non-empty string reads as true.
- *
- * <p>The origin is supplied by the caller rather than assumed, because a value can arrive from an
- * environment variable or from a YAML file and the user needs to be told which one to correct.
+ * @description Thrown when a configuration value set in an environment variable or a Solo config file cannot be
+ * read as the type its field declares, such as `abc` for a number or `maybe` for a boolean flag.
  */
 export class ConfigValueTypeMismatchSoloError extends SoloError {
   protected override readonly retryable: boolean = false;
   protected override readonly ownership: ErrorOwnership = ErrorOwnership.User;
-
-  private static readonly ACCEPTED_VALUES: Readonly<Record<string, string>> = {
-    boolean: 'Accepted values are true, false, 1, and 0, in any case',
-    number: 'Provide an integer or decimal literal',
-  };
 
   /**
    * @param origin - how the value reached the config system, phrased to open a sentence, for example
@@ -33,8 +24,8 @@ export class ConfigValueTypeMismatchSoloError extends SoloError {
       message: `${origin} sets config key '${configKey}' to '${value}', which is not a valid ${expected}`,
       code: ErrorCodeRegistry.CONFIG_VALUE_TYPE_MISMATCH,
       troubleshootingSteps:
-        `${ConfigValueTypeMismatchSoloError.ACCEPTED_VALUES[expected]}\n` +
-        `Correct or remove the value set by ${origin} to fall back to the configured default`,
+        'A boolean accepts true, false, 1 or 0, in any case; a number accepts an integer or decimal literal\n' +
+        'Correct or remove that value to fall back to the configured default',
     });
   }
 }
