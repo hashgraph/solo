@@ -56,7 +56,6 @@ concurrency:
 
 env:
   STEP_TIMEOUT_MINUTES: '5'
-  SMOKE_TEST_TIMEOUT_MINUTES: '35'
   DOCKER_HOST: tcp://localhost:2375
   ACTIONS_STEP_DEBUG: 'true'
   ACTIONS_RUNNER_DEBUG: 'true'
