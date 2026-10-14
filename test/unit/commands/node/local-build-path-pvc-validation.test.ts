@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {describe, it} from 'mocha';
+import {afterEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 import sinon from 'sinon';
 import fs from 'node:fs';
@@ -222,6 +222,121 @@ describe('NodeCommandTasks platform software fetch routing', (): void => {
     } finally {
       sinon.restore();
     }
+  });
+
+  describe('consensus node image mode', (): void => {
+    const buildFetchConfig = (overrides: Record<string, unknown> = {}): {config: Record<string, unknown>} => ({
+      config: {
+        consensusNodes: [{name: 'node1', context: 'kind-solo'}],
+        namespace: NamespaceName.of('solo'),
+        nodeAliases: ['node1'],
+        podRefs: {},
+        releaseTag: 'v0.77.2',
+        stagingDir: '/tmp/staging',
+        ...overrides,
+      },
+    });
+
+    afterEach((): void => {
+      sinon.restore();
+    });
+
+    it('skips fetching platform software because the jars are baked into the image', async (): Promise<void> => {
+      const nodeCommandTasks: NodeCommandTasks = Object.create(NodeCommandTasks.prototype) as NodeCommandTasks;
+      sinon.stub(NetworkNodeLifecycle, 'isConsensusNodeImage').returns(true);
+      const fetchStub: sinon.SinonStub = sinon
+        .stub(nodeCommandTasks as unknown as Record<string, unknown>, '_fetchPlatformSoftware')
+        .resolves();
+      const skipStub: sinon.SinonStub = sinon.stub();
+
+      const result: unknown = await nodeCommandTasks.fetchPlatformSoftware('nodeAliases').task(
+        buildFetchConfig() as never,
+        {
+          title: 'Fetch platform software',
+          skip: skipStub,
+        } as never,
+      );
+
+      expect(result).to.equal(undefined);
+      expect(skipStub.calledOnce).to.equal(true);
+      expect(fetchStub.called).to.equal(false);
+    });
+
+    it('still fetches platform software for a version upgrade', async (): Promise<void> => {
+      const nodeCommandTasks: NodeCommandTasks = Object.create(NodeCommandTasks.prototype) as NodeCommandTasks;
+      sinon.stub(NetworkNodeLifecycle, 'isConsensusNodeImage').returns(true);
+      const fetchResult: object = {};
+      const fetchStub: sinon.SinonStub = sinon
+        .stub(nodeCommandTasks as unknown as Record<string, unknown>, '_fetchPlatformSoftware')
+        .returns(fetchResult);
+      const skipStub: sinon.SinonStub = sinon.stub();
+
+      const result: unknown = await nodeCommandTasks
+        .fetchPlatformSoftware('nodeAliases')
+        .task(buildFetchConfig({upgradeVersion: 'v0.78.0'}) as never, {skip: skipStub} as never);
+
+      expect(result).to.equal(fetchResult);
+      expect(skipStub.called).to.equal(false);
+      expect(fetchStub.calledOnce).to.equal(true);
+    });
+
+    it('fetches platform software in the default solo-container mode', async (): Promise<void> => {
+      const nodeCommandTasks: NodeCommandTasks = Object.create(NodeCommandTasks.prototype) as NodeCommandTasks;
+      sinon.stub(NetworkNodeLifecycle, 'isConsensusNodeImage').returns(false);
+      const fetchStub: sinon.SinonStub = sinon
+        .stub(nodeCommandTasks as unknown as Record<string, unknown>, '_fetchPlatformSoftware')
+        .resolves();
+      const skipStub: sinon.SinonStub = sinon.stub();
+
+      await nodeCommandTasks
+        .fetchPlatformSoftware('nodeAliases')
+        .task(buildFetchConfig() as never, {skip: skipStub} as never);
+
+      expect(skipStub.called).to.equal(false);
+      expect(fetchStub.calledOnce).to.equal(true);
+    });
+
+    it('installs the root container tools on every node only in the consensus node image mode', async (): Promise<void> => {
+      const nodeCommandTasks: NodeCommandTasks = Object.create(NodeCommandTasks.prototype) as NodeCommandTasks;
+      const installStub: sinon.SinonStub = sinon.stub(NetworkNodeLifecycle, 'installRootContainerTools').resolves();
+      const isImageStub: sinon.SinonStub = sinon.stub(NetworkNodeLifecycle, 'isConsensusNodeImage');
+
+      const installTask: ReturnType<NodeCommandTasks['installRootContainerTools']> =
+        nodeCommandTasks.installRootContainerTools();
+
+      isImageStub.returns(false);
+      expect((installTask.skip as () => boolean)()).to.equal(true);
+      isImageStub.returns(true);
+      expect((installTask.skip as () => boolean)()).to.equal(false);
+
+      let subTasks: {task: () => Promise<void>}[] = [];
+      const namespace: NamespaceName = NamespaceName.of('solo');
+      await installTask.task(
+        {
+          config: {
+            allNodeAliases: ['node1', 'node2'],
+            consensusNodes: [
+              {name: 'node1', context: 'kind-alpha'},
+              {name: 'node2', context: 'kind-beta'},
+            ],
+            namespace,
+          },
+        } as never,
+        {
+          newListr: (tasks: {task: () => Promise<void>}[]): string => {
+            subTasks = tasks;
+            return 'listr';
+          },
+        } as never,
+      );
+
+      expect(subTasks).to.have.length(2);
+      for (const subTask of subTasks) {
+        await subTask.task();
+      }
+      expect(installStub.getCall(0).args).to.deep.equal(['kind-alpha', namespace, 'node1']);
+      expect(installStub.getCall(1).args).to.deep.equal(['kind-beta', namespace, 'node2']);
+    });
   });
 });
 
