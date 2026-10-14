@@ -92,12 +92,17 @@ tasks:
           # --skip-grpc-web-endpoint: the restored state already has the correct grpcProxyEndpoint
           # FQDN. Sending NodeUpdateTransaction to re-set the same value triggers the CN v0.74 bug
           # where the periodic TSS check (every ~5 min) puts both nodes into CHECKING indefinitely.
-          # `config ops backup` (see the "backup" task above) baselines its state archive on the
-          # latest non-freeze signed round and trims trailing PCES, so nodes normally come back
-          # ACTIVE here. The ACTIVE-or-FREEZE_COMPLETE check below is a defensive fallback for the
-          # rare case where no non-freeze round was available to back up from (see issue #6164) —
-          # there is no way to force a node out of FREEZE_COMPLETE once restored into it.
-          {{ .TIMEOUT_COMMAND }} 300s {{ .SOLO_COMMAND }} consensus node start --deployment {{ .DEPLOYMENT }} --state-file {{ .BACKUP_DIR }} --skip-grpc-web-endpoint
+          # The restored snapshot's platform state can already carry a scheduled freezeTime
+          # committed before the snapshot was taken, independent of PCES content, so a node can
+          # still land in FREEZE_COMPLETE on this first boot regardless of round selection or PCES
+          # trimming. --resume-from-freeze asks `consensus node start`'s own ACTIVE-or-FREEZE_COMPLETE
+          # check to retry that case automatically: completing the freeze writes a new round with
+          # lastFrozenTime already equal to freezeTime, so a follow-up restart that does not
+          # re-upload the original snapshot sees the freeze as already handled and proceeds to
+          # ACTIVE (see issue #6164). This example wants the restored network to resume live
+          # processing, unlike e.g. the State Save and Restore example, which deliberately expects
+          # to stay frozen and must not pass this flag.
+          {{ .TIMEOUT_COMMAND }} 300s {{ .SOLO_COMMAND }} consensus node start --deployment {{ .DEPLOYMENT }} --state-file {{ .BACKUP_DIR }} --skip-grpc-web-endpoint --resume-from-freeze
           {{ .SOLO_COMMAND }} deployment refresh port-forwards --deployment {{ .DEPLOYMENT }}
       # Block nodes were already restarted by restore-config (applyBlockNodeRestoreFixes
       # restores the backed-up block data archive, deletes each pod, and waits for ready).

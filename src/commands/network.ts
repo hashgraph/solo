@@ -68,6 +68,7 @@ import {type Container} from '../integration/kube/resources/container/container.
 import {ResumableCopySource} from '../integration/kube/resources/container/resumable-copy-source.js';
 import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentCompatibility} from '../business/compatibility/component-compatibility.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {NamespaceName} from '../types/namespace/namespace-name.js';
@@ -189,6 +190,7 @@ export class NetworkCommand extends BaseCommand {
       flags.tssEnabled,
       flags.blockNodeMessageSizeSoftLimitBytes,
       flags.blockNodeMessageSizeHardLimitBytes,
+      flags.force,
     ],
   };
 
@@ -1774,6 +1776,18 @@ export class NetworkCommand extends BaseCommand {
               this.configManager.getFlag(flags.consensusNodeVersion),
             );
             const releaseTag: SemanticVersion<string> = new SemanticVersion<string>(argvReleaseTag || configReleaseTag);
+
+            // Validate before persisting so a rejected deploy does not leave remote config pointing at the
+            // unsupported version. --force is read from argv for the same singleton race described above.
+            ComponentCompatibility.assertCompatible(
+              {
+                ...ComponentCompatibility.deployedVersions(this.remoteConfig),
+                [ComponentTypes.ConsensusNode]: releaseTag.toString(),
+              },
+              ComponentTypes.ConsensusNode,
+              argv[flags.force.name] === true,
+              this.logger,
+            );
 
             if (
               this.remoteConfig.configuration.versions.consensusNode.toString() === '0.0.0' ||

@@ -125,14 +125,26 @@ jobs:
           ls -lahR coverage || true
           ls -lahR e2e_test_report || true
 
-      - name: Publish To Codecov
+      # Unit and E2E coverage are uploaded with separate flags so Codecov reports each as its own number.
+      - name: Publish Unit Test Coverage To Codecov
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         if: ${{ inputs.enable-codecov-analysis && !cancelled() && !failure() }}
         env:
           CODECOV_TOKEN: ${{ secrets.codecov-token }}
         with:
           verbose: true
-          directory: 'coverage'
+          directory: 'coverage/unit'
+          flags: unit
+
+      - name: Publish E2E Coverage To Codecov
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        if: ${{ inputs.enable-codecov-analysis && inputs.enable-e2e-coverage-report && !cancelled() && !failure() }}
+        env:
+          CODECOV_TOKEN: ${{ secrets.codecov-token }}
+        with:
+          verbose: true
+          directory: 'coverage/e2e'
+          flags: e2e
 
       - name: Publish to Codacy
         env:

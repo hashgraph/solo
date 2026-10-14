@@ -20,7 +20,7 @@ describe('LocalConfigRuntimeState', (): void => {
   const testFileName: string = 'local-config.yaml';
 
   async function createDeployment(): Promise<void> {
-    if (!runtimeState.isLoaded) {
+    if (!runtimeState.isLoaded()) {
       await runtimeState.load();
     }
     const deployment: Deployment = runtimeState.configuration.deployments.addNew();
@@ -173,6 +173,25 @@ describe('LocalConfigRuntimeState', (): void => {
     }
   });
 
+  describe('createIfMissing', (): void => {
+    it('creates and loads the config file when it does not exist', async (): Promise<void> => {
+      expect(await runtimeState.createIfMissing()).to.be.true;
+
+      expect(fs.existsSync(currentConfigFilePath())).to.be.true;
+      expect(runtimeState.isLoaded()).to.be.true;
+    });
+
+    it('leaves an existing config file untouched, even when it is invalid', async (): Promise<void> => {
+      fs.mkdirSync(basePath, {recursive: true});
+      fs.writeFileSync(currentConfigFilePath(), 'not: [valid');
+
+      expect(await runtimeState.createIfMissing()).to.be.false;
+
+      expect(fs.readFileSync(currentConfigFilePath(), 'utf8')).to.equal('not: [valid');
+      expect(runtimeState.isLoaded()).to.be.false;
+    });
+  });
+
   describe('legacy config migration', (): void => {
     it('migrates a valid legacy config, then removes the legacy file', async (): Promise<void> => {
       writeLegacyConfig(validLegacyConfig);
@@ -182,7 +201,7 @@ describe('LocalConfigRuntimeState', (): void => {
       expect(fs.existsSync(currentConfigFilePath()), 'current config should exist').to.be.true;
       expect(fs.existsSync(legacyConfigFilePath()), 'legacy config should be removed').to.be.false;
       // the migrated config validated and loaded, and the persisted file carries the current schema
-      expect(runtimeState.isLoaded, 'config should be loaded').to.be.true;
+      expect(runtimeState.isLoaded(), 'config should be loaded').to.be.true;
       expect(fs.readFileSync(currentConfigFilePath(), 'utf8')).to.contain('schemaVersion');
     });
 

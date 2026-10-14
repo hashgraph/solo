@@ -242,6 +242,7 @@ describe('NetworkCommand unit tests', (): void => {
       options.remoteConfig.persist = sinon.stub();
       options.remoteConfig.loadAndValidate = sinon.stub();
       options.remoteConfig.getNamespace = sinon.stub();
+      options.remoteConfig.getComponentPhasesMap = sinon.stub().returns(new Map());
 
       options.remoteConfig.configuration = {
         components: {changeNodePhase: sinon.stub(), getNewComponentId: sinon.stub(), addNewComponent: sinon.stub()},
