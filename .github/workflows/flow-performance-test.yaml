@@ -180,7 +180,6 @@ jobs:
           echo SOLO_TEST_CLUSTER=solo-e2e > .env
           echo ONE_SHOT_WITH_BLOCK_NODE=true >> .env
           echo BLOCK_STREAM_STREAM_MODE=BLOCKS >> .env
-          echo ONE_SHOT_BLOCK_NODE_PERF=true >> .env
           CN_EDGE_VERSION="${CN_EDGE_VERSION_INPUT}"
           if [[ -n "${CN_EDGE_VERSION}" ]]; then
             echo "Using consensus node edge version: ${CN_EDGE_VERSION}"
@@ -200,7 +199,6 @@ jobs:
           fi
           echo MIRROR_NODE_PINGER_TPS=10 >> .env
           echo ONE_SHOT_METRICS_TEST_DURATION_IN_MINUTES=5 >> .env
-          echo ONE_SHOT_BLOCK_NODE_PERF=false >> .env
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
             echo PERFORMANCE_TEST_CONCISE_MODE=true >> .env
           else
@@ -553,7 +551,7 @@ jobs:
       - name: Performance Test Verification
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
-          # ONE_SHOT_BLOCK_NODE_PERF=false: no ring-buffer workaround applied.
+          # The block node messaging workaround was removed — no ring-buffer override applied.
           # RTT probe runs but failures are non-fatal (hiero-block-node#3150) — block-node RSS
           # stays at the ~143 MB baseline.  Measured peak (run 29267777062): 2 331 MiB.
           # 3 000 MB (= 2 331 + 500 margin rounded to nearest 500) leaves headroom for NLG + mirror + kube-system.
