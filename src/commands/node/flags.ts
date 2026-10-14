@@ -271,6 +271,7 @@ export const REFRESH_FLAGS: CommandFlags = {
     flags.domainNames,
     flags.gossipEndpointPort,
     flags.serviceEndpointPort,
+    flags.force,
   ],
 };
 
@@ -347,6 +348,7 @@ export const SETUP_FLAGS: CommandFlags = {
     flags.domainNames,
     flags.gossipEndpointPort,
     flags.serviceEndpointPort,
+    flags.force,
   ],
 };
 
