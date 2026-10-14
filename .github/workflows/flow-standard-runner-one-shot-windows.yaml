@@ -548,7 +548,115 @@ jobs:
             Remove-Item -LiteralPath $kindCommand.Source -Force
           }
 
+      - name: One-Shot Single Deploy
+        shell: pwsh
+        timeout-minutes: 70
+        env:
+          ENABLE_IMAGE_CACHE: 'false'
+        run: |
+          # Solo writes UTF-8 to stdout; without this the pwsh wrapper decodes it with the legacy
+          # ANSI code page and every box-drawing character and emoji in the log becomes mojibake.
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- one-shot single deploy --dev
+
+      - name: Check Port Forwarding Still Works After Deploy
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- deployment diagnostics connections -d one-shot --check
+
+      - name: Verify Solo Cache Files Are Readable
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # Solo hardens files under ~/.solo with icacls. A grant that does not land leaves an empty
+          # DACL, which denies everyone including the owner and wedges every later deploy (#5302).
+          # Test-Path and File.Exists do not consult the DACL, so each file must actually be opened.
+          $checked = 0
+          $unreadable = @()
+          foreach ($file in Get-ChildItem -Path "$env:USERPROFILE\.solo\cache" -Recurse -File -Force) {
+            $checked++
+            try {
+              [IO.File]::Open($file.FullName, 'Open', 'Read', 'ReadWrite').Dispose()
+            } catch {
+              $unreadable += $file.FullName
+              icacls $file.FullName
+            }
+          }
+          Write-Host "Opened $checked cached file(s) under ~/.solo/cache"
+          if ($checked -eq 0) {
+            throw "No files found under ~/.solo/cache - this check is no longer guarding anything"
+          }
+          if ($unreadable.Count -gt 0) {
+            throw "Solo left unreadable files under ~/.solo/cache: $($unreadable -join ', ')"
+          }
+
+      - name: One-Shot Single Destroy
+        shell: pwsh
+        timeout-minutes: 15
+        run: |
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- one-shot single destroy --quiet-mode --dev
+
+      - name: Delete Kind Cluster
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          kind delete cluster --name solo-cluster
+
+      - name: One-Shot Single Redeploy
+        shell: pwsh
+        timeout-minutes: 70
+        env:
+          ENABLE_IMAGE_CACHE: 'false'
+        run: |
+          # The reinstall reuses the persistent ~/.solo cache the first deploy populated.
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- one-shot single deploy --dev
+
+      - name: Check Port Forwarding Still Works After Redeploy
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- deployment diagnostics connections -d one-shot --check
+
+      - name: Collect Diagnostics on Failure
+        if: ${{ failure() }}
+        # Best-effort: the deploy may have died before a deployment was persisted, in which case
+        # the command exits non-zero. `; $true` does not reset $LASTEXITCODE, which is what the
+        # pwsh wrapper exits with, so the step needs continue-on-error to stop reporting a
+        # false failure.
+        continue-on-error: true
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- deployment diagnostics logs -q --dev
+
+      - name: One-Shot Single Destroy (Cleanup)
+        if: always()
+        # Best-effort teardown: the runner is discarded afterwards, so a destroy failure must not
+        # turn an otherwise green run red. See the note above on why `; $true` did not achieve this.
+        continue-on-error: true
+        shell: pwsh
+        timeout-minutes: 15
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- one-shot single destroy --quiet-mode --dev
+
       - name: Raise Block Buffer For Docker Restart Recovery
+        if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
@@ -567,7 +675,11 @@ jobs:
           Set-Content -LiteralPath $propertiesFile -Value $updated -NoNewline
           Select-String -LiteralPath $propertiesFile -Pattern 'blockStream.buffer.maxBlocks'
 
-      - name: One-Shot Single Deploy
+      - name: One-Shot Single Redeploy
+        # Second deploy cycle on the same cluster — no cluster deletion between rounds.
+        # This validates that redeployment works correctly after a destroy (issue #6003).
+        # Only runs when called from the nightly workflow with run-twice: true.
+        if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: 70
         env:
@@ -575,14 +687,13 @@ jobs:
           BLOCK_STREAM_STREAM_MODE: BLOCKS
           ONE_SHOT_WITH_BLOCK_NODE: 'true'
         run: |
-          # Solo writes UTF-8 to stdout; without this the pwsh wrapper decodes it with the legacy
-          # ANSI code page and every box-drawing character and emoji in the log becomes mojibake.
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- one-shot single deploy --dev
 
-      - name: Check Port Forwarding Still Works After Deploy
+      - name: Check Port Forwarding Still Works After Redeploy
+        if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
@@ -592,6 +703,7 @@ jobs:
           npm run solo -- deployment diagnostics connections -d one-shot --check
 
       - name: Stop Consensus Nodes Before Docker Restart
+        if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
@@ -601,6 +713,7 @@ jobs:
           npm run solo -- consensus node stop --deployment one-shot --dev
 
       - name: Restart Docker Daemon in WSL2
+        if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: 10
         run: |
@@ -682,6 +795,7 @@ jobs:
           }
 
       - name: Wait for Kubernetes API After Docker Restart
+        if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
@@ -707,6 +821,7 @@ jobs:
           }
 
       - name: Refresh Port Forwards After Docker Restart
+        if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
@@ -716,6 +831,7 @@ jobs:
           npm run solo -- deployment refresh port-forwards --deployment one-shot --dev
 
       - name: Start Consensus Nodes After Docker Restart
+        if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
@@ -725,6 +841,7 @@ jobs:
           npm run solo -- consensus node start --deployment one-shot --dev
 
       - name: Verify Ledger Account Creation After Docker Restart
+        if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
@@ -734,6 +851,7 @@ jobs:
           npm run solo -- ledger account create --deployment one-shot --hbar-amount 100 --generate-ecdsa-key --set-alias --dev
 
       - name: Verify Relay and Mirror After Docker Restart
+        if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
@@ -804,120 +922,6 @@ jobs:
           } finally {
             if (-not $mirrorForward.HasExited) { Stop-Process -Id $mirrorForward.Id -Force }
           }
-
-      - name: Verify Solo Cache Files Are Readable
-        shell: pwsh
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: |
-          # Solo hardens files under ~/.solo with icacls. A grant that does not land leaves an empty
-          # DACL, which denies everyone including the owner and wedges every later deploy (#5302).
-          # Test-Path and File.Exists do not consult the DACL, so each file must actually be opened.
-          $checked = 0
-          $unreadable = @()
-          foreach ($file in Get-ChildItem -Path "$env:USERPROFILE\.solo\cache" -Recurse -File -Force) {
-            $checked++
-            try {
-              [IO.File]::Open($file.FullName, 'Open', 'Read', 'ReadWrite').Dispose()
-            } catch {
-              $unreadable += $file.FullName
-              icacls $file.FullName
-            }
-          }
-          Write-Host "Opened $checked cached file(s) under ~/.solo/cache"
-          if ($checked -eq 0) {
-            throw "No files found under ~/.solo/cache - this check is no longer guarding anything"
-          }
-          if ($unreadable.Count -gt 0) {
-            throw "Solo left unreadable files under ~/.solo/cache: $($unreadable -join ', ')"
-          }
-
-      - name: One-Shot Single Destroy
-        shell: pwsh
-        timeout-minutes: 15
-        run: |
-          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- one-shot single destroy --quiet-mode --dev
-
-      - name: Delete Kind Cluster
-        shell: pwsh
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: |
-          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          kind delete cluster --name solo-cluster
-
-      - name: One-Shot Single Redeploy
-        shell: pwsh
-        timeout-minutes: 70
-        env:
-          ENABLE_IMAGE_CACHE: 'false'
-          BLOCK_STREAM_STREAM_MODE: BLOCKS
-          ONE_SHOT_WITH_BLOCK_NODE: 'true'
-        run: |
-          # The reinstall reuses the persistent ~/.solo cache the first deploy populated.
-          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- one-shot single deploy --dev
-
-      - name: Check Port Forwarding Still Works After Redeploy
-        shell: pwsh
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: |
-          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- deployment diagnostics connections -d one-shot --check
-
-      - name: Collect Diagnostics on Failure
-        if: ${{ failure() }}
-        # Best-effort: the deploy may have died before a deployment was persisted, in which case
-        # the command exits non-zero. `; $true` does not reset $LASTEXITCODE, which is what the
-        # pwsh wrapper exits with, so the step needs continue-on-error to stop reporting a
-        # false failure.
-        continue-on-error: true
-        shell: pwsh
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: |
-          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-          $OutputEncoding = [System.Text.Encoding]::UTF8
-          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- deployment diagnostics logs -q --dev
-
-      - name: One-Shot Single Destroy (Cleanup)
-        if: always()
-        # Best-effort teardown: the runner is discarded afterwards, so a destroy failure must not
-        # turn an otherwise green run red. See the note above on why `; $true` did not achieve this.
-        continue-on-error: true
-        shell: pwsh
-        timeout-minutes: 15
-        run: |
-          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-          $OutputEncoding = [System.Text.Encoding]::UTF8
-          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- one-shot single destroy --quiet-mode --dev
-
-      - name: One-Shot Single Redeploy
-        # Second deploy cycle on the same cluster — no cluster deletion between rounds.
-        # This validates that redeployment works correctly after a destroy (issue #6003).
-        # Only runs when called from the nightly workflow with run-twice: true.
-        if: ${{ inputs.run-twice == true }}
-        shell: pwsh
-        timeout-minutes: 70
-        env:
-          ENABLE_IMAGE_CACHE: 'false'
-          BLOCK_STREAM_STREAM_MODE: BLOCKS
-          ONE_SHOT_WITH_BLOCK_NODE: 'true'
-        run: |
-          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-          $OutputEncoding = [System.Text.Encoding]::UTF8
-          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- one-shot single deploy --dev
-
-      - name: Check Port Forwarding Still Works After Redeploy
-        if: ${{ inputs.run-twice == true }}
-        shell: pwsh
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: |
-          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-          $OutputEncoding = [System.Text.Encoding]::UTF8
-          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
-          npm run solo -- deployment diagnostics connections -d one-shot --check
 
       - name: Collect Diagnostics on Redeploy Failure
         if: ${{ inputs.run-twice == true && failure() }}
