@@ -641,9 +641,8 @@ export class ExplorerCommand extends BaseCommand {
         config.explorerRestartTime = new Date();
 
         // Matches the `fullnameOverride` set in prepareHederaExplorerChartValues(), which the
-        // explorer chart uses verbatim as the Deployment's resource name (confirmed via
-        // `helm template` against the chart).
-        const deploymentName: string = `${config.releaseName}-${config.namespace.name}`;
+        // explorer chart truncates to 63 chars and strips a trailing '-' from.
+        const deploymentName: string = `${config.releaseName}-${config.namespace.name}`.slice(0, 63).replace(/-$/, '');
 
         await this.patchDeploymentRestartAnnotation(config.clusterContext, config.namespace, deploymentName);
       },

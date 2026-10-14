@@ -124,6 +124,9 @@ tasks:
       - cmd: |
           bash "{{.VERIFY_SCRIPT}}" "{{.NAMESPACE}}" "{{.EXPLORER_INSTANCE_LABEL}}" "post-upgrade" "{{.RESULTS_DIR}}" \
             "{{.EXPLORER_BASE_URL}}" "{{.MIRROR_PROBE_PATH}}" "{{.CURL_MAX_TIME}}"
+      - cmd: |
+          grep -q 'configmap_vs_pod: MATCH' "{{.RESULTS_DIR}}/post-upgrade.txt" &&
+            grep -q 'curl_result: SUCCESS' "{{.RESULTS_DIR}}/post-upgrade.txt"
 
   report:
     desc: Print baseline vs post-upgrade results side by side
