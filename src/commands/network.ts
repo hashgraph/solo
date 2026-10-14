@@ -1588,18 +1588,9 @@ export class NetworkCommand extends BaseCommand {
     namespace,
     deployment,
   }: NetworkDeployConfigClass): Promise<void> {
-    const CRDS: {key: string; crd: string}[] = [
-      {key: 'alertmanagerconfigs', crd: 'alertmanagerconfigs.monitoring.coreos.com'},
-      {key: 'alertmanagers', crd: 'alertmanagers.monitoring.coreos.com'},
-      {key: 'podmonitors', crd: 'podmonitors.monitoring.coreos.com'},
-      {key: 'probes', crd: 'probes.monitoring.coreos.com'},
-      {key: 'prometheusagents', crd: 'prometheusagents.monitoring.coreos.com'},
-      {key: 'prometheuses', crd: 'prometheuses.monitoring.coreos.com'},
-      {key: 'prometheusrules', crd: 'prometheusrules.monitoring.coreos.com'},
-      {key: 'scrapeconfigs', crd: 'scrapeconfigs.monitoring.coreos.com'},
-      {key: 'servicemonitors', crd: 'servicemonitors.monitoring.coreos.com'},
-      {key: 'thanosrulers', crd: 'thanosrulers.monitoring.coreos.com'},
-    ];
+    const CRDS: {key: string; crd: string}[] = constants.PROMETHEUS_OPERATOR_CRDS.map(
+      (crd: string): {key: string; crd: string} => ({key: crd.split('.', 1)[0], crd}),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for (const [_, context] of clusterRefs) {
