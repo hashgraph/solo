@@ -2439,38 +2439,9 @@ export class NodeCommandTasks {
         const subTasks: SoloListrTask<AnyListrContext>[] = nodeAliases.map(
           (nodeAlias: NodeAlias): SoloListrTask<AnyListrContext> => ({
             title: `Start node: ${chalk.yellow(nodeAlias)}`,
-            task: async (): Promise<void> => {
-              const context: string = extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
-              const labels: string[] = [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'];
-              await this.k8Factory
-                .getK8(context)
-                .pods()
-                .waitForReadyStatus(config.namespace, labels, 120, 1000, undefined, true);
-
-              const startCommand: string = NetworkNodeLifecycle.buildStartCommand();
-
-              const container: Container = await new K8Helper(context).getConsensusNodeRootContainer(
-                config.namespace,
-                nodeAlias,
-              );
-              if (config.localBuildPath) {
-                await container.execContainer(['bash', '-c', this.buildRefreshLiveLocalBuildJarsCommand()]);
-              }
-              for (const directory of [constants.HEDERA_DATA_APPS_DIR, constants.HEDERA_DATA_LIB_DIR]) {
-                const directoryPath: string = `${constants.HEDERA_HAPI_PATH}/${directory}`;
-                const output: string = await container.execContainer([
-                  'bash',
-                  '-c',
-                  `ls "${directoryPath}"/*.jar 2>/dev/null | wc -l`,
-                ]);
-                if (Number.parseInt(output.trim(), 10) === 0) {
-                  throw new SoloErrors.validation.nodeJarFilesNotInContainer(nodeAlias, directoryPath);
-                }
-              }
-              await container.execContainer(['bash', '-c', startCommand]);
-            },
-          });
-        }
+            task: async (): Promise<void> => this.startSingleNode(config, nodeAlias),
+          }),
+        );
 
         // set up the sub-tasks
         return task.newListr(subTasks, constants.LISTR_DEFAULT_OPTIONS.WITH_CONCURRENCY);
@@ -2483,7 +2454,7 @@ export class NodeCommandTasks {
     const labels: string[] = [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'];
     await this.k8Factory.getK8(context).pods().waitForReadyStatus(config.namespace, labels, 120, 1000, undefined, true);
 
-    const startCommand: string = this.buildStartNetworkNodeCommand();
+    const startCommand: string = NetworkNodeLifecycle.buildStartCommand();
 
     const container: Container = await new K8Helper(context).getConsensusNodeRootContainer(config.namespace, nodeAlias);
     if (config.localBuildPath) {
