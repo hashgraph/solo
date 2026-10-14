@@ -254,7 +254,7 @@ kind delete cluster --name "$SOLO_CLUSTER_NAME" 2>/dev/null || true
 
 # Create Kind cluster
 info "Creating Kind cluster: $SOLO_CLUSTER_NAME"
-kind create cluster --name "$SOLO_CLUSTER_NAME" --image kindest/node:v1.31.4 --wait 5m
+kind create cluster --name "$SOLO_CLUSTER_NAME" --image kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30 --wait 5m
 
 # Deploy network using one-shot
 info "Deploying network using one-shot (this may take several minutes)"

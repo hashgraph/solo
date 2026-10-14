@@ -14,13 +14,13 @@ import {Templates} from '../templates.js';
 import {type Container} from '../../integration/kube/resources/container/container.js';
 import {ContainerName} from '../../integration/kube/resources/container/container-name.js';
 import * as constants from '../../core/constants.js';
-import fs, {createWriteStream, WriteStream} from 'node:fs';
+import fs from 'node:fs';
 import {SOLO_CACHE_DIR} from '../constants.js';
 import {MIRROR_NODE_VERSION} from '../../../version.js';
 import {Secret} from '../../integration/kube/resources/secret/secret.js';
-import {PassThrough, pipeline} from 'node:stream';
-import {promisify} from 'node:util';
+import {PassThrough} from 'node:stream';
 import {SoloErrors} from '../errors/solo-errors.js';
+import {type PackageDownloader} from '../package-downloader.js';
 import * as Base64 from 'js-base64';
 import {sleep} from '../helpers.js';
 import {Duration} from '../time/duration.js';
@@ -40,11 +40,13 @@ export class PostgresSharedResource {
     @inject(InjectTokens.K8Factory) private readonly k8Factory?: K8Factory,
     @inject(InjectTokens.Helm) protected readonly helm?: HelmClient,
     @inject(InjectTokens.ChartManager) protected readonly chartManager?: ChartManager,
+    @inject(InjectTokens.PackageDownloader) private readonly downloader?: PackageDownloader,
   ) {
     this.helm = patchInject(helm, InjectTokens.Helm, this.constructor.name);
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.chartManager = patchInject(chartManager, InjectTokens.ChartManager, this.constructor.name);
+    this.downloader = patchInject(downloader, InjectTokens.PackageDownloader, this.constructor.name);
   }
 
   public async waitForPodReady(namespace: NamespaceName, context: string): Promise<void> {
@@ -93,46 +95,7 @@ export class PostgresSharedResource {
     if (!fs.existsSync(initScriptLocalPath)) {
       const initScriptDownloadUrl: string = Templates.renderMirrorNodeDatabaseInitScriptUrl(tag);
       this.logger!.info(`Downloading Mirror Node Postgres init script from ${initScriptDownloadUrl}...`);
-
-      const response: any = await fetch(initScriptDownloadUrl);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to download Mirror Node Postgres init script from ${initScriptDownloadUrl}: ${response.status} ${response.statusText}`,
-        );
-      }
-
-      const fileStream: WriteStream = createWriteStream(initScriptLocalPath);
-      const streamPipeline = promisify(pipeline);
-
-      if (response.body && typeof response.body.getReader === 'function') {
-        const reader = response.body.getReader();
-        try {
-          while (true) {
-            const {done, value} = await reader.read();
-            if (done) {
-              break;
-            }
-            // value is a Uint8Array chunk
-            await new Promise<void>((resolve, reject): void => {
-              fileStream.write(Buffer.from(value), (error: Error): void => (error ? reject(error) : resolve()));
-            });
-          }
-          fileStream.end();
-          await new Promise<void>((resolve, reject): void => {
-            fileStream.on('finish', resolve);
-            fileStream.on('error', reject);
-          });
-        } finally {
-          // optional: release the lock if supported
-          reader.releaseLock?.();
-        }
-      } else if (response.body && typeof response.body.pipe === 'function') {
-        await streamPipeline(response.body, fileStream);
-      } else {
-        // Fallback: load into memory and write
-        const buffer: Buffer<any> = Buffer.from(await response.arrayBuffer());
-        fs.writeFileSync(initScriptLocalPath, buffer);
-      }
+      await this.downloader.fetchFile(initScriptDownloadUrl, initScriptLocalPath);
     }
 
     try {

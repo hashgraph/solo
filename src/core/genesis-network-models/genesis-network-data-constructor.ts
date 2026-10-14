@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {AccountId, PrivateKey, PublicKey} from '@hiero-ledger/sdk';
+import crypto from 'node:crypto';
 import {GenesisNetworkNodeDataWrapper} from './genesis-network-node-data-wrapper.js';
 import * as constants from '../constants.js';
 
@@ -164,8 +165,12 @@ export class GenesisNetworkDataConstructor implements ToJSON {
         this.rosters[consensusNode.name].gossipCaCertificate = this.nodes[consensusNode.name].gossipCaCertificate =
           Buffer.from(derCertificate).toString('base64');
 
-        //* Generate the SHA-384 hash
-        this.nodes[consensusNode.name].grpcCertificateHash = '';
+        //* Generate the SHA-384 hash of the DER formatted gRPC TLS certificate
+        const tlsCertificatePem: string = await this.accountManager.getTlsCertificatePem(consensusNode);
+        this.nodes[consensusNode.name].grpcCertificateHash = crypto
+          .createHash('sha384')
+          .update(this.keyManager.getDerFromPem(tlsCertificatePem))
+          .digest('base64');
       }),
     );
   }

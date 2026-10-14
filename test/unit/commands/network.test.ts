@@ -242,6 +242,7 @@ describe('NetworkCommand unit tests', (): void => {
       options.remoteConfig.persist = sinon.stub();
       options.remoteConfig.loadAndValidate = sinon.stub();
       options.remoteConfig.getNamespace = sinon.stub();
+      options.remoteConfig.getComponentPhasesMap = sinon.stub().returns(new Map());
 
       options.remoteConfig.configuration = {
         components: {changeNodePhase: sinon.stub(), getNewComponentId: sinon.stub(), addNewComponent: sinon.stub()},
@@ -642,6 +643,277 @@ describe('NetworkCommand unit tests', (): void => {
         expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
       } finally {
         argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        sinon.restore();
+      }
+    });
+
+    it('keeps MinIO enabled for CN 0.74+ with block nodes when a values file explicitly sets cloud.minio.enabled: true, but keeps uploaders disabled in BLOCKS mode', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const temporaryFile: string = PathEx.join(os.tmpdir(), `cloud-minio-${Date.now()}.yaml`);
+      fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: true\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, temporaryFile);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(true);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=true');
+        expect(chartValueArguments).to.not.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(temporaryFile)) {
+          fs.unlinkSync(temporaryFile);
+        }
+        sinon.restore();
+      }
+    });
+
+    it('disables MinIO for CN 0.74+ with block nodes when a values file has only minio-server overrides', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const temporaryFile: string = PathEx.join(os.tmpdir(), `silo-minio-${Date.now()}.yaml`);
+      fs.writeFileSync(temporaryFile, 'minio-server:\n  tenant:\n    buckets:\n      - name: falcon-bucket\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, temporaryFile);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(false);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(temporaryFile)) {
+          fs.unlinkSync(temporaryFile);
+        }
+        sinon.restore();
+      }
+    });
+
+    it('disables MinIO for CN 0.74+ with block nodes when a values file has only non-MinIO configuration', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const temporaryFile: string = PathEx.join(os.tmpdir(), `non-minio-${Date.now()}.yaml`);
+      fs.writeFileSync(temporaryFile, 'hedera:\n  nodes:\n    - name: node1\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, temporaryFile);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(false);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(temporaryFile)) {
+          fs.unlinkSync(temporaryFile);
+        }
+        sinon.restore();
+      }
+    });
+
+    it('disables MinIO for CN 0.74+ with block nodes when multiple values files are provided and the last defined value is cloud.minio.enabled: false', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const fileTrue: string = PathEx.join(os.tmpdir(), `cloud-minio-true-${Date.now()}.yaml`);
+      const fileFalse: string = PathEx.join(os.tmpdir(), `cloud-minio-false-${Date.now()}.yaml`);
+      fs.writeFileSync(fileTrue, 'cloud:\n  minio:\n    enabled: true\n');
+      fs.writeFileSync(fileFalse, 'cloud:\n  minio:\n    enabled: false\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, `${fileTrue},${fileFalse}`);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(false);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(fileTrue)) {
+          fs.unlinkSync(fileTrue);
+        }
+        if (fs.existsSync(fileFalse)) {
+          fs.unlinkSync(fileFalse);
+        }
+        sinon.restore();
+      }
+    });
+
+    it('keeps MinIO enabled for CN 0.74+ with block nodes when multiple values files are provided and the last defined value is cloud.minio.enabled: true', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const fileFalse: string = PathEx.join(os.tmpdir(), `cloud-minio-false-${Date.now()}.yaml`);
+      const fileTrue: string = PathEx.join(os.tmpdir(), `cloud-minio-true-${Date.now()}.yaml`);
+      fs.writeFileSync(fileFalse, 'cloud:\n  minio:\n    enabled: false\n');
+      fs.writeFileSync(fileTrue, 'cloud:\n  minio:\n    enabled: true\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, `${fileFalse},${fileTrue}`);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(true);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=true');
+        expect(chartValueArguments).to.not.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(fileFalse)) {
+          fs.unlinkSync(fileFalse);
+        }
+        if (fs.existsSync(fileTrue)) {
+          fs.unlinkSync(fileTrue);
+        }
+        sinon.restore();
+      }
+    });
+
+    it('keeps MinIO enabled for CN 0.74+ with block nodes when networkDeploymentValuesFile defines cloud.minio.enabled: true', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalNetworkDeploymentValuesFile: string = argv.getArg<string>(flags.networkDeploymentValuesFile);
+      const temporaryFile: string = PathEx.join(os.tmpdir(), `network-deploy-minio-${Date.now()}.yaml`);
+      fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: true\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.networkDeploymentValuesFile, temporaryFile);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(true);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=true');
+        expect(chartValueArguments).to.not.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.networkDeploymentValuesFile, originalNetworkDeploymentValuesFile);
+        if (fs.existsSync(temporaryFile)) {
+          fs.unlinkSync(temporaryFile);
+        }
         sinon.restore();
       }
     });
