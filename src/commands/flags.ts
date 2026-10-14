@@ -900,6 +900,19 @@ export class Flags {
     },
   };
 
+  public static readonly resumeFromFreeze: CommandFlag = {
+    constName: 'resumeFromFreeze',
+    name: 'resume-from-freeze',
+    definition: {
+      describe:
+        'When restoring from --state-file lands every node in FREEZE_COMPLETE, automatically restart them' +
+        ' once more so they resume ACTIVE instead of staying frozen. Only used with --state-file.' +
+        '\nLeave unset to restore a frozen snapshot as-is and keep it frozen.',
+      type: 'boolean',
+      defaultValue: false,
+    },
+  };
+
   public static readonly mirrorNodeId: CommandFlag = {
     constName: 'mirrorNodeId',
     name: 'mirror-node-id',
@@ -2965,6 +2978,7 @@ export class Flags {
     Flags.consensusNodeVersion,
     Flags.upgradeVersion,
     Flags.freezeBlockDrainSeconds,
+    Flags.resumeFromFreeze,
     Flags.skipNodeStart,
     Flags.replicaCount,
     Flags.setAlias,

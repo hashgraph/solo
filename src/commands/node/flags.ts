@@ -309,6 +309,7 @@ export const START_FLAGS: CommandFlags = {
     flags.nodeAliasesUnparsed,
     flags.debugNodeAlias,
     flags.stateFile,
+    flags.resumeFromFreeze,
     flags.transplant,
     flags.stakeAmounts,
     flags.forcePortForward,

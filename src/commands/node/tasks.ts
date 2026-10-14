@@ -2424,48 +2424,42 @@ export class NodeCommandTasks {
       task: (context_, task): SoloListr<AnyListrContext> => {
         const config: AnyListrContext = context_.config;
         const nodeAliases: NodeAliases = config[nodeAliasesProperty];
-        const subTasks: SoloListrTask<AnyListrContext>[] = [];
-
-        for (const nodeAlias of nodeAliases) {
-          subTasks.push({
+        const subTasks: SoloListrTask<AnyListrContext>[] = nodeAliases.map(
+          (nodeAlias: NodeAlias): SoloListrTask<AnyListrContext> => ({
             title: `Start node: ${chalk.yellow(nodeAlias)}`,
-            task: async (): Promise<void> => {
-              const context: string = extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
-              const labels: string[] = [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'];
-              await this.k8Factory
-                .getK8(context)
-                .pods()
-                .waitForReadyStatus(config.namespace, labels, 120, 1000, undefined, true);
-
-              const startCommand: string = this.buildStartNetworkNodeCommand();
-
-              const container: Container = await new K8Helper(context).getConsensusNodeRootContainer(
-                config.namespace,
-                nodeAlias,
-              );
-              if (config.localBuildPath) {
-                await container.execContainer(['bash', '-c', this.buildRefreshLiveLocalBuildJarsCommand()]);
-              }
-              for (const directory of [constants.HEDERA_DATA_APPS_DIR, constants.HEDERA_DATA_LIB_DIR]) {
-                const directoryPath: string = `${constants.HEDERA_HAPI_PATH}/${directory}`;
-                const output: string = await container.execContainer([
-                  'bash',
-                  '-c',
-                  `ls "${directoryPath}"/*.jar 2>/dev/null | wc -l`,
-                ]);
-                if (Number.parseInt(output.trim(), 10) === 0) {
-                  throw new SoloErrors.validation.nodeJarFilesNotInContainer(nodeAlias, directoryPath);
-                }
-              }
-              await container.execContainer(['bash', '-c', startCommand]);
-            },
-          });
-        }
+            task: async (): Promise<void> => this.startSingleNode(config, nodeAlias),
+          }),
+        );
 
         // set up the sub-tasks
         return task.newListr(subTasks, constants.LISTR_DEFAULT_OPTIONS.WITH_CONCURRENCY);
       },
     };
+  }
+
+  private async startSingleNode(config: AnyListrContext, nodeAlias: NodeAlias): Promise<void> {
+    const context: string = extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
+    const labels: string[] = [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'];
+    await this.k8Factory.getK8(context).pods().waitForReadyStatus(config.namespace, labels, 120, 1000, undefined, true);
+
+    const startCommand: string = this.buildStartNetworkNodeCommand();
+
+    const container: Container = await new K8Helper(context).getConsensusNodeRootContainer(config.namespace, nodeAlias);
+    if (config.localBuildPath) {
+      await container.execContainer(['bash', '-c', this.buildRefreshLiveLocalBuildJarsCommand()]);
+    }
+    for (const directory of [constants.HEDERA_DATA_APPS_DIR, constants.HEDERA_DATA_LIB_DIR]) {
+      const directoryPath: string = `${constants.HEDERA_HAPI_PATH}/${directory}`;
+      const output: string = await container.execContainer([
+        'bash',
+        '-c',
+        `ls "${directoryPath}"/*.jar 2>/dev/null | wc -l`,
+      ]);
+      if (Number.parseInt(output.trim(), 10) === 0) {
+        throw new SoloErrors.validation.nodeJarFilesNotInContainer(nodeAlias, directoryPath);
+      }
+    }
+    await container.execContainer(['bash', '-c', startCommand]);
   }
 
   private buildRefreshLiveLocalBuildJarsCommand(): string {
@@ -2648,14 +2642,20 @@ export class NodeCommandTasks {
 
   /**
    * Wait for every node to settle on a terminal startup status, ACTIVE or FREEZE_COMPLETE, and
-   * record on the config which one a state restore landed in.
+   * record on the config which one a state restore landed in. When `--resume-from-freeze` is set,
+   * a node found in FREEZE_COMPLETE is given one automatic restart before being accepted as
+   * genuinely frozen (see below); without it, FREEZE_COMPLETE is accepted as-is, since some
+   * restores (e.g. a deliberate frozen-state snapshot test) intentionally expect to stay frozen.
    *
-   * A restore cannot predict the status from the archive. The snapshot round is often an
-   * ordinary signed round (this consensus node version reports `SIGNING_WEIGHT_SUM: 0` for
-   * freeze states, so a freeze round is never selected as fully signed), yet the preconsensus
-   * events replayed on top of it still carry the freeze transaction and put the node back into
-   * FREEZE_COMPLETE. Whether that happens depends on how far the retained event stream runs
-   * past the snapshot, so observe the status the nodes actually reach instead of inferring it.
+   * A restore cannot predict the status from the archive. The restored snapshot's platform state
+   * can already carry a scheduled `freezeTime` that was committed before the snapshot was taken
+   * (independent of any preconsensus events replayed on top of it), so the node re-enters
+   * FREEZE_COMPLETE on its very first boot regardless of PCES content. Completing that freeze,
+   * though, writes a new round whose `lastFrozenTime` now equals `freezeTime` — so a follow-up
+   * restart that does *not* re-upload the original snapshot (letting the node boot from its own
+   * just-written state instead) sees the freeze as already handled and proceeds to ACTIVE
+   * normally. Verified against a real previously-failing backup: a second plain restart turned a
+   * reproducible FREEZE_COMPLETE into ACTIVE every time. See hiero-ledger/solo#6164.
    */
   public checkAllNodesAreActiveOrFrozen(nodeAliasesProperty: string): SoloListrTask<AnyListrContext> {
     return {
@@ -2664,30 +2664,43 @@ export class NodeCommandTasks {
         const nodeAliases: NodeAliases = context_.config[nodeAliasesProperty];
         const frozenStatusName: string = NodeStatusEnums[NodeStatusCodes.FREEZE_COMPLETE];
 
-        const statuses: string[] = await Promise.all(
-          nodeAliases.map((nodeAlias: NodeAlias): Promise<string> =>
-            this.waitForActiveOrFrozenStatus(context_, nodeAlias),
-          ),
-        );
+        let finalStatuses: string[] = [];
+        const collectStatuses: () => Promise<boolean> = async (): Promise<boolean> => {
+          const statuses: string[] = await Promise.all(
+            nodeAliases.map((nodeAlias: NodeAlias): Promise<string> =>
+              this.waitForActiveOrFrozenStatus(context_, nodeAlias),
+            ),
+          );
+          const allFrozen: boolean = statuses.every((status: string): boolean => status === frozenStatusName);
+          const allActive: boolean = statuses.every((status: string): boolean => status !== frozenStatusName);
+          if (!allFrozen && !allActive) {
+            throw new SoloErrors.component.nodeRestoreStatusMismatch(
+              Object.fromEntries(
+                nodeAliases.map((nodeAlias: NodeAlias, index: number): [string, string] => [
+                  nodeAlias,
+                  statuses[index],
+                ]),
+              ),
+            );
+          }
 
-        const statusByNodeAlias: Record<string, string> = Object.fromEntries(
-          nodeAliases.map((nodeAlias: NodeAlias, index: number): [string, string] => [nodeAlias, statuses[index]]),
-        );
+          finalStatuses = statuses;
+          return allFrozen;
+        };
 
-        // Only a network that came up entirely frozen skips the ACTIVE-only follow-up work. A
-        // mixed result means the nodes disagree on whether the restore replays back into a
-        // freeze, so fail fast here instead of letting the ACTIVE-only checks run and burn their
-        // own timeout against a node that can never reach ACTIVE without a fresh start.
-        const allFrozen: boolean = statuses.every((status: string): boolean => status === frozenStatusName);
-        const allActive: boolean = statuses.every((status: string): boolean => status !== frozenStatusName);
-        if (!allFrozen && !allActive) {
-          throw new SoloErrors.component.nodeRestoreStatusMismatch(statusByNodeAlias);
+        let allFrozen: boolean = await collectStatuses();
+        if (allFrozen && context_.config.resumeFromFreeze) {
+          task.title = `${task.title} - restarting to clear an already-completed freeze`;
+          await Promise.all(
+            nodeAliases.map((nodeAlias: NodeAlias): Promise<void> => this.startSingleNode(context_.config, nodeAlias)),
+          );
+          allFrozen = await collectStatuses();
         }
 
         context_.config.restoredFromFreezeState = allFrozen;
 
         const statusSummary: string = nodeAliases
-          .map((nodeAlias: NodeAlias, index: number): string => `${nodeAlias}=${statuses[index]}`)
+          .map((nodeAlias: NodeAlias, index: number): string => `${nodeAlias}=${finalStatuses[index]}`)
           .join(', ');
         task.title = `Check all nodes are ACTIVE or FREEZE_COMPLETE - ${chalk.green(statusSummary)}`;
       },
