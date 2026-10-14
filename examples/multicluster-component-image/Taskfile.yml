@@ -1,0 +1,117 @@
+version: 3
+
+env:
+  SOLO_COMMAND:
+    sh: |
+      if [ "${USE_RELEASED_VERSION}" = "true" ]; then
+        echo "npx @hashgraph/solo"
+      else
+        echo "npm run solo --"
+      fi
+
+vars:
+  SOLO_NAMESPACE: "mc-component-image-ns"
+  SOLO_DEPLOYMENT: "mc-component-image-deployment"
+  CLUSTER_NAME_1: "mc-component-image-c1"
+  CLUSTER_NAME_2: "mc-component-image-c2"
+  CLUSTER_REF_1: "mc-component-image-c1-ref"
+  CLUSTER_REF_2: "mc-component-image-c2-ref"
+
+  CN_VERSION:
+    sh: echo "${CONSENSUS_NODE_VERSION:-$(awk -F"'" '/^export const HEDERA_PLATFORM_VERSION/ {print $(NF-1); exit}' ../../version.ts)}"
+  BLOCK_NODE_VERSION:
+    sh: awk -F"'" '/^export const BLOCK_NODE_VERSION/ {print $(NF-1); exit}' ../../version.ts
+
+  # Published image that is re-tagged locally so it exists only in the local Docker daemon.
+  # The local name must not look like a registry host (no dot, no colon, not "localhost"),
+  # otherwise Solo treats it as a published image and never loads it into Kind.
+  PUBLISHED_IMAGE: "ghcr.io/hiero-ledger/hiero-block-node-solo-dev:{{.BLOCK_NODE_VERSION}}"
+  LOCAL_IMAGE_NAME: "solo-local-test/block-node-server"
+  COMPONENT_IMAGE: "{{.LOCAL_IMAGE_NAME}}:{{.BLOCK_NODE_VERSION}}"
+
+tasks:
+  prepare-image:
+    desc: Pull the published block node image and re-tag it so it only exists locally
+    cmds:
+      - cmd: |
+          docker pull {{.PUBLISHED_IMAGE}}
+          docker tag {{.PUBLISHED_IMAGE}} {{.COMPONENT_IMAGE}}
+
+  deploy:
+    desc: Create two Kind clusters, deploy to cluster 1, and add a block node with a local --component-image
+    cmds:
+      - task: prepare-image
+
+      - cmd: |
+          if [ "${USE_RELEASED_VERSION}" = "true" ]; then
+            npm i @hashgraph/solo@latest
+          fi
+
+      - cmd: |
+          kind create cluster -n {{.CLUSTER_NAME_1}}
+          kind create cluster -n {{.CLUSTER_NAME_2}}
+
+      - cmd: |
+          $SOLO_COMMAND cluster-ref config connect --cluster-ref {{.CLUSTER_REF_1}} --context kind-{{.CLUSTER_NAME_1}} --dev
+          $SOLO_COMMAND cluster-ref config connect --cluster-ref {{.CLUSTER_REF_2}} --context kind-{{.CLUSTER_NAME_2}} --dev
+
+      - cmd: |
+          $SOLO_COMMAND deployment config create -n {{.SOLO_NAMESPACE}} --deployment {{.SOLO_DEPLOYMENT}} --dev
+
+      # Cluster 2 is attached without consensus nodes: it only needs to be part of the deployment so
+      # that Solo's component image loading covers it.
+      - cmd: |
+          $SOLO_COMMAND deployment cluster attach --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} --num-consensus-nodes 1 --dev
+          $SOLO_COMMAND deployment cluster attach --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_2}} --num-consensus-nodes 0 --dev
+
+      - cmd: |
+          $SOLO_COMMAND keys consensus generate --gossip-keys --tls-keys --deployment {{.SOLO_DEPLOYMENT}} --dev
+
+      - cmd: |
+          $SOLO_COMMAND cluster-ref config setup -s {{.SOLO_NAMESPACE}} --dev
+
+      - cmd: |
+          $SOLO_COMMAND consensus network deploy --deployment {{.SOLO_DEPLOYMENT}} --release-tag {{.CN_VERSION}} --dev
+          $SOLO_COMMAND consensus node setup --deployment {{.SOLO_DEPLOYMENT}} --release-tag {{.CN_VERSION}} --dev
+          $SOLO_COMMAND consensus node start --deployment {{.SOLO_DEPLOYMENT}} --dev
+
+      - cmd: |
+          $SOLO_COMMAND block node add --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} \
+            --component-image {{.COMPONENT_IMAGE}} --quiet-mode --dev
+
+      - task: verify
+
+  verify:
+    desc: Verify the local image was loaded into every Kind cluster and the block node pod is Ready
+    cmds:
+      - cmd: |
+          for cluster in {{.CLUSTER_NAME_1}} {{.CLUSTER_NAME_2}}; do
+            if ! docker exec "${cluster}-control-plane" crictl images | grep -q "{{.LOCAL_IMAGE_NAME}}"; then
+              echo "ERROR: {{.COMPONENT_IMAGE}} was not loaded into Kind cluster ${cluster}" >&2
+              exit 1
+            fi
+            echo "OK: {{.COMPONENT_IMAGE}} present in ${cluster}"
+          done
+
+      - cmd: |
+          if ! kubectl --context kind-{{.CLUSTER_NAME_1}} wait --for=condition=Ready pods --all -n {{.SOLO_NAMESPACE}} \
+            -l app.kubernetes.io/name=block-node --timeout=10m; then
+            echo "ERROR: block node pod did not become Ready" >&2
+            kubectl --context kind-{{.CLUSTER_NAME_1}} get pods -n {{.SOLO_NAMESPACE}} -o wide
+            exit 1
+          fi
+
+  destroy:
+    desc: Destroy the Solo network and both Kind clusters
+    cmds:
+      - cmd: |
+          $SOLO_COMMAND block node destroy --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} --force --dev
+          $SOLO_COMMAND consensus network destroy --deployment {{.SOLO_DEPLOYMENT}} --force --dev --delete-pvcs --delete-secrets -q
+      - cmd: |
+          kind delete cluster -n {{.CLUSTER_NAME_1}}
+          kind delete cluster -n {{.CLUSTER_NAME_2}}
+
+  default:
+    desc: Run the complete deploy + verify workflow
+    cmds:
+      - task: deploy
