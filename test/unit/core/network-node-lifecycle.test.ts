@@ -10,7 +10,13 @@ describe('NetworkNodeLifecycle', (): void => {
   it('should only select the consensus node image mode for its exact value', (): void => {
     expect(NetworkNodeLifecycle.isConsensusNodeImage(consensusNodeImage)).to.equal(true);
     expect(NetworkNodeLifecycle.isConsensusNodeImage(soloContainer)).to.equal(false);
-    expect(NetworkNodeLifecycle.isConsensusNodeImage('')).to.equal(false);
+  });
+
+  it('should reject an unknown lifecycle mode instead of silently using the default', (): void => {
+    expect((): boolean => NetworkNodeLifecycle.isConsensusNodeImage('consensus-node-images')).to.throw(
+      "Invalid NETWORK_NODE_LIFECYCLE_MODE 'consensus-node-images'",
+    );
+    expect((): string => NetworkNodeLifecycle.buildStopCommand('')).to.throw('Invalid NETWORK_NODE_LIFECYCLE_MODE');
   });
 
   it('should use the solo-container helper in the default mode', (): void => {

@@ -5179,8 +5179,8 @@ export class NodeCommandTasks {
     return {
       title: 'Install zip, unzip and curl in the consensus node image',
       skip: (): boolean => !NetworkNodeLifecycle.isConsensusNodeImage(),
-      task: (context_, task): any => {
-        const config: any = context_.config;
+      task: (context_, task): SoloListr<NodeUpdateContext | NodeAddContext | NodeDestroyContext> => {
+        const config: NodeUpdateConfigClass | NodeAddConfigClass | NodeDestroyConfigClass = context_.config;
         const subTasks: SoloListrTask<NodeUpdateContext | NodeAddContext | NodeDestroyContext>[] =
           config.allNodeAliases.map(
             (nodeAlias: NodeAlias): SoloListrTask<NodeUpdateContext | NodeAddContext | NodeDestroyContext> => ({

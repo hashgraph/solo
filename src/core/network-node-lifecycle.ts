@@ -7,6 +7,7 @@ import {type NamespaceName} from '../types/namespace/namespace-name.js';
 import {type Container} from '../integration/kube/resources/container/container.js';
 import {type Context} from '../types/index.js';
 import {type NodeAlias} from '../types/aliases.js';
+import {SoloErrors} from './errors/solo-errors.js';
 
 /**
  * Builds the shell commands Solo runs in the root container to control the consensus node process.
@@ -30,6 +31,13 @@ export class NetworkNodeLifecycle {
   private static readonly JVM_PIDS_FUNCTION: string = String.raw`jvm_pids() { for p in /proc/[0-9]*; do tr '\0' ' ' < "$p/cmdline" 2>/dev/null | grep -q '^java .*com.hedera.node.app.ServicesMain' && basename "$p"; done; }`;
 
   public static isConsensusNodeImage(mode: string = constants.NETWORK_NODE_LIFECYCLE_MODE): boolean {
+    const acceptedModes: string[] = [
+      NetworkNodeLifecycle.SOLO_CONTAINER_MODE,
+      NetworkNodeLifecycle.CONSENSUS_NODE_IMAGE_MODE,
+    ];
+    if (!acceptedModes.includes(mode)) {
+      throw new SoloErrors.validation.invalidNetworkNodeLifecycleMode(mode, acceptedModes);
+    }
     return mode === NetworkNodeLifecycle.CONSENSUS_NODE_IMAGE_MODE;
   }
 
