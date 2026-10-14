@@ -33,7 +33,7 @@ export const INGRESS_CONTROLLER_VERSION: string =
   constants.getEnvironmentVariable('INGRESS_CONTROLLER_VERSION') || '0.14.5';
 // If this version changes, regenerate test/data/proto.zip (see test/data/get-block.sh for steps) —
 // a stale vendored schema causes intermittent grpcurl unmarshal failures (see issue #5848).
-export const BLOCK_NODE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_VERSION') || '0.43.0';
+export const BLOCK_NODE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_VERSION') || '0.44.2';
 
 export const METALLB_CHART_VERSION: string = constants.getEnvironmentVariable('METALLB_CHART_VERSION') || '0.15.3';
 export const MINIO_OPERATOR_VERSION: string = constants.getEnvironmentVariable('MINIO_OPERATOR_VERSION') || '7.1.1';
@@ -80,7 +80,7 @@ export const EXPLORER_EDGE_VERSION: string =
   constants.getEnvironmentVariable('EXPLORER_EDGE_VERSION') || EXPLORER_VERSION;
 export const HEDERA_JSON_RPC_RELAY_EDGE_VERSION: string =
   constants.getEnvironmentVariable('RELAY_EDGE_VERSION') || '0.79.0';
-export const BLOCK_NODE_EDGE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_EDGE_VERSION') || '0.44.0';
+export const BLOCK_NODE_EDGE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_EDGE_VERSION') || '0.44.2';
 
 // -------------------------------------------------------------------- //
 
