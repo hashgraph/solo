@@ -481,7 +481,7 @@ export default [
   },
   {
     // Enforce getEnvironmentVariable() over process.env[...] bracket notation in src/.
-    // Bracket-notation reads bypass the utility and the env.md documentation requirement.
+    // Bracket-notation reads bypass the utility and the env var documentation requirement.
     // See CLAUDE.md "Environment Variable Access".
     // constants.ts is excluded because it defines getEnvironmentVariable() and legitimately
     // accesses process.env[name] internally.
@@ -502,7 +502,7 @@ export default [
             'MemberExpression[computed=true][object.type="MemberExpression"][object.object.name="process"][object.property.name="env"]',
           message:
             'Use getEnvironmentVariable() from src/core/constants.ts instead of process.env[...]. ' +
-            'Bracket-notation access bypasses the project utility and the env.md documentation requirement (see CLAUDE.md).',
+            'Bracket-notation access bypasses the project utility and the env var documentation requirement (see CLAUDE.md).',
         },
       ],
     },

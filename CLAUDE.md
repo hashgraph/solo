@@ -214,7 +214,7 @@ In `src/**/*.ts`, always read environment variables through `getEnvironmentVaria
 except `src/core/constants.ts` itself.
 
 ```typescript
-// wrong — bypasses the utility and env.md tracking
+// wrong — bypasses the utility and env var documentation tracking
 const mirror: string = process.env['KIND_DOCKER_REGISTRY_MIRRORS'];
 
 // correct
@@ -224,7 +224,7 @@ const mirror: string = getEnvironmentVariable('KIND_DOCKER_REGISTRY_MIRRORS');
 
 Property-access reads for OS-level variables (`process.env.PATH`, `process.env.HOME`) and spreading
 the environment for subprocess invocation (`{...process.env}`) are fine and are not covered by this
-rule. The restriction targets application-level env var reads that must be tracked in `env.md`.
+rule. The restriction targets application-level env var reads that must be documented in solo-docs.
 
 Adding `getEnvironmentVariable()` calls also triggers the documentation requirement in CLAUDE.md
 "Environment Variable Documentation".
