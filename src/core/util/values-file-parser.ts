@@ -2,6 +2,7 @@
 
 import yaml from 'yaml';
 import {ValuesFileParseFailedSoloError} from '../errors/classes/validation/values-file-parse-failed-solo-error.js';
+import {UserInput} from '../user-input.js';
 
 /**
  * Single entry point for turning Helm values file content into an object graph.
@@ -28,7 +29,10 @@ export class ValuesFileParser {
     const trimmedContent: string = content.trimStart();
 
     try {
-      return trimmedContent.startsWith('{') ? JSON.parse(trimmedContent) : yaml.parse(content);
+      const parsed: unknown = trimmedContent.startsWith('{') ? JSON.parse(trimmedContent) : yaml.parse(content);
+      // Values files are user-supplied; strip prototype-pollution keys before the object graph is
+      // merged into Helm values elsewhere.
+      return UserInput.stripUnsafeJsonKeys(parsed);
     } catch (error) {
       throw new ValuesFileParseFailedSoloError(valuesFilePath, error as Error);
     }

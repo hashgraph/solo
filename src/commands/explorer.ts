@@ -29,11 +29,13 @@ import {type ClusterChecks} from '../core/cluster-checks.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {KeyManager} from '../core/key-manager.js';
+import {UserInput} from '../core/user-input.js';
 import {EXPLORER_VERSION, INGRESS_CONTROLLER_VERSION, MINIMUM_SOLO_CHART_VERSION} from '../../version.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {Lock} from '../core/lock/lock.js';
 import {IngressClass} from '../integration/kube/resources/ingress-class/ingress-class.js';
+import {type Service} from '../integration/kube/resources/service/service.js';
 import {CommandFlag, CommandFlags} from '../types/flag-types.js';
 import {Templates} from '../core/templates.js';
 import {PodReference} from '../integration/kube/resources/pod/pod-reference.js';
@@ -49,6 +51,12 @@ import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
 import {optionFromFlag} from './command-helpers.js';
 import {HelmChartValues} from '../integration/helm/model/values.js';
 import {HelmSchedulingValues} from '../core/util/helm-scheduling-values.js';
+
+type MirrorNodeServiceUrls = {
+  rest: string;
+  restjava: string;
+  web3: string;
+};
 
 interface ExplorerDeployConfigClass {
   cacheDir: string;
@@ -258,13 +266,19 @@ export class ExplorerCommand extends BaseCommand {
     }
     chartValues.setLiteral('fullnameOverride', `${config.releaseName}-${config.namespace.name}`);
 
-    chartValues.setLiteral(
-      'proxyPass./api',
-      Templates.renderMirrorNodeRestServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
-    );
+    // The path-based proxy routing lives in EXPLORER_VALUES_FILE: the location keys are static, while
+    // the backend URLs depend on deploy-time facts (mirror release name and namespace, and whether the
+    // mirror ingress controller is installed), so only those are injected here.
+    const mirrorNodeServices: MirrorNodeServiceUrls = await this.resolveMirrorNodeServices(config);
+    chartValues
+      .setLiteral('mirrorNodeServices.rest', mirrorNodeServices.rest)
+      .setLiteral('mirrorNodeServices.restjava', mirrorNodeServices.restjava)
+      .setLiteral('mirrorNodeServices.web3', mirrorNodeServices.web3);
 
     if (config.domainName) {
-      chartValues.set('ingress.enabled', true).setLiteral('ingress.hosts[0].host', config.domainName);
+      chartValues
+        .set('ingress.enabled', true)
+        .setLiteral('ingress.hosts[0].host', UserInput.escapeHelmTemplate(config.domainName));
 
       if (config.tlsClusterIssuerType === 'self-signed') {
         // Create TLS secret for Explorer
@@ -277,11 +291,41 @@ export class ExplorerCommand extends BaseCommand {
         );
 
         if (config.enableIngress) {
-          chartValues.setLiteral('ingress.tls[0].hosts[0]', config.domainName);
+          chartValues.setLiteral('ingress.tls[0].hosts[0]', UserInput.escapeHelmTemplate(config.domainName));
         }
       }
     }
     return chartValues;
+  }
+
+  // When the mirror node ingress controller is installed it already routes the API paths to the
+  // correct mirror services (routing rules maintained by the mirror node chart), so every backend
+  // points at it: Solo does not duplicate a routing table that upstream keeps changing.
+  private async resolveMirrorNodeServices(
+    config: ExplorerDeployConfigClass | ExplorerUpgradeConfigClass,
+  ): Promise<MirrorNodeServiceUrls> {
+    if (await this.mirrorIngressControllerServiceExists(config)) {
+      const ingressControllerUrl: string = Templates.renderMirrorNodeIngressControllerUrl(config.mirrorNamespace);
+      return {rest: ingressControllerUrl, restjava: ingressControllerUrl, web3: ingressControllerUrl};
+    }
+
+    return {
+      rest: Templates.renderMirrorNodeRestServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
+      restjava: Templates.renderMirrorNodeRestJavaServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
+      web3: Templates.renderMirrorNodeWeb3ServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
+    };
+  }
+
+  private async mirrorIngressControllerServiceExists(
+    config: ExplorerDeployConfigClass | ExplorerUpgradeConfigClass,
+  ): Promise<boolean> {
+    const ingressControllerServiceName: string = `${constants.MIRROR_INGRESS_CONTROLLER}-${config.mirrorNamespace}`;
+    const mirrorServices: Service[] = await this.k8Factory
+      .getK8(config.clusterContext)
+      .services()
+      .list(NamespaceName.of(config.mirrorNamespace));
+
+    return mirrorServices.some((service: Service): boolean => service.metadata.name === ingressControllerServiceName);
   }
 
   private async prepareCertManagerChartValues(

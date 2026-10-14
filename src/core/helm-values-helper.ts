@@ -28,6 +28,41 @@ type ExtractedExtraEnvironmentArray = {
 
 export class HelmValuesHelper {
   public constructor() {}
+  /**
+   * Inspects user-supplied values files in Helm merge order to determine if MinIO
+   * is explicitly enabled via `cloud.minio.enabled`.
+   * Later values files override earlier values files (last defined value wins).
+   *
+   * @param filePaths - array of resolved file paths
+   * @returns true if the last explicitly defined `cloud.minio.enabled` across the files is true; false otherwise.
+   */
+  public hasExplicitMinioEnabled(filePaths: string[] = []): boolean {
+    let minioEnabled: boolean = false;
+
+    for (const filePath of filePaths) {
+      if (!filePath) {
+        continue;
+      }
+
+      const parsedRecord: Record<string, unknown> | undefined = this.parseValuesFile(filePath);
+      if (!parsedRecord) {
+        continue;
+      }
+
+      const cloudSection: unknown = parsedRecord.cloud;
+      if (cloudSection && typeof cloudSection === 'object') {
+        const minioSection: unknown = (cloudSection as Record<string, unknown>).minio;
+        if (minioSection && typeof minioSection === 'object') {
+          const enabled: unknown = (minioSection as Record<string, unknown>).enabled;
+          if (enabled !== undefined && enabled !== null) {
+            minioEnabled = enabled === true || enabled === 'true';
+          }
+        }
+      }
+    }
+
+    return minioEnabled;
+  }
 
   private buildPerNodeExtraEnvironmentValuesStructure(
     consensusNodes: ConsensusNode[],

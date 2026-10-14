@@ -8,6 +8,7 @@ import {
   withTimeout,
 } from '../core/helpers.js';
 import * as constants from '../core/constants.js';
+import {UserInput} from '../core/user-input.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {type AnyListrContext, type ArgvStruct, type NodeAlias} from '../types/aliases.js';
@@ -35,6 +36,7 @@ import chalk from 'chalk';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {type BlockNodeStateSchema} from '../data/schema/model/remote/state/block-node-state-schema.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentCompatibility} from '../business/compatibility/component-compatibility.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
@@ -78,6 +80,7 @@ interface BlockNodeDeployConfigClass {
   domainName: Optional<string>;
   enableIngress: boolean;
   quiet: boolean;
+  force: boolean;
   valuesFile: Optional<string>;
   releaseTag: string;
   imageTag: Optional<string>;
@@ -126,6 +129,7 @@ interface BlockNodeUpgradeConfigClass {
   deployment: DeploymentName;
   debugMode: boolean;
   quiet: boolean;
+  force: boolean;
   valuesFile: Optional<string>;
   namespace: NamespaceName;
   context: string;
@@ -244,6 +248,7 @@ export class BlockNodeCommand extends BaseCommand {
       flags.debugMode,
       flags.domainName,
       flags.enableIngress,
+      flags.force,
       flags.quiet,
       flags.valuesFile,
       // Keep deprecated legacy flag accepted for backward compatibility.
@@ -304,6 +309,7 @@ export class BlockNodeCommand extends BaseCommand {
       flags.quiet,
       flags.valuesFile,
       flags.upgradeVersion,
+      flags.consensusNodeVersion,
       flags.id,
     ],
   };
@@ -369,7 +375,7 @@ export class BlockNodeCommand extends BaseCommand {
     if ('domainName' in config && config.domainName) {
       chartValues
         .set('ingress.enabled', true)
-        .set('ingress.hosts[0].host', config.domainName)
+        .set('ingress.hosts[0].host', UserInput.escapeHelmTemplate(config.domainName))
         .set('ingress.hosts[0].paths[0].path', '/')
         .set('ingress.hosts[0].paths[0].pathType', 'ImplementationSpecific');
     }
@@ -458,6 +464,50 @@ export class BlockNodeCommand extends BaseCommand {
 
     const blockStreamMode: string = constants.getEnvironmentVariable('BLOCK_STREAM_STREAM_MODE') ?? 'BLOCKS';
     return blockStreamMode === 'BLOCKS' || blockStreamMode === 'BOTH';
+  }
+
+  /**
+   * Picks the consensus node version that a block node being added will actually serve.
+   *
+   * An explicitly requested version wins, because a block node is often added before the consensus
+   * network exists — remote config then still holds solo's default rather than the version about to
+   * be deployed. With no explicit request, remote config is the ground truth for an already deployed
+   * network. Falls back to solo's default when neither is available.
+   *
+   * `--consensus-node-version` defaults to an empty string, which yargs drops, so its presence in
+   * argv means the caller supplied it. The deprecated `--release-tag` always carries solo's default
+   * into argv, so it only counts as explicit when it differs from that default.
+   */
+  private resolveConsensusNodeVersionForCompatibility(argv: ArgvStruct): string {
+    const requestedConsensusNodeVersion: string = argv[flags.consensusNodeVersion.name] as string;
+    if (requestedConsensusNodeVersion) {
+      return requestedConsensusNodeVersion;
+    }
+
+    const requestedReleaseTag: string = argv[flags.releaseTag.name] as string;
+    if (requestedReleaseTag && requestedReleaseTag !== versions.HEDERA_PLATFORM_VERSION) {
+      return requestedReleaseTag;
+    }
+
+    return this.remoteConfig.configuration.versions?.consensusNode?.toString() ?? versions.HEDERA_PLATFORM_VERSION;
+  }
+
+  /**
+   * Rejects a block node version that cannot run alongside the consensus node it will serve or the other
+   * deployed components. `consensusNodeVersion` must be the version that will actually be running alongside this
+   * block node. See {@link resolveConsensusNodeVersionForCompatibility} for how add picks it.
+   */
+  private assertBlockNodeCompatibility(blockNodeVersion: string, consensusNodeVersion: string, force: boolean): void {
+    ComponentCompatibility.assertCompatible(
+      {
+        ...ComponentCompatibility.deployedVersions(this.remoteConfig),
+        [ComponentTypes.ConsensusNode]: consensusNodeVersion,
+        [ComponentTypes.BlockNode]: blockNodeVersion,
+      },
+      ComponentTypes.BlockNode,
+      force,
+      this.logger,
+    );
   }
 
   private resolveMirrorNodeReleaseName(): string {
@@ -927,6 +977,11 @@ export class BlockNodeCommand extends BaseCommand {
               config.componentImage = `${constants.BLOCK_NODE_IMAGE_NAME}:${config.imageTag}`;
             }
 
+            this.assertBlockNodeCompatibility(
+              config.chartVersion,
+              this.resolveConsensusNodeVersionForCompatibility(argv),
+              config.force,
+            );
             config.livenessCheckPort = this.getLivenessCheckPortNumber(
               config.chartVersion,
               config.componentImage,
@@ -1394,6 +1449,13 @@ export class BlockNodeCommand extends BaseCommand {
               config.upgradeVersion,
               this.remoteConfig.getComponentVersion(ComponentTypes.BlockNode),
               optionFromFlag(flags.upgradeVersion),
+            );
+
+            // On upgrade the consensus network is already deployed, so remote config is ground truth.
+            this.assertBlockNodeCompatibility(
+              config.upgradeVersion,
+              this.remoteConfig.configuration.versions?.consensusNode?.toString() ?? versions.HEDERA_PLATFORM_VERSION,
+              config.force,
             );
 
             if (!this.oneShotState.isActive()) {

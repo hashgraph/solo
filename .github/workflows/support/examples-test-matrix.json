@@ -51,5 +51,10 @@
     "directory": "ledger-reset-smoke",
     "local-java-build": false,
     "block-node-enabled": false
+  },
+  {
+    "name": "Mirror Node Component Image",
+    "directory": "mirror-node-component-image",
+    "local-java-build": true
   }
 ]

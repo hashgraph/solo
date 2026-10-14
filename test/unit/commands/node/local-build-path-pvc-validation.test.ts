@@ -134,8 +134,13 @@ function createNodeCommandTasksWithPlatformInstaller(): NodeCommandTasks {
   (nodeCommandTasks as unknown as {platformInstaller: PlatformInstaller}).platformInstaller = Object.create(
     PlatformInstaller.prototype,
   ) as PlatformInstaller;
+  (nodeCommandTasks as unknown as {logger: {warn: sinon.SinonStub}}).logger = {warn: sinon.stub()};
 
   return nodeCommandTasks;
+}
+
+function isJarIntegrityVerification(command: string[] | string): boolean {
+  return Array.isArray(command) && (command[2] ?? '').includes('unzip -t');
 }
 
 function findJarIntegrityVerificationCallIndex(
@@ -366,6 +371,77 @@ describe('NodeCommandTasks local build path copy', (): void => {
     // the integrity check must run after the copy it validates, otherwise a truncated jar goes unnoticed
     expect(execContainerStub.getCall(hapiVerificationIndex).calledAfter(copyToStub.firstCall)).to.equal(true);
     expect(execContainerStub.getCall(upgradeVerificationIndex).calledAfter(copyToStub.secondCall)).to.equal(true);
+  });
+
+  it('copies the local build again when the jar integrity check fails', async (): Promise<void> => {
+    const nodeCommandTasks: NodeCommandTasks = createNodeCommandTasksWithPlatformInstaller();
+    let verificationCount: number = 0;
+    const execContainerStub: sinon.SinonStub = sinon
+      .stub()
+      .callsFake(async (command: string[] | string): Promise<string> => {
+        if (isJarIntegrityVerification(command) && ++verificationCount === 1) {
+          throw new Error('unzip: cannot find zipfile directory');
+        }
+        return '';
+      });
+    const copyToStub: sinon.SinonStub = sinon.stub().resolves();
+    const k8: FakeK8 = {
+      containers: (): {readByRef: () => FakeContainer} => ({
+        readByRef: (): FakeContainer => ({
+          execContainer: execContainerStub,
+          copyTo: copyToStub,
+          hasDir: sinon.stub().resolves(false),
+        }),
+      }),
+    };
+    const configManager: {getFlag: sinon.SinonStub} = {getFlag: sinon.stub().returns('')};
+
+    await expect(invokeCopyLocalBuildPathToNode(nodeCommandTasks, k8, configManager, '/tmp/local-build/data')).to
+      .eventually.be.fulfilled;
+
+    // the first copy produced a corrupt jar, the second copy passed the check
+    expect(verificationCount).to.equal(2);
+    expect(copyToStub.callCount).to.equal(2);
+    expect(copyToStub.alwaysCalledWith('/tmp/local-build/data', constants.HEDERA_HAPI_PATH)).to.equal(true);
+    const secondVerificationIndex: number = findJarIntegrityVerificationCallIndex(
+      execContainerStub,
+      findJarIntegrityVerificationCallIndex(execContainerStub) + 1,
+    );
+    expect(execContainerStub.getCall(secondVerificationIndex).calledAfter(copyToStub.secondCall)).to.equal(true);
+  });
+
+  it('fails when every local build copy has a corrupt jar', async (): Promise<void> => {
+    const nodeCommandTasks: NodeCommandTasks = createNodeCommandTasksWithPlatformInstaller();
+    const execContainerStub: sinon.SinonStub = sinon
+      .stub()
+      .callsFake(async (command: string[] | string): Promise<string> => {
+        if (isJarIntegrityVerification(command)) {
+          throw new Error('unzip: cannot find zipfile directory');
+        }
+        return '';
+      });
+    const copyToStub: sinon.SinonStub = sinon.stub().resolves();
+    const k8: FakeK8 = {
+      containers: (): {readByRef: () => FakeContainer} => ({
+        readByRef: (): FakeContainer => ({
+          execContainer: execContainerStub,
+          copyTo: copyToStub,
+          hasDir: sinon.stub().resolves(false),
+        }),
+      }),
+    };
+    const configManager: {getFlag: sinon.SinonStub} = {getFlag: sinon.stub().returns('')};
+
+    await expect(
+      invokeCopyLocalBuildPathToNode(nodeCommandTasks, k8, configManager, '/tmp/local-build/data'),
+    ).to.eventually.be.rejectedWith('cannot find zipfile directory');
+
+    expect(copyToStub.callCount).to.equal(constants.CONTAINER_COPY_MAX_ATTEMPTS);
+    expect(
+      execContainerStub
+        .getCalls()
+        .filter((call: sinon.SinonSpyCall): boolean => isJarIntegrityVerification(call.args[0])),
+    ).to.have.length(constants.CONTAINER_COPY_MAX_ATTEMPTS);
   });
 });
 

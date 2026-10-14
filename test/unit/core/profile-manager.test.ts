@@ -30,6 +30,7 @@ import {SemanticVersion} from '../../../src/business/utils/semantic-version.js';
 import {BlockNodeStateSchema} from '../../../src/data/schema/model/remote/state/block-node-state-schema.js';
 import {ComponentStateMetadataSchema} from '../../../src/data/schema/model/remote/state/component-state-metadata-schema.js';
 import {ClusterSchema} from '../../../src/data/schema/model/common/cluster-schema.js';
+import {SoloErrors} from '../../../src/core/errors/solo-errors.js';
 function invokeExtractSavedEndpoint(
   manager: ProfileManager,
   consensusNode: ConsensusNode,
@@ -459,6 +460,49 @@ describe('ProfileManager', (): void => {
       expect(updatedApplicationProperties).to.contain('tss.historyEnabled=false');
       expect(updatedApplicationProperties).to.contain('tss.forceMockSignatures=false');
       expect(updatedApplicationProperties).to.contain('tss.wrapsEnabled=false');
+    });
+  });
+
+  describe('_setChartItems', (): void => {
+    it('should flatten nested objects and arrays into the YAML root', (): void => {
+      const yamlRoot: AnyObject = {defaults: {keep: true}};
+      const date: Date = new Date(0);
+      profileManager._setChartItems(
+        'defaults',
+        {
+          root: {extraEnvironment: [{name: 'JAVA_OPTS', value: '-Xmx1g'}], date},
+          list: [[1, 2], {nested: [{deep: 'x'}]}],
+          empty: {},
+          emptyList: [],
+        },
+        yamlRoot,
+      );
+
+      expect(yamlRoot).to.deep.equal({
+        defaults: {
+          keep: true,
+          root: {extraEnvironment: [{name: 'JAVA_OPTS', value: '-Xmx1g'}], date},
+          list: [[1, 2], {nested: [{deep: 'x'}]}],
+          empty: {},
+          emptyList: [],
+        },
+      });
+    });
+
+    it('should do nothing when items are undefined', (): void => {
+      const yamlRoot: AnyObject = {a: 1};
+      profileManager._setChartItems('', undefined, yamlRoot);
+      expect(yamlRoot).to.deep.equal({a: 1});
+    });
+
+    it('should reject an item path that reaches the object prototype', (): void => {
+      // JSON.parse keeps __proto__ as an own key, as a parsed profile file would
+      const items: AnyObject = JSON.parse('{"__proto__": {"polluted": true}}');
+
+      expect((): void => profileManager._setChartItems('defaults', items, {defaults: {}})).to.throw(
+        SoloErrors.validation.illegalArgument,
+      );
+      expect(({} as AnyObject).polluted).to.be.undefined;
     });
   });
 

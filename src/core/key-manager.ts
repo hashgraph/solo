@@ -190,14 +190,11 @@ export class KeyManager {
         fs.writeFileSync(nodeKeyFiles.privateKeyFile, keyPem, {mode: 0o600});
         FilePermissions.restrictToOwner(nodeKeyFiles.privateKeyFile, false);
 
-        // remove if the certificate file exists already as otherwise we'll keep appending to the last
-        if (fs.existsSync(nodeKeyFiles.certificateFile)) {
-          fs.rmSync(nodeKeyFiles.certificateFile);
-        }
-
-        for (const certPem of certPems) {
-          fs.writeFileSync(nodeKeyFiles.certificateFile, certPem + '\n', {flag: 'a'});
-        }
+        // one write replaces any existing certificate file instead of appending to it
+        fs.writeFileSync(
+          nodeKeyFiles.certificateFile,
+          certPems.map((certPem: string): string => certPem + '\n').join(''),
+        );
 
         this.logger.debug(`Stored ${keyName} key for node: ${nodeAlias}`, {
           nodeKeyFiles,

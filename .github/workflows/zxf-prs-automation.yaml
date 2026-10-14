@@ -42,7 +42,10 @@ defaults:
 jobs:
   auto-assign-merge-queue:
     name: "Auto-Assign Merge Queue PRs"
-    if: github.event_name == 'pull_request' && startsWith(github.base_ref, 'trunk-merge/')
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      startsWith(github.base_ref, 'trunk-merge/')
     runs-on: hiero-solo-linux-medium
     permissions:
       contents: read
@@ -61,12 +64,15 @@ jobs:
 
   zizmor-scan:
     name: "Zizmor Workflow Scan"
+    # Fork PRs do not have access to the repository's trusted workflow context.
+    if: >-
+      (!github.event.pull_request ||
+      github.event.pull_request.head.repo.full_name == github.repository) &&
+      github.event_name == 'pull_request' &&
+      contains(fromJSON('["opened", "reopened", "synchronize"]'), github.event.action)
     # Only re-scan when a PR's diff can actually change: opening, reopening, or pushing new
     # commits. labeled/unlabeled/edited/ready_for_review/converted_to_draft don't touch file
     # content, so re-running the scan on them would be wasted work.
-    if: >-
-      github.event_name == 'pull_request' &&
-      contains(fromJSON('["opened", "reopened", "synchronize"]'), github.event.action)
     runs-on: hiero-solo-linux-medium
     # Deliberately narrower than the workflow-level permissions above: this job hands the
     # checked-out repository to a third-party container (zizmor), so it gets read-only access
@@ -77,7 +83,7 @@ jobs:
       pull-requests: read
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
           egress-policy: audit
 
@@ -104,7 +110,7 @@ jobs:
       # of either upstream project can't silently change what code runs here.
       - name: Run zizmor
         if: steps.filter.outputs.ci-cd == 'true'
-        uses: zizmorcore/zizmor-action@70fb788f84895a7701f5643d103d587e460b5c99 # v0.6.3
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
         with:
           version: "1.30.0"
           advanced-security: false
@@ -112,6 +118,10 @@ jobs:
 
   pr-automation:
     name: "PR Automation"
+    # This job uses the repository PAT and must not process forked pull requests.
+    if: >-
+      !github.event.pull_request ||
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: hiero-solo-linux-medium
     permissions:
       contents: read
@@ -246,6 +256,11 @@ jobs:
               core.startGroup(`PR #${prNumber}`);
               try {
                 const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
+
+                if (pr.head.repo?.full_name !== `${owner}/${repo}`) {
+                  core.info('Forked PR, skipping');
+                  return;
+                }
 
                 if (pr.state === 'closed') {
                   core.info('Closed, skipping');

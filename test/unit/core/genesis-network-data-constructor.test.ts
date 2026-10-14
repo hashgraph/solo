@@ -4,6 +4,7 @@ import {type AccountId, PrivateKey} from '@hiero-ledger/sdk';
 import {expect} from 'chai';
 import {describe, it} from 'mocha';
 import sinon, {type SinonStub} from 'sinon';
+import crypto from 'node:crypto';
 import {GenesisNetworkDataConstructor} from '../../../src/core/genesis-network-models/genesis-network-data-constructor.js';
 import {type AccountManager} from '../../../src/core/account-manager.js';
 import {type KeyManager} from '../../../src/core/key-manager.js';
@@ -43,12 +44,16 @@ describe('core/genesis-network-data-constructor', (): void => {
     return serviceMap;
   }
 
+  const tlsCertificateDer: Uint8Array = new Uint8Array([4, 5, 6]);
+
   const keyManager: KeyManager = {
-    getDerFromPem: (): Uint8Array => new Uint8Array([1, 2, 3]),
+    getDerFromPem: (pem: string): Uint8Array =>
+      pem === 'tls-certificate-pem' ? tlsCertificateDer : new Uint8Array([1, 2, 3]),
   } as unknown as KeyManager;
 
   const accountManager: AccountManager = {
     getGossipPublicKeyPem: async (): Promise<string> => 'gossip-public-key-pem',
+    getTlsCertificatePem: async (): Promise<string> => 'tls-certificate-pem',
     createOrReplaceAccountKeySecret: async (): Promise<void> => {},
   } as unknown as AccountManager;
 
@@ -116,6 +121,15 @@ describe('core/genesis-network-data-constructor', (): void => {
     ]);
   });
 
+  it('should set the grpc certificate hash to the SHA-384 of the gRPC TLS certificate', async (): Promise<void> => {
+    const genesisNetworkData: GenesisNetworkDataConstructor = await buildGenesisNetworkData();
+    const expectedHash: string = crypto.createHash('sha384').update(tlsCertificateDer).digest('base64');
+
+    for (const nodeAlias of nodeAliases) {
+      expect(genesisNetworkData.nodes[nodeAlias].grpcCertificateHash).to.equal(expectedHash);
+    }
+  });
+
   it('should register both grpc and grpcs service endpoints in node metadata', async (): Promise<void> => {
     const generatedAdminKey: PrivateKey = PrivateKey.generateED25519();
     const generateEd25519Stub: SinonStub = sinon.stub(PrivateKey, 'generateED25519').returns(generatedAdminKey);
@@ -162,6 +176,7 @@ describe('core/genesis-network-data-constructor', (): void => {
     const accountManagerStub: AccountManager = {
       createOrReplaceAccountKeySecret: sinon.stub().resolves(),
       getGossipPublicKeyPem: sinon.stub().resolves('test-pem'),
+      getTlsCertificatePem: sinon.stub().resolves('test-tls-pem'),
     } as unknown as AccountManager;
     const keyManagerStub: KeyManager = {
       getDerFromPem: sinon.stub().returns(Uint8Array.from([1, 2, 3])),

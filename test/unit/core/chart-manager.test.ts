@@ -132,6 +132,13 @@ describe('ChartManager installed-release lookup', (): void => {
     expect(release).to.be.undefined;
   });
 
+  it('returns every installed release, not just one matched by name', async (): Promise<void> => {
+    const installedReleases: ReleaseItem[] = await buildManager().getInstalledReleases(
+      undefined as unknown as NamespaceName,
+    );
+    expect(installedReleases).to.deep.equal(releases);
+  });
+
   it('keeps isChartInstalled consistent with the release lookup', async (): Promise<void> => {
     const manager: ChartManager = buildManager();
     expect(await manager.isChartInstalled(undefined as unknown as NamespaceName, 'prometheus')).to.be.true;

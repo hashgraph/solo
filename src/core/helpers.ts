@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import crypto from 'node:crypto';
-import fs, {type Stats} from 'node:fs';
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {format} from 'node:util';
@@ -558,9 +558,14 @@ export class Helpers {
       return '';
     }
 
-    const resolvedFilePath: string = PathEx.realPathSync(filePath);
-
-    if (!fs.existsSync(resolvedFilePath)) {
+    // Read once with no separate existence or size check, so the file cannot change between the check and the read
+    let resolvedFilePath: string;
+    let contents: string;
+    try {
+      resolvedFilePath = PathEx.realPathSync(filePath);
+      contents = fs.readFileSync(resolvedFilePath, 'utf8');
+    } catch {
+      // a missing or unreadable file falls back on the default values
       if (defaultPath) {
         return resolveValidJsonFilePath(defaultPath);
       }
@@ -568,20 +573,21 @@ export class Helpers {
       throw new SoloErrors.system.fileNotFound(filePath);
     }
 
-    // If the file is empty (or size cannot be determined) then fallback on the default values
-    const throttleInfo: Stats = fs.statSync(resolvedFilePath);
-    if (throttleInfo.size === 0 && defaultPath) {
-      return resolveValidJsonFilePath(defaultPath);
-    } else if (throttleInfo.size === 0) {
+    // If the file is empty then fallback on the default values
+    if (contents.length === 0) {
+      if (defaultPath) {
+        return resolveValidJsonFilePath(defaultPath);
+      }
+
       throw new SoloErrors.system.fileEmpty(filePath);
     }
 
     try {
       // Ensure the file contains valid JSON data
-      JSON.parse(fs.readFileSync(resolvedFilePath, 'utf8'));
+      JSON.parse(contents);
       return resolvedFilePath;
     } catch {
-      // Fallback to the default values if an error occurs due to invalid JSON data or unable to read the file size
+      // Fallback to the default values if the file does not contain valid JSON data
       if (defaultPath) {
         return resolveValidJsonFilePath(defaultPath);
       }

@@ -64,10 +64,14 @@ export class ClusterTaskManager extends ShellRunner {
     this.kindBuilder = patchInject(kindBuilder, InjectTokens.KindBuilder, ClusterTaskManager.name);
     this.podmanDependencyManager = patchInject(
       podmanDependencyManager,
-      InjectTokens.KindBuilder,
+      InjectTokens.PodmanDependencyManager,
       ClusterTaskManager.name,
     );
-    this.kindDependencyManager = patchInject(kindDependencyManager, InjectTokens.KindBuilder, ClusterTaskManager.name);
+    this.kindDependencyManager = patchInject(
+      kindDependencyManager,
+      InjectTokens.KindDependencyManager,
+      ClusterTaskManager.name,
+    );
     this.podmanInstallationDirectory = patchInject(
       podmanInstallationDirectory,
       InjectTokens.PodmanInstallationDirectory,

@@ -70,6 +70,10 @@ import chalk from 'chalk';
 import {Flags as flags} from '../flags.js';
 import {
   HEDERA_PLATFORM_VERSION,
+  HIERO_PLATFORM_VERSION_WITH_INCOMPLETE_SIMPLE_FEES,
+  MINIMUM_HIERO_PLATFORM_VERSION_REQUIRING_TOPIC_MESSAGE_FEE_ENTRY,
+  MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_SIMPLE_FEES,
+  MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_THROTTLES,
   MINIMUM_HIERO_PLATFORM_VERSION_FOR_TSS,
   MINIMUM_SOLO_CHART_VERSION,
 } from '../../../version.js';
@@ -178,6 +182,7 @@ import {Contexts} from '../../integration/kube/resources/context/contexts.js';
 import {K8Helper} from '../../business/utils/k8-helper.js';
 import {Secret} from '../../integration/kube/resources/secret/secret.js';
 import {NodeUpgradeConfigClass} from './config-interfaces/node-upgrade-config-class.js';
+import {type NodePrepareUpgradeConfigClass} from './config-interfaces/node-prepare-upgrade-config-class.js';
 import {NodeCollectJfrLogsContext} from './config-interfaces/node-collect-jfr-logs-context.js';
 import {NodeCollectJfrLogsConfigClass} from './config-interfaces/node-collect-jfr-logs-config-class.js';
 import {PackageDownloader} from '../../core/package-downloader.js';
@@ -387,16 +392,21 @@ export class NodeCommandTasks {
     return FileId.fromString(entityId(shard, realm, constants.UPGRADE_FILE_ID_NUM));
   }
 
-  private async _prepareUpgradeZip(stagingDirectory: string, upgradeVersion?: string): Promise<string> {
+  private async _prepareUpgradeZip(
+    stagingDirectory: string,
+    upgradeVersion?: string,
+    postUpgradeSystemFiles: Map<string, string> = new Map(),
+  ): Promise<string> {
     // we build a mock upgrade.zip file as we really don't need to upgrade the network
     // also the platform zip file is ~80Mb in size requiring a lot of transactions since the max
     // transaction size is 6Kb and in practice we need to send the file as 4Kb chunks.
     // Note however that in DAB phase-2, we won't need to trigger this fake upgrade process
     const zipper: Zippy = new Zippy(this.logger);
-    const upgradeConfigDirectory: string = PathEx.join(stagingDirectory, 'mock-upgrade', 'data', 'config');
-    if (!fs.existsSync(upgradeConfigDirectory)) {
-      fs.mkdirSync(upgradeConfigDirectory, {recursive: true});
-    }
+    const mockUpgradeDirectory: string = PathEx.join(stagingDirectory, 'mock-upgrade');
+    const upgradeConfigDirectory: string = PathEx.join(mockUpgradeDirectory, 'data', 'config');
+    // start clean so files staged for a previous upgrade are not shipped again
+    fs.rmSync(mockUpgradeDirectory, {recursive: true, force: true});
+    fs.mkdirSync(upgradeConfigDirectory, {recursive: true});
 
     // bump field hedera.config.version or use the version passed in
     const fileBytes: Buffer = fs.readFileSync(
@@ -417,10 +427,11 @@ export class NodeCommandTasks {
     }
     fs.writeFileSync(PathEx.join(upgradeConfigDirectory, constants.APPLICATION_PROPERTIES), newLines.join('\n'));
 
-    return await zipper.zip(
-      PathEx.join(stagingDirectory, 'mock-upgrade'),
-      PathEx.join(stagingDirectory, 'mock-upgrade.zip'),
-    );
+    for (const [fileName, sourcePath] of postUpgradeSystemFiles) {
+      fs.copyFileSync(sourcePath, PathEx.join(upgradeConfigDirectory, fileName));
+    }
+
+    return await zipper.zip(mockUpgradeDirectory, PathEx.join(stagingDirectory, 'mock-upgrade.zip'));
   }
 
   private async _uploadUpgradeZip(
@@ -484,11 +495,7 @@ export class NodeCommandTasks {
       `rm -rf ${constants.HEDERA_HAPI_PATH}/${constants.HEDERA_DATA_LIB_DIR}/*.jar ${constants.HEDERA_HAPI_PATH}/${constants.HEDERA_DATA_APPS_DIR}/*.jar`,
     ]);
 
-    await container.copyTo(localDataLibraryBuildPath, `${constants.HEDERA_HAPI_PATH}`, localBuildPathFilter);
-    await container.execContainer(['bash', '-c', this.buildNormalizeHederaJarPermissionsCommand()]);
-    // The copy above only verifies that the destination directory exists, which is true even for the stock
-    // image, so a truncated jar would slip through - validate the copied jars themselves (issue #6010)
-    await this.platformInstaller.verifyJarIntegrity(container);
+    await this.copyAndVerifyLocalBuildJars(container, localDataLibraryBuildPath, constants.HEDERA_HAPI_PATH);
 
     const upgradeDirectory: string = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current`;
     if (await container.hasDir(upgradeDirectory)) {
@@ -497,9 +504,7 @@ export class NodeCommandTasks {
         '-c',
         `rm -rf ${upgradeDirectory}/${constants.HEDERA_DATA_LIB_DIR}/*.jar ${upgradeDirectory}/${constants.HEDERA_DATA_APPS_DIR}/*.jar`,
       ]);
-      await container.copyTo(localDataLibraryBuildPath, upgradeDirectory, localBuildPathFilter);
-      await container.execContainer(['bash', '-c', this.buildNormalizeHederaJarPermissionsCommand(upgradeDirectory)]);
-      await this.platformInstaller.verifyJarIntegrity(container, upgradeDirectory);
+      await this.copyAndVerifyLocalBuildJars(container, localDataLibraryBuildPath, upgradeDirectory);
     }
 
     await container.execContainer(['sync', constants.HEDERA_HAPI_PATH]);
@@ -510,6 +515,35 @@ export class NodeCommandTasks {
         if (fs.existsSync(jsonFile)) {
           await container.copyTo(jsonFile, `${constants.HEDERA_HAPI_PATH}`);
         }
+      }
+    }
+  }
+
+  /**
+   * Copy the local build into `hapiPath` and verify the copied jars, copying again when a jar is corrupt.
+   *
+   * `copyTo` only checks that a copied directory exists, which is true even for the stock image, so a truncated jar
+   * slips through it (issue #6010). The truncation is intermittent, so another copy usually fixes it (issue #6079).
+   */
+  private async copyAndVerifyLocalBuildJars(
+    container: Container,
+    localDataLibraryBuildPath: string,
+    hapiPath: string,
+  ): Promise<void> {
+    const maxAttempts: number = constants.CONTAINER_COPY_MAX_ATTEMPTS;
+    for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
+      await container.copyTo(localDataLibraryBuildPath, hapiPath, localBuildPathFilter);
+      await container.execContainer(['bash', '-c', this.buildNormalizeHederaJarPermissionsCommand(hapiPath)]);
+      try {
+        await this.platformInstaller.verifyJarIntegrity(container, hapiPath);
+        return;
+      } catch (error) {
+        if (attempt === maxAttempts) {
+          throw error;
+        }
+        this.logger.warn(
+          `Jar integrity check failed in ${hapiPath} on attempt ${attempt} of ${maxAttempts}, copying again: ${error.message}`,
+        );
       }
     }
   }
@@ -1120,9 +1154,15 @@ export class NodeCommandTasks {
     return {
       title: 'Prepare upgrade zip file for node upgrade process',
       task: async (context_): Promise<void> => {
-        const config: NodeAddConfigClass | NodeUpdateConfigClass | NodeUpgradeConfigClass | NodeDestroyConfigClass =
-          context_.config;
+        const config:
+          | NodeAddConfigClass
+          | NodeUpdateConfigClass
+          | NodeUpgradeConfigClass
+          | NodeDestroyConfigClass
+          | NodePrepareUpgradeConfigClass = context_.config;
         const {upgradeZipFile, deployment} = context_.config;
+        const postUpgradeSystemFiles: Map<string, string> =
+          'throttlesFile' in config ? this.resolvePostUpgradeSystemFiles(config) : new Map();
         if (upgradeZipFile) {
           context_.upgradeZipFile = upgradeZipFile;
           this.logger.debug(`Using upgrade zip file: ${context_.upgradeZipFile}`);
@@ -1153,11 +1193,101 @@ export class NodeCommandTasks {
 
           const upgradeVersion: string | undefined =
             'upgradeVersion' in config ? (config.upgradeVersion as string) : undefined;
-          context_.upgradeZipFile = await this._prepareUpgradeZip(config.stagingDir, upgradeVersion);
+          if (
+            upgradeVersion &&
+            !postUpgradeSystemFiles.has(constants.SIMPLE_FEES_SCHEDULES_JSON) &&
+            NodeCommandTasks.upgradeLeavesTopicMessageFeeEntryMissing(
+              this.remoteConfig.configuration.versions.consensusNode,
+              upgradeVersion,
+            )
+          ) {
+            this.logger.showUser(
+              chalk.yellow(
+                `Warning: Upgrading from consensus node ${this.remoteConfig.configuration.versions.consensusNode} ` +
+                  `to ${upgradeVersion} leaves the fee ` +
+                  'schedule without an entry that topic messages require, so topic message submissions will fail ' +
+                  "with FAIL_INVALID. Pass --simple-fees-schedules-file with the target version's " +
+                  'simpleFeesSchedules.json to avoid this. See ' +
+                  'https://solo.hiero.org/docs/troubleshooting/#topic-messages-fail-with-fail_invalid-after-a-network-upgrade',
+              ),
+            );
+          }
+          context_.upgradeZipFile = await this._prepareUpgradeZip(
+            config.stagingDir,
+            upgradeVersion,
+            postUpgradeSystemFiles,
+          );
         }
         context_.upgradeZipHash = await this._uploadUpgradeZip(context_.upgradeZipFile, config.nodeClient, deployment);
       },
     };
+  }
+
+  /**
+   * v0.72.x creates the fee schedule file without the entry that topic messages require from v0.73.0, and the
+   * file is never replaced unless the upgrade supplies a new copy.
+   */
+  private static upgradeLeavesTopicMessageFeeEntryMissing(
+    currentVersion: SemanticVersion<string>,
+    upgradeVersion: string,
+  ): boolean {
+    return (
+      currentVersion.greaterThanOrEqual(HIERO_PLATFORM_VERSION_WITH_INCOMPLETE_SIMPLE_FEES) &&
+      currentVersion.lessThan(MINIMUM_HIERO_PLATFORM_VERSION_REQUIRING_TOPIC_MESSAGE_FEE_ENTRY) &&
+      new SemanticVersion<string>(upgradeVersion).greaterThanOrEqual(
+        MINIMUM_HIERO_PLATFORM_VERSION_REQUIRING_TOPIC_MESSAGE_FEE_ENTRY,
+      )
+    );
+  }
+
+  /** Maps each post-upgrade system file name the node expects to the validated local file the user passed. */
+  private resolvePostUpgradeSystemFiles(
+    config: NodeUpgradeConfigClass | NodePrepareUpgradeConfigClass,
+  ): Map<string, string> {
+    // dev-freeze prepare-upgrade has neither --upgrade-zip-file nor --upgrade-version
+    const upgradeZipFile: string | undefined = 'upgradeZipFile' in config ? config.upgradeZipFile : undefined;
+    const upgradeVersion: string | undefined = 'upgradeVersion' in config ? config.upgradeVersion : undefined;
+    const systemFileFlags: [CommandFlag, string, string, string][] = [
+      [
+        flags.simpleFeesSchedulesFile,
+        config.simpleFeesSchedulesFile,
+        constants.SIMPLE_FEES_SCHEDULES_JSON,
+        MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_SIMPLE_FEES,
+      ],
+      [
+        flags.throttlesFile,
+        config.throttlesFile,
+        constants.THROTTLES_JSON,
+        MINIMUM_HIERO_PLATFORM_VERSION_FOR_POST_UPGRADE_THROTTLES,
+      ],
+    ];
+    const postUpgradeSystemFiles: Map<string, string> = new Map();
+
+    for (const [flag, sourceFilePath, fileName, minimumVersion] of systemFileFlags) {
+      if (!sourceFilePath) {
+        continue;
+      }
+      if (upgradeZipFile) {
+        throw new SoloErrors.validation.upgradeSystemFileWithZipFile(flag.name);
+      }
+      // without --upgrade-version (e.g. --local-build-path upgrades) there is no target version to check
+      if (upgradeVersion && new SemanticVersion<string>(upgradeVersion).lessThan(minimumVersion)) {
+        throw new SoloErrors.validation.postUpgradeSystemFileVersionUnsupported(
+          flag.name,
+          minimumVersion,
+          upgradeVersion,
+        );
+      }
+
+      const currentWorkingDirectory: string = process.env.INIT_CWD || process.cwd();
+      const sourceAbsoluteFilePath: string = PathEx.resolve(currentWorkingDirectory, sourceFilePath);
+      if (!fs.existsSync(sourceAbsoluteFilePath)) {
+        throw new SoloErrors.validation.configFileNotFound(flag.name, sourceAbsoluteFilePath, sourceFilePath);
+      }
+      postUpgradeSystemFiles.set(fileName, sourceAbsoluteFilePath);
+    }
+
+    return postUpgradeSystemFiles;
   }
 
   public loadAdminKey(): SoloListrTask<NodeUpdateContext | NodeUpgradeContext | NodeDestroyContext> {
@@ -2294,48 +2424,42 @@ export class NodeCommandTasks {
       task: (context_, task): SoloListr<AnyListrContext> => {
         const config: AnyListrContext = context_.config;
         const nodeAliases: NodeAliases = config[nodeAliasesProperty];
-        const subTasks: SoloListrTask<AnyListrContext>[] = [];
-
-        for (const nodeAlias of nodeAliases) {
-          subTasks.push({
+        const subTasks: SoloListrTask<AnyListrContext>[] = nodeAliases.map(
+          (nodeAlias: NodeAlias): SoloListrTask<AnyListrContext> => ({
             title: `Start node: ${chalk.yellow(nodeAlias)}`,
-            task: async (): Promise<void> => {
-              const context: string = extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
-              const labels: string[] = [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'];
-              await this.k8Factory
-                .getK8(context)
-                .pods()
-                .waitForReadyStatus(config.namespace, labels, 120, 1000, undefined, true);
-
-              const startCommand: string = this.buildStartNetworkNodeCommand();
-
-              const container: Container = await new K8Helper(context).getConsensusNodeRootContainer(
-                config.namespace,
-                nodeAlias,
-              );
-              if (config.localBuildPath) {
-                await container.execContainer(['bash', '-c', this.buildRefreshLiveLocalBuildJarsCommand()]);
-              }
-              for (const directory of [constants.HEDERA_DATA_APPS_DIR, constants.HEDERA_DATA_LIB_DIR]) {
-                const directoryPath: string = `${constants.HEDERA_HAPI_PATH}/${directory}`;
-                const output: string = await container.execContainer([
-                  'bash',
-                  '-c',
-                  `ls "${directoryPath}"/*.jar 2>/dev/null | wc -l`,
-                ]);
-                if (Number.parseInt(output.trim(), 10) === 0) {
-                  throw new SoloErrors.validation.nodeJarFilesNotInContainer(nodeAlias, directoryPath);
-                }
-              }
-              await container.execContainer(['bash', '-c', startCommand]);
-            },
-          });
-        }
+            task: async (): Promise<void> => this.startSingleNode(config, nodeAlias),
+          }),
+        );
 
         // set up the sub-tasks
         return task.newListr(subTasks, constants.LISTR_DEFAULT_OPTIONS.WITH_CONCURRENCY);
       },
     };
+  }
+
+  private async startSingleNode(config: AnyListrContext, nodeAlias: NodeAlias): Promise<void> {
+    const context: string = extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
+    const labels: string[] = [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'];
+    await this.k8Factory.getK8(context).pods().waitForReadyStatus(config.namespace, labels, 120, 1000, undefined, true);
+
+    const startCommand: string = this.buildStartNetworkNodeCommand();
+
+    const container: Container = await new K8Helper(context).getConsensusNodeRootContainer(config.namespace, nodeAlias);
+    if (config.localBuildPath) {
+      await container.execContainer(['bash', '-c', this.buildRefreshLiveLocalBuildJarsCommand()]);
+    }
+    for (const directory of [constants.HEDERA_DATA_APPS_DIR, constants.HEDERA_DATA_LIB_DIR]) {
+      const directoryPath: string = `${constants.HEDERA_HAPI_PATH}/${directory}`;
+      const output: string = await container.execContainer([
+        'bash',
+        '-c',
+        `ls "${directoryPath}"/*.jar 2>/dev/null | wc -l`,
+      ]);
+      if (Number.parseInt(output.trim(), 10) === 0) {
+        throw new SoloErrors.validation.nodeJarFilesNotInContainer(nodeAlias, directoryPath);
+      }
+    }
+    await container.execContainer(['bash', '-c', startCommand]);
   }
 
   private buildRefreshLiveLocalBuildJarsCommand(): string {
@@ -2518,14 +2642,20 @@ export class NodeCommandTasks {
 
   /**
    * Wait for every node to settle on a terminal startup status, ACTIVE or FREEZE_COMPLETE, and
-   * record on the config which one a state restore landed in.
+   * record on the config which one a state restore landed in. When `--resume-from-freeze` is set,
+   * a node found in FREEZE_COMPLETE is given one automatic restart before being accepted as
+   * genuinely frozen (see below); without it, FREEZE_COMPLETE is accepted as-is, since some
+   * restores (e.g. a deliberate frozen-state snapshot test) intentionally expect to stay frozen.
    *
-   * A restore cannot predict the status from the archive. The snapshot round is often an
-   * ordinary signed round (this consensus node version reports `SIGNING_WEIGHT_SUM: 0` for
-   * freeze states, so a freeze round is never selected as fully signed), yet the preconsensus
-   * events replayed on top of it still carry the freeze transaction and put the node back into
-   * FREEZE_COMPLETE. Whether that happens depends on how far the retained event stream runs
-   * past the snapshot, so observe the status the nodes actually reach instead of inferring it.
+   * A restore cannot predict the status from the archive. The restored snapshot's platform state
+   * can already carry a scheduled `freezeTime` that was committed before the snapshot was taken
+   * (independent of any preconsensus events replayed on top of it), so the node re-enters
+   * FREEZE_COMPLETE on its very first boot regardless of PCES content. Completing that freeze,
+   * though, writes a new round whose `lastFrozenTime` now equals `freezeTime` — so a follow-up
+   * restart that does *not* re-upload the original snapshot (letting the node boot from its own
+   * just-written state instead) sees the freeze as already handled and proceeds to ACTIVE
+   * normally. Verified against a real previously-failing backup: a second plain restart turned a
+   * reproducible FREEZE_COMPLETE into ACTIVE every time. See hiero-ledger/solo#6164.
    */
   public checkAllNodesAreActiveOrFrozen(nodeAliasesProperty: string): SoloListrTask<AnyListrContext> {
     return {
@@ -2534,30 +2664,43 @@ export class NodeCommandTasks {
         const nodeAliases: NodeAliases = context_.config[nodeAliasesProperty];
         const frozenStatusName: string = NodeStatusEnums[NodeStatusCodes.FREEZE_COMPLETE];
 
-        const statuses: string[] = await Promise.all(
-          nodeAliases.map((nodeAlias: NodeAlias): Promise<string> =>
-            this.waitForActiveOrFrozenStatus(context_, nodeAlias),
-          ),
-        );
+        let finalStatuses: string[] = [];
+        const collectStatuses: () => Promise<boolean> = async (): Promise<boolean> => {
+          const statuses: string[] = await Promise.all(
+            nodeAliases.map((nodeAlias: NodeAlias): Promise<string> =>
+              this.waitForActiveOrFrozenStatus(context_, nodeAlias),
+            ),
+          );
+          const allFrozen: boolean = statuses.every((status: string): boolean => status === frozenStatusName);
+          const allActive: boolean = statuses.every((status: string): boolean => status !== frozenStatusName);
+          if (!allFrozen && !allActive) {
+            throw new SoloErrors.component.nodeRestoreStatusMismatch(
+              Object.fromEntries(
+                nodeAliases.map((nodeAlias: NodeAlias, index: number): [string, string] => [
+                  nodeAlias,
+                  statuses[index],
+                ]),
+              ),
+            );
+          }
 
-        const statusByNodeAlias: Record<string, string> = Object.fromEntries(
-          nodeAliases.map((nodeAlias: NodeAlias, index: number): [string, string] => [nodeAlias, statuses[index]]),
-        );
+          finalStatuses = statuses;
+          return allFrozen;
+        };
 
-        // Only a network that came up entirely frozen skips the ACTIVE-only follow-up work. A
-        // mixed result means the nodes disagree on whether the restore replays back into a
-        // freeze, so fail fast here instead of letting the ACTIVE-only checks run and burn their
-        // own timeout against a node that can never reach ACTIVE without a fresh start.
-        const allFrozen: boolean = statuses.every((status: string): boolean => status === frozenStatusName);
-        const allActive: boolean = statuses.every((status: string): boolean => status !== frozenStatusName);
-        if (!allFrozen && !allActive) {
-          throw new SoloErrors.component.nodeRestoreStatusMismatch(statusByNodeAlias);
+        let allFrozen: boolean = await collectStatuses();
+        if (allFrozen && context_.config.resumeFromFreeze) {
+          task.title = `${task.title} - restarting to clear an already-completed freeze`;
+          await Promise.all(
+            nodeAliases.map((nodeAlias: NodeAlias): Promise<void> => this.startSingleNode(context_.config, nodeAlias)),
+          );
+          allFrozen = await collectStatuses();
         }
 
         context_.config.restoredFromFreezeState = allFrozen;
 
         const statusSummary: string = nodeAliases
-          .map((nodeAlias: NodeAlias, index: number): string => `${nodeAlias}=${statuses[index]}`)
+          .map((nodeAlias: NodeAlias, index: number): string => `${nodeAlias}=${finalStatuses[index]}`)
           .join(', ');
         task.title = `Check all nodes are ACTIVE or FREEZE_COMPLETE - ${chalk.green(statusSummary)}`;
       },
@@ -3962,9 +4105,10 @@ export class NodeCommandTasks {
             throw new SoloErrors.validation.grpcEndpointsRequired(constants.ENDPOINT_TYPE_IP);
           }
 
-          endpoints = [
-            `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias)}:${servicePort}`,
-          ];
+          const domainName: string =
+            config.domainNamesMapping?.[config.nodeAlias] ??
+            Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias);
+          endpoints = [`${domainName}:${servicePort}`];
         }
 
         context_.grpcServiceEndpoints = prepareEndpoints(config.endpointType, endpoints, servicePort);
@@ -4288,6 +4432,37 @@ export class NodeCommandTasks {
       task: ({config: {keysDir}}): void => {
         if (keysDir && fs.existsSync(keysDir)) {
           fs.rmSync(keysDir, {recursive: true, force: true});
+        }
+      },
+    };
+  }
+
+  public promotePostUpgradeSystemFiles(): SoloListrTask<NodeUpgradeContext> {
+    return {
+      title: 'Promote post-upgrade system files into node config',
+      task: async ({config}): Promise<void> => {
+        const upgradeConfigDirectory: string = `${constants.HEDERA_HAPI_PATH}/data/upgrade/current/data/config`;
+        const liveConfigDirectory: string = `${constants.HEDERA_HAPI_PATH}/data/config`;
+        // the node only applies these on restart if they sit in its live config dir, but the freeze
+        // upgrade extracts them to data/upgrade/current; application.properties is left out because
+        // the staged copy is only a version marker, not the node's real configuration.
+        // Live copies from earlier upgrades are kept; a file is only replaced when the user passes a new one.
+        const commands: string[] = [
+          'set -e',
+          ...[constants.SIMPLE_FEES_SCHEDULES_JSON, constants.THROTTLES_JSON].map(
+            (fileName: string): string =>
+              `if [ -f "${upgradeConfigDirectory}/${fileName}" ]; then ` +
+              `cp -f "${upgradeConfigDirectory}/${fileName}" "${liveConfigDirectory}/${fileName}"; ` +
+              `chown hedera:hedera "${liveConfigDirectory}/${fileName}"; fi`,
+          ),
+        ];
+
+        for (const consensusNode of config.consensusNodes) {
+          const rootContainer: Container = await new K8Helper(consensusNode.context).getConsensusNodeRootContainer(
+            config.namespace,
+            consensusNode.name,
+          );
+          await rootContainer.execContainer(['bash', '-c', commands.join('\n')]);
         }
       },
     };

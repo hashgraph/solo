@@ -23,6 +23,8 @@ import {FlagRules} from './validation/flag-rules.js';
 import {FlagValidation} from './validation/flag-validation.js';
 
 const TLS_CLUSTER_ISSUER_TYPES: string[] = ['acme-staging', 'acme-prod', 'self-signed'];
+// Each component needs its own JVM image swap and values overlay (rest-java, web3 and grpc are native images too).
+const MIRROR_NODE_DEBUG_COMPONENTS: string[] = ['importer'];
 
 export class Flags {
   public static KEY_COMMON: string = '_COMMON_';
@@ -501,6 +503,27 @@ export class Flags {
     },
   };
 
+  public static readonly simpleFeesSchedulesFile: CommandFlag = {
+    constName: 'simpleFeesSchedulesFile',
+    name: 'simple-fees-schedules-file',
+    definition: {
+      describe:
+        'simpleFeesSchedules.json file applied to the network during the upgrade; must match the target version',
+      defaultValue: '',
+      type: 'string',
+    },
+  };
+
+  public static readonly throttlesFile: CommandFlag = {
+    constName: 'throttlesFile',
+    name: 'throttles-file',
+    definition: {
+      describe: 'throttles.json file applied to the network during the upgrade; must match the target version',
+      defaultValue: '',
+      type: 'string',
+    },
+  };
+
   public static readonly releaseTag: CommandFlag = {
     constName: 'releaseTag',
     name: 'release-tag',
@@ -572,7 +595,8 @@ export class Flags {
         'Docker image override. Supports a published registry reference (e.g. ghcr.io/hiero-ledger/component:1.2.3), ' +
         'a locally built image (e.g. component:1.2.3), or a Kind-attached local registry ' +
         '(e.g. localhost:5001/component:1.2.3). Locally available images are loaded into every target Kind ' +
-        'cluster and use pullPolicy: Never. For non-Kind targets, publish the image to a registry reachable by the cluster.',
+        'cluster and use pullPolicy: Never. For non-Kind targets, publish the image to a registry reachable by the cluster. ' +
+        'Some multi-module components treat the value as a repository prefix and derive and load each module image from it.',
       defaultValue: '',
       type: 'string',
       alias: 'relay-image',
@@ -888,6 +912,19 @@ export class Flags {
         'Skip submitting the NodeUpdateTransaction that sets the gRPC web proxy endpoint.' +
         '\nUse during restore when the endpoint is already correct in the restored state' +
         ' to avoid triggering TSS re-evaluation.',
+      type: 'boolean',
+      defaultValue: false,
+    },
+  };
+
+  public static readonly resumeFromFreeze: CommandFlag = {
+    constName: 'resumeFromFreeze',
+    name: 'resume-from-freeze',
+    definition: {
+      describe:
+        'When restoring from --state-file lands every node in FREEZE_COMPLETE, automatically restart them' +
+        ' once more so they resume ACTIVE instead of staying frozen. Only used with --state-file.' +
+        '\nLeave unset to restore a frozen snapshot as-is and keep it frozen.',
       type: 'boolean',
       defaultValue: false,
     },
@@ -1682,6 +1719,20 @@ export class Flags {
       type: 'boolean',
     },
     prompt: undefined,
+  };
+
+  public static readonly debugMirrorNodeComponent: CommandFlag = {
+    constName: 'debugMirrorNodeComponent',
+    name: 'debug-mirror-node-component',
+    definition: {
+      describe:
+        'Open the default jvm debug port (5005) on the given mirror node component and port-forward it to localhost. ' +
+        `Allowed values: ${MIRROR_NODE_DEBUG_COMPONENTS.join(', ')}`,
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+    rules: [FlagRules.oneOf(...MIRROR_NODE_DEBUG_COMPONENTS)],
   };
 
   public static readonly debugNodeAlias: CommandFlag = {
@@ -2863,6 +2914,7 @@ export class Flags {
     Flags.clusterSetupNamespace,
     Flags.context,
     Flags.createAmount,
+    Flags.debugMirrorNodeComponent,
     Flags.debugNodeAlias,
     Flags.deletePvcs,
     Flags.deleteSecrets,
@@ -2944,14 +2996,17 @@ export class Flags {
     Flags.consensusNodeVersion,
     Flags.upgradeVersion,
     Flags.freezeBlockDrainSeconds,
+    Flags.resumeFromFreeze,
     Flags.skipNodeStart,
     Flags.replicaCount,
     Flags.setAlias,
     Flags.settingTxt,
+    Flags.simpleFeesSchedulesFile,
     Flags.soloChartVersion,
     Flags.stakeAmounts,
     Flags.stateFile,
     Flags.storageType,
+    Flags.throttlesFile,
     Flags.transplant,
     Flags.gcsWriteAccessKey,
     Flags.gcsWriteSecrets,

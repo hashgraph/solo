@@ -1,0 +1,168 @@
+##
+# Copyright (C) 2026 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+name: 'Image Cache: Capture Cluster Images'
+# Lists the images a clean one-shot deploy runs; the image source for the image cache.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Solo version the image list is captured for, for example 0.92.0 (default: the package.json version)'
+        type: string
+        required: false
+        default: ''
+  workflow_dispatch:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+    paths:
+      - .github/workflows/flow-image-cache-cluster-images.yaml
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+env:
+  STEP_TIMEOUT_MINUTES: '5'
+  # Kind's own namespaces; their images ship in the Kind node image.
+  KIND_SYSTEM_NAMESPACES: 'kube-system local-path-storage'
+
+jobs:
+  capture-cluster-images:
+    name: Capture Cluster Images
+    runs-on: hiero-solo-linux-large
+    timeout-minutes: 90
+    concurrency:
+      group: image-cache-cluster-images-${{ github.head_ref || github.run_id }}
+      cancel-in-progress: true
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Install Task
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          version: 3.49.1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set Version
+        if: ${{ inputs.version != '' }}
+        env:
+          VERSION: ${{ inputs.version }}
+        run: npm version "${VERSION}" --no-git-tag-version --allow-same-version
+
+      - name: Compile Project
+        timeout-minutes: 10
+        run: task build:compile
+
+      - name: Assert Clean Environment
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          if [[ -e ~/.solo ]]; then
+            echo "::error::~/.solo exists; the runner is not clean"
+            exit 1
+          fi
+          if command -v kind >/dev/null 2>&1 && [[ -n "$(kind get clusters 2>/dev/null)" ]]; then
+            echo "::error::Kind clusters already exist: $(kind get clusters | tr '\n' ' ')"
+            exit 1
+          fi
+          echo "Environment is clean."
+
+      - name: One-Shot Single Deploy
+        timeout-minutes: 70
+        env:
+          ENABLE_IMAGE_CACHE: 'false'
+        run: |
+          export PATH=~/.solo/bin:${PATH}
+          npm run solo -- one-shot single deploy --dev
+
+      - name: Capture Cluster Images
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          set -euo pipefail
+          export PATH=~/.solo/bin:${PATH}
+          mkdir -p cluster-images
+          kubectl get pods --all-namespaces -o json > cluster-images/pods.json
+          jq -r --arg excluded "${KIND_SYSTEM_NAMESPACES}" '
+            ($excluded | split(" ")) as $excludedNamespaces
+            | .items[]
+            | select(.metadata.namespace as $namespace | $excludedNamespaces | index($namespace) | not)
+            | (.spec.initContainers // []) + .spec.containers
+            | .[].image
+          ' cluster-images/pods.json | sort -u > cluster-images/images.txt
+          rm cluster-images/pods.json
+
+          if [[ ! -s cluster-images/images.txt ]]; then
+            echo "::error::no container images found in the cluster after deploy"
+            exit 1
+          fi
+          echo "Captured $(wc -l < cluster-images/images.txt) images:"
+          cat cluster-images/images.txt
+
+      - name: Upload Cluster Images
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          name: image-cache-cluster-images
+          path: cluster-images/images.txt
+          if-no-files-found: error
+
+      - name: Collect Diagnostics on Failure
+        if: ${{ failure() }}
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          export PATH=~/.solo/bin:${PATH}
+          npm run solo -- deployment diagnostics logs -q --dev || true
+
+      - name: One-Shot Single Destroy
+        if: always()
+        timeout-minutes: 15
+        run: |
+          export PATH=~/.solo/bin:${PATH}
+          npm run solo -- one-shot single destroy --quiet-mode --dev || true
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          name: image-cache-cluster-images-logs
+          path: ~/.solo/logs/*
+          overwrite: true
+          if-no-files-found: warn

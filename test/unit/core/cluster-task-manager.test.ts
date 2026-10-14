@@ -7,8 +7,10 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 import * as yaml from 'yaml';
+import {container} from 'tsyringe-neo';
 import {ClusterTaskManager} from '../../../src/core/cluster-task-manager.js';
 import * as constants from '../../../src/core/constants.js';
+import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {resetForTest} from '../../test-container.js';
 import {type OsPackageManager} from '../../../src/core/package-managers/os-package-manager.js';
 import {type DefaultKindClientBuilder} from '../../../src/integration/kind/impl/default-kind-client-builder.js';
@@ -57,6 +59,27 @@ function createClusterTaskManager(
 describe('ClusterTaskManager', (): void => {
   before((): void => {
     resetForTest();
+  });
+
+  it('should resolve undefined podman and kind dependency managers from their own tokens', (): void => {
+    const manager: ClusterTaskManager = new ClusterTaskManager(
+      {} as unknown as OsPackageManager,
+      {} as unknown as DefaultKindClientBuilder,
+      undefined,
+      undefined,
+      '/tmp/podman',
+      {} as unknown as K8Factory,
+      {} as unknown as DependencyManager,
+      '/tmp/kind',
+      {} as unknown as GitClient,
+    );
+    const {podmanDependencyManager, kindDependencyManager} = manager as unknown as {
+      podmanDependencyManager: PodmanDependencyManager;
+      kindDependencyManager: KindDependencyManager;
+    };
+
+    expect(podmanDependencyManager).to.equal(container.resolve(InjectTokens.PodmanDependencyManager));
+    expect(kindDependencyManager).to.equal(container.resolve(InjectTokens.KindDependencyManager));
   });
 
   it('should return configured kind config for default cluster setup', (): void => {
