@@ -15,7 +15,7 @@ import {ClassToObjectMapper} from '../../../../../src/data/mapper/impl/class-to-
 import {ConfigKeyFormatter} from '../../../../../src/data/key/config-key-formatter.js';
 import {EnvironmentAliasRegistry} from '../../../../../src/data/schema/decorators/environment-alias-registry.js';
 import {SoloConfigSchema} from '../../../../../src/data/schema/model/solo/solo-config-schema.js';
-import {type FeatureFlagsSchema} from '../../../../../src/data/schema/model/solo/feature-flags-schema.js';
+import {FeatureFlagsSchema} from '../../../../../src/data/schema/model/solo/feature-flags-schema.js';
 import {EnvironmentScope} from '../../../../helpers/environment-scope.js';
 
 const mapper: ClassToObjectMapper = new ClassToObjectMapper(ConfigKeyFormatter.instance());
@@ -242,4 +242,16 @@ describe('feature flags – value parsing', (): void => {
       }),
     );
   }
+
+  const blank: string = ' '.repeat(3);
+
+  it(
+    'treats a blank value as unset under every spelling, falling back to the default',
+    EnvironmentScope.with(
+      {SOLO_FEATURE_FLAGS_ENABLE_IMAGE_CACHE: blank, SOLO_FF_ENABLE_IMAGE_CACHE: blank, ENABLE_IMAGE_CACHE: blank},
+      async (): Promise<void> => {
+        expect(FeatureFlagsSchema.withDefaults(await readSoloFlags()).enableImageCache).to.equal(true);
+      },
+    ),
+  );
 });

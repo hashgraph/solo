@@ -29,13 +29,11 @@ export class EnvironmentStorageBackend implements StorageBackend {
    * Returns the config keys the environment currently sets, by looking up the name each declared key
    * generates — see {@link EnvironmentKeyRegistry} for why this direction is the only workable one.
    *
-   * <p>An empty value is skipped: readBytes rejects it, so the key would be listed but unreadable.
+   * <p>A blank value is skipped, as for an alias: readBytes rejects it, so the key would be listed but unreadable.
    */
   public async list(): Promise<string[]> {
-    const environment: NodeJS.ProcessEnv = process.env ?? {};
-
-    return [...EnvironmentKeyRegistry.configKeys()].filter((key: string): boolean =>
-      Boolean(environment[this.variableNameFor(key)]),
+    return [...EnvironmentKeyRegistry.configKeys()].filter(
+      (key: string): boolean => this.readRawValue(this.variableNameFor(key)) !== undefined,
     );
   }
 
@@ -49,10 +47,8 @@ export class EnvironmentStorageBackend implements StorageBackend {
       throw new SoloErrors.validation.illegalArgument('key must not be null, undefined, or empty');
     }
 
-    const environment: NodeJS.ProcessEnv = process.env ?? {};
-
-    const value: string = environment[this.variableNameFor(key)];
-    if (!value) {
+    const value: string | undefined = this.readRawValue(this.variableNameFor(key));
+    if (value === undefined) {
       throw new StorageBackendError(`key not found: ${key}`);
     }
 
@@ -63,7 +59,7 @@ export class EnvironmentStorageBackend implements StorageBackend {
    * Reads a fixed/legacy environment variable by its exact name,
    * without applying the `SOLO_` prefix or key formatting.
    * Returns undefined when the variable is missing or blank.
-   * Used to resolve environment variable aliases.
+   * Generated names read through it too, so a blank value is unset under every spelling of a key.
    */
   public readRawValue(name: string): string | undefined {
     const environment: NodeJS.ProcessEnv = process.env ?? {};

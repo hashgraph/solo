@@ -54,11 +54,26 @@ describe('EnvironmentStorageBackend', (): void => {
 
   // Regression: an empty SOLO_HOME_DIR was listed as 'home.dir' but rejected by readBytes, aborting
   // startup with "Failed to read environment variable: home.dir".
+  for (const value of ['', ' '.repeat(3)]) {
+    it(
+      `list ignores an environment variable set to '${value}'`,
+      EnvironmentScope.with({SOLO_TSS_READY_MAX_ATTEMPTS: value}, async (): Promise<void> => {
+        const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend('SOLO');
+        expect(await backend.list()).to.not.include('tss.readyMaxAttempts');
+      }),
+    );
+  }
+
   it(
-    'list ignores empty environment variables',
-    EnvironmentScope.with({SOLO_TSS_READY_MAX_ATTEMPTS: ''}, async (): Promise<void> => {
-      const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend('SOLO');
-      expect(await backend.list()).to.not.include('tss.readyMaxAttempts');
+    'readBytes treats a blank environment variable as not found',
+    EnvironmentScope.with({ENV_TEST_NBR1: ' '.repeat(3)}, async (): Promise<void> => {
+      const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend('env');
+      try {
+        await backend.readBytes('test.nbr1');
+        expect.fail();
+      } catch (error) {
+        expect(error.message).to.include('key not found');
+      }
     }),
   );
 
