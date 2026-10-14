@@ -191,6 +191,19 @@ export const MINIO_OPERATOR_RELEASE_NAME: string = 'operator';
  */
 export const MINIO_OPERATOR_CRDS: string[] = ['tenants.minio.min.io', 'policybindings.sts.min.io'];
 
+export const PROMETHEUS_OPERATOR_CRDS: string[] = [
+  'alertmanagerconfigs.monitoring.coreos.com',
+  'alertmanagers.monitoring.coreos.com',
+  'podmonitors.monitoring.coreos.com',
+  'probes.monitoring.coreos.com',
+  'prometheusagents.monitoring.coreos.com',
+  'prometheuses.monitoring.coreos.com',
+  'prometheusrules.monitoring.coreos.com',
+  'scrapeconfigs.monitoring.coreos.com',
+  'servicemonitors.monitoring.coreos.com',
+  'thanosrulers.monitoring.coreos.com',
+];
+
 export const METRICS_SERVER_CHART_URL: string =
   getEnvironmentVariable('METRICS_SERVER_CHART_URL') ?? 'https://kubernetes-sigs.github.io/metrics-server/';
 export const METRICS_SERVER_CHART: string = 'metrics-server';
