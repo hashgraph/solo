@@ -46,6 +46,8 @@ export const ErrorCodeRegistry: Record<string, string> = {
   DEPLOYMENT_IMPORT_FAILED: 'SOLO-2031',
   MINIO_OPERATOR_CRDS_ORPHANED: 'SOLO-2032',
   NETWORK_ALREADY_DEPLOYED: 'SOLO-2033',
+  GRAFANA_ALLOY_INSTALL_FAILED: 'SOLO-2034',
+  LOKI_INSTALL_FAILED: 'SOLO-2035',
 
   // 3xxx - Component: Relay, Mirror Node, Explorer, CN runtime
   NODE_TRANSACTION_FAILED: 'SOLO-3001',

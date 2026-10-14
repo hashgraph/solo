@@ -28,7 +28,7 @@ export class ClusterCommandConfigs {
   private static readonly CONNECT_CONFIGS_NAME: string = 'connectConfig';
   private static readonly DEFAULT_CONFIGS_NAME: string = 'defaultConfig';
 
-  constructor(
+  public constructor(
     @inject(InjectTokens.ConfigManager) private readonly configManager: ConfigManager,
     @inject(InjectTokens.SoloLogger) private readonly logger: SoloLogger,
     @inject(InjectTokens.ChartManager) private readonly chartManager: ChartManager,
@@ -100,6 +100,7 @@ export class ClusterCommandConfigs {
     await this.configManager.executePrompt(task, [
       flags.chartDirectory,
       flags.clusterSetupNamespace,
+      flags.deployGrafanaAlloy,
       flags.deployMinio,
       flags.deployPrometheusStack,
     ]);
@@ -107,6 +108,7 @@ export class ClusterCommandConfigs {
     const config: ClusterReferenceSetupConfigClass = {
       chartDirectory: this.configManager.getFlag(flags.chartDirectory),
       clusterSetupNamespace: this.configManager.getFlag(flags.clusterSetupNamespace),
+      deployGrafanaAlloy: this.configManager.getFlag(flags.deployGrafanaAlloy),
       deployMinio: this.configManager.getFlag(flags.deployMinio),
       deployMetricsServer: this.configManager.getFlag(flags.deployMetricsServer),
       deployPrometheusStack: this.configManager.getFlag(flags.deployPrometheusStack),

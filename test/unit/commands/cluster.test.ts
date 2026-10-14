@@ -26,10 +26,12 @@ import {ClusterCommandTasks} from '../../../src/commands/cluster/tasks.js';
 import {type ClusterReferenceResetContext} from '../../../src/commands/cluster/config-interfaces/cluster-reference-reset-context.js';
 import {type SoloListrTaskWrapper, type SoloListrTask} from '../../../src/types/index.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
+import {type ConfigMaps} from '../../../src/integration/kube/resources/config-map/config-maps.js';
 import {type HelmChartValues} from '../../../src/integration/helm/model/values.js';
 import {type ReleaseItem} from '../../../src/integration/helm/model/release/release-item.js';
 import {type ClusterChecks} from '../../../src/core/cluster-checks.js';
 import {SoloError} from '../../../src/core/errors/solo-error.js';
+import {MinioInstallFailedSoloError} from '../../../src/core/errors/classes/deployment/minio-install-failed-solo-error.js';
 import {MINIO_OPERATOR_VERSION} from '../../../version.js';
 
 type BaseCommandOptions = {
@@ -103,7 +105,7 @@ describe('ClusterCommand unit tests', (): void => {
       sandbox.stub(options.chartManager, 'install').returns(true);
 
       // Simple mock for installPodMonitorRole to avoid cluster connection
-      sandbox.stub(ClusterCommandTasks.prototype, 'installPodMonitorRole' as any).returns({
+      sandbox.stub(ClusterCommandTasks.prototype, 'installPodMonitorRole').returns({
         title: 'Install pod-monitor-role ClusterRole',
         task: async (): Promise<void> => {},
       });
@@ -159,6 +161,71 @@ describe('ClusterCommand unit tests', (): void => {
       ]);
 
       argv.setArg(flags.deployPrometheusStack, false);
+    });
+
+    it('Installs Loki, Grafana Alloy, and the Grafana datasource when --grafana-alloy and --prometheus-stack are set', async (): Promise<void> => {
+      argv.setArg(flags.deployGrafanaAlloy, true);
+      argv.setArg(flags.deployPrometheusStack, true);
+      const configMapsStub: {createOrReplace: sinon.SinonStub} = {createOrReplace: sandbox.stub().resolves(true)};
+      sandbox.stub(K8Client.prototype, 'configMaps').returns(configMapsStub as unknown as ConfigMaps);
+
+      const clusterCommandHandlers: ClusterCommandHandlers = container.resolve(ClusterCommandHandlers);
+      await clusterCommandHandlers.setup(argv.build());
+
+      const lokiInstallArguments: unknown[] = options.chartManager.install.args.find(
+        (installArguments: unknown[]): boolean => installArguments[1] === constants.LOKI_RELEASE_NAME,
+      );
+      expect(lokiInstallArguments, 'expected a Loki chart install').to.not.equal(undefined);
+      expect(lokiInstallArguments[2]).to.equal(constants.LOKI_CHART);
+      expect(lokiInstallArguments[3]).to.equal(constants.GRAFANA_CHART_REPO);
+      expect(lokiInstallArguments[4]).to.equal(version.LOKI_VERSION);
+
+      const alloyInstallArguments: unknown[] = options.chartManager.install.args.find(
+        (installArguments: unknown[]): boolean => installArguments[1] === constants.GRAFANA_ALLOY_RELEASE_NAME,
+      );
+      expect(alloyInstallArguments, 'expected a Grafana Alloy chart install').to.not.equal(undefined);
+      expect(alloyInstallArguments[2]).to.equal(constants.GRAFANA_ALLOY_CHART);
+      expect(alloyInstallArguments[3]).to.equal(constants.GRAFANA_CHART_REPO);
+      expect(alloyInstallArguments[4]).to.equal(version.GRAFANA_ALLOY_VERSION);
+
+      expect(configMapsStub.createOrReplace.calledOnce).to.equal(true);
+      expect(configMapsStub.createOrReplace.args[0][1]).to.equal(constants.LOKI_GRAFANA_DATASOURCE_CONFIGMAP_NAME);
+      expect(configMapsStub.createOrReplace.args[0][2]).to.deep.equal({grafana_datasource: '1'});
+
+      argv.setArg(flags.deployGrafanaAlloy, false);
+      argv.setArg(flags.deployPrometheusStack, false);
+    });
+
+    it('Creates the Grafana datasource when --grafana-alloy is set and the Prometheus stack is already installed', async (): Promise<void> => {
+      argv.setArg(flags.deployGrafanaAlloy, true);
+      options.chartManager.isChartInstalled.withArgs(sinon.match.any, constants.PROMETHEUS_RELEASE_NAME).resolves(true);
+      const configMapsStub: {createOrReplace: sinon.SinonStub} = {createOrReplace: sandbox.stub().resolves(true)};
+      sandbox.stub(K8Client.prototype, 'configMaps').returns(configMapsStub as unknown as ConfigMaps);
+
+      const clusterCommandHandlers: ClusterCommandHandlers = container.resolve(ClusterCommandHandlers);
+      await clusterCommandHandlers.setup(argv.build());
+
+      expect(configMapsStub.createOrReplace.calledOnce).to.equal(true);
+      expect(configMapsStub.createOrReplace.args[0][1]).to.equal(constants.LOKI_GRAFANA_DATASOURCE_CONFIGMAP_NAME);
+
+      argv.setArg(flags.deployGrafanaAlloy, false);
+    });
+
+    it('Skips the Grafana datasource when --grafana-alloy is set without the Prometheus stack', async (): Promise<void> => {
+      argv.setArg(flags.deployGrafanaAlloy, true);
+      const configMapsStub: {createOrReplace: sinon.SinonStub} = {createOrReplace: sandbox.stub().resolves(true)};
+      sandbox.stub(K8Client.prototype, 'configMaps').returns(configMapsStub as unknown as ConfigMaps);
+
+      const clusterCommandHandlers: ClusterCommandHandlers = container.resolve(ClusterCommandHandlers);
+      await clusterCommandHandlers.setup(argv.build());
+
+      const isLokiInstalled: boolean = options.chartManager.install.args.some(
+        (installArguments: unknown[]): boolean => installArguments[1] === constants.LOKI_RELEASE_NAME,
+      );
+      expect(isLokiInstalled, 'expected Loki to install without the Prometheus stack').to.equal(true);
+      expect(configMapsStub.createOrReplace.called).to.equal(false);
+
+      argv.setArg(flags.deployGrafanaAlloy, false);
     });
   });
 
@@ -311,6 +378,36 @@ describe('ClusterCommand unit tests', (): void => {
 
       expect(chartManager.install.calledOnce).to.be.true;
       expect(chartManager.install.args[0][0]).to.equal(configuredNamespace);
+    });
+
+    it('uninstalls the partial release and throws the install failure when the install fails', async (): Promise<void> => {
+      const installError: Error = new Error('helm install failed');
+      const uninstallError: Error = new Error('helm uninstall failed');
+      chartManager.install.rejects(installError);
+      chartManager.uninstall.rejects(uninstallError);
+      const showUserError: SinonStub = sandbox.stub(
+        container.resolve<SoloLogger>(InjectTokens.SoloLogger),
+        'showUserError',
+      );
+
+      let thrown: SoloError | undefined;
+      try {
+        await tasks.installMinioOperatorChart(configuredNamespace, 'test-context');
+      } catch (error) {
+        thrown = error as SoloError;
+      }
+
+      expect(thrown).to.be.instanceOf(MinioInstallFailedSoloError);
+      expect(thrown.cause).to.equal(installError);
+      expect(
+        chartManager.uninstall.calledOnceWith(
+          configuredNamespace,
+          constants.MINIO_OPERATOR_RELEASE_NAME,
+          'test-context',
+        ),
+      ).to.be.true;
+      // A failed cleanup is reported but must not replace the install failure.
+      expect(showUserError.calledOnceWith(uninstallError)).to.be.true;
     });
 
     async function runUninstall(): Promise<void> {

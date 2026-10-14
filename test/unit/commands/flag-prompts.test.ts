@@ -111,6 +111,7 @@ const togglePromptFlags: CommandFlag[] = [
   Flags.forcePortForward,
   Flags.deployPrometheusStack,
   Flags.deployMinio,
+  Flags.deployGrafanaAlloy,
   Flags.deployCertManager,
   Flags.deployCertManagerCrds,
   Flags.force,
