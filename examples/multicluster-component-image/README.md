@@ -6,7 +6,7 @@ to (see [issue #5939](https://github.com/hiero-ledger/solo/issues/5939)).
 
 ## What It Does
 
-* Pulls the published block node image and re-tags it as `solo-local-test/block-node-server:<version>`
+* Pulls the published block node image and rebuilds it (as a single-platform image, which `kind load` requires) as `solo-local-test/block-node-server:<version>`
   so it exists only in the local Docker daemon
 * Creates two Kind clusters and attaches both to one deployment (consensus node in cluster 1)
 * Adds a block node to cluster 1 with `--component-image`

@@ -31,11 +31,14 @@ vars:
 
 tasks:
   prepare-image:
-    desc: Pull the published block node image and re-tag it so it only exists locally
+    desc: Pull the published block node image and rebuild it under a local name so it only exists locally
     cmds:
+      # Rebuilt (not just re-tagged) as a single-platform image: `kind load` imports with
+      # --all-platforms and fails with "content digest ... not found" when the local image is a
+      # multi-platform index whose other platforms were never pulled.
       - cmd: |
           docker pull {{.PUBLISHED_IMAGE}}
-          docker tag {{.PUBLISHED_IMAGE}} {{.COMPONENT_IMAGE}}
+          printf 'FROM {{.PUBLISHED_IMAGE}}\n' | docker build -t {{.COMPONENT_IMAGE}} -
 
   deploy:
     desc: Create two Kind clusters, deploy to cluster 1, and add a block node with a local --component-image
