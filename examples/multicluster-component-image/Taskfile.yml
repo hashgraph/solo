@@ -64,7 +64,10 @@ tasks:
       - cmd: |
           $SOLO_COMMAND keys consensus generate --gossip-keys --tls-keys --deployment {{.SOLO_DEPLOYMENT}} --dev
 
+      # cluster-ref config setup acts on the current kubectl context (the last-created cluster is
+      # cluster 2), so point it at cluster 1, where the consensus node and block node are deployed.
       - cmd: |
+          kubectl config use-context kind-{{.CLUSTER_NAME_1}}
           $SOLO_COMMAND cluster-ref config setup -s {{.SOLO_NAMESPACE}} --dev
 
       - cmd: |
