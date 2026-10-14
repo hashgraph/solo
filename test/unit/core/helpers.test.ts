@@ -113,6 +113,58 @@ describe('Helpers', (): void => {
     expect(byteString).to.equal('wKgAAQ==');
   });
 
+  describe('resolveValidJsonFilePath', (): void => {
+    let temporaryDirectory: string;
+    let defaultFile: string;
+
+    // writes the candidate file, or leaves it missing when contents is undefined
+    const candidateFile: (contents?: string) => string = (contents?: string): string => {
+      const filePath: string = path.join(temporaryDirectory, 'candidate.json');
+      fs.rmSync(filePath, {force: true});
+      if (contents !== undefined) {
+        fs.writeFileSync(filePath, contents);
+      }
+      return filePath;
+    };
+
+    beforeEach((): void => {
+      temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'solo-json-file-'));
+      defaultFile = path.join(temporaryDirectory, 'default.json');
+      fs.writeFileSync(defaultFile, '{}');
+    });
+
+    afterEach((): void => {
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    });
+
+    it('returns the resolved path of a valid JSON file', (): void => {
+      const filePath: string = candidateFile('{"valid": true}');
+      expect(Helpers.resolveValidJsonFilePath(filePath, defaultFile)).to.equal(fs.realpathSync(filePath));
+    });
+
+    it('falls back on the default for a missing, empty or invalid file', (): void => {
+      for (const contents of [undefined, '', 'not json']) {
+        expect(Helpers.resolveValidJsonFilePath(candidateFile(contents), defaultFile)).to.equal(
+          fs.realpathSync(defaultFile),
+        );
+      }
+    });
+
+    it('reports a missing file without a default as not found', (): void => {
+      expect((): string => Helpers.resolveValidJsonFilePath(candidateFile())).to.throw(SoloErrors.system.fileNotFound);
+    });
+
+    it('reports an empty file without a default as empty', (): void => {
+      expect((): string => Helpers.resolveValidJsonFilePath(candidateFile(''))).to.throw(SoloErrors.system.fileEmpty);
+    });
+
+    it('reports an invalid file without a default as invalid JSON', (): void => {
+      expect((): string => Helpers.resolveValidJsonFilePath(candidateFile('not json'))).to.throw(
+        SoloErrors.system.fileInvalidJson,
+      );
+    });
+  });
+
   describe('resolveBlockStreamModeForConsensusVersion', (): void => {
     it('defaults to BOTH for pre-0.74 consensus versions when no existing mode is present', (): void => {
       expect(Helpers.resolveBlockStreamModeForConsensusVersion(undefined, 'v0.73.0')).to.equal('BOTH');
