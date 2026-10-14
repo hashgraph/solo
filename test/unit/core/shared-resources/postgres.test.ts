@@ -11,6 +11,7 @@ import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
 import {type HelmClient} from '../../../../src/integration/helm/helm-client.js';
 import {type ChartManager} from '../../../../src/core/chart-manager.js';
+import {type PackageDownloader} from '../../../../src/core/package-downloader.js';
 import {NamespaceName} from '../../../../src/types/namespace/namespace-name.js';
 import {SoloError} from '../../../../src/core/errors/solo-error.js';
 import * as constants from '../../../../src/core/constants.js';
@@ -33,6 +34,7 @@ describe('PostgresSharedResource', (): void => {
   let secretsStub: AnyObject;
   let k8Stub: AnyObject;
   let k8ContainerStub: AnyObject;
+  let downloaderStub: {fetchFile: sinon.SinonStub};
   let postgres: PostgresSharedResource;
   const postgresPodReference: PodReference = PodReference.of(namespace, PodName.of('solo-shared-resources-postgres-0'));
 
@@ -72,7 +74,15 @@ describe('PostgresSharedResource', (): void => {
     k8FactoryStub = sinon.stub() as any;
     (k8FactoryStub as any).getK8 = sinon.stub().returns(k8Stub);
 
-    postgres = new PostgresSharedResource(loggerStub, k8FactoryStub, helmStub, chartManagerStub);
+    downloaderStub = {fetchFile: sinon.stub().resolves()};
+
+    postgres = new PostgresSharedResource(
+      loggerStub,
+      k8FactoryStub,
+      helmStub,
+      chartManagerStub,
+      downloaderStub as unknown as PackageDownloader,
+    );
   });
 
   afterEach((): void => {
@@ -273,41 +283,26 @@ describe('PostgresSharedResource', (): void => {
 
     it('skips downloading init script when already cached', async (): Promise<void> => {
       // existsSync returns true — simulating cached file
-      const fetchStub: AnyObject = sinon.stub(globalThis, 'fetch');
-
       await postgres.initializeMirrorNode(namespace, context);
 
-      expect(fetchStub).to.not.have.been.called;
+      expect(downloaderStub.fetchFile).to.not.have.been.called;
     });
 
     it('creates cache directory and downloads init script when not cached', async (): Promise<void> => {
-      const fakeStream: {write: sinon.SinonStub; end: sinon.SinonStub; on: sinon.SinonStub} = {
-        write: sinon.stub().callsArg(1),
-        end: sinon.stub(),
-        on: sinon.stub(),
-      };
-      sinon.stub(fs, 'createWriteStream').returns(fakeStream as any);
-
       existsSyncStub.restore();
       // First call (directory check) returns false, second (file check) returns false
       existsSyncStub = sinon.stub(fs, 'existsSync');
       existsSyncStub.onFirstCall().returns(false);
       existsSyncStub.onSecondCall().returns(false);
 
-      const mockResponse: AnyObject = {
-        ok: true,
-        body: undefined,
-        arrayBuffer: sinon.stub().resolves(Buffer.from('#!/bin/bash\necho ok').buffer),
-      };
-      const fetchStub: AnyObject = sinon.stub(globalThis, 'fetch').resolves(mockResponse as any);
-
       await postgres.initializeMirrorNode(namespace, context);
 
       expect(mkdirSyncStub).to.have.been.calledOnce;
-      expect(fetchStub).to.have.been.calledOnce;
-      const fetchUrl: string | URL | Request = fetchStub.firstCall.args[0];
-      expect(fetchUrl).to.include('hiero-mirror-node');
-      expect(fetchUrl).to.include('init.sh');
+      expect(downloaderStub.fetchFile).to.have.been.calledOnce;
+      const [downloadUrl, destinationPath]: string[] = downloaderStub.fetchFile.firstCall.args;
+      expect(downloadUrl).to.include('hiero-mirror-node');
+      expect(downloadUrl).to.include('init.sh');
+      expect(destinationPath).to.match(/init-postgres\.sh$/);
     });
 
     it('throws when init script download fails', async (): Promise<void> => {
@@ -316,12 +311,11 @@ describe('PostgresSharedResource', (): void => {
       existsSyncStub.onFirstCall().returns(false);
       existsSyncStub.onSecondCall().returns(false);
 
-      const mockResponse: AnyObject = {ok: false, status: 404, statusText: 'Not Found', body: undefined};
-      sinon.stub(globalThis, 'fetch').resolves(mockResponse as any);
+      const downloadFailure: Error = new Error('download failed');
+      downloaderStub.fetchFile.rejects(downloadFailure);
 
-      await expect(postgres.initializeMirrorNode(namespace, context)).to.be.rejectedWith(
-        'Failed to download Mirror Node Postgres init script',
-      );
+      await expect(postgres.initializeMirrorNode(namespace, context)).to.be.rejectedWith(downloadFailure);
+      expect(k8ContainerStub.copyTo).to.not.have.been.called;
     });
   });
 

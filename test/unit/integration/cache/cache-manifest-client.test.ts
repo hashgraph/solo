@@ -115,6 +115,36 @@ describe('CacheManifestClient', (): void => {
         'https://cdn.solo.hashgraph.io/docker.io__library__busybox__1.36.1.tar.sha256',
       );
       expect(images[1].sha256).to.equal(OTHER_HASH);
+      expect(images[0].size).to.be.undefined;
+    });
+
+    it('reads the optional archive size', async (): Promise<void> => {
+      stubFetch(
+        JSON.stringify(
+          manifest({
+            images: [
+              {image: 'busybox:1', tarFile: 'busybox.tar', hashFile: 'busybox.tar.sha256', sha256: HASH, size: 4096},
+            ],
+          }),
+        ),
+      );
+
+      const images: readonly CacheManifestImage[] = await CacheManifestClient.fetchImages(SOLO_VERSION);
+
+      expect(images[0].size).to.equal(4096);
+    });
+
+    it('rejects an archive size that is not a non-negative integer', async (): Promise<void> => {
+      await expectInvalidManifest(
+        JSON.stringify(
+          manifest({
+            images: [
+              {image: 'busybox:1', tarFile: 'busybox.tar', hashFile: 'busybox.tar.sha256', sha256: HASH, size: -1},
+            ],
+          }),
+        ),
+        'images[0].size must be a non-negative integer',
+      );
     });
 
     it('builds CDN URLs from the override base URL', async (): Promise<void> => {
