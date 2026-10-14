@@ -30,6 +30,7 @@ import {SemanticVersion} from '../../../src/business/utils/semantic-version.js';
 import {BlockNodeStateSchema} from '../../../src/data/schema/model/remote/state/block-node-state-schema.js';
 import {ComponentStateMetadataSchema} from '../../../src/data/schema/model/remote/state/component-state-metadata-schema.js';
 import {ClusterSchema} from '../../../src/data/schema/model/common/cluster-schema.js';
+import {SoloErrors} from '../../../src/core/errors/solo-errors.js';
 function invokeExtractSavedEndpoint(
   manager: ProfileManager,
   consensusNode: ConsensusNode,
@@ -492,6 +493,16 @@ describe('ProfileManager', (): void => {
       const yamlRoot: AnyObject = {a: 1};
       profileManager._setChartItems('', undefined, yamlRoot);
       expect(yamlRoot).to.deep.equal({a: 1});
+    });
+
+    it('should reject an item path that reaches the object prototype', (): void => {
+      // JSON.parse keeps __proto__ as an own key, as a parsed profile file would
+      const items: AnyObject = JSON.parse('{"__proto__": {"polluted": true}}');
+
+      expect((): void => profileManager._setChartItems('defaults', items, {defaults: {}})).to.throw(
+        SoloErrors.validation.illegalArgument,
+      );
+      expect(({} as AnyObject).polluted).to.be.undefined;
     });
   });
 

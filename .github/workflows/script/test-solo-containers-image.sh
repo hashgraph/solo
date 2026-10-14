@@ -43,7 +43,7 @@ docker build -t "${IMAGE_REPOSITORY}:${IMAGE_TAG}" "${WORK_DIR}/solo-containers/
 
 kind delete cluster --name "${SOLO_CLUSTER_NAME}" >/dev/null 2>&1 || true
 /bin/rm -rf ~/.solo 2>/dev/null || true
-kind create cluster --name "${SOLO_CLUSTER_NAME}" --image kindest/node:v1.34.0 --wait 5m \
+kind create cluster --name "${SOLO_CLUSTER_NAME}" --image kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30 --wait 5m \
   --config .github/workflows/script/kind-config.yaml
 
 echo "Loading the image into Kind"

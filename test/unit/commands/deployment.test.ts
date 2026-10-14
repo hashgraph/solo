@@ -420,6 +420,102 @@ describe('DeploymentCommand unit tests', (): void => {
     });
   });
 
+  describe('ports()', (): void => {
+    it('should include the static one-shot host ports when the deployment is one-shot', async (): Promise<void> => {
+      const deploymentCommand: DeploymentCommand = container.resolve(InjectTokens.DeploymentCommand);
+      const remoteConfigStub = {
+        loadAndValidate: sinon.stub().resolves(),
+        configuration: {
+          state: {
+            consensusNodes: [],
+            haProxies: [
+              {
+                metadata: {
+                  id: 1,
+                  cluster: 'cluster-1',
+                  namespace: namespace.name,
+                  portForwardConfigs: [],
+                },
+              },
+            ],
+            mirrorNodes: [
+              {
+                metadata: {
+                  id: 1,
+                  cluster: 'cluster-1',
+                  namespace: namespace.name,
+                  portForwardConfigs: [],
+                },
+              },
+            ],
+            blockNodes: [],
+            relayNodes: [
+              {
+                metadata: {
+                  id: 1,
+                  cluster: 'cluster-1',
+                  namespace: namespace.name,
+                  portForwardConfigs: [],
+                },
+              },
+            ],
+            explorers: [
+              {
+                metadata: {
+                  id: 1,
+                  cluster: 'cluster-1',
+                  namespace: namespace.name,
+                  portForwardConfigs: [],
+                },
+              },
+            ],
+          },
+        },
+      };
+      (deploymentCommand as unknown as {remoteConfig: unknown}).remoteConfig = remoteConfigStub;
+      (deploymentCommand as unknown as {localConfig: unknown}).localConfig = {
+        load: sinon.stub().resolves(),
+        configuration: {
+          deploymentByName: sinon.stub().returns({
+            name: constants.ONE_SHOT_DEPLOYMENT_NAME,
+            namespace: namespace.name,
+            clusters: [{toString: (): string => 'cluster-1'}],
+          }),
+        },
+      };
+
+      const argv: Argv = Argv.getDefaultArgv(namespace);
+      argv.setArg(flags.deployment, constants.ONE_SHOT_DEPLOYMENT_NAME);
+      argv.setArg(flags.output, 'json');
+      argv.setArg(flags.cacheDir, 'test/data/tmp');
+
+      await expect(deploymentCommand.ports(argv.build())).to.eventually.be.true;
+
+      const output: string = fs.readFileSync('test/data/tmp/output/forwarded-ports.json', 'utf8');
+      const report: {services: Record<string, unknown>} = JSON.parse(output) as {services: Record<string, unknown>};
+      expect(report.services.consensusNodeGrpc).to.deep.include({
+        componentId: 1,
+        localPort: constants.ONE_SHOT_CONSENSUS_GRPC_HOST_PORT,
+        podPort: constants.ONE_SHOT_CONSENSUS_GRPC_NODE_PORT,
+      });
+      expect(report.services.explorer).to.deep.include({
+        componentId: 1,
+        localPort: constants.ONE_SHOT_EXPLORER_HOST_PORT,
+        podPort: constants.ONE_SHOT_EXPLORER_NODE_PORT,
+      });
+      expect(report.services.jsonRpcRelay).to.deep.include({
+        componentId: 1,
+        localPort: constants.ONE_SHOT_RELAY_HOST_PORT,
+        podPort: constants.ONE_SHOT_RELAY_NODE_PORT,
+      });
+      expect(report.services.mirrorNodeRest).to.deep.include({
+        componentId: 1,
+        localPort: constants.ONE_SHOT_MIRROR_REST_HOST_PORT,
+        podPort: constants.ONE_SHOT_MIRROR_REST_NODE_PORT,
+      });
+    });
+  });
+
   describe('stopPortForwards()', (): void => {
     interface FakeComponent {
       metadata: {

@@ -82,6 +82,11 @@ export class ProfileManager {
     let current: AnyObject = parent;
     let previousItemPath: string | number = '';
     for (const itemPathPart of itemPathParts) {
+      // a profile file must not be able to reach Object.prototype through the path
+      if (['__proto__', 'constructor', 'prototype'].includes(itemPathPart)) {
+        throw new SoloErrors.validation.illegalArgument(`Unsafe item path: ${itemPath}`, itemPath);
+      }
+
       if (Numbers.isNumeric(itemPathPart)) {
         const itemPathIndex: number = Number.parseInt(itemPathPart, 10); // numeric path part can only be array index
         if (!Array.isArray(parent[previousItemPath])) {
@@ -871,9 +876,7 @@ export class ProfileManager {
     }
 
     const configFilePath: string = PathEx.join(destinationPath, 'config.txt');
-    if (fs.existsSync(configFilePath)) {
-      fs.unlinkSync(configFilePath);
-    }
+    fs.rmSync(configFilePath, {force: true});
 
     // init variables
     const internalPort: number = +constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT;

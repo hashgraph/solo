@@ -89,6 +89,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
     enableLocalBuildPathTesting: boolean,
     localBuildPath: string,
     localBuildReleaseTag: string,
+    domainNames?: Record<NodeAlias, string>,
   ): string[] {
     const {newArgv, argvPushGlobalFlags, optionFromFlag} = ConsensusNodeTest;
 
@@ -102,6 +103,14 @@ export class ConsensusNodeTest extends BaseCommandTest {
     );
     if (enableLocalBuildPathTesting) {
       argv.push(optionFromFlag(Flags.localBuildPath), localBuildPath);
+    }
+    if (domainNames) {
+      argv.push(
+        optionFromFlag(Flags.domainNames),
+        Object.entries(domainNames)
+          .map(([nodeAlias, domainName]: [string, string]): string => `${nodeAlias}=${domainName}`)
+          .join(','),
+      );
     }
 
     // Allow version-pinned setup in E2E tests even when local-build mode is off.
@@ -412,6 +421,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
       localBuildPath,
       localBuildReleaseTag,
       consensusNodesCount,
+      domainNames,
     } = options;
     const {soloConsensusNodeSetupArgv} = ConsensusNodeTest;
 
@@ -423,6 +433,7 @@ export class ConsensusNodeTest extends BaseCommandTest {
           enableLocalBuildPathTesting,
           localBuildPath,
           version ?? localBuildReleaseTag,
+          domainNames,
         ),
       );
       const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
