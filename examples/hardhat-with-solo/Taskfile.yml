@@ -26,8 +26,32 @@ tasks:
             echo "Skipping npm install - using development version"
           fi
 
-      # Create a Solo Deploymen
+      # Create a Solo Deployment
       - cmd: $SOLO_COMMAND one-shot single deploy
+
+      # Verify the active deployment reports the static one-shot ports
+      - cmd: |
+          output="$($SOLO_COMMAND deployment config info --deployment one-shot 2>&1)"
+          printf '%s\n' "$output"
+
+          required_entries=(
+            "localhost:35211 -> pod:30007 [Running]"
+            "localhost:38081 -> pod:30003 [Running]"
+            "localhost:37546 -> pod:30006 [Running]"
+            "localhost:38080 -> pod:30005 [Running]"
+          )
+
+          for expected in "${required_entries[@]}"; do
+            printf '%s\n' "$output" | grep -F -- "$expected" >/dev/null || {
+              echo "Expected one-shot port status entry not found: $expected"
+              exit 1
+            }
+          done
+
+          printf '%s\n' "$output" | grep -F "Running: 4 / 4" >/dev/null || {
+            echo "Expected one-shot deployment summary to show 4/4 running port-forwards"
+            exit 1
+          }
 
       - cmd: |
           cd hardhat-example

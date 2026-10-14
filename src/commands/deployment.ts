@@ -63,6 +63,12 @@ interface PortEntry {
   podPort: number;
 }
 
+interface CombinedPortEntry {
+  localPort: number;
+  podPort: number;
+  isSynthetic: boolean;
+}
+
 interface ImagesConfig {
   quiet: boolean;
   namespace: NamespaceName;
@@ -81,25 +87,107 @@ interface ImageRow {
   image: string;
 }
 
-function collectPortEntries(components: BaseStateSchema[]): PortEntry[] {
-  const entries: PortEntry[] = [];
-
-  for (const component of components) {
-    const portForwardConfigs: PortForwardConfig[] = component.metadata?.portForwardConfigs || [];
-
-    for (const portForwardConfig of portForwardConfigs) {
-      entries.push({
-        componentId: component.metadata.id,
-        localPort: portForwardConfig.localPort,
-        podPort: portForwardConfig.podPort,
-      });
-    }
-  }
-  return entries;
-}
-
 @injectable()
 export class DeploymentCommand extends BaseCommand {
+  private static buildOneShotPortEntries(type: string): PortEntry[] {
+    switch (type) {
+      case 'HaProxy': {
+        return [
+          {
+            componentId: 1,
+            localPort: constants.ONE_SHOT_CONSENSUS_GRPC_HOST_PORT,
+            podPort: constants.ONE_SHOT_CONSENSUS_GRPC_NODE_PORT,
+          },
+        ];
+      }
+      case 'Explorer': {
+        return [
+          {
+            componentId: 1,
+            localPort: constants.ONE_SHOT_EXPLORER_HOST_PORT,
+            podPort: constants.ONE_SHOT_EXPLORER_NODE_PORT,
+          },
+        ];
+      }
+      case 'RelayNode': {
+        return [
+          {
+            componentId: 1,
+            localPort: constants.ONE_SHOT_RELAY_HOST_PORT,
+            podPort: constants.ONE_SHOT_RELAY_NODE_PORT,
+          },
+        ];
+      }
+      case 'MirrorNode': {
+        return [
+          {
+            componentId: 1,
+            localPort: constants.ONE_SHOT_MIRROR_REST_HOST_PORT,
+            podPort: constants.ONE_SHOT_MIRROR_REST_NODE_PORT,
+          },
+        ];
+      }
+      default: {
+        return [];
+      }
+    }
+  }
+
+  private static collectPortEntries(
+    components: BaseStateSchema[],
+    type: string,
+    deploymentName: DeploymentName,
+  ): PortEntry[] {
+    const entries: PortEntry[] = [];
+
+    for (const component of components) {
+      const portForwardConfigs: PortForwardConfig[] = component.metadata?.portForwardConfigs || [];
+      const syntheticEntries: PortEntry[] = DeploymentCommand.isOneShotDeploymentPortForward(type, deploymentName);
+
+      for (const portForwardConfig of portForwardConfigs) {
+        entries.push({
+          componentId: component.metadata.id,
+          localPort: portForwardConfig.localPort,
+          podPort: portForwardConfig.podPort,
+        });
+      }
+
+      for (const syntheticEntry of syntheticEntries) {
+        entries.push({
+          componentId: component.metadata.id,
+          localPort: syntheticEntry.localPort,
+          podPort: syntheticEntry.podPort,
+        });
+      }
+    }
+    return entries;
+  }
+
+  private static buildCombinedPortEntries(
+    configuredPortEntries: PortForwardConfig[],
+    syntheticOneShotPortEntries: PortEntry[],
+  ): CombinedPortEntry[] {
+    return [
+      ...configuredPortEntries.map((portForwardConfig): CombinedPortEntry => ({
+        localPort: portForwardConfig.localPort,
+        podPort: portForwardConfig.podPort,
+        isSynthetic: false,
+      })),
+      ...syntheticOneShotPortEntries.map((entry): CombinedPortEntry => ({
+        localPort: entry.localPort,
+        podPort: entry.podPort,
+        isSynthetic: true,
+      })),
+    ];
+  }
+
+  private static isOneShotDeploymentPortForward(type: string, deploymentName: DeploymentName): PortEntry[] {
+    if (deploymentName !== constants.ONE_SHOT_DEPLOYMENT_NAME) {
+      return [];
+    }
+    return DeploymentCommand.buildOneShotPortEntries(type);
+  }
+
   public constructor(@inject(InjectTokens.ClusterCommandTasks) private readonly tasks: ClusterCommandTasks) {
     super();
 
@@ -997,11 +1085,11 @@ export class DeploymentCommand extends BaseCommand {
               clusterReference,
               namespace: namespace.name,
               services: {
-                consensusNodeGrpc: collectPortEntries(state.haProxies || []),
-                mirrorNodeRest: collectPortEntries(state.mirrorNodes || []),
-                jsonRpcRelay: collectPortEntries(state.relayNodes || []),
-                explorer: collectPortEntries(state.explorers || []),
-                blockNode: collectPortEntries(state.blockNodes || []),
+                consensusNodeGrpc: DeploymentCommand.collectPortEntries(state.haProxies || [], 'HaProxy', deployment),
+                mirrorNodeRest: DeploymentCommand.collectPortEntries(state.mirrorNodes || [], 'MirrorNode', deployment),
+                jsonRpcRelay: DeploymentCommand.collectPortEntries(state.relayNodes || [], 'RelayNode', deployment),
+                explorer: DeploymentCommand.collectPortEntries(state.explorers || [], 'Explorer', deployment),
+                blockNode: DeploymentCommand.collectPortEntries(state.blockNodes || [], 'BlockNode', deployment),
               },
             };
 
@@ -1571,7 +1659,7 @@ export class DeploymentCommand extends BaseCommand {
         },
         {
           title: 'Refresh port-forwards for all components',
-          task: async (_context_, task): Promise<void> => {
+          task: async (context_, task): Promise<void> => {
             const componentsToCheck: {type: string; components: BaseStateSchema[]}[] =
               DeploymentCommand.buildComponentsToCheck(this.remoteConfig.configuration.state);
 
@@ -1584,7 +1672,13 @@ export class DeploymentCommand extends BaseCommand {
 
             for (const {type, components} of componentsToCheck) {
               for (const component of components) {
-                if (!component.metadata?.portForwardConfigs || component.metadata.portForwardConfigs.length === 0) {
+                const syntheticOneShotPortEntries: PortEntry[] = DeploymentCommand.isOneShotDeploymentPortForward(
+                  type,
+                  context_.config.deployment,
+                );
+                const configuredPortEntries: PortForwardConfig[] = component.metadata?.portForwardConfigs || [];
+
+                if (configuredPortEntries.length === 0 && syntheticOneShotPortEntries.length === 0) {
                   continue;
                 }
 
@@ -1601,13 +1695,19 @@ export class DeploymentCommand extends BaseCommand {
                   namespaceName,
                 );
 
-                for (const portForwardConfig of component.metadata.portForwardConfigs) {
+                const combinedEntryConfigs: CombinedPortEntry[] = DeploymentCommand.buildCombinedPortEntries(
+                  configuredPortEntries,
+                  syntheticOneShotPortEntries,
+                );
+
+                for (const portEntry of combinedEntryConfigs) {
                   totalChecked++;
-                  const {localPort, podPort} = portForwardConfig;
+                  const {localPort, podPort, isSynthetic} = portEntry;
                   const componentLabel: string = `${type} ${component.metadata.id}`;
 
-                  // Check if port-forward is running against the current pod target.
-                  const isRunning: boolean = await this.isPortForwardRunning(localPort, podName?.toString());
+                  const isRunning: boolean = isSynthetic
+                    ? true
+                    : await this.isPortForwardRunning(localPort, podName?.toString());
 
                   if (isRunning) {
                     alreadyRunningCount++;
@@ -1621,19 +1721,8 @@ export class DeploymentCommand extends BaseCommand {
 
                     try {
                       if (podName) {
-                        // Re-enable port forward
                         const podReference: PodReference = PodReference.of(namespaceName, podName);
-
-                        // Clear any stale process still holding the configured local port
-                        // so the restored port-forward binds to the expected port instead
-                        // of allocating the next free one.
                         await k8Client.pods().readByReference(podReference).stopPortForward(localPort);
-
-                        // portForward parameters:
-                        // - localPort: the port to forward to on localhost
-                        // - podPort: the port on the pod to forward from
-                        // - reuse: true = reuse the configured port number
-                        // - persist: true = persistent port-forward (will restart on failure)
                         await k8Client.pods().readByReference(podReference).portForward(localPort, podPort, true, true);
 
                         const restoredDetail: string = `  ↳ Restored port forward for ${componentLabel}`;
@@ -1975,16 +2064,26 @@ export class DeploymentCommand extends BaseCommand {
               this.logger.showUser(chalk.cyan('\n  Port-Forward Status:'));
               for (const {type, components} of componentsToCheck) {
                 for (const component of components) {
-                  if (!component.metadata?.portForwardConfigs || component.metadata.portForwardConfigs.length === 0) {
+                  const syntheticOneShotPortEntries: PortEntry[] = DeploymentCommand.isOneShotDeploymentPortForward(
+                    type,
+                    deployment.name,
+                  );
+                  const configuredPortEntries: PortForwardConfig[] = component.metadata?.portForwardConfigs || [];
+                  const combinedEntries: CombinedPortEntry[] = DeploymentCommand.buildCombinedPortEntries(
+                    configuredPortEntries,
+                    syntheticOneShotPortEntries,
+                  );
+
+                  if (combinedEntries.length === 0) {
                     continue;
                   }
 
-                  for (const portForwardConfig of component.metadata.portForwardConfigs) {
+                  for (const portEntry of combinedEntries) {
                     totalChecked++;
-                    const {localPort, podPort} = portForwardConfig;
+                    const {localPort, podPort, isSynthetic} = portEntry;
                     const componentLabel: string = `${type} ${component.metadata.id}`;
 
-                    const isRunning: boolean = await this.isPortForwardRunning(localPort);
+                    const isRunning: boolean = isSynthetic || (await this.isPortForwardRunning(localPort));
 
                     if (isRunning) {
                       runningCount++;
