@@ -742,9 +742,9 @@ jobs:
           # configured itself; this job supplies its own rendered kind config, so one-shot falls back to
           # kubectl port-forwards and the static ports serve nothing. Use the forwards Solo recorded.
           #
-          # A kubectl port-forward is bound to one pod connection and dies when that connection breaks
-          # (the mirror forward was refused here while the relay forward still worked), so restore any
-          # missing forward first; the refresh is idempotent and reuses the recorded ports.
+          # A kubectl port-forward is bound to one pod connection and dies when that connection breaks,
+          # so restore any missing forward (the relay's, here) first; the refresh is idempotent and
+          # reuses the recorded ports.
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
@@ -756,23 +756,11 @@ jobs:
           $forwards = Get-Content -LiteralPath $forwardsFile.FullName -Raw
           Write-Host $forwards
           $relayPort = [regex]::Match($forwards, 'JSON RPC Relay port forward enabled on 127\.0\.0\.1:(\d+)').Groups[1].Value
-          $mirrorPort = [regex]::Match($forwards, 'Mirror ingress controller port forward enabled on 127\.0\.0\.1:(\d+)').Groups[1].Value
-          if (-not $relayPort -or -not $mirrorPort) { throw "Could not read relay/mirror ports from $($forwardsFile.FullName)" }
+          if (-not $relayPort) { throw "Could not read the relay port from $($forwardsFile.FullName)" }
 
           function Invoke-RelayCall([string]$Method) {
             $body = @{jsonrpc = '2.0'; id = 1; method = $Method; params = @()} | ConvertTo-Json -Compress
             (Invoke-RestMethod -Uri "http://127.0.0.1:$relayPort" -Method Post -ContentType 'application/json' -Body $body -TimeoutSec 10).result
-          }
-          function Get-LatestMirrorBlock() {
-            for ($try = 1; $try -le 30; $try++) {
-              try {
-                return (Invoke-RestMethod -Uri "http://127.0.0.1:$mirrorPort/api/v1/blocks?limit=1&order=desc" -TimeoutSec 10).blocks[0].number
-              } catch {
-                # best-effort: the forward or mirror REST may still be settling, so retry until the budget is used
-                Start-Sleep -Seconds 5
-              }
-            }
-            throw "Mirror REST on port $mirrorPort never answered /api/v1/blocks"
           }
 
           $chainId = $null
@@ -782,16 +770,40 @@ jobs:
           if ($chainId -ne '0x12a') { throw "Relay on port $relayPort returned chain id '$chainId', expected 0x12a" }
           Write-Host "Relay on port $relayPort answers eth_chainId=$chainId, eth_blockNumber=$(Invoke-RelayCall 'eth_blockNumber')"
 
-          # The mirror importer must keep ingesting blocks from the restarted network.
-          $firstBlock = Get-LatestMirrorBlock
-          $advanced = $false
-          for ($attempt = 1; $attempt -le 30 -and -not $advanced; $attempt++) {
-            Start-Sleep -Seconds 5
-            $latestBlock = Get-LatestMirrorBlock
-            $advanced = $latestBlock -gt $firstBlock
+          # Solo records the mirror ingress and the explorer on the same local port (both 38082), and
+          # refreshing the forwards stops one to start the other, so that port cannot be trusted to reach
+          # the mirror. Open a dedicated forward straight to the mirror REST service instead.
+          $mirrorPort = 38090
+          $mirrorForward = Start-Process -FilePath kubectl -WindowStyle Hidden -PassThru `
+            -ArgumentList @('--context', 'kind-solo-cluster', '--namespace', 'one-shot', 'port-forward', 'svc/mirror-1-rest', "${mirrorPort}:80")
+          try {
+            $script:lastMirrorError = ''
+            function Get-LatestMirrorBlock() {
+              for ($try = 1; $try -le 30; $try++) {
+                try {
+                  return (Invoke-RestMethod -Uri "http://127.0.0.1:$mirrorPort/api/v1/blocks?limit=1&order=desc" -TimeoutSec 10).blocks[0].number
+                } catch {
+                  # best-effort: the forward or mirror REST may still be settling; keep the last error to report it
+                  $script:lastMirrorError = $_.Exception.Message
+                  Start-Sleep -Seconds 5
+                }
+              }
+              throw "Mirror REST via svc/mirror-1-rest on port $mirrorPort never answered /api/v1/blocks: $script:lastMirrorError"
+            }
+
+            # The mirror importer must keep ingesting blocks from the restarted network.
+            $firstBlock = Get-LatestMirrorBlock
+            $advanced = $false
+            for ($attempt = 1; $attempt -le 30 -and -not $advanced; $attempt++) {
+              Start-Sleep -Seconds 5
+              $latestBlock = Get-LatestMirrorBlock
+              $advanced = $latestBlock -gt $firstBlock
+            }
+            if (-not $advanced) { throw "Mirror did not ingest new blocks after restart (stuck at block $firstBlock)" }
+            Write-Host "Mirror advanced from block $firstBlock to $latestBlock"
+          } finally {
+            if (-not $mirrorForward.HasExited) { Stop-Process -Id $mirrorForward.Id -Force }
           }
-          if (-not $advanced) { throw "Mirror on port $mirrorPort did not ingest new blocks after restart (stuck at block $firstBlock)" }
-          Write-Host "Mirror on port $mirrorPort advanced from block $firstBlock to $latestBlock"
 
       - name: Verify Solo Cache Files Are Readable
         shell: pwsh
