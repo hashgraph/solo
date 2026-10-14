@@ -583,7 +583,8 @@ describe('SoloPinoLogger log destination', (): void => {
   });
 
   afterEach((): void => {
-    fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    // The rotating stream can still be creating files here, which fails a single attempt with ENOTEMPTY.
+    fs.rmSync(temporaryDirectory, {recursive: true, force: true, maxRetries: 10, retryDelay: 50});
   });
 
   it('creates its log files owner-only so other users cannot read them', (): void => {
