@@ -92,6 +92,7 @@ import chalk from 'chalk';
 import fs from 'node:fs';
 import path from 'node:path';
 import {DeployArgvBuilders} from './deploy-argv-builders.js';
+import {ComponentCompatibility} from '../../../../business/compatibility/component-compatibility.js';
 import {OrchestratorPipeline} from '../orchestrator-pipeline.js';
 import {SINGLE_DESTROY_COMMAND} from '../../one-shot-command-paths.js';
 import {MINIMUM_CN_VERSION_FOR_SMALL_MEMORY, MINIMUM_CN_VERSION_FOR_STATE_ON_DISK} from '../../../../../version.js';
@@ -331,6 +332,13 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             config.deployExplorer = config.deployExplorer === undefined ? true : config.deployExplorer;
             config.deployRelay = config.deployRelay === undefined ? true : config.deployRelay;
             config.pinger = config.pinger === undefined ? true : config.pinger;
+
+            ComponentCompatibility.assertCompatible(
+              DeployArgvBuilders.buildComponentVersionTuple(config),
+              undefined,
+              config.force,
+              this.logger,
+            );
 
             context_.createdAccounts = [];
           },

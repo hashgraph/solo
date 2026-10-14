@@ -11,6 +11,7 @@ export interface NodeRefreshConfigClass extends NodeCommonConfigWithNodeAliases 
   debugMode: boolean;
   localBuildPath: string;
   releaseTag: string;
+  force: boolean;
   podRefs: Record<NodeAlias, PodReference>;
   domainNames: string;
   nodeAliases: NodeAliases;

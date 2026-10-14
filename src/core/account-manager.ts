@@ -188,6 +188,22 @@ export class AccountManager {
     return Base64.decode(encodedCertificate);
   }
 
+  /** Reads a consensus node's gRPC TLS certificate PEM from the shared node TLS key secret. */
+  public async getTlsCertificatePem(consensusNode: ConsensusNode): Promise<string> {
+    const dataKey: string = Templates.renderTLSPemPublicKeyFile(consensusNode.name);
+    const secret: Secret = await this.k8Factory
+      .getK8(consensusNode.context)
+      .secrets()
+      .read(NamespaceName.of(consensusNode.namespace), constants.NODE_TLS_KEYS_SECRET_NAME);
+
+    const encodedCertificate: string | undefined = secret?.data?.[dataKey];
+    if (!encodedCertificate) {
+      throw new SoloErrors.component.platformKeyFileMissing(dataKey);
+    }
+
+    return Base64.decode(encodedCertificate);
+  }
+
   /**
    * Gets the treasury account private key from Kubernetes secret if it exists, else
    * returns the Genesis private key, then will return an AccountInfo object with the
