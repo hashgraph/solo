@@ -31,6 +31,7 @@ import {type HelmChartValues} from '../../../src/integration/helm/model/values.j
 import {type ReleaseItem} from '../../../src/integration/helm/model/release/release-item.js';
 import {type ClusterChecks} from '../../../src/core/cluster-checks.js';
 import {SoloError} from '../../../src/core/errors/solo-error.js';
+import {MinioInstallFailedSoloError} from '../../../src/core/errors/classes/deployment/minio-install-failed-solo-error.js';
 import {MINIO_OPERATOR_VERSION} from '../../../version.js';
 
 type BaseCommandOptions = {
@@ -176,6 +177,7 @@ describe('ClusterCommand unit tests', (): void => {
       );
       expect(lokiInstallArguments, 'expected a Loki chart install').to.not.equal(undefined);
       expect(lokiInstallArguments[2]).to.equal(constants.LOKI_CHART);
+      expect(lokiInstallArguments[3]).to.equal(constants.GRAFANA_CHART_REPO);
       expect(lokiInstallArguments[4]).to.equal(version.LOKI_VERSION);
 
       const alloyInstallArguments: unknown[] = options.chartManager.install.args.find(
@@ -183,6 +185,7 @@ describe('ClusterCommand unit tests', (): void => {
       );
       expect(alloyInstallArguments, 'expected a Grafana Alloy chart install').to.not.equal(undefined);
       expect(alloyInstallArguments[2]).to.equal(constants.GRAFANA_ALLOY_CHART);
+      expect(alloyInstallArguments[3]).to.equal(constants.GRAFANA_CHART_REPO);
       expect(alloyInstallArguments[4]).to.equal(version.GRAFANA_ALLOY_VERSION);
 
       expect(configMapsStub.createOrReplace.calledOnce).to.equal(true);
@@ -375,6 +378,36 @@ describe('ClusterCommand unit tests', (): void => {
 
       expect(chartManager.install.calledOnce).to.be.true;
       expect(chartManager.install.args[0][0]).to.equal(configuredNamespace);
+    });
+
+    it('uninstalls the partial release and throws the install failure when the install fails', async (): Promise<void> => {
+      const installError: Error = new Error('helm install failed');
+      const uninstallError: Error = new Error('helm uninstall failed');
+      chartManager.install.rejects(installError);
+      chartManager.uninstall.rejects(uninstallError);
+      const showUserError: SinonStub = sandbox.stub(
+        container.resolve<SoloLogger>(InjectTokens.SoloLogger),
+        'showUserError',
+      );
+
+      let thrown: SoloError | undefined;
+      try {
+        await tasks.installMinioOperatorChart(configuredNamespace, 'test-context');
+      } catch (error) {
+        thrown = error as SoloError;
+      }
+
+      expect(thrown).to.be.instanceOf(MinioInstallFailedSoloError);
+      expect(thrown.cause).to.equal(installError);
+      expect(
+        chartManager.uninstall.calledOnceWith(
+          configuredNamespace,
+          constants.MINIO_OPERATOR_RELEASE_NAME,
+          'test-context',
+        ),
+      ).to.be.true;
+      // A failed cleanup is reported but must not replace the install failure.
+      expect(showUserError.calledOnceWith(uninstallError)).to.be.true;
     });
 
     async function runUninstall(): Promise<void> {

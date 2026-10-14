@@ -6,6 +6,7 @@ import * as constants from '../../core/constants.js';
 import chalk from 'chalk';
 import {ListrLock} from '../../core/lock/listr-lock.js';
 import {SoloErrors} from '../../core/errors/solo-errors.js';
+import {type SoloError} from '../../core/errors/solo-error.js';
 
 import {type K8Factory} from '../../integration/kube/k8-factory.js';
 import {type Context, type SoloListr, type SoloListrTask} from '../../types/index.js';
@@ -112,26 +113,43 @@ export class ClusterCommandTasks {
       throw new SoloErrors.system.minioOperatorCrdsOrphaned([...existingCrds.keys()], context);
     }
 
-    try {
-      await this.chartManager.install(
-        clusterSetupNamespace,
-        constants.MINIO_OPERATOR_RELEASE_NAME,
-        constants.MINIO_OPERATOR_CHART,
-        constants.MINIO_OPERATOR_CHART,
-        versions.MINIO_OPERATOR_VERSION,
-        new HelmChartValues().set('operator.replicaCount', 1),
-        context,
-      );
+    await this.installChartWithRollback(
+      clusterSetupNamespace,
+      constants.MINIO_OPERATOR_RELEASE_NAME,
+      constants.MINIO_OPERATOR_CHART,
+      constants.MINIO_OPERATOR_CHART,
+      versions.MINIO_OPERATOR_VERSION,
+      new HelmChartValues().set('operator.replicaCount', 1),
+      context,
+      'MinIO Operator',
+      SoloErrors.deployment.minioInstallFailed,
+    );
+  }
 
-      this.logger.showUserUnlessOneShot(`✅ MinIO Operator chart installed successfully on context ${context}`);
+  /** Installs a chart; on failure, uninstalls the partial release and throws `installFailedError`. */
+  private async installChartWithRollback(
+    namespace: NamespaceName,
+    releaseName: string,
+    chartName: string,
+    repoName: string,
+    version: string,
+    values: HelmChartValues,
+    context: Context,
+    chartLabel: string,
+    installFailedError: new (cause: Error) => SoloError,
+  ): Promise<void> {
+    try {
+      await this.chartManager.install(namespace, releaseName, chartName, repoName, version, values, context);
+      this.logger.showUserUnlessOneShot(`✅ ${chartLabel} chart installed successfully`);
     } catch (error) {
-      this.logger.debug('Error installing MinIO Operator chart', error);
+      this.logger.debug(`Error installing ${chartLabel} chart`, error);
       try {
-        await this.chartManager.uninstall(clusterSetupNamespace, constants.MINIO_OPERATOR_RELEASE_NAME, context);
+        await this.chartManager.uninstall(namespace, releaseName, context);
       } catch (uninstallError) {
+        // best-effort cleanup: the install failure thrown below is the error to report
         this.logger.showUserError(uninstallError);
       }
-      throw new SoloErrors.deployment.minioInstallFailed(error);
+      throw new installFailedError(error);
     }
   }
 
@@ -320,30 +338,17 @@ export class ClusterCommandTasks {
             `chart version ${versions.PROMETHEUS_STACK_VERSION}`,
           );
         } else {
-          try {
-            await this.chartManager.install(
-              clusterSetupNamespace,
-              constants.PROMETHEUS_RELEASE_NAME,
-              constants.PROMETHEUS_STACK_CHART,
-              constants.PROMETHEUS_STACK_CHART,
-              versions.PROMETHEUS_STACK_VERSION,
-              new HelmChartValues().file(constants.PROMETHEUS_STACK_VALUES_FILE),
-              context_.config.context,
-            );
-            this.logger.showUserUnlessOneShot('✅ Prometheus Stack chart installed successfully');
-          } catch (error) {
-            this.logger.debug('Error installing Prometheus Stack chart', error);
-            try {
-              await this.chartManager.uninstall(
-                clusterSetupNamespace,
-                constants.PROMETHEUS_RELEASE_NAME,
-                context_.config.context,
-              );
-            } catch (uninstallError) {
-              this.logger.showUserError(uninstallError);
-            }
-            throw new SoloErrors.deployment.prometheusInstallFailed(error);
-          }
+          await this.installChartWithRollback(
+            clusterSetupNamespace,
+            constants.PROMETHEUS_RELEASE_NAME,
+            constants.PROMETHEUS_STACK_CHART,
+            constants.PROMETHEUS_STACK_CHART,
+            versions.PROMETHEUS_STACK_VERSION,
+            new HelmChartValues().file(constants.PROMETHEUS_STACK_VALUES_FILE),
+            context_.config.context,
+            'Prometheus Stack',
+            SoloErrors.deployment.prometheusInstallFailed,
+          );
         }
       },
       skip: (context_: ClusterReferenceSetupContext): boolean => !context_.config.deployPrometheusStack,
@@ -365,30 +370,17 @@ export class ClusterCommandTasks {
         if (isLokiInstalled) {
           this.logger.showUserUnlessOneShot('⏭️  Loki chart already installed, skipping');
         } else {
-          try {
-            await this.chartManager.install(
-              clusterSetupNamespace,
-              constants.LOKI_RELEASE_NAME,
-              constants.LOKI_CHART,
-              constants.LOKI_CHART,
-              versions.LOKI_VERSION,
-              new HelmChartValues().file(constants.LOKI_VALUES_FILE),
-              context_.config.context,
-            );
-            this.logger.showUserUnlessOneShot('✅ Loki chart installed successfully');
-          } catch (error) {
-            this.logger.debug('Error installing Loki chart', error);
-            try {
-              await this.chartManager.uninstall(
-                clusterSetupNamespace,
-                constants.LOKI_RELEASE_NAME,
-                context_.config.context,
-              );
-            } catch (uninstallError) {
-              this.logger.showUserError(uninstallError);
-            }
-            throw new SoloErrors.deployment.lokiInstallFailed(error);
-          }
+          await this.installChartWithRollback(
+            clusterSetupNamespace,
+            constants.LOKI_RELEASE_NAME,
+            constants.LOKI_CHART,
+            constants.GRAFANA_CHART_REPO,
+            versions.LOKI_VERSION,
+            new HelmChartValues().file(constants.LOKI_VALUES_FILE),
+            context_.config.context,
+            'Loki',
+            SoloErrors.deployment.lokiInstallFailed,
+          );
         }
 
         // The label makes the Grafana sidecar from kube-prometheus-stack load Loki as a datasource,
@@ -403,7 +395,8 @@ export class ClusterCommandTasks {
 
         if (!isPrometheusStackAvailable) {
           this.logger.showUserUnlessOneShot(
-            '⏭️  Prometheus Stack not installed, skipping Loki Grafana datasource; add --prometheus-stack to query logs in Grafana',
+            '⏭️  Prometheus Stack not installed, skipping Loki Grafana datasource; ' +
+              `add ${Flags.getFormattedFlagKey(Flags.deployPrometheusStack)} to query logs in Grafana`,
           );
           return;
         }
@@ -439,30 +432,17 @@ export class ClusterCommandTasks {
           return;
         }
 
-        try {
-          await this.chartManager.install(
-            clusterSetupNamespace,
-            constants.GRAFANA_ALLOY_RELEASE_NAME,
-            constants.GRAFANA_ALLOY_CHART,
-            constants.GRAFANA_ALLOY_CHART,
-            versions.GRAFANA_ALLOY_VERSION,
-            new HelmChartValues().file(constants.GRAFANA_ALLOY_VALUES_FILE),
-            context_.config.context,
-          );
-          this.logger.showUserUnlessOneShot('✅ Grafana Alloy chart installed successfully');
-        } catch (error) {
-          this.logger.debug('Error installing Grafana Alloy chart', error);
-          try {
-            await this.chartManager.uninstall(
-              clusterSetupNamespace,
-              constants.GRAFANA_ALLOY_RELEASE_NAME,
-              context_.config.context,
-            );
-          } catch (uninstallError) {
-            this.logger.showUserError(uninstallError);
-          }
-          throw new SoloErrors.deployment.grafanaAlloyInstallFailed(error);
-        }
+        await this.installChartWithRollback(
+          clusterSetupNamespace,
+          constants.GRAFANA_ALLOY_RELEASE_NAME,
+          constants.GRAFANA_ALLOY_CHART,
+          constants.GRAFANA_CHART_REPO,
+          versions.GRAFANA_ALLOY_VERSION,
+          new HelmChartValues().file(constants.GRAFANA_ALLOY_VALUES_FILE),
+          context_.config.context,
+          'Grafana Alloy',
+          SoloErrors.deployment.grafanaAlloyInstallFailed,
+        );
       },
       skip: ({config: {deployGrafanaAlloy}}): boolean => !deployGrafanaAlloy,
     };
@@ -489,30 +469,17 @@ export class ClusterCommandTasks {
           return;
         }
 
-        try {
-          await this.chartManager.install(
-            constants.METRICS_SERVER_NAMESPACE,
-            constants.METRICS_SERVER_RELEASE_NAME,
-            constants.METRICS_SERVER_CHART,
-            constants.METRICS_SERVER_CHART,
-            versions.METRICS_SERVER_VERSION,
-            new HelmChartValues().setLiteral('args[0]', '--kubelet-insecure-tls'),
-            context,
-          );
-          this.logger.showUserUnlessOneShot('metrics-server chart installed successfully');
-        } catch (error) {
-          this.logger.debug('Error installing metrics-server chart', error);
-          try {
-            await this.chartManager.uninstall(
-              constants.METRICS_SERVER_NAMESPACE,
-              constants.METRICS_SERVER_RELEASE_NAME,
-              context,
-            );
-          } catch (uninstallError) {
-            this.logger.showUserError(uninstallError);
-          }
-          throw new SoloErrors.deployment.metricsServerInstallFailed(error);
-        }
+        await this.installChartWithRollback(
+          constants.METRICS_SERVER_NAMESPACE,
+          constants.METRICS_SERVER_RELEASE_NAME,
+          constants.METRICS_SERVER_CHART,
+          constants.METRICS_SERVER_CHART,
+          versions.METRICS_SERVER_VERSION,
+          new HelmChartValues().setLiteral('args[0]', '--kubelet-insecure-tls'),
+          context,
+          'metrics-server',
+          SoloErrors.deployment.metricsServerInstallFailed,
+        );
       },
       skip: ({config: {deployMetricsServer}}): boolean => !deployMetricsServer,
     };
@@ -767,22 +734,31 @@ export class ClusterCommandTasks {
     }
   }
 
+  /** Uninstalls a chart release when it is installed, otherwise reports that it was skipped. */
+  private async uninstallChartIfInstalled(
+    namespace: NamespaceName,
+    releaseName: string,
+    context: Context,
+    chartLabel: string,
+  ): Promise<void> {
+    if (await this.chartManager.isChartInstalled(namespace, releaseName, context)) {
+      await this.chartManager.uninstall(namespace, releaseName, context);
+      this.logger.showUserUnlessOneShot(`✅ ${chartLabel} chart uninstalled successfully`);
+    } else {
+      this.logger.showUserUnlessOneShot(`⏭️  ${chartLabel} chart not installed, skipping`);
+    }
+  }
+
   public uninstallPrometheusStack(): SoloListrTask<ClusterReferenceResetContext> {
     return {
       title: 'Uninstall Prometheus Stack chart',
       task: async ({config: {clusterSetupNamespace, context}}): Promise<void> => {
-        const isPrometheusInstalled: boolean = await this.chartManager.isChartInstalled(
+        await this.uninstallChartIfInstalled(
           clusterSetupNamespace,
           constants.PROMETHEUS_RELEASE_NAME,
           context,
+          'Prometheus Stack',
         );
-
-        if (isPrometheusInstalled) {
-          await this.chartManager.uninstall(clusterSetupNamespace, constants.PROMETHEUS_RELEASE_NAME, context);
-          this.logger.showUserUnlessOneShot('✅ Prometheus Stack chart uninstalled successfully');
-        } else {
-          this.logger.showUserUnlessOneShot('⏭️  Prometheus Stack chart not installed, skipping');
-        }
       },
     };
   }
@@ -791,18 +767,12 @@ export class ClusterCommandTasks {
     return {
       title: 'Uninstall Grafana Alloy chart',
       task: async ({config: {clusterSetupNamespace, context}}): Promise<void> => {
-        const isGrafanaAlloyInstalled: boolean = await this.chartManager.isChartInstalled(
+        await this.uninstallChartIfInstalled(
           clusterSetupNamespace,
           constants.GRAFANA_ALLOY_RELEASE_NAME,
           context,
+          'Grafana Alloy',
         );
-
-        if (isGrafanaAlloyInstalled) {
-          await this.chartManager.uninstall(clusterSetupNamespace, constants.GRAFANA_ALLOY_RELEASE_NAME, context);
-          this.logger.showUserUnlessOneShot('✅ Grafana Alloy chart uninstalled successfully');
-        } else {
-          this.logger.showUserUnlessOneShot('⏭️  Grafana Alloy chart not installed, skipping');
-        }
       },
     };
   }
@@ -816,18 +786,7 @@ export class ClusterCommandTasks {
           await configMaps.delete(clusterSetupNamespace, constants.LOKI_GRAFANA_DATASOURCE_CONFIGMAP_NAME);
         }
 
-        const isLokiInstalled: boolean = await this.chartManager.isChartInstalled(
-          clusterSetupNamespace,
-          constants.LOKI_RELEASE_NAME,
-          context,
-        );
-
-        if (isLokiInstalled) {
-          await this.chartManager.uninstall(clusterSetupNamespace, constants.LOKI_RELEASE_NAME, context);
-          this.logger.showUserUnlessOneShot('✅ Loki chart uninstalled successfully');
-        } else {
-          this.logger.showUserUnlessOneShot('⏭️  Loki chart not installed, skipping');
-        }
+        await this.uninstallChartIfInstalled(clusterSetupNamespace, constants.LOKI_RELEASE_NAME, context, 'Loki');
       },
     };
   }
@@ -836,22 +795,12 @@ export class ClusterCommandTasks {
     return {
       title: 'Uninstall metrics-server chart',
       task: async ({config: {context}}): Promise<void> => {
-        const isMetricsServerInstalled: boolean = await this.chartManager.isChartInstalled(
+        await this.uninstallChartIfInstalled(
           constants.METRICS_SERVER_NAMESPACE,
           constants.METRICS_SERVER_RELEASE_NAME,
           context,
+          'metrics-server',
         );
-
-        if (isMetricsServerInstalled) {
-          await this.chartManager.uninstall(
-            constants.METRICS_SERVER_NAMESPACE,
-            constants.METRICS_SERVER_RELEASE_NAME,
-            context,
-          );
-          this.logger.showUserUnlessOneShot('Metrics-server chart uninstalled successfully');
-        } else {
-          this.logger.showUserUnlessOneShot('Metrics-server chart not installed, skipping');
-        }
       },
     };
   }

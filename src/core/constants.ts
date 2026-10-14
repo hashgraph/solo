@@ -172,13 +172,14 @@ export const SOLO_SERVICE_MONITOR_NAME: string = 'solo-service-monitor';
 
 export const POD_MONITOR_ROLE: string = 'pod-monitor-role';
 
-export const GRAFANA_ALLOY_CHART_URL: string =
-  getEnvironmentVariable('GRAFANA_ALLOY_CHART_URL') ?? 'https://grafana.github.io/helm-charts';
+// Helm repository that publishes both the Grafana Alloy and Loki charts.
+export const GRAFANA_CHART_URL: string =
+  getEnvironmentVariable('GRAFANA_CHART_URL') ?? 'https://grafana.github.io/helm-charts';
+export const GRAFANA_CHART_REPO: string = 'grafana';
+
 export const GRAFANA_ALLOY_CHART: string = 'alloy';
 export const GRAFANA_ALLOY_RELEASE_NAME: string = 'grafana-alloy';
 
-export const LOKI_CHART_URL: string =
-  getEnvironmentVariable('LOKI_CHART_URL') ?? 'https://grafana.github.io/helm-charts';
 export const LOKI_CHART: string = 'loki';
 // The Loki release name yields the `loki` Service that the Alloy and Grafana datasource values reference.
 export const LOKI_RELEASE_NAME: string = 'loki';
@@ -283,8 +284,7 @@ export const DEFAULT_CHART_REPO: Map<string, string> = new Map()
   .set(MINIO_OPERATOR_RELEASE_NAME, MINIO_OPERATOR_CHART_URL)
   .set(METRICS_SERVER_RELEASE_NAME, METRICS_SERVER_CHART_URL)
   .set(INGRESS_CONTROLLER_RELEASE_NAME, INGRESS_CONTROLLER_CHART_URL)
-  .set(GRAFANA_ALLOY_CHART, GRAFANA_ALLOY_CHART_URL)
-  .set(LOKI_CHART, LOKI_CHART_URL);
+  .set(GRAFANA_CHART_REPO, GRAFANA_CHART_URL);
 
 export const MIRROR_INGRESS_CLASS_NAME: string = 'mirror-ingress-class';
 export const MIRROR_INGRESS_CONTROLLER: string = 'mirror-ingress-controller';
