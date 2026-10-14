@@ -43,7 +43,7 @@ const engine: ContainerEngineClient = {
   resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
 };
 
-function manifestImage(sha256: string = ARCHIVE_HASH): CacheManifestImage {
+function manifestImage(sha256: string = ARCHIVE_HASH, size?: number): CacheManifestImage {
   return new CacheManifestImage(
     IMAGE_REFERENCE,
     TAR_FILE,
@@ -51,6 +51,7 @@ function manifestImage(sha256: string = ARCHIVE_HASH): CacheManifestImage {
     sha256,
     `https://cdn.solo.hashgraph.io/${TAR_FILE}`,
     `https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`,
+    size,
   );
 }
 
@@ -202,6 +203,38 @@ describe('ImageCacheHandler pull', (): void => {
     expect(await exists(hashPath)).to.equal(false);
     expect(context.config.results).to.have.lengthOf(0);
     expect(loggerStub.warn).to.have.been.called;
+  });
+
+  it('accepts a downloaded archive whose size matches the manifest', async (): Promise<void> => {
+    sinon
+      .stub(CacheManifestClient, 'fetchImages')
+      .resolves([manifestImage(ARCHIVE_HASH, Buffer.byteLength(ARCHIVE_CONTENTS))]);
+    const fetchFile: SinonStub = stubDownloader({
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}`]: ARCHIVE_CONTENTS,
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`]: ARCHIVE_HASH,
+    });
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(context.config.results).to.have.lengthOf(1);
+    expect(await exists(archivePath)).to.equal(true);
+  });
+
+  it('deletes a downloaded archive whose size does not match the manifest', async (): Promise<void> => {
+    sinon
+      .stub(CacheManifestClient, 'fetchImages')
+      .resolves([manifestImage(ARCHIVE_HASH, Buffer.byteLength(ARCHIVE_CONTENTS) + 1)]);
+    const fetchFile: SinonStub = stubDownloader({
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}`]: ARCHIVE_CONTENTS,
+      [`https://cdn.solo.hashgraph.io/${TAR_FILE}.sha256`]: ARCHIVE_HASH,
+    });
+
+    const context: {config: {results: unknown[]}} = await runPull(createHandler(fetchFile));
+
+    expect(await exists(archivePath)).to.equal(false);
+    expect(await exists(hashPath)).to.equal(false);
+    expect(context.config.results).to.have.lengthOf(0);
+    expect(loggerStub.warn).to.have.been.calledWithMatch(/not the \d+ the manifest records/);
   });
 
   it('does not download the archive when the manifest and the published hash disagree', async (): Promise<void> => {

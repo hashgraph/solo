@@ -20,5 +20,7 @@ export class CacheManifestImage {
     public readonly tarUrl: string,
     /** Absolute CDN URL of {@link hashFile}. */
     public readonly hashUrl: string,
+    /** Size of the archive in bytes, when the manifest records it. */
+    public readonly size?: number,
   ) {}
 }
