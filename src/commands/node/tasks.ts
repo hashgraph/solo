@@ -4092,9 +4092,10 @@ export class NodeCommandTasks {
             throw new SoloErrors.validation.grpcEndpointsRequired(constants.ENDPOINT_TYPE_IP);
           }
 
-          endpoints = [
-            `${Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias)}:${servicePort}`,
-          ];
+          const domainName: string =
+            config.domainNamesMapping?.[config.nodeAlias] ??
+            Templates.renderFullyQualifiedNetworkSvcName(config.namespace, config.nodeAlias);
+          endpoints = [`${domainName}:${servicePort}`];
         }
 
         context_.grpcServiceEndpoints = prepareEndpoints(config.endpointType, endpoints, servicePort);
