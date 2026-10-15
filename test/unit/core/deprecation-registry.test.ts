@@ -42,6 +42,16 @@ describe('DeprecationRegistry', (): void => {
     expect(flagEntry?.deprecation.removalIssue).to.equal(5181);
   });
 
+  it('lists deprecated environment variables', (): void => {
+    const registry: DeprecationRegistry = new DeprecationRegistry();
+    const environmentEntry: RegisteredDeprecation | undefined = registry
+      .list()
+      .find((entry: RegisteredDeprecation): boolean => entry.feature === 'EXPERIMENTAL_COPY_WRAPS_LIB_IN_PARALLEL');
+
+    expect(environmentEntry?.kind).to.equal('environment-variable');
+    expect(environmentEntry?.deprecation.removalIssue).to.equal(6174);
+  });
+
   it('records registered command and subcommand deprecations', (): void => {
     const registry: DeprecationRegistry = new DeprecationRegistry();
     registry.registerCommand('deployment refresh', 'command', {since: '0.84.0', removalIssue: 5181});

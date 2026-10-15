@@ -127,6 +127,11 @@ export const MINIMUM_MIRROR_NODE_VERSION_FOR_SHA256_HASHING: string = 'v0.165.0-
 // network on an older version cannot be upgraded across this boundary; it has to be redeployed.
 export const CN_VERSION_REQUIRING_REDEPLOY: string = 'v0.79.0-0';
 
+// hiero-consensus-node#27506 adopts a TSS library that embeds the WRAPS proving parameters, so from this
+// version the consensus node needs no proving key: Solo no longer downloads it, copies it into the pods,
+// or sets tss.wrapsEnabled and TSS_LIB_WRAPS_ARTIFACTS_PATH, which the node no longer reads.
+export const MINIMUM_CN_VERSION_FOR_EMBEDDED_WRAPS_PARAMETERS: string = 'v0.79.0-0';
+
 export function getSoloVersion(): Version {
   // In SEA mode the bootstrap (sea/sea-main.template.cjs) sets SOLO_SEA_VERSION before any
   // module initializes, so we can return it without a filesystem read.

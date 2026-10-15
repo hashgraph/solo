@@ -221,6 +221,22 @@ describe('Helpers', (): void => {
     });
   });
 
+  describe('shouldProvisionWraps', (): void => {
+    it('provisions WRAPS for a consensus node that predates the embedded proving parameters', (): void => {
+      expect(Helpers.shouldProvisionWraps(true, 'v0.78.2')).to.be.true;
+    });
+
+    it('does not provision WRAPS from the release that embeds the proving parameters', (): void => {
+      expect(Helpers.shouldProvisionWraps(true, 'v0.79.0')).to.be.false;
+      expect(Helpers.shouldProvisionWraps(true, 'v0.79.0-rc.1')).to.be.false;
+      expect(Helpers.shouldProvisionWraps(true, 'v0.80.0')).to.be.false;
+    });
+
+    it('does not provision WRAPS when it is disabled', (): void => {
+      expect(Helpers.shouldProvisionWraps(false, 'v0.78.2')).to.be.false;
+    });
+  });
+
   describe('updateBlockStreamPropertiesForMode', (): void => {
     it('sets wrappedRecordBlocks=false in BLOCKS mode when not explicitly enabled', (): void => {
       const lines: string[] = [

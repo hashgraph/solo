@@ -668,7 +668,7 @@ export class ProfileManager {
       }
 
       if (
-        this.remoteConfig.configuration.state.wrapsEnabled &&
+        Helpers.shouldProvisionWraps(this.remoteConfig.configuration.state.wrapsEnabled, releaseTag) &&
         !ProfileManager.hasApplicationProperty(lines, 'tss.wrapsEnabled')
       ) {
         Helpers.upsertApplicationProperty(lines, 'tss.wrapsEnabled', 'true');
