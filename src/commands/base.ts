@@ -537,6 +537,39 @@ export abstract class BaseCommand extends ShellRunner {
     }
   }
 
+  /**
+   * Trigger a Deployment rollout by patching a restart annotation onto its pod template.
+   * This avoids delete/recreate and keeps restart behavior explicit; it is used whenever a
+   * Deployment's ConfigMap-backed configuration may have changed but the pod template itself
+   * was left byte-identical by Helm, so Kubernetes would otherwise never recreate the pod.
+   */
+  protected async patchDeploymentRestartAnnotation(
+    context: Context,
+    namespace: NamespaceName,
+    deploymentName: string,
+  ): Promise<void> {
+    await this.k8Factory
+      .getK8(context)
+      .manifests()
+      .patchObject({
+        apiVersion: 'apps/v1',
+        kind: 'Deployment',
+        metadata: {
+          name: deploymentName,
+          namespace: namespace.name,
+        },
+        spec: {
+          template: {
+            metadata: {
+              annotations: {
+                'solo.hedera.com/restartedAt': new Date().toISOString(),
+              },
+            },
+          },
+        },
+      });
+  }
+
   private inferMirrorNodeDataFromRemoteConfig(namespace: NamespaceName): {
     mirrorNodeId: ComponentId;
     mirrorNamespace: NamespaceNameAsString;

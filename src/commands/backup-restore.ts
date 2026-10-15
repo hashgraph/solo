@@ -921,41 +921,6 @@ export class BackupRestoreCommand extends BaseCommand {
   }
 
   /**
-   * Resolve mirror release name while supporting legacy release naming.
-   * Mirror node id=1 may still be installed under the old fixed release name.
-   */
-  /**
-   * Trigger a deployment rollout by patching a restart annotation.
-   * This avoids delete/recreate and keeps restart behavior explicit.
-   */
-  private async patchDeploymentRestartAnnotation(
-    context: Context,
-    namespace: NamespaceName,
-    deploymentName: string,
-  ): Promise<void> {
-    await this.k8Factory
-      .getK8(context)
-      .manifests()
-      .patchObject({
-        apiVersion: 'apps/v1',
-        kind: 'Deployment',
-        metadata: {
-          name: deploymentName,
-          namespace: namespace.name,
-        },
-        spec: {
-          template: {
-            metadata: {
-              annotations: {
-                'solo.hedera.com/restartedAt': new Date().toISOString(),
-              },
-            },
-          },
-        },
-      });
-  }
-
-  /**
    * Restart mirror runtime dependencies that cache state/config.
    * Redis is restarted first so it picks up restored credentials. Once Redis is ready,
    * grpc and importer pods are deleted and recreated so they authenticate to Redis with
