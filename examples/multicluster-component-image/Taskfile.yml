@@ -42,10 +42,12 @@ tasks:
     cmds:
       # Rebuilt (not just re-tagged) as a single-platform image: `kind load` imports with
       # --all-platforms and fails with "content digest ... not found" when the local image is a
-      # multi-platform index whose other platforms were never pulled.
+      # multi-platform index whose other platforms were never pulled. Provenance/SBOM attestations
+      # are disabled because BuildKit would otherwise add an attestation manifest, which fails the
+      # import with "mismatched image rootfs and manifest layers".
       - cmd: |
           docker pull {{.PUBLISHED_IMAGE}}
-          printf 'FROM {{.PUBLISHED_IMAGE}}\n' | docker build -t {{.COMPONENT_IMAGE}} -
+          printf 'FROM {{.PUBLISHED_IMAGE}}\n' | docker build --provenance=false --sbom=false -t {{.COMPONENT_IMAGE}} -
 
   deploy:
     desc: Create two Kind clusters, deploy to cluster 1, and add a block node with a local --component-image
