@@ -177,6 +177,7 @@ export class ChartManager {
     atomic: boolean = false,
     waitFor: boolean = false,
     dependencyUpdate: boolean = false,
+    skipCrds: boolean = false,
   ): Promise<boolean> {
     try {
       const isInstalled: boolean = await this.isChartInstalled(namespaceName, chartReleaseName, kubeContext);
@@ -192,7 +193,8 @@ export class ChartManager {
           .atomic(atomic)
           .waitFor(waitFor)
           .valueArguments(chartValues.toArguments())
-          .dependencyUpdate(dependencyUpdate);
+          .dependencyUpdate(dependencyUpdate)
+          .skipCrds(skipCrds);
 
         // A local chart tarball is self-describing; `helm install` rejects `--version` for a local chart.
         if (version && !cachedChartPath) {

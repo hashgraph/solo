@@ -76,6 +76,7 @@ interface RapidFireStartConfigClass {
   packageName: string;
   maxTps: number;
   maxRtt: number;
+  minTps: number;
   mirrorNamespace?: string;
   rttSampleCount: number;
   rttSampleInterval: number;
@@ -151,6 +152,7 @@ export class RapidFireCommand extends BaseCommand {
       flags.packageName,
       flags.maxTps,
       flags.maxRtt,
+      flags.minTps,
       flags.mirrorNamespace,
     ],
   };
@@ -705,6 +707,7 @@ export class RapidFireCommand extends BaseCommand {
             stdoutText + stderrText,
             testClass,
             performanceTest,
+            context_.config.minTps,
           );
           if (rttProbePromise) {
             await rttProbePromise;
@@ -762,7 +765,12 @@ export class RapidFireCommand extends BaseCommand {
   private static readonly NLG_FINISHED_PATTERN: RegExp =
     /Finished\s+([\w.]+):.*?(\d+)\s+(?:\w+\s+)+in\s+(\d+)\s+sec,\s+TPS:\s+(\d+)/;
 
-  private static analyzeNlgOutput(output: string, testClass: string, performanceTest: string): NlgResult {
+  private static analyzeNlgOutput(
+    output: string,
+    testClass: string,
+    performanceTest: string,
+    minTps: number,
+  ): NlgResult {
     const lines: string[] = output.split('\n');
     let lastMatch: RegExpMatchArray | undefined;
     const longevityMatches: RegExpMatchArray[] = [];
@@ -817,6 +825,20 @@ export class RapidFireCommand extends BaseCommand {
         transactionCount,
         durationSeconds,
         tps,
+        rttMilliseconds,
+        hint: RapidFireCommand.classifyFailure(output),
+      };
+    }
+
+    if (minTps > 0 && tps < minTps) {
+      return {
+        status: NlgResultStatus.BELOW_MIN_TPS,
+        testClass,
+        performanceTest,
+        transactionCount,
+        durationSeconds,
+        tps,
+        minTps,
         rttMilliseconds,
         hint: RapidFireCommand.classifyFailure(output),
       };
@@ -926,6 +948,13 @@ export class RapidFireCommand extends BaseCommand {
       case NlgResultStatus.NO_RESULT: {
         lines.push(
           `${result.testClass} produced no "Finished <test>: ... TPS: N" result line. The NLG process exited or hung without reporting a benchmark result.`,
+        );
+        break;
+      }
+      case NlgResultStatus.BELOW_MIN_TPS: {
+        lines.push(
+          `${result.testClass} achieved TPS ${result.tps}, below the configured minimum of ${result.minTps} ` +
+            `(${result.transactionCount} transactions in ${result.durationSeconds} sec).`,
         );
         break;
       }

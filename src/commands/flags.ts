@@ -2722,6 +2722,16 @@ export class Flags {
     },
   };
 
+  public static readonly minTps: CommandFlag = {
+    constName: 'minTps',
+    name: 'min-tps',
+    definition: {
+      describe: 'Minimum acceptable transactions per second achieved by the NLG load test; 0 disables the check',
+      type: 'number',
+      defaultValue: 0,
+    },
+  };
+
   public static readonly performanceTest: CommandFlag = {
     constName: 'performanceTest',
     name: 'test',
@@ -3060,6 +3070,7 @@ export class Flags {
     Flags.zipFile,
     Flags.maxTps,
     Flags.maxRtt,
+    Flags.minTps,
     Flags.enableMonitoringSupport,
     Flags.blockNodeMapping,
     Flags.externalBlockNodeMapping,
