@@ -20,6 +20,10 @@ version='latest'
 install_directory="${SOLO_INSTALL_DIR:-${DEFAULT_INSTALL_DIRECTORY}}"
 base_url="${SOLO_REPOSITORY_URL}/releases"
 skip_image_cache='false'
+case "${SOLO_NO_MODIFY_PATH:-}" in
+  1 | true) modify_path='false' ;;
+  *) modify_path='true' ;;
+esac
 work_directory=''
 staged_binary=''
 
@@ -33,6 +37,8 @@ Options:
   --version <tag>      Release to install, for example v0.92.0 (default: latest)
   --prefix <dir>       Directory for the solo binary (default: ~/.solo/bin, or SOLO_INSTALL_DIR)
   --skip-image-cache   Do not run 'solo cache image pull' after installing
+  --no-modify-path     Do not add the install directory to shell startup files or GITHUB_PATH
+                       (or set SOLO_NO_MODIFY_PATH=1)
   --base-url <url>     Release download base URL (default: ${SOLO_REPOSITORY_URL}/releases)
   -h, --help           Show this help
 EOF
@@ -83,6 +89,10 @@ parse_arguments() {
         ;;
       --skip-image-cache)
         skip_image_cache='true'
+        shift
+        ;;
+      --no-modify-path)
+        modify_path='false'
         shift
         ;;
       -h | --help)
@@ -259,6 +269,15 @@ shell_startup_file() {
   esac
 }
 
+# On GitHub Actions, puts the install directory on PATH for the job's later steps.
+add_to_github_path() {
+  if [ -z "${GITHUB_PATH:-}" ] || grep -qxF "${install_directory}" "${GITHUB_PATH}" 2>/dev/null; then
+    return 0
+  fi
+  printf '%s\n' "${install_directory}" >>"${GITHUB_PATH}"
+  info "added ${install_directory} to GITHUB_PATH for later steps of this job"
+}
+
 configure_path() {
   case ":${PATH}:" in
     *":${install_directory}:"*) return 0 ;;
@@ -268,8 +287,14 @@ configure_path() {
   path_line="export PATH=\"\$PATH:${install_directory}\""
   startup_file="$(shell_startup_file)"
 
-  # Only the default directory is added to startup files; a --prefix directory is the caller's to manage.
-  if [ "${install_directory}" != "${DEFAULT_INSTALL_DIRECTORY}" ] || [ -z "${startup_file}" ]; then
+  if [ "${modify_path}" = 'true' ]; then
+    add_to_github_path
+  fi
+
+  # Only the default directory is added to startup files; a --prefix directory is the caller's to manage, as is
+  # PATH itself under --no-modify-path.
+  if [ "${modify_path}" != 'true' ] || [ "${install_directory}" != "${DEFAULT_INSTALL_DIRECTORY}" ] ||
+    [ -z "${startup_file}" ]; then
     info "${install_directory} is not on your PATH; add it with:"
     printf '\n  %s\n\n' "${path_line}"
     return 0
@@ -332,7 +357,7 @@ warm_image_cache() {
 
   info 'pre-pulling the container images Solo deploys (skip with --skip-image-cache)'
   # stdin is redirected so solo cannot read the rest of this script when it is piped into sh.
-  if ! (unset SOLO_INSTALL_DIR && "${install_directory}/solo" cache image pull --quiet-mode </dev/null); then
+  if ! (unset SOLO_INSTALL_DIR SOLO_NO_MODIFY_PATH && "${install_directory}/solo" cache image pull --quiet-mode </dev/null); then
     warn "the image cache was not fully populated; run 'solo cache image pull' to retry"
   fi
 }

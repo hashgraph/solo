@@ -43,7 +43,8 @@ begin_case() {
   export HOME
   mkdir -p "${HOME}"
   export SHELL='/bin/bash'
-  unset ZDOTDIR SOLO_INSTALL_DIR SUDO_USER FAKE_UNAME_S FAKE_UNAME_M FAKE_PROC_TRANSLATED 2>/dev/null || true
+  # GitHub Actions sets GITHUB_PATH; a case that writes to the runner's file would change PATH for later steps.
+  unset ZDOTDIR SOLO_INSTALL_DIR SOLO_NO_MODIFY_PATH GITHUB_PATH SUDO_USER FAKE_UNAME_S FAKE_UNAME_M FAKE_PROC_TRANSLATED 2>/dev/null || true
   export PATH="${original_path}"
   export FAKE_SOLO_CALLS="${HOME}/solo-calls.log"
   export FAKE_SOLO_STDIN="${HOME}/solo-stdin.log"
@@ -231,6 +232,38 @@ export SHELL='/bin/tcsh'
 run_installer
 check 'no startup file is created' test ! -e "${HOME}/${bash_startup_file}"
 check 'PATH line is printed' contains "${HOME}/install.log" 'export PATH='
+
+begin_case 'leaves startup files alone with --no-modify-path'
+export GITHUB_PATH="${HOME}/github-path"
+run_installer --no-modify-path --skip-image-cache
+check 'binary is installed' test -x "${HOME}/.solo/bin/solo"
+check "${bash_startup_file} is not created" test ! -e "${HOME}/${bash_startup_file}"
+check 'GITHUB_PATH is not written' test ! -e "${GITHUB_PATH}"
+check 'PATH line is printed' contains "${HOME}/install.log" "export PATH=\"\$PATH:${HOME}/.solo/bin\""
+
+begin_case 'leaves startup files alone with SOLO_NO_MODIFY_PATH=1'
+export SOLO_NO_MODIFY_PATH=1
+run_installer --skip-image-cache
+check "${bash_startup_file} is not created" test ! -e "${HOME}/${bash_startup_file}"
+
+begin_case 'adds the install directory to GITHUB_PATH'
+export GITHUB_PATH="${HOME}/github-path"
+run_installer --skip-image-cache
+check 'GITHUB_PATH holds the install directory' is_equal "$(cat "${GITHUB_PATH}")" "${HOME}/.solo/bin"
+check "${bash_startup_file} is still edited" contains "${HOME}/${bash_startup_file}" '# >>> solo installer >>>'
+run_installer --skip-image-cache
+check 're-running adds no duplicate' is_equal "$(count_of "${GITHUB_PATH}" "${HOME}/.solo/bin")" '1'
+
+begin_case 'adds a --prefix directory to GITHUB_PATH'
+export GITHUB_PATH="${HOME}/github-path"
+run_installer --prefix "${HOME}/tools" --skip-image-cache
+check 'GITHUB_PATH holds the prefix directory' is_equal "$(cat "${GITHUB_PATH}")" "${HOME}/tools"
+
+begin_case 'leaves GITHUB_PATH alone when the directory is already on PATH'
+export GITHUB_PATH="${HOME}/github-path"
+export PATH="${PATH}:${HOME}/.solo/bin"
+run_installer --skip-image-cache
+check 'GITHUB_PATH is not written' test ! -e "${GITHUB_PATH}"
 
 begin_case 'selects the macOS arm64 binary on Apple silicon'
 fake_macos arm64

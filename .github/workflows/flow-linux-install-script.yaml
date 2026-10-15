@@ -258,11 +258,13 @@ jobs:
 
       - name: Reinstall Over the Existing Binary
         # A copy over the existing file would keep its cached code signature and die with "Killed: 9".
+        # The previous step's install put ~/.solo/bin on GITHUB_PATH, so solo resolves without a full path.
         run: |
           set -eu
           export HOME="${RUNNER_TEMP}/home-native"
+          test "$(command -v solo)" = "${HOME}/.solo/bin/solo"
           /bin/sh installers/linux/install.sh --base-url "file://${RUNNER_TEMP}/release" --skip-image-cache
-          "${HOME}/.solo/bin/solo" --version
+          solo --version
 
       - name: Install From a Rosetta Shell
         # Under Rosetta uname -m reports x86_64; the script must still install the arm64 binary, which is
@@ -276,5 +278,5 @@ jobs:
           fi
           export HOME="${RUNNER_TEMP}/home-rosetta"
           mkdir -p "${HOME}"
-          /usr/bin/arch -x86_64 /bin/sh installers/linux/install.sh --base-url "file://${RUNNER_TEMP}/release" --skip-image-cache
+          /usr/bin/arch -x86_64 /bin/sh installers/linux/install.sh --base-url "file://${RUNNER_TEMP}/release" --skip-image-cache --no-modify-path
           "${HOME}/.solo/bin/solo" --version
