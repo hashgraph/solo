@@ -238,7 +238,10 @@ export class NetworkCommand extends BaseCommand {
     return {
       title: 'Install zip, unzip and curl in the consensus node image',
       skip: (): boolean => !NetworkNodeLifecycle.isConsensusNodeImage(),
-      task: (context_, task): SoloListr<NetworkDeployContext> => {
+      task: (
+        context_: NetworkDeployContext,
+        task: SoloListrTaskWrapper<NetworkDeployContext>,
+      ): SoloListr<NetworkDeployContext> => {
         const config: NetworkDeployConfigClass = context_.config;
         const subTasks: SoloListrTask<NetworkDeployContext>[] = config.consensusNodes.map(
           (consensusNode: ConsensusNode): SoloListrTask<NetworkDeployContext> => ({
