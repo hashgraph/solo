@@ -72,13 +72,16 @@ tasks:
           wait
 
       - cmd: |
-          for i in 1 2; do
-            (helm upgrade --install metallb metallb/metallb \
-              --kube-context kind-mc-component-image-c${i} \
-              --namespace metallb-system --create-namespace --atomic --wait \
-              --version 0.15.3 --set speaker.frr.enabled=true && \
-             kubectl apply -f {{.TASKFILE_DIR}}/metallb-cluster-${i}.yaml --context kind-mc-component-image-c${i}) &
-          done
+          (helm upgrade --install metallb metallb/metallb \
+            --kube-context kind-{{.CLUSTER_NAME_1}} \
+            --namespace metallb-system --create-namespace --atomic --wait \
+            --version 0.15.3 --set speaker.frr.enabled=true && \
+           kubectl apply -f {{.TASKFILE_DIR}}/metallb-cluster-1.yaml --context kind-{{.CLUSTER_NAME_1}}) &
+          (helm upgrade --install metallb metallb/metallb \
+            --kube-context kind-{{.CLUSTER_NAME_2}} \
+            --namespace metallb-system --create-namespace --atomic --wait \
+            --version 0.15.3 --set speaker.frr.enabled=true && \
+           kubectl apply -f {{.TASKFILE_DIR}}/metallb-cluster-2.yaml --context kind-{{.CLUSTER_NAME_2}}) &
           wait
 
       # cluster-ref config setup acts on the current kubectl context, so select each cluster first.
@@ -107,7 +110,7 @@ tasks:
       # cluster 2 as well because cluster 2 hosts a consensus node of the same deployment.
       - cmd: |
           $SOLO_COMMAND block node add --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} \
-            --priority-mapping node1=1 --component-image {{.COMPONENT_IMAGE}} --quiet-mode --dev
+            --priority-mapping node1=1,node2=1 --component-image {{.COMPONENT_IMAGE}} --quiet-mode --dev
 
       - cmd: |
           $SOLO_COMMAND consensus network deploy --deployment {{.SOLO_DEPLOYMENT}} --release-tag {{.CN_VERSION}} --quiet-mode --dev \
