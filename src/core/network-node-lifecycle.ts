@@ -184,6 +184,10 @@ export class NetworkNodeLifecycle {
    * Installs zip, unzip and curl in the root container when any is missing. The consensus node image ships without
    * them, but Solo uses zip and unzip to archive, extract and verify node state and platform archives, and curl to read
    * the node metrics. The image's hedera user has passwordless sudo.
+   *
+   * The tools are installed at runtime, rather than baked into the image, because this is the upstream image built from
+   * the hiero-consensus-node repository, which is the same image used in mainnet production. Solo cannot change its
+   * contents, so adding tools to the image is not an option.
    */
   public static buildInstallToolsCommand(): string {
     return (
