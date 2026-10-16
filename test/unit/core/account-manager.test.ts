@@ -5,6 +5,8 @@ import {afterEach, describe, it} from 'mocha';
 import sinon from 'sinon';
 import {
   AccountCreateTransaction,
+  AccountId,
+  Client,
   PrivateKey,
   PrecheckStatusError,
   Status,
@@ -15,6 +17,8 @@ import {AccountManager} from '../../../src/core/account-manager.js';
 import {NamespaceName} from '../../../src/types/namespace/namespace-name.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
+import {type NodeServiceMapping} from '../../../src/types/mappings/node-service-mapping.js';
+import {type NetworkNodeServices} from '../../../src/core/network-node-services.js';
 
 type MockK8Factory = {
   getK8: sinon.SinonStub;
@@ -49,6 +53,10 @@ function makeAccountManager(createOrReplaceStub: CreateOrReplaceStub, loggerMock
   };
 
   return new AccountManager(loggerMock, k8FactoryMock as unknown as K8Factory, {} as never, {} as never, {} as never);
+}
+
+function makeLogger(): SoloLogger {
+  return {debug: sinon.stub(), info: sinon.stub(), warn: sinon.stub(), error: sinon.stub()} as unknown as SoloLogger;
 }
 
 describe('AccountManager createNewAccount duplicate precheck retry', (): void => {
@@ -105,5 +113,63 @@ describe('AccountManager createNewAccount duplicate precheck retry', (): void =>
     expect(executeStub.callCount).to.equal(1);
     expect((loggerMock.warn as sinon.SinonStub).callCount).to.equal(0);
     expect(createOrReplaceStub.callCount).to.equal(0);
+  });
+});
+
+describe('AccountManager node client ping', (): void => {
+  // the operator (treasury) account is deliberately not a node account: SDK 2.89.0+ rejects pings to it
+  const operatorAccountId: string = '0.0.2';
+  const nodeAccountId: string = '0.0.3';
+  const operatorKey: string = PrivateKey.generateED25519().toStringDer();
+
+  afterEach((): void => {
+    sinon.restore();
+  });
+
+  it('pings a configured node account, not the operator, when creating the client', async (): Promise<void> => {
+    const accountManager: AccountManager = makeAccountManager(sinon.stub(), makeLogger());
+    sinon
+      .stub(accountManager as unknown as {configureNodeAccess: () => unknown}, 'configureNodeAccess')
+      .resolves({'127.0.0.1:50211': AccountId.fromString(nodeAccountId)});
+    const pingStub: sinon.SinonStub = sinon.stub(Client.prototype, 'ping').resolves();
+    const networkNodeServicesMap: NodeServiceMapping = new Map([
+      ['node1', {nodeAlias: 'node1', accountId: nodeAccountId} as unknown as NetworkNodeServices],
+    ]);
+
+    const nodeClient: Client = await accountManager._getNodeClient(
+      NamespaceName.of('solo'),
+      networkNodeServicesMap,
+      operatorAccountId,
+      operatorKey,
+    );
+
+    expect(pingStub.callCount).to.equal(1);
+    expect(pingStub.firstCall.args[0].toString()).to.equal(nodeAccountId);
+    expect(nodeClient.operatorAccountId?.toString()).to.equal(operatorAccountId);
+    nodeClient.close();
+  });
+
+  it('pings a configured node account, not the operator, when reusing the client', async (): Promise<void> => {
+    const accountManager: AccountManager = makeAccountManager(sinon.stub(), makeLogger());
+    const nodeClient: Client = Client.fromConfig({
+      network: {'127.0.0.1:50211': nodeAccountId},
+      scheduleNetworkUpdate: false,
+    });
+    nodeClient.setOperator(operatorAccountId, operatorKey);
+    (accountManager as unknown as {_nodeClient: Client})._nodeClient = nodeClient;
+    const pingStub: sinon.SinonStub = sinon.stub(Client.prototype, 'ping').resolves();
+    const refreshStub: sinon.SinonStub = sinon.stub(accountManager, 'refreshNodeClient');
+
+    const loadedClient: Client = await accountManager.loadNodeClient(
+      NamespaceName.of('solo'),
+      {} as never,
+      'deployment' as never,
+    );
+
+    expect(loadedClient).to.equal(nodeClient);
+    expect(pingStub.callCount).to.equal(1);
+    expect(pingStub.firstCall.args[0].toString()).to.equal(nodeAccountId);
+    expect(refreshStub.callCount).to.equal(0);
+    nodeClient.close();
   });
 });

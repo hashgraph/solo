@@ -309,9 +309,7 @@ export class AccountManager {
         await this.refreshNodeClient(namespace, clusterReferences, deployment, forcePortForward);
       } else {
         try {
-          if (!constants.SKIP_NODE_PING) {
-            await this._nodeClient.ping(this._nodeClient.operatorAccountId);
-          }
+          await AccountManager.pingNodeClient(this._nodeClient);
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
           await this.refreshNodeClient(namespace, clusterReferences, deployment, forcePortForward);
@@ -476,15 +474,25 @@ export class AccountManager {
         this._nodeClient = nodeClient;
       }
 
-      // ping the node client to ensure it is working
-      if (!constants.SKIP_NODE_PING) {
-        await nodeClient.ping(AccountId.fromString(operatorId));
-      }
+      await AccountManager.pingNodeClient(nodeClient);
 
       return nodeClient;
     } catch (error) {
       throw new SoloErrors.component.nodeClientSetupFailed(error);
     }
+  }
+
+  /**
+   * pings a consensus node from the client's own network to ensure the client is working; the operator account
+   * (normally 0.0.2) is not a node account, and the SDK rejects node account ids outside the client's network
+   * @param nodeClient - the node client to check
+   */
+  private static async pingNodeClient(nodeClient: Client): Promise<void> {
+    if (constants.SKIP_NODE_PING) {
+      return;
+    }
+    const [nodeAccountId]: (string | AccountId)[] = Object.values(nodeClient.network);
+    await nodeClient.ping(nodeAccountId);
   }
 
   private async configureNodeAccess(
