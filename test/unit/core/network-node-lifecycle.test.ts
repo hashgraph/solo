@@ -78,6 +78,12 @@ describe('NetworkNodeLifecycle', (): void => {
     expect(command).to.contain('apt-get install -y -qq --no-install-recommends zip unzip curl');
   });
 
+  it('should find the JVM for both the default and the --app main class when stopping', (): void => {
+    const stop: string = NetworkNodeLifecycle.buildStopCommand(consensusNodeImage);
+    expect(stop).to.contain('com.hedera.node.app.ServicesMain');
+    expect(stop).to.contain('com.swirlds.platform.Browser');
+  });
+
   it('should only change ownership when running as root', (): void => {
     expect(NetworkNodeLifecycle.buildChangeOwnerCommand('/a/saved')).to.equal(
       'if [ "$(id -u)" = "0" ]; then chown -R hedera:hedera /a/saved; fi',

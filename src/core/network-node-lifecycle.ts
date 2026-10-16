@@ -27,8 +27,9 @@ export class NetworkNodeLifecycle {
   private static readonly CONSENSUS_SERVICE_PATH: string = '/run/service/consensus';
   private static readonly SERVICE_STOP_TIMEOUT_MILLISECONDS: number = 60_000;
   private static readonly JVM_STOP_ATTEMPTS: number = 60;
-  // matches only the java process, not shells whose command line merely contains the main class name
-  private static readonly JVM_PIDS_FUNCTION: string = String.raw`jvm_pids() { for p in /proc/[0-9]*; do tr '\0' ' ' < "$p/cmdline" 2>/dev/null | grep -q '^java .*com.hedera.node.app.ServicesMain' && basename "$p"; done; }`;
+  // matches only the java process, not shells whose command line merely contains the main class name; Browser is the
+  // main class Solo selects with JAVA_MAIN_CLASS when --app is not the default HederaNode.jar
+  private static readonly JVM_PIDS_FUNCTION: string = String.raw`jvm_pids() { for p in /proc/[0-9]*; do tr '\0' ' ' < "$p/cmdline" 2>/dev/null | grep -qE '^java .*(com.hedera.node.app.ServicesMain|com.swirlds.platform.Browser)' && basename "$p"; done; }`;
 
   public static isConsensusNodeImage(mode: string = constants.NETWORK_NODE_LIFECYCLE_MODE): boolean {
     const acceptedModes: string[] = [
