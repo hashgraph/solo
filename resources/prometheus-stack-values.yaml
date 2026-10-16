@@ -3,15 +3,12 @@ prometheus:
   prometheusSpec:
     enableRemoteWriteReceiver: true # Grafana Alloy remote-writes consensus node metrics to Prometheus
     scrapeInterval: 5s
-    podMonitorNamespaceSelector:
-      any: true # fetch metrics from other namespaces
+    podMonitorNamespaceSelector: {} # empty label selector matches all namespaces
     podMonitorSelector: {}
     podMonitorSelectorNilUsesHelmValues: false
-    ruleNamespaceSelector:
-      any: true # fetch metrics from other namespaces
+    ruleNamespaceSelector: {} # empty label selector matches all namespaces
     ruleSelector: {}
     ruleSelectorNilUsesHelmValues: false
-    serviceMonitorNamespaceSelector:
-      any: true # fetch metrics from other namespaces
+    serviceMonitorNamespaceSelector: {} # empty label selector matches all namespaces
     serviceMonitorSelector: {}
     serviceMonitorSelectorNilUsesHelmValues: false
