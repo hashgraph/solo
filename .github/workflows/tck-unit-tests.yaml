@@ -1,0 +1,33 @@
+# SPDX-License-Identifier: Apache-2.0
+name: Solo TCK unit tests
+on:
+  pull_request:
+    paths:
+      - tck/**
+      - .github/workflows/tck-unit-tests.yaml
+  push:
+    branches: [main]
+    paths:
+      - tck/**
+      - .github/workflows/tck-unit-tests.yaml
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: hiero-solo-linux-medium
+    timeout-minutes: 5
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Use Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Test kit and negative controls
+        run: npm test --prefix tck
