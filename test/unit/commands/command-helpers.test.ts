@@ -9,11 +9,9 @@ import {Flags as flags} from '../../../src/commands/flags.js';
 import {ArgumentProcessor} from '../../../src/argument-processor.js';
 import {ConfigManager} from '../../../src/core/config-manager.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
-import {type TaskList} from '../../../src/core/task-list/task-list.js';
-import {type TaskNodeType} from '../../../src/core/task-list/task-list.js';
+import {type TaskList, type TaskNodeType} from '../../../src/core/task-list/task-list.js';
 import {type ListrContext, type ListrRendererValue} from 'listr2';
 import {BASE_TEST_DIR, getTestLogger} from '../../test-utility.js';
-import {SoloPinoLogger} from '../../../src/core/logging/solo-pino-logger.js';
 
 describe('CommandHelpers.subTaskSoloCommand', (): void => {
   let configManager: ConfigManager;
@@ -23,7 +21,6 @@ describe('CommandHelpers.subTaskSoloCommand', (): void => {
     container.register(InjectTokens.LogLevel, {useValue: 'debug'});
     container.register(InjectTokens.DevelopmentMode, {useValue: true});
     container.register(InjectTokens.HomeDirectory, {useValue: BASE_TEST_DIR});
-    container.register(InjectTokens.SoloLogger, {useValue: new SoloPinoLogger()});
     container.registerInstance(InjectTokens.SoloLogger, getTestLogger());
     configManager = new ConfigManager(getTestLogger());
     container.registerInstance(InjectTokens.ConfigManager, configManager);
@@ -37,6 +34,7 @@ describe('CommandHelpers.subTaskSoloCommand', (): void => {
     configManager.setFlag(flags.componentImage, 'gcr.io/mirrornode/hedera-mirror:0.164.2-tck.local1');
     configManager.setFlag(flags.componentImageArchive, '/tmp/mirror-node-candidate.tar');
     configManager.setFlag(flags.valuesFile, '/tmp/mirror-values.yaml');
+    expect(configManager.getFlag(flags.valuesFile)).to.equal('/tmp/mirror-values.yaml');
 
     const taskList: TaskList<ListrContext, ListrRendererValue, ListrRendererValue> = {
       parentTaskListMap: new Map<string, TaskNodeType[]>(),
