@@ -402,6 +402,34 @@ describe('BlockNodeCommand unit tests', (): void => {
 
     const valueArguments: string[] = chartValues.toArguments();
     expect(valueArguments).to.include('image.registry=localhost:5001');
+    expect(valueArguments).to.include('image.repository=localhost:5001/block-node-server');
+    expect(valueArguments).to.include('image.tag=0.38.0');
+    expect(valueArguments).to.include('image.pullPolicy=Never');
+  });
+
+  it('should preserve unqualified local image references', async (): Promise<void> => {
+    const blockNodeCommandInternal: BlockNodeCommandInternal = blockNodeCommand as unknown as BlockNodeCommandInternal;
+    blockNodeCommandInternal.remoteConfig = {
+      getConsensusNodes: (): Array<{name: string}> => [],
+      configuration: {
+        clusters: [],
+        state: {
+          tssEnabled: false,
+          blockNodes: [],
+        },
+      },
+    };
+    sinon.stub(blockNodeCommandInternal, 'isLocalImageAvailableInDocker').returns(true);
+
+    const chartValues: HelmChartValues = await blockNodeCommandInternal.prepareValuesArgForBlockNode({
+      blockNodeTssOverlay: false,
+      componentImage: 'block-node-server:0.38.0',
+      valuesFile: undefined,
+      releaseName: 'block-node-1',
+      namespace: NamespaceName.of('solo-ns'),
+    });
+
+    const valueArguments: string[] = chartValues.toArguments();
     expect(valueArguments).to.include('image.repository=block-node-server');
     expect(valueArguments).to.include('image.tag=0.38.0');
     expect(valueArguments).to.include('image.pullPolicy=Never');
@@ -434,7 +462,7 @@ describe('BlockNodeCommand unit tests', (): void => {
 
     const valueArguments: string[] = chartValues.toArguments();
     expect(valueArguments).to.include('image.registry=ghcr.io');
-    expect(valueArguments).to.include('image.repository=hiero-ledger/block-node-server');
+    expect(valueArguments).to.include('image.repository=ghcr.io/hiero-ledger/block-node-server');
     expect(valueArguments).to.include('image.tag=0.38.0');
     expect(valueArguments).to.include('image.pullPolicy=Never');
   });
@@ -463,7 +491,7 @@ describe('BlockNodeCommand unit tests', (): void => {
 
     const valueArguments: string[] = chartValues.toArguments();
     expect(valueArguments).to.include('image.registry=localhost:5001');
-    expect(valueArguments).to.include('image.repository=block-node-server');
+    expect(valueArguments).to.include('image.repository=localhost:5001/block-node-server');
     expect(valueArguments).to.include('image.tag=latest');
     expect(valueArguments).to.include('image.pullPolicy=Never');
   });
