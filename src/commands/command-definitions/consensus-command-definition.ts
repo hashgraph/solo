@@ -8,6 +8,7 @@ import {CommandBuilder, CommandGroup, Subcommand} from '../../core/command-path-
 import {NodeCommand} from '../node/index.js';
 import {NetworkCommand} from '../network.js';
 import {type CommandDefinition} from '../../types/index.js';
+import {type Deprecation} from '../../types/deprecation.js';
 import {type SoloLogger} from '../../core/logging/solo-logger.js';
 import * as NodeFlags from '../node/flags.js';
 import * as constants from '../../core/constants.js';
@@ -66,6 +67,17 @@ export class ConsensusCommandDefinition extends BaseCommandDefinition {
 
   public static readonly DEV_FREEZE_PREPARE_UPGRADE: string = 'prepare-upgrade';
   public static readonly DEV_FREEZE_FREEZE_UPGRADE: string = 'freeze-upgrade';
+
+  /** Tracks the removal of the step-by-step `dev-*` subcommands, which are superseded by the single-shot commands. */
+  private static readonly DEV_COMMANDS_REMOVAL_ISSUE: number = 6218;
+
+  private static devDeprecation(replacement: string): Deprecation {
+    return {
+      since: '0.94.0',
+      removalIssue: ConsensusCommandDefinition.DEV_COMMANDS_REMOVAL_ISSUE,
+      replacement,
+    };
+  }
 
   public static readonly NODE_SETUP: string = 'setup';
   public static readonly NODE_START: string = 'start';
@@ -281,6 +293,7 @@ export class ConsensusCommandDefinition extends BaseCommandDefinition {
           new CommandGroup(
             ConsensusCommandDefinition.DEV_NODE_ADD_SUBCOMMAND_NAME,
             ConsensusCommandDefinition.DEV_NODE_ADD_SUBCOMMAND_DESCRIPTION,
+            ConsensusCommandDefinition.devDeprecation('consensus node add'),
           )
             .addSubcommand(
               new Subcommand(
@@ -315,6 +328,7 @@ export class ConsensusCommandDefinition extends BaseCommandDefinition {
           new CommandGroup(
             ConsensusCommandDefinition.DEV_NODE_UPDATE_SUBCOMMAND_NAME,
             ConsensusCommandDefinition.DEV_NODE_UPDATE_SUBCOMMAND_DESCRIPTION,
+            ConsensusCommandDefinition.devDeprecation('consensus node update'),
           )
             .addSubcommand(
               new Subcommand(
@@ -349,6 +363,7 @@ export class ConsensusCommandDefinition extends BaseCommandDefinition {
           new CommandGroup(
             ConsensusCommandDefinition.DEV_NODE_UPGRADE_SUBCOMMAND_NAME,
             ConsensusCommandDefinition.DEV_NODE_UPGRADE_SUBCOMMAND_DESCRIPTION,
+            ConsensusCommandDefinition.devDeprecation('consensus network upgrade'),
           )
             .addSubcommand(
               new Subcommand(
@@ -383,6 +398,7 @@ export class ConsensusCommandDefinition extends BaseCommandDefinition {
           new CommandGroup(
             ConsensusCommandDefinition.DEV_NODE_DELETE_SUBCOMMAND_NAME,
             ConsensusCommandDefinition.DEV_NODE_DELETE_SUBCOMMAND_DESCRIPTION,
+            ConsensusCommandDefinition.devDeprecation('consensus node destroy'),
           )
             .addSubcommand(
               new Subcommand(
@@ -417,6 +433,7 @@ export class ConsensusCommandDefinition extends BaseCommandDefinition {
           new CommandGroup(
             ConsensusCommandDefinition.DEV_FREEZE_SUBCOMMAND_NAME,
             ConsensusCommandDefinition.DEV_FREEZE_SUBCOMMAND_DESCRIPTION,
+            ConsensusCommandDefinition.devDeprecation('consensus network freeze'),
           )
             .addSubcommand(
               new Subcommand(
