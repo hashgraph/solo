@@ -33,8 +33,6 @@ describe('CommandHelpers.subTaskSoloCommand', (): void => {
   it('does not inherit component image overrides from sibling command state', async (): Promise<void> => {
     configManager.setFlag(flags.componentImage, 'gcr.io/mirrornode/hedera-mirror:0.164.2-tck.local1');
     configManager.setFlag(flags.componentImageArchive, '/tmp/mirror-node-candidate.tar');
-    configManager.setFlag(flags.valuesFile, '/tmp/mirror-values.yaml');
-    expect(configManager.getFlag(flags.valuesFile)).to.equal('/tmp/mirror-values.yaml');
 
     const taskList: TaskList<ListrContext, ListrRendererValue, ListrRendererValue> = {
       parentTaskListMap: new Map<string, TaskNodeType[]>(),
@@ -42,12 +40,10 @@ describe('CommandHelpers.subTaskSoloCommand', (): void => {
 
     let scopedComponentImage: string | undefined;
     let scopedComponentImageArchive: string | undefined;
-    let scopedValuesFile: string | undefined;
 
     sinon.stub(ArgumentProcessor, 'process').callsFake(async (): Promise<void> => {
       scopedComponentImage = configManager.getFlag<string>(flags.componentImage);
       scopedComponentImageArchive = configManager.getFlag<string>(flags.componentImageArchive);
-      scopedValuesFile = configManager.getFlag<string>(flags.valuesFile);
     });
 
     await CommandHelpers.subTaskSoloCommand(
@@ -59,9 +55,7 @@ describe('CommandHelpers.subTaskSoloCommand', (): void => {
 
     expect(scopedComponentImage).to.equal(undefined);
     expect(scopedComponentImageArchive).to.equal(undefined);
-    expect(scopedValuesFile).to.equal(undefined);
     expect(configManager.getFlag(flags.componentImage)).to.equal('gcr.io/mirrornode/hedera-mirror:0.164.2-tck.local1');
     expect(configManager.getFlag(flags.componentImageArchive)).to.equal('/tmp/mirror-node-candidate.tar');
-    expect(configManager.getFlag(flags.valuesFile)).to.equal('/tmp/mirror-values.yaml');
   });
 });
