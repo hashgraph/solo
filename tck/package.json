@@ -1,0 +1,13 @@
+{
+  "name": "@hiero-ledger/solo-tck",
+  "version": "0.1.0-dev.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "license": "Apache-2.0"
+}
