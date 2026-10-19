@@ -61,56 +61,20 @@ sh install.sh
 
 > **Security Note:** Piping `curl | sh` executes the downloaded installer script before you can inspect it; the script itself verifies the integrity of the binary it downloads, but cannot verify itself before execution. Downloading `install.sh`, inspecting it, and then running it allows you to review the script first.
 
-#### Installer Options and Environment Variables
-
-The installer supports the following command-line flags:
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--version <tag>` | Solo release to install, for example `v0.92.0` | `latest` |
-| `--prefix <dir>` | Directory for the `solo` binary | `~/.solo/bin` (or `SOLO_INSTALL_DIR`) |
-| `--skip-image-cache` | Do not run `solo cache image pull` after installing | Disabled (cache is warmed) |
-| `--base-url <url>` | Release download base URL | `https://github.com/hiero-ledger/solo/releases` |
-| `-h`, `--help` | Show installer help and exit | |
-
-The installer also recognizes the following environment variables:
-
-- `SOLO_INSTALL_DIR`: Sets the directory for the `solo` binary when `--prefix` is omitted (default: `~/.solo/bin`).
-- `SUDO_USER`: When running under `sudo`, the installer detects this variable and skips warming the image cache to avoid creating root-owned files in the user's directory.
-
-#### Installation Location and PATH Configuration
-
-- By default, the binary is installed to `~/.solo/bin/solo`.
-- When installed to the default location (`~/.solo/bin`), the installer automatically adds `~/.solo/bin` to `PATH` in your shell configuration file:
-  - **Bash**: `~/.bashrc` (bracketed by `# >>> solo installer >>>` and `# <<< solo installer <<<`)
-  - **Zsh**: `${ZDOTDIR:-$HOME}/.zshrc` (bracketed by `# >>> solo installer >>>` and `# <<< solo installer <<<`)
-  - **Fish**: `~/.config/fish/conf.d/solo.fish`
-- **Custom Prefixes**: If `--prefix` or `SOLO_INSTALL_DIR` specifies a non-default directory (or if your shell is not recognized), the installer does not modify startup files; add the target directory to your `PATH` manually.
-- After installation, restart your shell or run `export PATH="$PATH:$HOME/.solo/bin"` (or your custom directory) to start using `solo`.
-- If another `solo` executable (such as one installed via npm) appears earlier on `PATH`, the installer prints a warning advising you to remove it (`npm uninstall -g @hiero-ledger/solo`).
-
-#### Integrity and Signature Verification
-
-- **Checksum Verification**: The installer unconditionally downloads the `SHA256SUMS` manifest from the GitHub release and computes the SHA-256 hash of the downloaded binary. If the checksum does not match, or if no binary is published for the detected architecture and C library, the installer halts and deletes temporary files.
-- **Pre-execution Smoke Test**: Before replacing an existing binary, the installer executes `<staged_binary> --version` to ensure the binary runs properly on your system.
-- **Keyless Signature Verification (`cosign`)**: If [cosign](https://github.com/sigstore/cosign) is installed on your system, the script automatically downloads the signature bundle (`SHA256SUMS.sigstore.json`) and verifies the signature of the checksum manifest against Solo's GitHub Actions workflow OIDC identity (`https://token.actions.githubusercontent.com`). If `cosign` is not found, signature verification is skipped with an informational message, while checksum verification proceeds unconditionally. If no signature bundle is published for the release, signature verification is skipped with a warning.
-
-#### Container Image Cache
-
-By default, the installer runs `solo cache image pull --quiet-mode` after installing the binary to pre-pull the container images that Solo deploys, speeding up your first deployment.
-- Use `--skip-image-cache` to skip pre-pulling (useful for CI pipelines or bandwidth-constrained environments).
-- If image pulling fails (for example, if Docker or Podman is not running), the installer prints a warning but exits successfully; cache failures do not prevent installation. You can pull the images later at any time by running `solo cache image pull`.
-
 #### Platform Support and Limitations
 
 The installer automatically detects your operating system, CPU architecture, and C library (`glibc` vs `musl`):
 
-- **Supported Standalone Binary**: Releases currently build and publish the standalone binary for **Linux x86_64 / amd64 with glibc** (`solo-linux-x64`).
+- **Supported Standalone Binaries**: **Linux x86_64 / amd64** (`solo-linux-x64`) and **Linux ARM64 / aarch64** (`solo-linux-arm64`), both with glibc.
 - **Platform Limitations and Upcoming Support**:
-  - Standalone binaries for **Linux ARM64 / aarch64** are not yet available (tracked in [#6212](https://github.com/hiero-ledger/solo/issues/6212)).
   - Standalone binaries for **musl-based distributions (e.g., Alpine Linux)** are not yet available (tracked in [#6211](https://github.com/hiero-ledger/solo/issues/6211)).
   - Standalone installers for macOS and Windows are tracked in epic [#5714](https://github.com/hiero-ledger/solo/issues/5714).
-- On platforms without standalone binary releases (including Linux ARM64, Alpine Linux, macOS, and Windows), install Solo using npm.
+- On platforms without standalone binary releases (including Alpine Linux, macOS, and Windows), install Solo using npm.
+
+#### Integrity and Signature Verification
+
+- **Checksum Verification**: The installer unconditionally downloads the `SHA256SUMS` manifest from the GitHub release and computes the SHA-256 hash of the downloaded binary. If the checksum does not match, or if no binary is published for the detected architecture and C library, the installer halts and deletes temporary files.
+- **Keyless Signature Verification (`cosign`)**: If [cosign](https://github.com/sigstore/cosign) 2.4.1 or later is installed, the script downloads the signature bundle (`SHA256SUMS.sigstore.json`) and verifies the signature of the checksum manifest against Solo's GitHub Actions workflow OIDC identity (`https://token.actions.githubusercontent.com`). If `cosign` is not found, signature verification is skipped with an informational message. If it is older than 2.4.1, or the release has no signature bundle, it is skipped with a warning. In each of these cases the checksum is still verified.
 
 #### Manual Uninstallation
 
@@ -120,10 +84,7 @@ Automated uninstallation via `solo uninstall` is planned (tracked in [#5721](htt
    ```bash
    rm -f ~/.solo/bin/solo
    ```
-   (or `<prefix>/solo` if installed to a custom directory). To remove all user configuration, caches, and runtime data, delete the `~/.solo` directory:
-   ```bash
-   rm -rf ~/.solo
-   ```
+   (or `<prefix>/solo` if installed to a custom directory).
 2. Remove the PATH entry from your shell startup file:
    - **Bash** (`~/.bashrc`) or **Zsh** (`~/.zshrc`): Delete the block between `# >>> solo installer >>>` and `# <<< solo installer <<<`.
    - **Fish**: Delete `~/.config/fish/conf.d/solo.fish`:
@@ -132,15 +93,7 @@ Automated uninstallation via `solo uninstall` is planned (tracked in [#5721](htt
      ```
    - For custom prefixes, remove any `export PATH=...` entries you manually added.
 
-### npm (Cross-Platform)
-
-Solo is also published as an npm package for all platforms supporting Node.js:
-
-```bash
-npm install -g @hiero-ledger/solo
-```
-
-Requires Node.js >= 22.0.0.
+For detailed installer options, environment variables, and advanced configuration, see the [Solo Quickstart documentation](https://solo.hiero.org/docs/simple-solo-setup/quickstart/).
 
 ## Releases
 
