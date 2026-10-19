@@ -19,10 +19,12 @@
 #   1. installs Solo with that platform's installer, the way a first-time user runs it
 #   2. verifies the post-install `solo cache image pull` populated the image cache
 #   3. runs `solo one-shot single deploy`, validates the network, then destroys it
-# The SEA binary is built in this run and served from a local release directory over file://.
+# The SEA binaries are built in this run by flow-build-sea.yaml and served from a local release
+# directory over file://.
 #
-# To add a platform: add a row to the `define-matrix` job and an `Install Solo (<os>)` step (plus
-# any OS-specific checks) gated on `matrix.os`. Every other step is shared by all rows.
+# To add a platform: add a row to the `installer-e2e` matrix and an `Install Solo (<platform>)` step
+# (plus any platform-specific checks) gated on `matrix.platform`. Every other step is shared by all
+# rows.
 # Tracked by hiero-ledger/solo#5714 (Linux: #5731).
 name: 'Installer E2E'
 
@@ -51,98 +53,33 @@ env:
   STEP_TIMEOUT_MINUTES: '5'
 
 jobs:
-  # A matrix cannot be shared between jobs, so the platform list is defined once here and read by
-  # both the build and the test job.
-  define-matrix:
-    name: 'Define Platform Matrix'
-    runs-on: hiero-solo-linux-medium
-    outputs:
-      platforms: ${{ steps.platforms.outputs.platforms }}
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
-        with:
-          egress-policy: audit
-
-      # Row fields:
-      #   os            OS key that gates the OS-specific steps
-      #   arch          CPU architecture, used in job names
-      #   build-runner  runner that builds the SEA binary for this platform
-      #   test-runner   fresh runner that installs Solo and deploys the network (needs Docker)
-      #   asset         SEA binary name in sea/dist and in the release
-      #   bin-directory directory the installer puts the solo binary in
-      - name: Define Platforms
-        id: platforms
-        run: |
-          cat >>"${GITHUB_OUTPUT}" <<'EOF'
-          platforms<<PLATFORMS
-          [
-            {
-              "os": "linux",
-              "arch": "x64",
-              "build-runner": "hiero-solo-linux-medium",
-              "test-runner": "hiero-solo-linux-large",
-              "asset": "solo-linux-x64",
-              "bin-directory": "~/.solo/bin"
-            }
-          ]
-          PLATFORMS
-          EOF
-
   build-sea:
-    name: 'Build SEA (${{ matrix.os }}-${{ matrix.arch }})'
-    needs: define-matrix
-    runs-on: ${{ matrix.build-runner }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJSON(needs.define-matrix.outputs.platforms) }}
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
-        with:
-          egress-policy: audit
-
-      - name: Checkout Code
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Setup Node
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 22
-          package-manager-cache: false
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Compile TypeScript
-        run: npx tsc
-
-      - name: Build SEA Binary
-        run: npx tsx sea/build.ts
-
-      - name: Upload SEA Binary
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: ${{ matrix.asset }}
-          path: sea/dist/${{ matrix.asset }}
-          if-no-files-found: error
-          retention-days: 1
+    name: Build SEA Binaries
+    uses: $/.github/workflows/flow-build-sea.yaml
 
   installer-e2e:
-    name: 'Installer E2E (${{ matrix.os }}-${{ matrix.arch }})'
-    needs:
-      - define-matrix
-      - build-sea
+    name: 'Installer E2E (${{ matrix.platform }}-${{ matrix.arch }})'
+    needs: build-sea
+    # flow-build-sea.yaml builds every platform; a failed leg for another platform must not skip this
+    # row. A missing binary for this row fails the download step instead.
+    if: ${{ !cancelled() }}
     runs-on: ${{ matrix.test-runner }}
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJSON(needs.define-matrix.outputs.platforms) }}
+        # Row fields:
+        #   platform       Node's process.platform (linux, darwin, win32), as flow-build-sea.yaml names it
+        #   arch           CPU architecture (x64, arm64), as flow-build-sea.yaml names it
+        #   test-runner    fresh runner that installs Solo and deploys the network (needs Docker)
+        #   asset          SEA binary file name, in the build artifact and in the release
+        #   bin-directory  directory the installer puts the solo binary in
+        include:
+          - platform: linux
+            arch: x64
+            test-runner: hiero-solo-linux-large
+            asset: solo-linux-x64
+            bin-directory: '~/.solo/bin'
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
@@ -186,7 +123,8 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
-          name: ${{ matrix.asset }}
+          # The artifact also holds build intermediates (.blob, .cjs, .json); only the binary is staged.
+          name: solo-${{ matrix.platform }}-${{ matrix.arch }}-${{ github.sha }}
           path: sea-binary
 
       - name: Stage Local Release
@@ -205,11 +143,11 @@ jobs:
             shasum -a 256 "${ASSET}" >SHA256SUMS
           fi
 
-      # ---- OS-specific install: one step per OS, each leaving solo in matrix.bin-directory ---- #
+      # ---- Platform-specific install: one step per platform, each leaving solo in matrix.bin-directory ---- #
 
       - name: Install Solo (Linux)
         # Piped into sh, with the image cache pull enabled, exactly as a first-time user runs it.
-        if: ${{ matrix.os == 'linux' }}
+        if: ${{ matrix.platform == 'linux' }}
         timeout-minutes: 30
         env:
           # The installer picks the startup file from SHELL, which the runner does not guarantee to set.
@@ -218,7 +156,7 @@ jobs:
           sh -s -- --base-url "file://${RUNNER_TEMP}/release" <installers/linux/install.sh 2>&1 | tee "${RUNNER_TEMP}/install.log"
 
       - name: Verify PATH Configuration (Linux)
-        if: ${{ matrix.os == 'linux' }}
+        if: ${{ matrix.platform == 'linux' }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: grep -qF '# >>> solo installer >>>' ~/.bashrc
 
@@ -315,7 +253,7 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
-          name: installer-e2e-logs-${{ matrix.os }}-${{ matrix.arch }}
+          name: installer-e2e-logs-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             ~/.solo/logs/*
             ${{ runner.temp }}/install.log
