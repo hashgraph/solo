@@ -134,6 +134,11 @@ interface ExplorerUpgradeConfigClass {
   mirrorNamespace: NamespaceNameAsString;
   mirrorNodeReleaseName: string;
   isMirrorNodeLegacyChartInstalled: boolean;
+
+  // Populated right before the post-upgrade Deployment restart annotation is patched, so the
+  // subsequent pod-ready check can use it as a createdAfter cutoff and wait for the new pod
+  // instead of the still-running old one (see restartExplorerDeploymentTask()).
+  explorerRestartTime?: Date;
 }
 
 interface ExplorerUpgradeContext {
@@ -600,6 +605,10 @@ export class ExplorerCommand extends BaseCommand {
     return {
       title: 'Check explorer pod is ready',
       task: async ({config}: ExplorerDeployContext | ExplorerUpgradeContext): Promise<void> => {
+        // Only set on upgrade (see restartExplorerDeploymentTask()); undefined on add, where there
+        // is no stale pod to wait out.
+        const createdAfter: Optional<Date> = (config as ExplorerUpgradeConfigClass).explorerRestartTime;
+
         await this.k8Factory
           .getK8(config.clusterContext)
           .pods()
@@ -608,7 +617,34 @@ export class ExplorerCommand extends BaseCommand {
             Templates.renderExplorerLabels(config.id, config.isLegacyChartInstalled ? config.releaseName : undefined),
             constants.PODS_READY_MAX_ATTEMPTS,
             constants.PODS_READY_DELAY,
+            createdAfter,
           );
+      },
+    };
+  }
+
+  /**
+   * Force the explorer Deployment to roll after `explorer node upgrade`.
+   *
+   * The explorer chart mounts nginx.conf (and core-config.json/networks-config.json) via
+   * `subPath`, which kubelet never live-refreshes in a running pod, and the Deployment's pod
+   * template carries no checksum/restart annotation tied to the ConfigMap content. So a Helm
+   * upgrade that only changes the ConfigMap (e.g. a new mirror node backend URL) leaves the
+   * already-running pod serving stale routing forever (see issue #6118). Patching a timestamp
+   * annotation onto the pod template triggers a rollout unconditionally, since there is no cheap
+   * way to know in advance whether the rendered config actually changed.
+   */
+  private restartExplorerDeploymentTask(): SoloListrTask<ExplorerUpgradeContext> {
+    return {
+      title: 'Restart explorer deployment',
+      task: async ({config}: ExplorerUpgradeContext): Promise<void> => {
+        config.explorerRestartTime = new Date();
+
+        // Matches the `fullnameOverride` set in prepareHederaExplorerChartValues(), which the
+        // explorer chart truncates to 63 chars and strips a trailing '-' from.
+        const deploymentName: string = `${config.releaseName}-${config.namespace.name}`.slice(0, 63).replace(/-$/, '');
+
+        await this.patchDeploymentRestartAnnotation(config.clusterContext, config.namespace, deploymentName);
       },
     };
   }
@@ -957,6 +993,7 @@ export class ExplorerCommand extends BaseCommand {
         this.loadRemoteConfigTask(argv),
         this.installCertManagerTask(ExplorerCommandType.UPGRADE),
         this.installExplorerTask(ExplorerCommandType.UPGRADE),
+        this.restartExplorerDeploymentTask(),
         this.installExplorerIngressControllerTask(),
         this.checkExplorerPodIsReadyTask(),
         this.checkExplorerIngressControllerPodIsReadyTask(),
