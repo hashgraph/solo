@@ -9,6 +9,7 @@ import {ImageCacheWarmUp} from '../../../src/core/image-cache-warm-up.js';
 import {CacheManifestClient} from '../../../src/integration/cache/impl/cache-manifest-client.js';
 import {CacheManifestImage} from '../../../src/integration/cache/models/impl/cache-manifest-image.js';
 import {type SoloLogger} from '../../../src/core/logging/solo-logger.js';
+import {type GitHubRequestOptions} from '../../../src/core/git-hub-request-options.js';
 import {getSoloVersion} from '../../../version.js';
 
 const MARKER_FILE_NAME: string = 'image-cache-warm-up.json';
@@ -164,6 +165,14 @@ describe('ImageCacheWarmUp', (): void => {
 
     expect(fetchImagesStub.calledOnce).to.be.true;
     expect(confirm.calledOnce).to.be.true;
+  });
+
+  it('fetches the manifest with a timeout and closes the connection', async (): Promise<void> => {
+    await offer();
+
+    const options: GitHubRequestOptions = fetchImagesStub.firstCall.args[1] as GitHubRequestOptions;
+    expect(options.timeout.toMillis()).to.equal(5000);
+    expect(options.closeConnection).to.be.true;
   });
 
   it('skips cache commands', async (): Promise<void> => {

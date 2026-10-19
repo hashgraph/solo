@@ -11,6 +11,7 @@ import {Duration} from './time/duration.js';
 import {getSoloVersion} from '../../version.js';
 import {CacheManifestClient} from '../integration/cache/impl/cache-manifest-client.js';
 import {type CacheManifestImage} from '../integration/cache/models/impl/cache-manifest-image.js';
+import {type GitHubRequestOptions} from './git-hub-request-options.js';
 
 /** What happened the last time Solo considered warming the image cache. */
 type WarmUpOutcome = 'pulled' | 'accepted' | 'declined' | 'notified' | 'unavailable';
@@ -31,7 +32,11 @@ export class ImageCacheWarmUp {
   /** Kept outside the cache directory so `solo cache image prune` does not reset it. */
   private static readonly MARKER_FILE_PATH: string = PathEx.join(constants.SOLO_HOME_DIR, 'image-cache-warm-up.json');
 
-  private static readonly MANIFEST_TIMEOUT: Duration = Duration.ofSeconds(5);
+  /** The check runs just before Solo exits, and a connection still open at exit can crash Node on Windows. */
+  private static readonly MANIFEST_REQUEST_OPTIONS: GitHubRequestOptions = {
+    timeout: Duration.ofSeconds(5),
+    closeConnection: true,
+  };
 
   private static readonly BYTES_PER_GIGABYTE: number = 1_000_000_000;
 
@@ -66,7 +71,7 @@ export class ImageCacheWarmUp {
 
       let images: readonly CacheManifestImage[];
       try {
-        images = await CacheManifestClient.fetchImages(getSoloVersion(), ImageCacheWarmUp.MANIFEST_TIMEOUT);
+        images = await CacheManifestClient.fetchImages(getSoloVersion(), ImageCacheWarmUp.MANIFEST_REQUEST_OPTIONS);
       } catch (error) {
         // Without a manifest the pull caches nothing, so there is nothing to offer for this version.
         logger.debug('No image cache manifest for this version; skipping the image cache warm-up: ', error);

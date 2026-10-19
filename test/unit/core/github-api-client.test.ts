@@ -65,10 +65,20 @@ describe('GitHubApiClient', (): void => {
       fetchStub.resolves(makeOkResponse());
 
       await GitHubApiClient.get('https://api.github.com/repos/foo/bar/releases');
-      await GitHubApiClient.get('https://api.github.com/repos/foo/bar/releases', Duration.ofSeconds(5));
+      await GitHubApiClient.get('https://api.github.com/repos/foo/bar/releases', {timeout: Duration.ofSeconds(5)});
 
       expect(fetchStub.firstCall.args[1].signal).to.be.undefined;
       expect(fetchStub.secondCall.args[1].signal).to.be.instanceOf(AbortSignal);
+    });
+
+    it('asks to close the connection only when requested', async (): Promise<void> => {
+      fetchStub.resolves(makeOkResponse());
+
+      await GitHubApiClient.get('https://api.github.com/repos/foo/bar/releases');
+      await GitHubApiClient.get('https://api.github.com/repos/foo/bar/releases', {closeConnection: true});
+
+      expect(fetchStub.firstCall.args[1].headers).to.not.have.property('Connection');
+      expect(fetchStub.secondCall.args[1].headers).to.have.property('Connection', 'close');
     });
 
     it('adds Authorization header when GITHUB_TOKEN is set', async (): Promise<void> => {

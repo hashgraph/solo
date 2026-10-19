@@ -6,6 +6,7 @@ import {afterEach, describe, it} from 'mocha';
 import {CacheManifestClient} from '../../../../src/integration/cache/impl/cache-manifest-client.js';
 import {type CacheManifestImage} from '../../../../src/integration/cache/models/impl/cache-manifest-image.js';
 import {SoloError} from '../../../../src/core/errors/solo-error.js';
+import {Duration} from '../../../../src/core/time/duration.js';
 
 const SOLO_VERSION: string = '0.86.0';
 const HASH: string = 'a'.repeat(64);
@@ -169,6 +170,15 @@ describe('CacheManifestClient', (): void => {
         expect(error).to.be.instanceOf(SoloError);
         expect((error as SoloError).message).to.contain('Failed to download the image cache manifest');
       }
+    });
+
+    it('passes the request options on to the download', async (): Promise<void> => {
+      const fetchStub: SinonStub = stubFetch(JSON.stringify(manifest()));
+
+      await CacheManifestClient.fetchImages(SOLO_VERSION, {timeout: Duration.ofSeconds(5), closeConnection: true});
+
+      expect(fetchStub.firstCall.args[1].signal).to.be.instanceOf(AbortSignal);
+      expect(fetchStub.firstCall.args[1].headers).to.have.property('Connection', 'close');
     });
 
     it('rejects a manifest that is not JSON', async (): Promise<void> => {
