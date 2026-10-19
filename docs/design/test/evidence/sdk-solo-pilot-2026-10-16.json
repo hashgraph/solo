@@ -1,0 +1,145 @@
+{
+  "formatVersion": 1,
+  "recordType": "local-sdk-pilot-evidence",
+  "date": "2026-10-16",
+  "outcome": "pilot-pass",
+  "fullKitVerification": false,
+  "sources": {
+    "sdk": {
+      "repository": "https://github.com/hiero-ledger/hiero-sdk-js",
+      "commit": "73aa1bc1808b187c8c6887101d12ef9294e59f4c",
+      "pullRequest": "https://github.com/hiero-ledger/hiero-sdk-js/pull/4537",
+      "helper": "https://github.com/hiero-ledger/hiero-sdk-js/blob/73aa1bc1808b187c8c6887101d12ef9294e59f4c/.github/scripts/solo-compat.mjs",
+      "helperUnchanged": true,
+      "helperSha256": "4b271438ef73e4a68716b354858124514c88bb9a595d5f13e5d93f21c5b45e13"
+    },
+    "solo": {
+      "repository": "https://github.com/hiero-ledger/solo",
+      "baseCommit": "2d2adcc68355ac9296482cc312f95dcd75fe4972",
+      "pullRequest": "https://github.com/hiero-ledger/solo/pull/6228",
+      "overridePatchSha256": "9496d91ae52abaa5ba4824749c17a84cd7485a787321bb574a73474eeb6dbc06",
+      "overridePatchSubsequentlyCommittedAs": "24dc1ffcd42d24876bdc422b1b459496afec220e",
+      "builtBeforeThatCommit": true,
+      "packageVersion": "0.93.0",
+      "source": "local npm pack tarball",
+      "installedBuildFileSha256": {
+        "package.json": "c1160981018fb91ff98010b45f588c50237b147ccae3c04aa34be58c55ef1374",
+        "src/core/account-manager.ts": "542b653d5cdea50e79d06315390f558b3d3c29c04f521d6798d5e5b4d91bf4f0",
+        "dist/src/core/account-manager.js": "087c00c8647a337c19b9cae0565223bb75406905366cb607dd234e41a10de0b3"
+      },
+      "tarballIntegrity": "sha512-Uyr2/9VgnyhdWc0eRuWUV9Qv3NYI/RomhJQtmgWs2mpJ3QM67vM7xYpo0ke/8ej3NnBuAn+XImY2LWrz1WNL1Q=="
+    }
+  },
+  "candidatePackages": {
+    "@hiero-ledger/sdk": "2.90.1",
+    "@hiero-ledger/proto": "2.32.0",
+    "@hiero-ledger/cryptography": "1.23.0"
+  },
+  "companions": {
+    "consensusNode": "v0.77.2",
+    "mirrorNode": "v0.163.0"
+  },
+  "environment": {
+    "host": "macOS arm64",
+    "node": "v22.23.2",
+    "containers": "Docker Desktop linux arm64",
+    "kubernetes": "Kind v1.31.9",
+    "cluster": "solo-6228-pilot",
+    "isolatedKubeconfig": true,
+    "isolatedSoloHome": true,
+    "clusterPrecreated": true
+  },
+  "deployCommand": [
+    "solo",
+    "one-shot",
+    "single",
+    "deploy",
+    "--quiet-mode",
+    "--namespace",
+    "one-shot",
+    "--consensus-node-version",
+    "v0.77.2",
+    "--mirror-node-version",
+    "v0.163.0"
+  ],
+  "checks": {
+    "oneCopyOfEachCandidatePackage": true,
+    "candidatePackageLockSha512Matches": true,
+    "soloRequireResolvesCandidateSdk": true,
+    "soloImportResolvesCandidateSdk": true,
+    "installedSoloMatchesFixedLocalBuild": true,
+    "accountCreate": true,
+    "accountKeyUpdateAndNewKeyQuery": true,
+    "transferSuccessReceipt": true,
+    "topicMessageSuccessReceipt": true,
+    "mirrorTransferReadback": true,
+    "mirrorExactMessageReadback": true
+  },
+  "accountId": "0.0.1012",
+  "stages": [
+    {
+      "name": "install",
+      "exitCode": 0,
+      "seconds": 12.87
+    },
+    {
+      "name": "deploy",
+      "exitCode": 0,
+      "seconds": 300.66
+    },
+    {
+      "name": "account-create",
+      "exitCode": 0,
+      "seconds": 5.08
+    },
+    {
+      "name": "account-update",
+      "exitCode": 0,
+      "seconds": 5.74
+    },
+    {
+      "name": "check-network",
+      "exitCode": 0,
+      "seconds": 3.28
+    },
+    {
+      "name": "pods",
+      "exitCode": 0,
+      "seconds": 0.07
+    },
+    {
+      "name": "destroy",
+      "exitCode": 0,
+      "seconds": 14.47
+    },
+    {
+      "name": "delete-cluster",
+      "exitCode": 0,
+      "seconds": 1.89
+    }
+  ],
+  "elapsedSeconds": 344.45,
+  "cleanup": {
+    "soloDestroyPassed": true,
+    "pilotClusterDeleted": true,
+    "pilotPortsClosed": true,
+    "existingClusterUnchanged": {
+      "samePodUids": true,
+      "ready": 22,
+      "total": 22
+    }
+  },
+  "tarballSha256": {
+    "packs/solo/hiero-ledger-solo-0.93.0.tgz": "36a42e680138489bd0d9c887262402470bd4fd452ee0f3b52045b834c621fd7a",
+    "packs/sdk/hiero-ledger-sdk-2.90.1.tgz": "27b1e6b3d96a4779bda82e1ccc7a0e781df8540a5d23b77327e1a202bffeb463",
+    "packs/sdk/hiero-ledger-cryptography-1.23.0.tgz": "0a43ea93b5b49b40aaebcda8be2984384cb4b24e6fb0b81d38977ce60b529cca",
+    "packs/sdk/hiero-ledger-proto-2.32.0.tgz": "3e256b7791ee7134c8f73cade50500bcd74c2be75b46b9e088bc8878858e5593"
+  },
+  "limitations": [
+    "Local macOS arm64 proof; not a GitHub Linux CI result.",
+    "Uses one-shot single including Explorer and Relay; not the planned Falcon SDK lane.",
+    "Elapsed time excludes SDK/Solo builds and Kind cluster preparation.",
+    "No kit pod watcher, two-minute load, resource sampling/ceilings or kit release negative controls.",
+    "Does not admit a released Solo version to any kit supported list."
+  ]
+}
