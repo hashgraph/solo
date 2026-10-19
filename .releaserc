@@ -5,7 +5,9 @@
       {
         "preset": "conventionalcommits",
         "releaseRules": [
-          { "breaking": true, "release": "minor" }
+          { "scope": "tck", "release": false },
+          { "breaking": true, "scope": null, "release": "minor" },
+          { "breaking": true, "scope": "!tck", "release": "minor" }
         ]
       }
     ],

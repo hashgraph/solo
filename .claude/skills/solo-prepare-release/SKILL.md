@@ -30,45 +30,69 @@ non-Solo repos.
 
 | Fact | How to get it |
 |------|----------------|
-| Last released version | `git describe --tags --abbrev=0` (e.g. `v0.79.0`) |
-| Commits since last tag | `git log "$(git describe --tags --abbrev=0)"..HEAD --pretty=%s` |
+| Last released version | `npx tsx scripts/solo-release-tooling.ts get-last-tag` (e.g. `v0.93.0`) |
+| Commits since last tag | `git log "${LAST_TAG}..HEAD" --pretty=%s` |
 | Today's date | `date +%Y-%m-%d` |
 | Dependency versions | `version.ts` constants (see mapping below) |
 
 ## Step 1 — Determine the next version
 
-Read the current version from `package.json` (`"version"`) — confirm it matches the last tag.
+Read the current version from `package.json` (`"version"`) — confirm it matches the last Solo release tag.
 
-Decide the bump by inspecting commit subjects since the last tag:
+Run the release tooling helper to inspect commit history since the last Solo tag:
 
 ```bash
-LAST_TAG="$(git describe --tags --abbrev=0)"
+npx tsx scripts/solo-release-tooling.ts check-release
+```
+
+Or execute the steps directly:
+
+```bash
+LAST_TAG="$(npx tsx scripts/solo-release-tooling.ts get-last-tag)"
 git log "${LAST_TAG}..HEAD" --pretty=%s
 ```
 
-- If **any** subject starts with `feat:` (also count conventional variants `feat(scope):` and `feat!:`/`feat(scope)!:`),
-  bump the **minor** version and reset patch to 0 → `0.79.0` becomes `0.80.0`.
-- Otherwise bump only the **patch** version → `0.79.0` becomes `0.79.1`.
+Decide the bump by inspecting commit subjects since the last tag:
+
+- **TCK-only isolation:** Commits with the exact scope `tck` (e.g. `feat(tck):`, `fix(tck):`, `feat(tck)!:`)
+  belong to the TCK test harness and must **not** trigger or prepare a Solo release.
+  If **all** commits since the last Solo tag are TCK commits, stop immediately — report that only TCK changes
+  exist and no Solo release is needed. Skip every step below.
+- If **any** subject contains a Solo feature or breaking change (starts with `feat:` or `feat(scope):` or carries `!:` where scope is **not** `tck`), bump the **minor** version and reset patch to 0 → `0.93.0` becomes `0.94.0`.
+- Otherwise bump only the **patch** version → `0.93.0` becomes `0.93.1`.
 
 Detection one-liner (`NEXT` ends up as the bare version, no leading `v`):
 
 ```bash
-CUR="$(node -p "require('./package.json').version")"   # e.g. 0.79.0
+LAST_TAG="$(npx tsx scripts/solo-release-tooling.ts get-last-tag)"
+CUR="$(node -p "require('./package.json').version")"   # e.g. 0.93.0
 IFS=. read -r MAJ MIN PAT <<< "${CUR}"
-if git log "${LAST_TAG}..HEAD" --pretty=%s | grep -Eq '^feat(\(.+\))?!?:'; then
+
+COMMITS="$(git log "${LAST_TAG}..HEAD" --pretty=%s)"
+TCK_ONLY=false
+if [[ -n "${COMMITS}" ]] && ! echo "${COMMITS}" | grep -Eiqv '^[a-zA-Z0-9_.-]+\(tck\)!?:'; then
+  TCK_ONLY=true
+fi
+
+if [[ -z "${COMMITS}" ]]; then
+  echo "No commits since last release tag. No Solo release needed."
+elif [[ "${TCK_ONLY}" == "true" ]]; then
+  echo "TCK-only changes detected. No Solo release needed."
+elif echo "${COMMITS}" | grep -Eiv '^[a-zA-Z0-9_.-]+\(tck\)!?:' | grep -Eq '^([a-zA-Z0-9_.-]+(\([^)]+\))?!:|feat(\([^)]+\))?:)'; then
   NEXT="${MAJ}.$((MIN + 1)).0"
+  echo "Next version: ${NEXT}"
 else
   NEXT="${MAJ}.${MIN}.$((PAT + 1))"
+  echo "Next version: ${NEXT}"
 fi
-echo "Next version: ${NEXT}"
 ```
 
-State the computed version and the reason (feat found → minor / none → patch) before proceeding.
+State the computed version and the reason (feat found → minor / none → patch / tck-only → stop) before proceeding.
 
-> **Patch-only short-circuit:** if the bump is a **patch** (no `feat:` commits since the last tag), there is
-> **nothing to prepare** — do **not** create a branch, edit any files, or commit. Report that the next version is a
-> patch release and that no documentation changes are needed, then stop. Skip every step below. Only continue when the
-> bump is a **minor**.
+> **TCK-only, No-commit, and Patch-only short-circuit:** if there are no commits since the last tag, if the commits are
+> **TCK-only**, or if the bump is a **patch** (no Solo `feat:` or breaking commits since the last tag), there is
+> **nothing to prepare** — do **not** create a branch, edit any files, or commit. Report the status and stop. Skip
+> every step below. Only continue when the bump is a **minor** Solo release.
 
 ## Step 2 — Classify the release (LTS vs normal)
 
@@ -183,7 +207,9 @@ Then report: the computed version, LTS/normal classification, the new README row
 
 ### MUST
 
-- Stop immediately with no branch, no file edits, and no commit when the bump is **patch-only** (no `feat:` commits).
+- Stop immediately with no branch, no file edits, and no commit when commits are **TCK-only** or the bump is **patch-only**.
+- Select only valid Solo release tags (`v[0-9]*`), never selecting TCK tags (e.g. `tck-v*`, `*tck*`) or non-version tags.
+- Exclude TCK commits (exact scope `tck`) from inflating Solo feature counts or triggering minor release preparation.
 - Read dependency versions from `version.ts` (`HEDERA_PLATFORM_VERSION`, `KUBECTL_VERSION`), never assume them.
 - Insert the new release as the first data row of the "Current Releases" table.
 - Apply the even=LTS/3-month, odd=normal/1-month rule from the **minor** version number.
@@ -194,7 +220,9 @@ Then report: the computed version, LTS/normal classification, the new README row
 
 ### MUST NOT
 
+- Treat TCK-specific commits (e.g. `feat(tck):`, `fix(tck):`, `feat(tck)!:`) as Solo features or release triggers.
+- Mistake TCK tags (e.g. `tck-v*`, `*tck*`) for Solo release tags.
 - Commit anything other than `README.md` and `legacy-versions.md`.
 - "Fix" the existing legacy-table header typo or reflow unrelated table rows.
-- Make any file change or commit for a patch-only bump.
+- Make any file change or commit for a patch-only or TCK-only bump.
 - Bump major version — this skill only does minor/patch bumps.
