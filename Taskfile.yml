@@ -92,7 +92,7 @@ tasks:
         {{end}}
 
   build:
-    desc: "Build the project (compile, lint, and SEA binary)"
+    desc: "Build the project (compile and lint); the SEA binary is built separately with sea:build"
     deps: [npm:install]
     sources:
       - src/**/*.ts
@@ -100,8 +100,6 @@ tasks:
       - version.ts
       - solo.ts
       - tsconfig.json
-      - sea/*.ts
-      - sea/*.cjs
       - resources/**
       - package.json
       - package-lock.json
@@ -109,7 +107,6 @@ tasks:
       - task: "build:compile"
       - task: "build:lint"
       - task: "check:deprecations"
-      - task: "sea:build"
 
   check:deprecations:
     desc: "Warn (without failing) about deprecated features that have reached their removal target version"

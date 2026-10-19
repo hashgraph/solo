@@ -24,6 +24,9 @@ task build
 # Compile only
 task build:compile
 
+# Build the SEA binary for the current platform (not part of task build)
+task sea:build
+
 # Run unit tests with coverage
 task test
 
