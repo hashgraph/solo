@@ -5,7 +5,7 @@ import {type Listr, type ListrBaseClassOptions, type ListrContext, type ListrRen
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {select as selectPrompt} from '@inquirer/prompts';
 import {InjectTokens} from '../../../../core/dependency-injection/inject-tokens.js';
-import {UserInput} from '../../../../core/user-input.js';
+import {Templates} from '../../../../core/templates.js';
 import {patchInject} from '../../../../core/dependency-injection/container-helper.js';
 import {type TaskList} from '../../../../core/task-list/task-list.js';
 import {type SoloEventBus} from '../../../../core/events/solo-event-bus.js';
@@ -44,7 +44,6 @@ import {OrchestratorPipeline} from '../orchestrator-pipeline.js';
 import {SpinnerListrOptions} from '../../../../core/spinner-listr-options.js';
 import {MutableFacadeArray} from '../../../../business/runtime-state/collection/mutable-facade-array.js';
 import {DeploymentSchema} from '../../../../data/schema/model/local/deployment-schema.js';
-import {PathEx} from '../../../../business/utils/path-ex.js';
 import fs from 'node:fs';
 
 const SINGLE_DESTROY_CONFIGS_NAME: string = 'singleDestroyConfigs';
@@ -429,7 +428,7 @@ export class DefaultOneShotDestroyOrchestrator implements OneShotDestroyOrchestr
   }
 
   private getOneShotOutputDirectory(deploymentName: string): string {
-    return PathEx.join(constants.SOLO_HOME_DIR, `one-shot-${UserInput.safeFilenameComponent(deploymentName)}`);
+    return Templates.renderOneShotOutputDirectory(deploymentName);
   }
 
   private async loadRemoteConfigOrWarn(argv: ArgvStruct): Promise<boolean> {

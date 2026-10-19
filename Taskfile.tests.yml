@@ -132,6 +132,14 @@ tasks:
         {{ .mocha_bin }} 'test/e2e/commands/dual-cluster-full.test.ts' 
         {{ .reporter_options_prefix }}-e2e-dual-cluster-full.xml"
 
+  test-e2e-explorer-routing-no-ingress:
+    desc: "Runs the minimal single-cluster E2E test verifying explorer proxy routing with mirror node ingress disabled"
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Explorer Routing Without Mirror Ingress Test\"
+        {{ .reporter_prefix }}='coverage/e2e-explorer-routing-no-ingress'
+        {{ .mocha_bin }} 'test/e2e/commands/explorer-routing-no-ingress.test.ts'
+        {{ .reporter_options_prefix }}-e2e-explorer-routing-no-ingress.xml"
+
   test-e2e-external-database:
     desc: "Runs E2E External Database tests with coverage and generates reports in coverage/e2e-external-database"
     cmds:

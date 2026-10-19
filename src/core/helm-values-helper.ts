@@ -14,6 +14,7 @@ import {
 } from '../types/helm-values.js';
 import yaml from 'yaml';
 import {ValuesFileParser} from './util/values-file-parser.js';
+import {NetworkNodeLifecycle} from './network-node-lifecycle.js';
 
 type ExtractedExtraEnvironmentAnalysis = {
   environmentVariablesByNode: Record<NodeAlias, EnvironmentVariable[]>;
@@ -28,6 +29,41 @@ type ExtractedExtraEnvironmentArray = {
 
 export class HelmValuesHelper {
   public constructor() {}
+  /**
+   * Inspects user-supplied values files in Helm merge order to determine if MinIO
+   * is explicitly enabled via `cloud.minio.enabled`.
+   * Later values files override earlier values files (last defined value wins).
+   *
+   * @param filePaths - array of resolved file paths
+   * @returns true if the last explicitly defined `cloud.minio.enabled` across the files is true; false otherwise.
+   */
+  public hasExplicitMinioEnabled(filePaths: string[] = []): boolean {
+    let minioEnabled: boolean = false;
+
+    for (const filePath of filePaths) {
+      if (!filePath) {
+        continue;
+      }
+
+      const parsedRecord: Record<string, unknown> | undefined = this.parseValuesFile(filePath);
+      if (!parsedRecord) {
+        continue;
+      }
+
+      const cloudSection: unknown = parsedRecord.cloud;
+      if (cloudSection && typeof cloudSection === 'object') {
+        const minioSection: unknown = (cloudSection as Record<string, unknown>).minio;
+        if (minioSection && typeof minioSection === 'object') {
+          const enabled: unknown = (minioSection as Record<string, unknown>).enabled;
+          if (enabled !== undefined && enabled !== null) {
+            minioEnabled = enabled === true || enabled === 'true';
+          }
+        }
+      }
+    }
+
+    return minioEnabled;
+  }
 
   private buildPerNodeExtraEnvironmentValuesStructure(
     consensusNodes: ConsensusNode[],
@@ -42,6 +78,12 @@ export class HelmValuesHelper {
 
       if (options.useJavaMainClass) {
         this.setExtraEnvironmentVariable(extraEnvironmentVariables, 'JAVA_MAIN_CLASS', 'com.swirlds.platform.Browser');
+      }
+
+      if (NetworkNodeLifecycle.isConsensusNodeImage()) {
+        // The consensus node image would otherwise start the node as soon as the pod boots, before Solo has staged
+        // config and the build; Solo starts it explicitly via s6-svc instead.
+        this.setExtraEnvironmentVariable(extraEnvironmentVariables, 'AUTO_START_CONSENSUS_SERVICE', 'false');
       }
 
       if (options.wrapsEnabled && options.tss) {

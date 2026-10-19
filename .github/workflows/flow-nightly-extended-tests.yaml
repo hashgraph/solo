@@ -40,6 +40,13 @@ permissions:
 
 env:
   STEP_TIMEOUT_MINUTES: '5'
+  # Tools are downloaded directly and verified against these pinned linux/amd64 checksums.
+  JQ_VERSION: 'jq-1.8.2'
+  JQ_SHA256: 'b1c22172dd303f3be49e935aa56aa48a8b7a46e0bc838b4997d3bb451495870f'
+  KUBECTL_VERSION: 'v1.31.4'
+  KUBECTL_SHA256: '298e19e9c6c17199011404278f0ff8168a7eca4217edad9097af577023a5620f'
+  KIND_VERSION: 'v0.26.0'
+  KIND_SHA256: 'd445b44c28297bc23fd67e51cc24bb294ae7b977712be2d4d312883d0835829b'
 
 jobs:
   build-sea:
@@ -54,7 +61,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
@@ -66,7 +73,7 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: ${{ inputs.node-version || '24' }}
@@ -91,7 +98,7 @@ jobs:
       matrix: ${{ steps.set_matrix.outputs.matrix }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
@@ -102,12 +109,19 @@ jobs:
           persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
+      - name: Install jq
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/bin"
+          curl -fsSL --retry 5 --retry-all-errors -o "${RUNNER_TEMP}/bin/jq" \
+            "https://github.com/jqlang/jq/releases/download/${JQ_VERSION}/jq-linux-amd64"
+          echo "${JQ_SHA256}  ${RUNNER_TEMP}/bin/jq" | sha256sum -c -
+          chmod +x "${RUNNER_TEMP}/bin/jq"
+          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
+
       - name: Read JSON and Set Matrix Output
         id: set_matrix
         run: |
-          # Install jq (a lightweight and flexible command-line JSON processor)
-          sudo apt-get update && sudo apt-get install -y jq
-
           # Read script-only test array for matrix runner.
           JSON_CONTENT=$(jq -c '.tests | map(select(.type == "script"))' .github/workflows/support/extended-test-matrix.json)
 
@@ -128,7 +142,7 @@ jobs:
         test: ${{ fromJSON(needs.generate_matrix.outputs.matrix) }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
@@ -140,7 +154,7 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: ${{ inputs.node-version || '24' }}
@@ -157,28 +171,23 @@ jobs:
           timeout_minutes: 10
           command: npm ci
 
-      - name: Install jq
+      - name: Install jq, Kubectl and Kind
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
+          TOOL_DIRECTORY="${RUNNER_TEMP}/bin"
+          mkdir -p "${TOOL_DIRECTORY}"
 
-      - name: Install Kubectl
-        uses: step-security/setup-kubectl@b256bc71248a59f1e3a278fc75a65646d6a8a1c4 # pinned to v5.1.0
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        with:
-          version: "v1.31.4"
+          install_tool() {
+            local name="$1" url="$2" sha256="$3"
+            curl -fsSL --retry 5 --retry-all-errors -o "${TOOL_DIRECTORY}/${name}" "${url}"
+            echo "${sha256}  ${TOOL_DIRECTORY}/${name}" | sha256sum -c -
+            chmod +x "${TOOL_DIRECTORY}/${name}"
+          }
 
-      - name: Setup Kind
-        uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        with:
-          install_only: true
-          node_image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
-          version: v0.26.0
-          kubectl_version: v1.31.4
-          verbosity: 3
-          wait: 120s
+          install_tool jq "https://github.com/jqlang/jq/releases/download/${JQ_VERSION}/jq-linux-amd64" "${JQ_SHA256}"
+          install_tool kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" "${KUBECTL_SHA256}"
+          install_tool kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64" "${KIND_SHA256}"
+          echo "${TOOL_DIRECTORY}" >> "${GITHUB_PATH}"
 
       - name: Restore Solo Image Cache
         id: solo-image-cache
@@ -248,7 +257,7 @@ jobs:
 
       - name: Upload Logs to GitHub
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: solo-logs-${{ matrix.test.name }}
@@ -297,7 +306,6 @@ jobs:
       - generate_matrix
     uses: $/.github/workflows/flow-standard-runner-one-shot-windows.yaml
     with:
-      cn-edge-version: v0.77.2
       run-twice: true
     # The called workflow only uses the automatically provided GITHUB_TOKEN;
     # forwarding every repository secret is unnecessary and unsafe.

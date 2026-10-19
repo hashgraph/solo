@@ -20,6 +20,11 @@ name: 'Windows One-Shot Deploy and Destroy'
 # Docker runs inside WSL2 (replicating how Docker Desktop works for Windows users) and is
 # exposed to Windows via DOCKER_HOST=tcp://localhost:2375.
 # Any PR that breaks Solo on Windows will cause this workflow to fail.
+#
+# The run covers a full install -> remove -> reinstall cycle, because failures that only appear on a
+# second deploy are invisible to a single-deploy run (see #5302). The kind cluster is deleted between
+# the two deploys: one-shot destroy leaves it running, and cluster-scoped resources surviving it
+# would let the reinstall skip the very code paths that reuse the persistent ~/.solo cache.
 
 on:
   workflow_call:
@@ -125,7 +130,7 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node.js 24
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: '24'
@@ -321,7 +326,7 @@ jobs:
           Write-Host '::endgroup::'
 
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
@@ -371,6 +376,16 @@ jobs:
             echo "::endgroup::"
             echo "::group::Installing Docker Engine"
             apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin
+            echo "::endgroup::"
+            echo "::group::Configuring Docker registry mirrors"
+            # Docker Hub rate-limits anonymous pulls from shared runner IPs, which failed the probe's
+            # busybox pull and would equally fail kind's kindest/node pull. These pulls go through
+            # this dockerd, not the containerd inside the kind node (that one is covered by the
+            # mirrors in kind-config.yaml). dockerd tries registry-mirrors in order and falls back to
+            # Docker Hub itself when none can serve the image, so list the Hashgraph mirror first.
+            mkdir -p /etc/docker
+            printf '{"registry-mirrors":["https://hub.mirror.docker.lat.ope.eng.hashgraph.io","https://mirror.gcr.io"]}\n' > /etc/docker/daemon.json
+            cat /etc/docker/daemon.json
             echo "::endgroup::"
             echo "::group::Starting Docker Daemon"
             # Skip systemd — start dockerd directly with both Unix socket and TCP listener.
@@ -434,7 +449,27 @@ jobs:
           # seconds, against the transport rather than against Solo.
           $probeContainer = 'solo-docker-exec-probe'
           docker rm --force $probeContainer 2>$null | Out-Null
-          docker run --detach --name $probeContainer busybox:1.36.1 sleep 120 | Out-Null
+
+          # Docker Hub rate-limits anonymous pulls from shared runners (HTTP 429), so pull through the
+          # same mirrors the kind config uses, falling back to Docker Hub, and retry transient failures.
+          $probeImages = @('mirror.gcr.io/library/busybox:1.36.1', 'busybox:1.36.1')
+          $probeImage = $null
+          foreach ($attempt in 1..3) {
+            foreach ($candidate in $probeImages) {
+              docker pull $candidate | Out-Null
+              if ($LASTEXITCODE -eq 0) { $probeImage = $candidate; break }
+            }
+            if ($probeImage) { break }
+            Start-Sleep -Seconds (10 * $attempt)
+          }
+          if (-not $probeImage) {
+            throw "Unable to pull the busybox probe image from any registry; this is a registry failure, not a docker exec transport failure."
+          }
+
+          docker run --detach --name $probeContainer $probeImage sleep 120 | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to start the docker exec probe container from $probeImage."
+          }
 
           try {
             $probeOutput = @(docker exec $probeContainer cat /etc/hostname)
@@ -534,6 +569,63 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics connections -d one-shot --check
 
+      - name: Verify Solo Cache Files Are Readable
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # Solo hardens files under ~/.solo with icacls. A grant that does not land leaves an empty
+          # DACL, which denies everyone including the owner and wedges every later deploy (#5302).
+          # Test-Path and File.Exists do not consult the DACL, so each file must actually be opened.
+          $checked = 0
+          $unreadable = @()
+          foreach ($file in Get-ChildItem -Path "$env:USERPROFILE\.solo\cache" -Recurse -File -Force) {
+            $checked++
+            try {
+              [IO.File]::Open($file.FullName, 'Open', 'Read', 'ReadWrite').Dispose()
+            } catch {
+              $unreadable += $file.FullName
+              icacls $file.FullName
+            }
+          }
+          Write-Host "Opened $checked cached file(s) under ~/.solo/cache"
+          if ($checked -eq 0) {
+            throw "No files found under ~/.solo/cache - this check is no longer guarding anything"
+          }
+          if ($unreadable.Count -gt 0) {
+            throw "Solo left unreadable files under ~/.solo/cache: $($unreadable -join ', ')"
+          }
+
+      - name: One-Shot Single Destroy
+        shell: pwsh
+        timeout-minutes: 15
+        run: |
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- one-shot single destroy --quiet-mode --dev
+
+      - name: Delete Kind Cluster
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          kind delete cluster --name solo-cluster
+
+      - name: One-Shot Single Redeploy
+        shell: pwsh
+        timeout-minutes: 70
+        env:
+          ENABLE_IMAGE_CACHE: 'false'
+        run: |
+          # The reinstall reuses the persistent ~/.solo cache the first deploy populated.
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- one-shot single deploy --dev
+
+      - name: Check Port Forwarding Still Works After Redeploy
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- deployment diagnostics connections -d one-shot --check
+
       - name: Collect Diagnostics on Failure
         if: ${{ failure() }}
         # Best-effort: the deploy may have died before a deployment was persisted, in which case
@@ -549,7 +641,7 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics logs -q --dev
 
-      - name: One-Shot Single Destroy
+      - name: One-Shot Single Destroy (Cleanup)
         if: always()
         # Best-effort teardown: the runner is discarded afterwards, so a destroy failure must not
         # turn an otherwise green run red. See the note above on why `; $true` did not achieve this.
@@ -562,15 +654,42 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- one-shot single destroy --quiet-mode --dev
 
+      - name: Raise Block Buffer (Docker Restart Recovery Is Validated With Increased Buffer)
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # SCOPE: the Docker restart recovery steps below validate recovery with an INCREASED block
+          # buffer (1000), not with Solo's shipped default (5). Recovery with the default buffer is not
+          # covered by this nightly, so a green run does not prove it.
+          #
+          # The one-shot small-memory template caps blockStream.buffer.maxBlocks at 5. After a Docker
+          # restart the consensus node replays old blocks the block node never acks again, which
+          # saturates that buffer, blocks the transaction handler and leaves the node stuck in
+          # REPLAYING_EVENTS. Solo reads its templates from the build output (dist/resources, copied
+          # from resources/ at build time) and copies them into its cache on every run, so raising the
+          # cap there applies it to every one-shot deploy in this job only.
+          $propertiesFile = Join-Path $env:GITHUB_WORKSPACE 'dist/resources/templates/small-memory/application.properties'
+          $content = Get-Content -LiteralPath $propertiesFile -Raw
+          $updated = $content -replace '(?m)^blockStream\.buffer\.maxBlocks=\d+[ \t\r]*$', 'blockStream.buffer.maxBlocks=1000'
+          if ($updated -eq $content) {
+            throw "blockStream.buffer.maxBlocks was not found in $propertiesFile"
+          }
+          Set-Content -LiteralPath $propertiesFile -Value $updated -NoNewline
+          Select-String -LiteralPath $propertiesFile -Pattern 'blockStream.buffer.maxBlocks'
+
       - name: One-Shot Single Redeploy
         # Second deploy cycle on the same cluster — no cluster deletion between rounds.
         # This validates that redeployment works correctly after a destroy (issue #6003).
-        # Only runs when called from the nightly workflow with run-twice: true.
+        # Only runs when called from the nightly workflow with run-twice: true. Deploys with the block
+        # node and the raised block buffer from the preceding step.
         if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: 70
         env:
           ENABLE_IMAGE_CACHE: 'false'
+          BLOCK_STREAM_STREAM_MODE: BLOCKS
+          ONE_SHOT_WITH_BLOCK_NODE: 'true'
         run: |
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           $OutputEncoding = [System.Text.Encoding]::UTF8
@@ -586,6 +705,227 @@ jobs:
           $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics connections -d one-shot --check
+
+      - name: Stop Consensus Nodes Before Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- consensus node stop --deployment one-shot --dev
+
+      - name: Restart Docker Daemon in WSL2
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: 10
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          # Snapshot WSL state at each stage so a VM shutdown can be placed relative to our actions.
+          # Query via `wsl --list` only: running a command inside the distro would boot it again.
+          function Write-WslState([string]$Stage) {
+            Write-Host "[wsl-state] $Stage @ $(Get-Date -Format 'HH:mm:ss')"
+            wsl --list --verbose
+          }
+          Write-WslState 'before dockerd stop'
+          wsl -u root bash -lc "uptime; free -m | head -2; pgrep -a dockerd"
+          wsl -u root bash -lc "pkill -x dockerd || true"
+          for ($attempt = 1; $attempt -le 30; $attempt++) {
+            $dockerdProcessId = wsl -u root bash -lc "pgrep -x dockerd || true"
+            if ([string]::IsNullOrWhiteSpace("$dockerdProcessId")) {
+              break
+            }
+            Start-Sleep -Seconds 1
+          }
+          $dockerdProcessId = wsl -u root bash -lc "pgrep -x dockerd || true"
+          if (-not [string]::IsNullOrWhiteSpace("$dockerdProcessId")) {
+            Write-Host "dockerd did not stop gracefully within 30 seconds; forcing shutdown."
+            wsl -u root bash -lc "pkill -9 -x dockerd || true"
+            Start-Sleep -Seconds 1
+          }
+          $dockerdProcessId = wsl -u root bash -lc "pgrep -x dockerd || true"
+          if (-not [string]::IsNullOrWhiteSpace("$dockerdProcessId")) {
+            throw "dockerd did not stop cleanly before restart, even after SIGKILL."
+          }
+          Write-WslState 'after dockerd stop'
+          $wslIpOutput = wsl hostname -I
+          $wslIp = @(
+            "$wslIpOutput" -split '\s+' |
+              Where-Object { $_ -match '^\d{1,3}(\.\d{1,3}){3}$' }
+          ) | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($wslIp)) {
+            throw "Could not resolve a WSL IPv4 address for Docker restart."
+          }
+          # Same listeners as the initial start. WSL2 tears down background processes once its last
+          # wsl.exe session ends (a short-lived `wsl ... &` call left no dockerd and no log behind), so
+          # run dockerd in the foreground of a hidden wsl.exe that stays alive for the rest of the job.
+          # Start-Process joins -ArgumentList with spaces and does not quote, so the bash -c script is wrapped
+          # in explicit double quotes; unquoted, bash received only `exec` and exited 0 immediately.
+          $dockerdSession = Start-Process -FilePath "$env:SystemRoot\System32\wsl.exe" -WindowStyle Hidden -PassThru `
+            -ArgumentList @('-u', 'root', '--', 'bash', '-c', '"exec /usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375 > /tmp/dockerd.log 2>&1"')
+          Write-Host "Started dockerd session wsl.exe [pid=$($dockerdSession.Id)]"
+          Start-Sleep -Seconds 5
+          Write-WslState "after dockerd start (session exited: $($dockerdSession.HasExited))"
+          netsh interface portproxy delete v4tov4 listenport=2375 listenaddress=127.0.0.1 | Out-Null
+          netsh interface portproxy add v4tov4 listenport=2375 listenaddress=127.0.0.1 connectport=2375 connectaddress=$wslIp
+          $ready = $false
+          for ($attempt = 1; $attempt -le 60; $attempt++) {
+            try {
+              $dockerPingResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:2375/_ping' -TimeoutSec 3
+              if ($dockerPingResponse.Content -match 'OK') {
+                $ready = $true
+                Write-Host "Docker daemon reachable after restart [attempt=$attempt]"
+                break
+              }
+            } catch {
+              # best-effort probe: daemon may still be starting, so keep retrying until timeout budget is exhausted
+            }
+            if ($dockerdSession.HasExited) {
+              Write-Host "dockerd session wsl.exe exited early [exit code=$($dockerdSession.ExitCode), attempt=$attempt]"
+              break
+            }
+            Start-Sleep -Seconds 2
+          }
+          if (-not $ready) {
+            Write-Host "::group::dockerd diagnostics after failed restart"
+            Write-Host "dockerd session exited: $($dockerdSession.HasExited)"
+            wsl --list --verbose
+            wsl -u root bash -lc "uptime; pgrep -a dockerd || echo 'dockerd is not running'; ss -tlnp | grep 2375 || echo 'nothing listening on 2375'; echo '--- /tmp/dockerd.log (tail) ---'; tail -n 100 /tmp/dockerd.log"
+            netsh interface portproxy show all
+            Write-Host "::endgroup::"
+            throw "Docker daemon did not become reachable after restart."
+          }
+
+      - name: Wait for Kubernetes API After Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # Restarting dockerd restarts the kind control plane. The API server answers before its RBAC
+          # bootstrap has finished and returns 403 Forbidden ("kubernetes-admin cannot get resource
+          # configmaps") for a short while, which fails the first Solo command that follows. Wait
+          # until the admin user is actually authorized and the node is Ready.
+          $ready = $false
+          for ($attempt = 1; $attempt -le 60; $attempt++) {
+            $canReadConfigMaps = kubectl --context kind-solo-cluster auth can-i get configmaps --namespace one-shot 2>$null
+            $nodeReady = kubectl --context kind-solo-cluster get nodes -o "jsonpath={.items[*].status.conditions[?(@.type=='Ready')].status}" 2>$null
+            if ("$canReadConfigMaps".Trim() -eq 'yes' -and "$nodeReady" -notmatch 'False|Unknown' -and "$nodeReady" -match 'True') {
+              $ready = $true
+              Write-Host "Kubernetes API authorized and node Ready after restart [attempt=$attempt]"
+              break
+            }
+            Write-Host "Waiting for Kubernetes API [attempt=$attempt, can-i=$canReadConfigMaps, nodeReady=$nodeReady]"
+            Start-Sleep -Seconds 3
+          }
+          if (-not $ready) {
+            kubectl --context kind-solo-cluster get nodes
+            throw "Kubernetes API did not become authorized after Docker restart."
+          }
+
+      - name: Refresh Port Forwards After Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- deployment refresh port-forwards --deployment one-shot --dev
+
+      - name: Start Consensus Nodes After Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- consensus node start --deployment one-shot --dev
+
+      - name: Verify Ledger Account Creation After Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- ledger account create --deployment one-shot --hbar-amount 100 --generate-ecdsa-key --set-alias --dev
+
+      - name: Verify Relay and Mirror After Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # solo_smoke_test.sh reaches the relay and mirror through the one-shot static NodePort host
+          # ports (37546/38081). Solo only creates those NodePort services for a kind cluster it
+          # configured itself; this job supplies its own rendered kind config, so one-shot falls back to
+          # kubectl port-forwards and the static ports serve nothing. Use the forwards Solo recorded.
+          #
+          # A kubectl port-forward is bound to one pod connection and dies when that connection breaks,
+          # so restore any missing forward (the relay's, here) first; the refresh is idempotent and
+          # reuses the recorded ports.
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- deployment refresh port-forwards --deployment one-shot --dev
+          if ($LASTEXITCODE -ne 0) { throw "Refreshing port-forwards failed with exit code $LASTEXITCODE" }
+          $forwardsFile = Get-ChildItem -Path (Join-Path $env:USERPROFILE '.solo') -Filter forwards -Recurse -File |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $forwardsFile) { throw "Solo forwards file not found under $env:USERPROFILE\.solo" }
+          $forwards = Get-Content -LiteralPath $forwardsFile.FullName -Raw
+          Write-Host $forwards
+          $relayPort = [regex]::Match($forwards, 'JSON RPC Relay port forward enabled on 127\.0\.0\.1:(\d+)').Groups[1].Value
+          if (-not $relayPort) { throw "Could not read the relay port from $($forwardsFile.FullName)" }
+
+          function Invoke-RelayCall([string]$Method) {
+            $body = @{jsonrpc = '2.0'; id = 1; method = $Method; params = @()} | ConvertTo-Json -Compress
+            (Invoke-RestMethod -Uri "http://127.0.0.1:$relayPort" -Method Post -ContentType 'application/json' -Body $body -TimeoutSec 10).result
+          }
+
+          $chainId = $null
+          for ($attempt = 1; $attempt -le 30 -and -not $chainId; $attempt++) {
+            try { $chainId = Invoke-RelayCall 'eth_chainId' } catch { Start-Sleep -Seconds 5 }
+          }
+          if ($chainId -ne '0x12a') { throw "Relay on port $relayPort returned chain id '$chainId', expected 0x12a" }
+          Write-Host "Relay on port $relayPort answers eth_chainId=$chainId, eth_blockNumber=$(Invoke-RelayCall 'eth_blockNumber')"
+
+          # Solo records the mirror ingress and the explorer on the same local port (both 38082), and
+          # refreshing the forwards stops one to start the other, so that port cannot be trusted to reach
+          # the mirror. Open a dedicated forward straight to the mirror REST service instead.
+          $mirrorPort = 38090
+          $mirrorForward = Start-Process -FilePath kubectl -WindowStyle Hidden -PassThru `
+            -ArgumentList @('--context', 'kind-solo-cluster', '--namespace', 'one-shot', 'port-forward', 'svc/mirror-1-rest', "${mirrorPort}:80")
+          try {
+            $script:lastMirrorError = ''
+            function Get-LatestMirrorBlock() {
+              for ($try = 1; $try -le 30; $try++) {
+                try {
+                  return (Invoke-RestMethod -Uri "http://127.0.0.1:$mirrorPort/api/v1/blocks?limit=1&order=desc" -TimeoutSec 10).blocks[0].number
+                } catch {
+                  # best-effort: the forward or mirror REST may still be settling; keep the last error to report it
+                  $script:lastMirrorError = $_.Exception.Message
+                  Start-Sleep -Seconds 5
+                }
+              }
+              throw "Mirror REST via svc/mirror-1-rest on port $mirrorPort never answered /api/v1/blocks: $script:lastMirrorError"
+            }
+
+            # The mirror importer must keep ingesting blocks from the restarted network.
+            $firstBlock = Get-LatestMirrorBlock
+            $advanced = $false
+            for ($attempt = 1; $attempt -le 30 -and -not $advanced; $attempt++) {
+              Start-Sleep -Seconds 5
+              $latestBlock = Get-LatestMirrorBlock
+              $advanced = $latestBlock -gt $firstBlock
+            }
+            if (-not $advanced) { throw "Mirror did not ingest new blocks after restart (stuck at block $firstBlock)" }
+            Write-Host "Mirror advanced from block $firstBlock to $latestBlock"
+          } finally {
+            if (-not $mirrorForward.HasExited) { Stop-Process -Id $mirrorForward.Id -Force }
+          }
 
       - name: Collect Diagnostics on Redeploy Failure
         if: ${{ inputs.run-twice == true && failure() }}
@@ -628,7 +968,7 @@ jobs:
 
       - name: Upload Logs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: standard-runner-one-shot-windows-logs

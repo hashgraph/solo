@@ -19,4 +19,12 @@ export interface Crds {
    * @throws An error if an unexpected error occurs.
    **/
   readLabels(crdName: string): Promise<Record<string, string> | undefined>;
+
+  /**
+   * Delete a CRD. A no-op when the CRD does not exist, so callers can use it to clean up after a release
+   * they own without first checking whether the CRD is still there.
+   * @param crdName The name of the CRD to delete.
+   * @throws An error if an unexpected error occurs.
+   **/
+  delete(crdName: string): Promise<void>;
 }

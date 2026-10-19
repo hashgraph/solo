@@ -5,13 +5,13 @@
  *
  * Per hiero-ledger/solo#4004, this class is the chokepoint for user-controlled values
  * (CLI flags, interactive prompts, environment variables) before they reach hostile sinks
- * (shell commands, Helm templates, JSON parsers, regex constructors, filesystem paths).
+ * (Helm templates, JSON/YAML parsers, filesystem paths).
  *
- * The top-level {@link UserInput.sanitize} method applies a conservative pass that removes
- * inputs which are dangerous in every context: null bytes and path-traversal sequences.
- * Context-specific escapers (`escapeShell`, `escapeHelmTemplate`, `escapeRegex`,
- * `safeJsonKey`, `safeFilenameComponent`) handle the cases that need stricter treatment
- * for a specific sink.
+ * `sanitize` strips path-traversal/null bytes and backs {@link UserInput.safeFilenameComponent};
+ * `escapeHelmTemplate` neutralizes Helm template delimiters in user values passed to charts;
+ * `stripUnsafeJsonKeys` (built on `safeJsonKey`) scrubs prototype-pollution keys from parsed
+ * untrusted documents; `safeFilenameComponent` normalizes a value that becomes a filename.
+ * Regex escaping lives in {@link Regex.escape} (`src/business/utils/regex.ts`).
  */
 export class UserInput {
   /**
@@ -20,10 +20,9 @@ export class UserInput {
    * - Null bytes (security: terminates C-string-based syscalls early)
    * - Path-traversal sequences (`../`, `..\\`, leading `./`, leading `.\\`)
    *
-   * Returns the input unchanged when the dangerous patterns are not present. This method
-   * **does not** escape shell metacharacters, Helm template directives, regex specials, or
-   * JSON-pollution keys — those have dedicated methods on this class. Callers picking the
-   * right method per sink is the safety contract.
+   * Used as the first stage of {@link safeFilenameComponent}; also usable directly for
+   * identifier-type inputs where traversal and null bytes are never valid (it deliberately keeps
+   * path separators, so it is **not** appropriate for free-form path flags where `../` is valid).
    *
    * @param input - the raw user-supplied string.
    * @returns the sanitized string.
@@ -50,29 +49,9 @@ export class UserInput {
   }
 
   /**
-   * Escape a value so it is safe to pass as a single shell argument in double-quoted
-   * context. The intended use is constructing a shell command string for `bash -c` or
-   * similar. **Prefer passing arguments as an array to `spawn`/`execFile` without
-   * `shell: true` over relying on this method** — that route is structurally
-   * injection-safe and does not need escaping. Use this only when a shell is unavoidable.
-   *
-   * @param input - the user-supplied value to escape.
-   * @returns the escaped value, suitable to wrap in `"..."` in a shell command.
-   */
-  public static escapeShell(input: string): string {
-    if (typeof input !== 'string') {
-      return input;
-    }
-    // POSIX shell metacharacters in double-quote context. Backslash must come first so it
-    // doesn't re-escape the escapes we add below.
-
-    return input.replaceAll('\\', String.raw`\\`).replaceAll(/(["$`!])/g, String.raw`\$1`);
-  }
-
-  /**
-   * Escape a value so Helm's Go template engine treats it as a literal string rather than
-   * a template directive. Helm allows backslash-escaping of `{` and `}` in `--set` values
-   * and values-file strings.
+   * Escape a value so Helm's Go template engine treats it as a literal string rather than a
+   * template directive. Use for user-supplied strings passed into chart values that a chart might
+   * render with `tpl` (e.g. ingress host/domain values).
    *
    * @param input - the user-supplied value.
    * @returns the value with template-significant characters escaped.
@@ -82,20 +61,6 @@ export class UserInput {
       return input;
     }
     return input.replaceAll('{', String.raw`\{`).replaceAll('}', String.raw`\}`);
-  }
-
-  /**
-   * Escape a string so it can be embedded literally inside a regular-expression pattern.
-   * Use this when a user-supplied value becomes part of a `new RegExp(...)` invocation.
-   *
-   * @param input - the user-supplied value.
-   * @returns the value with all regex metacharacters escaped.
-   */
-  public static escapeRegex(input: string): string {
-    if (typeof input !== 'string') {
-      return input;
-    }
-    return input.replaceAll(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
   }
 
   /**
@@ -124,12 +89,39 @@ export class UserInput {
   }
 
   /**
-   * Normalize a single path component for use as a filename. Replaces any character
-   * outside `[A-Za-z0-9._-]` with `_`. Intended for use when the input becomes part of a
-   * filename and must work across macOS, Linux, and Windows.
+   * Recursively rebuild a value parsed from untrusted JSON/YAML, dropping every object key that
+   * {@link safeJsonKey} rejects. This closes prototype-pollution vectors (`__proto__`,
+   * `constructor`, `prototype`, …) that `JSON.parse` / `yaml.parse` surface as own properties
+   * before the graph is merged into other objects.
    *
-   * Does **not** validate full paths or guard against traversal — use {@link sanitize}
-   * for that.
+   * Arrays and primitives pass through structurally; only object keys are filtered. Plain data
+   * graphs (the shape produced by JSON/YAML parsing) are the intended input — class instances are
+   * not preserved.
+   *
+   * @param value - the parsed, untrusted value.
+   * @returns the value with prototype-pollution keys removed at every depth.
+   */
+  public static stripUnsafeJsonKeys<T>(value: T): T {
+    if (Array.isArray(value)) {
+      return value.map((element: unknown): unknown => UserInput.stripUnsafeJsonKeys(element)) as T;
+    }
+    if (value !== null && typeof value === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+        if (UserInput.safeJsonKey(key)) {
+          result[key] = UserInput.stripUnsafeJsonKeys(entry);
+        }
+      }
+      return result as T;
+    }
+    return value;
+  }
+
+  /**
+   * Normalize a single path component for use as a filename. Runs {@link sanitize} first to strip
+   * path-traversal sequences and null bytes, then replaces any remaining character outside
+   * `[A-Za-z0-9._-]` with `_`, so the result is safe as a single path component across macOS,
+   * Linux, and Windows.
    *
    * @param input - the user-supplied component (e.g. a deployment name).
    * @returns the safe filename component.
@@ -138,6 +130,6 @@ export class UserInput {
     if (typeof input !== 'string') {
       return input;
     }
-    return input.replaceAll(/[^\dA-Za-z._-]/g, '_');
+    return UserInput.sanitize(input).replaceAll(/[^\dA-Za-z._-]/g, '_');
   }
 }

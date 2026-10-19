@@ -21,11 +21,12 @@ interface NlgResultForTest {
   transactionCount?: number;
   durationSeconds?: number;
   tps?: number;
+  minTps?: number;
   rttMilliseconds?: number;
 }
 
 interface RapidFireCommandInternals {
-  analyzeNlgOutput(output: string, testClass: string, performanceTest: string): NlgResultForTest;
+  analyzeNlgOutput(output: string, testClass: string, performanceTest: string, minTps: number): NlgResultForTest;
   mirrorTransactionIsAvailable(
     port: number,
     mirrorTransactionId: string,
@@ -57,7 +58,7 @@ describe('RapidFireCommand', (): void => {
         'Finished TokenTransferLoadTest: 100 transferred in 10 sec, TPS: 10',
       ].join('\n');
 
-      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest);
+      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest, 0);
 
       expect(result.status).to.equal(NlgResultStatus.SUCCESS);
       expect(result.rttMilliseconds).to.equal(499);
@@ -69,7 +70,7 @@ describe('RapidFireCommand', (): void => {
         'Finished TokenTransferLoadTest: 100 transferred in 10 sec, TPS: 10',
       ].join('\n');
 
-      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest);
+      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest, 0);
 
       expect(result.status).to.equal(NlgResultStatus.SUCCESS);
       expect(result.rttMilliseconds).to.equal(501);
@@ -78,7 +79,7 @@ describe('RapidFireCommand', (): void => {
     it('returns undefined rttMilliseconds when no RTT line is present', (): void => {
       const output: string = 'Finished TokenTransferLoadTest: 100 transferred in 10 sec, TPS: 10';
 
-      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest);
+      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest, 0);
 
       expect(result.status).to.equal(NlgResultStatus.SUCCESS);
       expect(result.rttMilliseconds).to.equal(undefined);
@@ -90,7 +91,7 @@ describe('RapidFireCommand', (): void => {
         'Finished TokenTransferLoadTest: 100 transferred in 10 sec, TPS: 10',
       ].join('\n');
 
-      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest);
+      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest, 0);
 
       expect(result.status).to.equal(NlgResultStatus.SUCCESS);
       expect(result.rttMilliseconds).to.equal(600);
@@ -102,7 +103,7 @@ describe('RapidFireCommand', (): void => {
         'Finished TokenTransferLoadTest: 100 transferred in 10 sec, TPS: 10',
       ].join('\n');
 
-      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest);
+      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest, 0);
 
       expect(result.status).to.equal(NlgResultStatus.SUCCESS);
       expect(result.rttMilliseconds).to.equal(501);
@@ -114,7 +115,7 @@ describe('RapidFireCommand', (): void => {
         'Finished TokenTransferLoadTest: 100 transferred in 10 sec, TPS: 10',
       ].join('\n');
 
-      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest);
+      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest, 0);
 
       expect(result.status).to.equal(NlgResultStatus.SUCCESS);
       expect(result.rttMilliseconds).to.equal(undefined);
@@ -123,10 +124,36 @@ describe('RapidFireCommand', (): void => {
     it('returns success when no RTT threshold is configured', (): void => {
       const output: string = 'Finished TokenTransferLoadTest: 100 transferred in 10 sec, TPS: 10';
 
-      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest);
+      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest, 0);
 
       expect(result.status).to.equal(NlgResultStatus.SUCCESS);
       expect(result.rttMilliseconds).to.equal(undefined);
+    });
+
+    it('returns BELOW_MIN_TPS when achieved TPS is below the configured minimum', (): void => {
+      const output: string = 'Finished TokenTransferLoadTest: 2500 transferred in 300 sec, TPS: 8';
+
+      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest, 90);
+
+      expect(result.status).to.equal(NlgResultStatus.BELOW_MIN_TPS);
+      expect(result.tps).to.equal(8);
+      expect(result.minTps).to.equal(90);
+    });
+
+    it('returns success when achieved TPS meets the configured minimum', (): void => {
+      const output: string = 'Finished TokenTransferLoadTest: 27000 transferred in 300 sec, TPS: 90';
+
+      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest, 90);
+
+      expect(result.status).to.equal(NlgResultStatus.SUCCESS);
+    });
+
+    it('does not enforce a minimum TPS when minTps is 0', (): void => {
+      const output: string = 'Finished TokenTransferLoadTest: 150 transferred in 300 sec, TPS: 1';
+
+      const result: NlgResultForTest = internals.analyzeNlgOutput(output, testClass, performanceTest, 0);
+
+      expect(result.status).to.equal(NlgResultStatus.SUCCESS);
     });
   });
 

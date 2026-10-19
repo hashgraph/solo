@@ -22,6 +22,8 @@ import path from 'node:path';
 import yaml from 'yaml';
 import {SemanticVersion} from '../../../src/business/utils/semantic-version.js';
 import {Duration} from '../../../src/core/time/duration.js';
+import {Flags} from '../../../src/commands/flags.js';
+import {FlagValidation} from '../../../src/commands/validation/flag-validation.js';
 
 interface MirrorNodeMemoryOverrideConfig {
   mirrorNodeVersion: string;
@@ -47,9 +49,10 @@ interface MirrorNodeRemoteConfigTestState {
 
 interface MirrorNodeCommandInternal {
   remoteConfig: {
-    configuration: MirrorNodeRemoteConfigTestState;
+    configuration?: MirrorNodeRemoteConfigTestState;
     _remoteConfig?: MirrorNodeRemoteConfigTestState;
     phase?: 'loaded' | 'not_loaded';
+    getContexts?: () => string[];
   };
   addMirrorNodeMemoryOverrides: (
     hasMirrorNodeMemoryImprovements: boolean,
@@ -61,6 +64,7 @@ interface MirrorNodeCommandInternal {
   initializeSharedPostgresDatabaseTask: () => SoloListrTask<MirrorNodeDatabaseTaskContext>;
   primePostgresSecretTask: () => SoloListrTask<MirrorNodeDatabaseTaskContext>;
   waitForMirrorNodeSchemaTask: () => SoloListrTask<MirrorNodeSchemaWaitTaskContext>;
+  enableDebuggerPortForwardingTask: () => SoloListrTask<MirrorNodeDebuggerTaskContext>;
   k8Factory: {getK8: (context: string) => {pods: () => MirrorNodeSchemaWaitPodsStub}};
   prepareBlockNodeIntegrationValues: (config: {
     cacheDir: string;
@@ -74,7 +78,23 @@ interface MirrorNodeCommandInternal {
     commandType: string,
   ) => boolean;
   prepareHelmChartValues: (config: Record<string, unknown>) => Promise<HelmChartValues>;
-  isComponentImageAvailableForKind: (componentImage: string, componentImageArchive: string) => boolean;
+  validateComponentImageArchive: (componentImage: string | string[], componentImageArchive: string) => void;
+  isLocalImageAvailableInDocker: (componentImage: string) => boolean;
+  kindLoadComponentImage: (
+    componentImage: string,
+    clusterContext: string,
+    additionalContexts?: string[],
+  ) => Promise<void>;
+  kindLoadComponentImageArchive: (
+    componentImageArchive: string,
+    clusterContext: string,
+    additionalContexts?: string[],
+  ) => Promise<void>;
+  loadMirrorNodeComponentImages: (
+    componentImage: string | undefined,
+    componentImageArchive: string | undefined,
+    clusterContext: string,
+  ) => Promise<void>;
 }
 
 interface MirrorNodeDatabaseTaskContext {
@@ -90,6 +110,10 @@ interface MirrorNodeSchemaWaitTaskContext {
     clusterContext: string;
     namespace: {name: string};
   };
+}
+
+interface MirrorNodeDebuggerTaskContext {
+  config: MirrorNodeSchemaWaitTaskContext['config'] & {debugMirrorNodeComponent: string};
 }
 
 interface MirrorNodeSchemaWaitPodsStub {
@@ -334,7 +358,7 @@ describe('MirrorNodeCommand unit tests', (): void => {
     const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
       mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
     sinon.stub(mirrorNodeCommandInternal, 'prepareBlockNodeIntegrationValues').returns(new HelmChartValues());
-    sinon.stub(mirrorNodeCommandInternal, 'isComponentImageAvailableForKind').returns(true);
+    sinon.stub(mirrorNodeCommandInternal, 'validateComponentImageArchive');
 
     const chartValues: HelmChartValues = await mirrorNodeCommandInternal.prepareHelmChartValues({
       valuesFile: '',
@@ -360,8 +384,187 @@ describe('MirrorNodeCommand unit tests', (): void => {
     );
 
     expect(valueArguments).to.include('importer.image.registry=ghcr.io');
-    expect(valueArguments).to.include('importer.image.repository=hiero-ledger/hiero-mirror');
+    expect(valueArguments).to.include('importer.image.repository=hiero-ledger/hiero-mirror-importer');
+    expect(valueArguments).to.include('restjava.image.repository=hiero-ledger/hiero-mirror-rest-java');
+    expect(valueArguments).to.include('monitor.image.repository=hiero-ledger/hiero-mirror-monitor');
     expect(pullPolicyArguments).to.have.length(6);
+  });
+
+  it('should set the pull policy only for module images found locally when no archive is used', async (): Promise<void> => {
+    const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+      mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+    sinon.stub(mirrorNodeCommandInternal, 'prepareBlockNodeIntegrationValues').returns(new HelmChartValues());
+    sinon
+      .stub(mirrorNodeCommandInternal, 'isLocalImageAvailableInDocker')
+      .callsFake((componentImage: string): boolean => componentImage.includes('-importer:'));
+
+    const chartValues: HelmChartValues = await mirrorNodeCommandInternal.prepareHelmChartValues({
+      valuesFile: '',
+      mirrorNodeVersion: '0.157.0',
+      componentImage: 'hedera-mirror:0.157.0',
+      componentImageArchive: '',
+      mirrorNodeChartDirectory: '',
+      storageBucket: '',
+      storageBucketPrefix: '',
+      storageType: constants.StorageType.MINIO_ONLY,
+      storageReadAccessKey: '',
+      storageReadSecrets: '',
+      storageEndpoint: '',
+      storageBucketRegion: '',
+      domainName: undefined,
+      useExternalDatabase: false,
+      namespace: NamespaceName.of('mirror'),
+    });
+
+    const valueArguments: string[] = chartValues.toArguments();
+
+    expect(valueArguments).to.include('importer.image.pullPolicy=Never');
+    expect(valueArguments).to.not.include('grpc.image.pullPolicy=Never');
+    expect(valueArguments).to.not.include('rest.image.pullPolicy=Never');
+    expect(valueArguments).to.not.include('restjava.image.pullPolicy=Never');
+    expect(valueArguments).to.not.include('web3.image.pullPolicy=Never');
+    expect(valueArguments).to.not.include('monitor.image.pullPolicy=Never');
+    expect(valueArguments).to.include('importer.image.repository=library/hedera-mirror-importer');
+    expect(valueArguments).to.include('grpc.image.repository=library/hedera-mirror-grpc');
+  });
+
+  it('should add the importer debug values before user values only when --debug-mirror-node-component is importer', async (): Promise<void> => {
+    const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+      mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+    sinon.stub(mirrorNodeCommandInternal, 'prepareBlockNodeIntegrationValues').returns(new HelmChartValues());
+    const userValuesFile: string = PathEx.join(fs.mkdtempSync(PathEx.join(os.tmpdir(), 'mirror-debug-')), 'user.yaml');
+    fs.writeFileSync(userValuesFile, '{}');
+    const prepare: (debugMirrorNodeComponent: string) => Promise<string[]> = async (
+      debugMirrorNodeComponent: string,
+    ): Promise<string[]> => {
+      const chartValues: HelmChartValues = await mirrorNodeCommandInternal.prepareHelmChartValues({
+        debugMirrorNodeComponent,
+        valuesFile: userValuesFile,
+        mirrorNodeVersion: '0.163.0',
+        mirrorNodeChartDirectory: '',
+        storageType: constants.StorageType.MINIO_ONLY,
+        useExternalDatabase: false,
+        namespace: NamespaceName.of('mirror'),
+      });
+      return chartValues.toArguments();
+    };
+
+    const debugArguments: string[] = await prepare('importer');
+    expect(debugArguments.indexOf(constants.MIRROR_NODE_DEBUG_VALUES_FILE)).to.be.greaterThan(-1);
+    expect(debugArguments.indexOf(constants.MIRROR_NODE_DEBUG_VALUES_FILE)).to.be.lessThan(
+      debugArguments.indexOf(userValuesFile),
+    );
+    expect(await prepare('')).to.not.include(constants.MIRROR_NODE_DEBUG_VALUES_FILE);
+  });
+
+  it('should accept only importer for --debug-mirror-node-component', (): void => {
+    expect(FlagValidation.violationOf(Flags.debugMirrorNodeComponent, 'importer')).to.be.undefined;
+    expect(FlagValidation.violationOf(Flags.debugMirrorNodeComponent, 'web3')).to.equal('must be one of: importer');
+  });
+
+  describe('enableDebuggerPortForwardingTask', (): void => {
+    const debuggerContext: MirrorNodeDebuggerTaskContext = {
+      config: {
+        releaseName: 'mirror-1',
+        clusterContext: 'kind-a',
+        namespace: {name: 'solo'},
+        debugMirrorNodeComponent: 'importer',
+      },
+    };
+
+    it('should be skipped unless --debug-mirror-node-component is set', (): void => {
+      const task: SoloListrTask<MirrorNodeDebuggerTaskContext> = (
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal
+      ).enableDebuggerPortForwardingTask();
+      const skip: (context: MirrorNodeDebuggerTaskContext) => boolean = task.skip as (
+        context: MirrorNodeDebuggerTaskContext,
+      ) => boolean;
+
+      expect(skip({config: {...debuggerContext.config, debugMirrorNodeComponent: ''}})).to.equal(true);
+      expect(skip(debuggerContext)).to.equal(false);
+    });
+
+    it('should port-forward the JVM debug port of the importer pod', async (): Promise<void> => {
+      const portForward: sinon.SinonStub = sinon.stub().resolves(constants.JVM_DEBUG_PORT);
+      const list: sinon.SinonStub = sinon.stub().resolves([{portForward}]);
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal = stubImporterPods(mirrorNodeCommand, {
+        list,
+      } as unknown as MirrorNodeSchemaWaitPodsStub);
+
+      const task: SoloListrTask<MirrorNodeDebuggerTaskContext> =
+        mirrorNodeCommandInternal.enableDebuggerPortForwardingTask();
+      await (task.task as (context: MirrorNodeDebuggerTaskContext) => Promise<void>)(debuggerContext);
+
+      expect(list.firstCall.args[1]).to.deep.equal([
+        'app.kubernetes.io/component=importer',
+        'app.kubernetes.io/instance=mirror-1',
+      ]);
+      expect(portForward.firstCall.args.slice(0, 4)).to.deep.equal([
+        constants.JVM_DEBUG_PORT,
+        constants.JVM_DEBUG_PORT,
+        true,
+        true,
+      ]);
+    });
+  });
+
+  describe('loadMirrorNodeComponentImages', (): void => {
+    it('loads only the module images found locally when no archive is used', async (): Promise<void> => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      mirrorNodeCommandInternal.remoteConfig = {getContexts: (): string[] => ['kind-second']};
+      sinon
+        .stub(mirrorNodeCommandInternal, 'isLocalImageAvailableInDocker')
+        .callsFake((componentImage: string): boolean => componentImage.includes('-importer:'));
+      const kindLoadComponentImage: sinon.SinonStub = sinon
+        .stub(mirrorNodeCommandInternal, 'kindLoadComponentImage')
+        .resolves();
+
+      await mirrorNodeCommandInternal.loadMirrorNodeComponentImages(
+        'ghcr.io/hiero-ledger/hedera-mirror:0.157.0',
+        '',
+        'kind-first',
+      );
+
+      expect(kindLoadComponentImage).to.have.been.calledOnceWith(
+        'ghcr.io/hiero-ledger/hedera-mirror-importer:0.157.0',
+        'kind-first',
+        ['kind-second'],
+      );
+    });
+
+    it('validates all six module images and loads the archive as a whole', async (): Promise<void> => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      mirrorNodeCommandInternal.remoteConfig = {getContexts: (): string[] => ['kind-second']};
+      const validateComponentImageArchive: sinon.SinonStub = sinon
+        .stub(mirrorNodeCommandInternal, 'validateComponentImageArchive')
+        .returns();
+      const kindLoadComponentImageArchive: sinon.SinonStub = sinon
+        .stub(mirrorNodeCommandInternal, 'kindLoadComponentImageArchive')
+        .resolves();
+
+      await mirrorNodeCommandInternal.loadMirrorNodeComponentImages(
+        'ghcr.io/hiero-ledger/hedera-mirror:0.157.0',
+        '/artifacts/hedera-mirror.tar',
+        'kind-first',
+      );
+
+      expect(validateComponentImageArchive).to.have.been.calledOnceWith(
+        [
+          'ghcr.io/hiero-ledger/hedera-mirror-importer:0.157.0',
+          'ghcr.io/hiero-ledger/hedera-mirror-grpc:0.157.0',
+          'ghcr.io/hiero-ledger/hedera-mirror-rest:0.157.0',
+          'ghcr.io/hiero-ledger/hedera-mirror-rest-java:0.157.0',
+          'ghcr.io/hiero-ledger/hedera-mirror-web3:0.157.0',
+          'ghcr.io/hiero-ledger/hedera-mirror-monitor:0.157.0',
+        ],
+        '/artifacts/hedera-mirror.tar',
+      );
+      expect(kindLoadComponentImageArchive).to.have.been.calledOnceWith('/artifacts/hedera-mirror.tar', 'kind-first', [
+        'kind-second',
+      ]);
+    });
   });
 
   it('should apply mirror node image tag overrides when no local chart directory is used', (): void => {
@@ -781,6 +984,68 @@ describe('MirrorNodeCommand unit tests', (): void => {
       }
 
       expect(podsStub.waitForReadyStatus.called).to.equal(false);
+    });
+  });
+
+  describe('grantExternalDatabaseReadonlyRoleTask', (): void => {
+    type GrantTask = SoloListrTask<{config: Record<string, unknown>}>;
+    const grantContext: {config: Record<string, unknown>} = {
+      config: {
+        useExternalDatabase: true,
+        releaseName: 'mirror-1',
+        clusterContext: 'kind-a',
+        namespace: NamespaceName.of('solo'),
+        externalDatabaseHost: 'my-postgresql.database.svc.cluster.local',
+        externalDatabaseOwnerUsername: 'owner',
+        externalDatabaseOwnerPassword: 'secret',
+      },
+    };
+
+    function stubClientPod(execContainer: sinon.SinonStub): {pods: Record<string, sinon.SinonStub>; task: GrantTask} {
+      const pods: Record<string, sinon.SinonStub> = {
+        create: sinon.stub().resolves({}),
+        waitForReadyStatus: sinon.stub().resolves([{}]),
+        delete: sinon.stub().resolves(),
+      };
+      const internal: Record<string, unknown> = mirrorNodeCommand as unknown as Record<string, unknown>;
+      internal.k8Factory = {
+        getK8: (): unknown => ({
+          pods: (): unknown => pods,
+          containers: (): unknown => ({readByRef: (): unknown => ({execContainer})}),
+        }),
+      };
+      return {pods, task: (internal.grantExternalDatabaseReadonlyRoleTask as () => GrantTask).call(mirrorNodeCommand)};
+    }
+
+    it('should run the grant against the external host from a client pod and delete the pod', async (): Promise<void> => {
+      const execContainer: sinon.SinonStub = sinon.stub().resolves('DO');
+      const {pods, task} = stubClientPod(execContainer);
+
+      expect((task.skip as (context: unknown) => boolean)(grantContext)).to.equal(false);
+      await (task.task as (context: unknown, listrTask: unknown) => Promise<void>)(grantContext, {});
+
+      expect(pods.create.firstCall.args[3]).to.equal(constants.MIRROR_EXTERNAL_DATABASE_CLIENT_IMAGE);
+      expect(pods.create.firstCall.args[6]).to.deep.equal({PGPASSWORD: 'secret'});
+      const command: string[] = execContainer.firstCall.args[0];
+      expect(command).to.include.members(['my-postgresql.database.svc.cluster.local', 'owner']);
+      expect(command.join(' ')).not.to.contain('secret');
+      expect(command.at(-1)).to.contain('GRANT readonly TO mirror_rest');
+      expect(pods.delete.calledOnce).to.equal(true);
+    });
+
+    it('should warn, skip and delete the client pod when the grant fails', async (): Promise<void> => {
+      const {pods, task} = stubClientPod(sinon.stub().rejects(new Error('permission denied')));
+      const listrTask: {title: string; skip: sinon.SinonStub} = {title: 'Grant', skip: sinon.stub()};
+
+      await (task.task as (context: unknown, listrTask: unknown) => Promise<void>)(grantContext, listrTask);
+
+      expect(pods.delete.calledOnce).to.equal(true);
+      expect(listrTask.skip.firstCall.args[0]).to.contain('GRANT readonly TO owner WITH ADMIN OPTION');
+    });
+
+    it('should skip when the mirror node uses the shared database', (): void => {
+      const {task} = stubClientPod(sinon.stub());
+      expect((task.skip as (context: unknown) => boolean)({config: {useExternalDatabase: false}})).to.equal(true);
     });
   });
 
