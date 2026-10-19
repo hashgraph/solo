@@ -14,6 +14,7 @@ import {
 } from '../types/helm-values.js';
 import yaml from 'yaml';
 import {ValuesFileParser} from './util/values-file-parser.js';
+import {NetworkNodeLifecycle} from './network-node-lifecycle.js';
 
 type ExtractedExtraEnvironmentAnalysis = {
   environmentVariablesByNode: Record<NodeAlias, EnvironmentVariable[]>;
@@ -77,6 +78,12 @@ export class HelmValuesHelper {
 
       if (options.useJavaMainClass) {
         this.setExtraEnvironmentVariable(extraEnvironmentVariables, 'JAVA_MAIN_CLASS', 'com.swirlds.platform.Browser');
+      }
+
+      if (NetworkNodeLifecycle.isConsensusNodeImage()) {
+        // The consensus node image would otherwise start the node as soon as the pod boots, before Solo has staged
+        // config and the build; Solo starts it explicitly via s6-svc instead.
+        this.setExtraEnvironmentVariable(extraEnvironmentVariables, 'AUTO_START_CONSENSUS_SERVICE', 'false');
       }
 
       if (options.wrapsEnabled && options.tss) {

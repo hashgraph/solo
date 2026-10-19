@@ -31,6 +31,7 @@ import {BlockNodeStateSchema} from '../../../src/data/schema/model/remote/state/
 import {ComponentStateMetadataSchema} from '../../../src/data/schema/model/remote/state/component-state-metadata-schema.js';
 import {ClusterSchema} from '../../../src/data/schema/model/common/cluster-schema.js';
 import {SoloErrors} from '../../../src/core/errors/solo-errors.js';
+import {NetworkNodeLifecycle} from '../../../src/core/network-node-lifecycle.js';
 function invokeExtractSavedEndpoint(
   manager: ProfileManager,
   consensusNode: ConsensusNode,
@@ -184,6 +185,33 @@ describe('ProfileManager', (): void => {
       // validate the yaml
       const valuesYaml: AnyObject = yaml.parse(fs.readFileSync(valuesFile, 'utf8')) as AnyObject;
       expect(valuesYaml.hedera.nodes.length).to.equal(3);
+    });
+
+    it('should use the consensus node image as the root image in the consensus-node-image mode', async (): Promise<void> => {
+      configManager.setFlag(flags.namespace, 'test-namespace');
+      const isImageStub: sinon.SinonStub = sinon.stub(NetworkNodeLifecycle, 'isConsensusNodeImage').returns(true);
+
+      try {
+        const sourceDirectory: string = PathEx.joinWithRealPath(PathEx.join('resources'), 'templates');
+        const destinationDirectory: string = PathEx.resolve(PathEx.join(cacheDirectory, 'templates'));
+        fs.mkdirSync(destinationDirectory, {recursive: true});
+        fs.cpSync(sourceDirectory, destinationDirectory, {recursive: true});
+
+        const valuesFileMapping: Record<string, string> = await profileManager.prepareValuesForSoloChart(
+          consensusNodes,
+          deploymentName,
+          PathEx.join(cacheDirectory, 'templates', constants.APPLICATION_PROPERTIES),
+        );
+        const valuesYaml: AnyObject = yaml.parse(
+          fs.readFileSync(Object.values(valuesFileMapping)[0], 'utf8'),
+        ) as AnyObject;
+
+        expect(valuesYaml.defaults.root.image.registry).to.equal(constants.CONSENSUS_NODE_IMAGE_REGISTRY);
+        expect(valuesYaml.defaults.root.image.repository).to.equal(constants.CONSENSUS_NODE_IMAGE_REPOSITORY);
+        expect(valuesYaml.defaults.volumeClaims.appJarsInImage).to.equal(true);
+      } finally {
+        isImageStub.restore();
+      }
     });
 
     it('prepareValuesForSoloChart should set the value of a key to the contents of a file', async (): Promise<void> => {
