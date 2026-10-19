@@ -1,7 +1,8 @@
 # Solo TCK - Design
 
-**Status:** Revised October 19, 2026. The three focused review decisions are accepted (§16); the remaining maintainer
-review is pending. Other choices retain their individual confirmation status.
+**Status:** Revised October 19, 2026 after maintainer feedback. The October 16 decisions remain accepted;
+October 19 confirmations, conditional agreements and remaining decisions are distinguished in §16. Feedback
+received is not blanket architecture approval.
 This document specifies the architecture; implementation is tracked separately in the plan. Statements marked
 "proven" were run and retain their stated platform and coverage limits.
 **Scope:** the architecture and its implementation handoff. Implementation and release ownership are separate (§14).
@@ -25,7 +26,7 @@ From the PRD v0.2 (Notion), as summarized in #6223:
 | R3  | PR-time checks, 15 to 30 minutes per invocation (G1)                               | §9       |
 | R4  | Real traffic through mirror REST and, when deployed, Explorer REST and JSON-RPC    | §7       |
 | R5  | A lightweight resource and stability check                                         | §8       |
-| R6  | Independent semantic versioning and release cadence for the TCK (G6)               | §6       |
+| R6  | Original PRD: independent TCK versioning/cadence (G6); proposed co-release needs stakeholder alignment | §6, OPEN-09 |
 | R7  | Explorer coverage through the deployed topology, with no separate Explorer check   | §7.3     |
 
 Agreed constraints, also from #6223: the kit lives in the Solo repository; prerelease or branch-built companions are
@@ -38,17 +39,18 @@ end state (§14).
 
 **Solo owns everything inside `solo one-shot falcon deploy` and `destroy`:**
 
-- creating the Kind cluster and installing its pinned kind, helm and kubectl;
+- creating the Kind cluster and installing its pinned kind, helm and kubectl in the verified one-shot path;
+  action-based provisioning is a proposed alternative boundary, not a second cluster creator (§3);
 - loading the candidate (`--component-image-archive`, `--local-build-path`) and setting `pullPolicy: Never`;
 - every chart value, env var, port and default resource limit of each component;
 - the default component versions of each Solo release (`version.ts`);
 - the compatibility rules checked before deploy (`ComponentCompatibility`);
-- fixing the Solo defects the kit finds, within the time agreed in §10.5.
+- fixing the Solo defects the kit finds, with team and tech-lead accountability and the qualified target in §10.5.
 
 **The TCK owns everything around that command:**
 
 - the caller interface, input checks, exit codes and result files (§4);
-- choosing and recording versions (§5), and its own releases (§6);
+- choosing and recording versions (§5), and verification for the proposed co-release model (§6);
 - writing the Falcon values file and the Solo command line;
 - watching pods and failing fast (§10.3);
 - proving the candidate runs, the required probes, the short load and the resource check (§7, §8);
@@ -58,19 +60,19 @@ end state (§14).
 **The caller (the component team) owns:**
 
 - building the candidate from the PR commit, with a version unique to the run, in the shape its lane needs (§4.1);
-- the workflow job: trigger, path filter, runner and `timeout-minutes`;
+- the compatibility workflow: trigger, path filter, runner and an end-to-end deadline across its jobs;
 - the kit pin and when to bump it;
 - deciding when the check becomes required, and the first look at a red run (§14).
 
 **CI and release engineering own** the runners, repository rulesets (required checks and the bypass group), the fork
-PR policy, and the right to push `tck-v*` tags.
+PR policy, and publishing permissions for the release model agreed in §6.
 
 ## 3. Architecture
 
 ```text
 caller job (one job, one commit)
   1  build the candidate                                                      caller
-  2  uses: hiero-ledger/solo/tck@<sha> # tck-vX.Y.Z
+  2  uses: hiero-ledger/solo/tck@<sha> # verified Solo release (proposed co-release ref)
        check inputs                                       exit 2 on a bad input
        preflight the runner                               exit 3 if it cannot run Solo
        install Solo in its own npm project, SOLO_HOME and KUBECONFIG
@@ -98,10 +100,18 @@ Rules:
   One-shot always names its Kind cluster `solo-cluster`, so the kit refuses to start if one exists, rather than
   deleting it.
 - **No secrets** and no write permissions. The kit runs with the caller's `contents: read`.
-- **One verified Node runtime:** the kit and Solo run on Node 22.x, the runtime Solo documents (README: `lts/jod`), and
+- **Reuse before duplication:** evaluate [hiero-solo-action](https://github.com/hiero-ledger/hiero-solo-action/blob/58e17ebca216e1fa0dccb4982b63e9eb41614c17/action.yml)
+  before adding another deploy wrapper. It creates Kind and deploys components; current Solo can
+  [reuse a reachable context](https://github.com/hiero-ledger/solo/blob/53ac1aded2ea5f71814a90b4bd244230234602a6/src/core/cluster-task-manager.ts#L562),
+  but blind composition can reset shared state or collide with an existing deployment. Select one cluster
+  owner and prove isolated context, artifact injection and cleanup; a setup-only adapter is not currently available.
+  [solo-build-actions](https://github.com/hiero-ledger/solo-build-actions/blob/e8739988c7cdf7a95b0d9ae1510e0f4fb1d0eb5e/README.md) is currently under construction, not a
+  usable cluster/build action. Reuse or extension is proposed for review; the verified CLI path remains the reference.
+  Component build-action reuse can follow later without changing the caller's artifact contract (§12).
+- **Proposed Node runtime (OPEN-07):** the kit and Solo would run on Node 22.x, the runtime Solo documents (README: `lts/jod`), and
   release verification runs on it. If the runner's Node is not 22.x, the action installs Node 22 with
   `actions/setup-node`, which also changes Node for the caller's later steps. Solo's own CI uses Node 24; moving the
-  kit to 24 is a MINOR kit release once verification passes on it.
+  kit to 24 requires confirmation, verification and a new verified release pin (§6).
 
 Package layout:
 
@@ -111,14 +121,19 @@ tck/
   package.json         the kit's version and its own dependencies (the probe SDK)
   package-lock.json
   solo-versions.json   {"default": "0.94.0", "supported": ["0.92.0", "0.94.0"]}
-  CHANGELOG.md         release notes (there is no GitHub Release, see section 6)
+  CHANGELOG.md         kit changes; final release-note placement follows section 6
   src/                 plain ESM JavaScript, no build step
   specs/               one test spec and one "what Solo assumes" inventory per lane
   test/                unit tests, and the negative controls run before each release
 ```
 
-Plain ESM JavaScript, like `.github/scripts/solo-compat.mjs` in hiero-sdk-js#4537, so a tag runs as checked out.
-`tck/` goes into Solo's `.npmignore`, so the kit never ships inside the Solo npm package.
+Plain ESM JavaScript remains proposed so the action runs as checked out. It must follow Solo's class-based
+conventions: behavior on classes, static/private helpers as appropriate, and no exported free functions. Include
+`.mjs` in applicable ESLint checks and align automated review instructions with the same rules before implementation
+acceptance. Current [lint ignores](https://github.com/hiero-ledger/solo/blob/53ac1aded2ea5f71814a90b4bd244230234602a6/eslint.config.mjs#L261)
+exclude `.mjs`; implementation must extend coverage and demonstrate that violations fail. This update changes no
+lint configuration or review skill. Node 22 and the final implementation language
+remain review choices (OPEN-07). Excluding `tck/` from the Solo npm package is separate from sharing a release ref.
 
 ## 4. Caller interface
 
@@ -134,8 +149,15 @@ Plain ESM JavaScript, like `.github/scripts/solo-compat.mjs` in hiero-sdk-js#453
 | `candidate-packages`     | `js-sdk`                  | Folder of `pnpm pack` tarballs: the SDK and the workspace packages it depends on        |
 | `candidate-build-path`   | `consensus-node`          | The built `data` folder (`apps` and `lib`), passed as `--local-build-path`              |
 | `candidate-solo`         | `solo`                    | The Solo PR build, as an `npm pack` tarball                                              |
-| `solo-version`           | no                        | Default: the kit release's pinned Solo. A supported release or a Solo commit SHA (§5.2) |
+| `solo-version`           | no                        | Default: the kit's pinned Solo release. A supported release or a full Solo commit SHA (§5.2) |
 | `consensus-node-version`, `mirror-node-version`, `block-node-version`, `relay-version`, `explorer-version` | no | Companion overrides (§5.3). Not allowed for the lane's own component |
+
+**Proposed additional input, not yet agreed or implemented:** `companion-builds`, a path to a manifest of
+branch-built companions. Each entry names a non-candidate component, source repository, full commit SHA and unique
+version, plus a CN `build-path` or an image reference and archive for an image-based companion; chart inputs are
+included where the lane needs them. Reject duplicate version overrides, an entry for the candidate's component,
+missing provenance and artifact shapes Solo cannot deploy. Keep this a typed artifact contract, not extra flags.
+Solo/CI and the affected component teams must review the exact schema and CLI wiring (OPEN-11, #6223).
 
 For MN, `candidate-image` is the prefix Solo expands into the module images, for example
 `gcr.io/mirrornode/hedera-mirror:0.166.0-tck.38712.1` becomes `gcr.io/mirrornode/hedera-mirror-importer:0.166.0-tck.38712.1`
@@ -153,7 +175,8 @@ The kit uploads these files as the artifact `solo-tck-<component>-<run attempt>`
 
 - `tck-result.json`: kit version, lane, outcome, reason, failed stage and probe; requested versions (inputs, defaults
   and overrides); observed versions (every container image from `kubectl`, the chart versions Solo records); the
-  candidate identity evidence; every probe with its result and time; resource peaks; stage times.
+  candidate identity evidence; source SHAs and observed identities of branch-built companions; every probe with its
+  result and time; resource peaks; stage times and the load profile/phase configuration and captured measurements.
 - `junit.xml`: one test case per probe, for CI test views.
 - Solo's logs and, on a failure, pod state, events and `solo deployment diagnostics all`.
 
@@ -198,17 +221,22 @@ other version is pinned but can be overridden explicitly.
   override for a planned break. The result marks the run as unreleased Solo. It skips the `supported` check, since
   there is no release to check. These conditions were accepted in the October 16 review (§16).
 
-This replaces "run Solo `main`": a component PR uses an unreleased Solo only when it needs one, and the pin shows in
-its diff.
+A Solo branch is testable by resolving it to a full commit SHA and using that input; the build and resolved SHA
+are recorded. A moving branch name is not a reproducible required-check pin. A direct branch-ref convenience input
+can be a linked follow-up after its resolution semantics are agreed (OPEN-02). Solo PRs and nightly runs must also
+exercise branch/main builds (§13); released default does not exempt Solo from testing itself.
 
 ### 5.3 Companion versions and overrides
 
 - **Default:** the kit passes no version flag, so Solo deploys its own defaults for that release. That is what Solo
   users get from that release, and what Solo's CI tests.
 - **Override:** an input such as `mirror-node-version: v0.165.0-alpha2` becomes the matching top-level falcon flag.
-  Published releases and published prereleases are allowed. Companions built from a branch are not an input in v1:
-  no lane needs one yet, because the companions CN `main` needs (MN 0.165 and BN 0.45) are now published as
-  prereleases.
+  Published releases and prereleases remain available. Branch-built companions are also needed: a BN candidate
+  with a CN branch, the reverse pairing, and an SDK candidate with a CN fix branch. The proposed `companion-builds`
+  contract (§4.1) keeps the candidate distinct while recording every companion's immutable source and artifact.
+  It must prove each supplied companion actually ran; missing support fails explicitly, never falls back to a
+  release. These combinations need lane tests and component review. They are not claimed implemented or an accepted
+  v1 deferral; any deferral needs an agreed owner, linked follow-up and return gate before the affected lane ships.
 - **Solo's rules still apply:** one-shot validates the whole tuple before it deploys
   ([orchestrator L333-L338](https://github.com/hiero-ledger/solo/blob/bb9eb7659f7e894c496a66935d032d70157c9869/src/commands/one-shot/orchestrator/deploy/default-one-shot-deploy-orchestrator.ts#L333-L338)),
   so an invalid override exits 2 with Solo's message. The kit adds no compatibility rules of its own (TCK-D5).
@@ -243,63 +271,51 @@ lookup that fails is a failure, never a silent fallback. PR lanes never use `--e
 
 ## 6. Releases and supported Solo versions
 
-### 6.1 Tags only
+### 6.1 Proposed co-release model
 
-- The kit is released as an annotated tag `tck-vMAJOR.MINOR.PATCH` on a Solo `main` commit. Callers pin the tag's
-  commit SHA with the tag name in a comment, the way hiero-ledger workflows pin their other actions.
-- **No GitHub Release is ever created for the kit.** Only a published GitHub Release can become "Latest", so the
-  installer (`releases/latest/download/install.sh`) and `flow-examples-test.yaml` (the `releases/latest` API) keep
-  resolving Solo releases. Release notes go into `tck/CHANGELOG.md` and the tag message.
-- `semantic-release` already ignores these tags: `.releaserc` sets no `tagFormat`, so it only reads `v${version}`
-  tags. No Solo workflow triggers on tag pushes or release events (checked on `bb9eb765`).
-- **One `.releaserc` change:** the rule `{"scope": "tck", "release": false}` in `@semantic-release/commit-analyzer`,
-  so kit-only commits such as `feat(tck): ...` do not cut a Solo release.
-- **One skill change:** the `solo-prepare-release` skill takes the last Solo release from
-  `git describe --tags --abbrev=0`, which returns a `tck-v*` tag once one sits on `main`. It needs
-  `--match 'v[0-9]*'`. It is the only other tag reader in the repository (checked on `bb9eb765`).
-- The kit's own version is in `tck/package.json`. The kit is not published to npm.
+October 19 feedback supports shipping the kit with each Solo release instead of separate `tck-v*` releases.
+Remaining stakeholder alignment, the PRD's independent-version/cadence requirement (R6), publishing responsibility
+and the release sequence still need agreement (OPEN-09). This is the proposed direction, not finalized mechanics.
 
-This resolves the review problem that a kit release could become Solo's Latest release
-([r4257792792](https://github.com/hiero-ledger/solo/pull/5165#discussion_r4257792792)).
+- Callers would pin the commit of a verified Solo release that contains `tck/`, with its `v*` release name in a comment.
+  The examples use placeholders for that verified ref; they do not claim a released kit exists.
+- No separate kit GitHub Release may take over Solo's Latest release. The existing Solo release and its `install.sh`
+  must remain what `releases/latest` resolves. Shipping the action at the same ref does not require npm packaging it.
+- Before publishing that kit ref, verify its supported Solo list and exact artifacts (§6.3, §6.4). Publishing/tag order,
+  candidate-artifact equivalence and failure handling need release-owner agreement; do not add support after the fact.
+- Reconcile [#6234](https://github.com/hiero-ledger/solo/issues/6234) and
+  [#6235](https://github.com/hiero-ledger/solo/pull/6235) with this choice. npm exclusion remains useful; the `tck` scope
+  rule, independent tag workflow and tag-reader safeguard are conditional on the final model. Do not assume the
+  existing release-isolation implementation is either fully accepted or entirely obsolete.
 
-### 6.2 What a kit version number means
+### 6.2 Changes and caller pins
 
-- **MAJOR:** callers must change their workflow (an input or output renamed or removed, a lane removed).
-- **MINOR:** a verdict can change for the same candidate (a new probe, a stricter limit, a new default Solo, a changed
-  supported list).
-- **PATCH:** fixes that cannot turn a correct pass into a fail (reporting, diagnostics, messages).
-
-A caller sees a change only when it bumps the pin. The check runs on that bump PR, so a kit or Solo change that breaks
-the caller's `main` shows up there first.
+A caller's behavior changes only when it changes its pin or an explicit override. Release notes must identify
+input/output changes, new probes, stricter limits, runtime changes and supported-list changes. The former independent
+kit MAJOR/MINOR/PATCH rules are not a settled contract under co-release; agree API migration and version metadata
+before publishing. An incompatible Solo/kit change needs a reviewed transition (§13), not a silently replaced pin.
 
 ### 6.3 Supported Solo versions
 
 - `tck/solo-versions.json` holds `default` and `supported`.
-- A Solo release enters `supported` only when both hold:
-  1. It has every Solo capability the kit's lanes use. The kit lists each capability with the first Solo release that
-     has it, for example `--component-image-archive` (#5950, first released in 0.91.0) and the six-module MN image
-     expansion (#6112, first released in 0.93.0).
-  2. Every lane passed release verification (§6.4) with it.
-- Verification must pass before admission to a kit release's supported list. A later successful run cannot add
-  support retroactively to an existing kit release; a changed supported list ships in a new kit release. This
-  condition was accepted in the October 16 review (§16).
-- Solo's support window (README "Current Releases": one month for odd releases, three months for even LTS releases)
-  only says which releases are worth trying. It does not make a release supported. A release that fails verification
-  stays out of the list, and the kit's release notes say why.
-- After each Solo release, the Solo release owner opens a small PR that adds the release to `supported` and moves
-  `default`, then runs the kit release if verification passes. Between Solo releases, the kit releases whenever it
-  changes (R6).
-- Callers that need an older Solo pin an older kit release.
+- A Solo release enters `supported` only if it has every capability its lanes use and every implemented lane passed
+  release verification with it. Examples include image-archive loading (#5950, first released in 0.91.0) and six-module
+  MN expansion (#6112, first released in 0.93.0); capabilities alone do not establish support.
+- Verification must pass before admission. A later run cannot add support retroactively to an existing kit ref;
+  a changed list needs a new verified release pin. This October 16 condition still applies to the co-release proposal.
+- Solo's support window only identifies releases worth verifying. A failing release stays out. An older caller may
+  retain an older verified pin; branch/SHA diagnostics remain explicitly unreleased (§5.2).
+- Moving `default`, admitting a Solo release and publishing the shared ref must be one reviewed release plan. The
+  former automatic independent kit release after every Solo release is superseded by the pending co-release decision.
 
 ### 6.4 Release verification
 
-`tck-release.yaml` (`workflow_dispatch`, input: the version) runs on Solo `main`:
+The verification contract stays required regardless of the eventual publishing workflow:
 
-1. Checks that `tck/package.json` and `tck/CHANGELOG.md` carry that version.
-2. Runs every implemented lane against every `supported` Solo version, with released artifacts as candidates: the
-   `js-sdk` lane with the SDK version that Solo pins, the `mirror-node` lane with Solo's default MN images retagged
-   with a unique version, and so on.
-3. Runs the negative controls. Each must fail with the expected reason:
+1. Identify the exact kit ref, metadata, Solo artifacts and supported list being verified.
+2. Run every implemented lane against every supported Solo release with released components as candidates. Verify
+   identity using the same archive/build contract as callers; no untested retagging substitutes for a real build.
+3. Run the negative controls. Each must fail with the expected reason:
 
    | Control                                      | Expected        |
    | -------------------------------------------- | --------------- |
@@ -309,10 +325,13 @@ the caller's `main` shows up there first.
    | A probe that cannot find its transaction on the mirror node | exit 1, `candidate` |
    | An unsupported Solo version                  | exit 2, `invalid` |
    | A companion override Solo rejects            | exit 2, `invalid` |
+   | Missing branch-companion input/artifact | exit 2, `invalid` |
+   | Supplied branch companion not observed running | fail, `unknown` until attributed; no release fallback |
 
-4. Pushes the tag.
+4. Permit publication only for the artifacts/ref verified above, preserving Solo's Latest release and installer.
 
-CI and release engineering grant the push right for `tck-v*` tags to this workflow.
+A `tck-release.yaml` workflow and separate tag permission are no longer unconditional requirements. Solo release
+owners and CI/release engineering must agree the actual workflow and permissions before the first kit publication.
 
 ## 7. Lanes and required probes
 
@@ -323,7 +342,7 @@ a set of tests that never deploys its component. Each lane's topology always dep
 turns the block node on, for example. A run in which any target container does not run the candidate fails with exit 1.
 
 No skips: the kit release fixes each lane's probe list. A probe that cannot run yet is not in the lane until it can,
-and it arrives in a MINOR release. The result lists every probe, and a probe that did not run counts as failed.
+and it arrives through a new verified release pin. The result lists every probe, and a probe that did not run counts as failed.
 
 This resolves the review problem of passing without deploying the candidate
 ([r4257792780](https://github.com/hiero-ledger/solo/pull/5165#discussion_r4257792780)).
@@ -361,9 +380,9 @@ Identity rules for P3:
 | `consensus-node` | The candidate CN and MN; BN when that CN version needs it, with MN reading from it as in the `block-node` lane | P5 and P6 through the candidate; with a BN, the read-back goes through the BN and the BN verifies the blocks                                                                       | CN `main` needs MN 0.165 and BN 0.45 overrides |
 | `solo`           | Solo defaults                                                                             | The `js-sdk` lane's Solo-side probes, run on Solo's own pinned SDK                                                                                                                         | The Solo compatibility check on Solo PRs, run with the released kit (§13) |
 
-**Explorer** has no lane of its own (R7). Its REST API is probed in the MN lane once Explorer can be deployed beside
-an MN candidate (#6225). This differs from an earlier proposal, which had an Explorer PR check. The PRD decides,
-unless the Solo maintainers object.
+**Explorer** has no lane of its own (R7). October 19 maintainer feedback confirms that its API inside the MN lane
+is sufficient. Add the REST probe once Explorer can be deployed beside an MN candidate (#6225); that issue does not
+block the initial MN lane, and this confirmation does not claim the Explorer probe already runs.
 
 ### 7.4 Lane specs and the "what Solo assumes" inventory
 
@@ -375,64 +394,64 @@ contract, written one lane at a time.
 
 ## 8. Resource and stability check
 
-Always required (P4 and P8):
+Always required (P4 and P8): no OOM kill in any pod at any time, and no container restart from the end of deploy to
+the end of the run. The kit owns the load. These October 16 requirements remain unchanged.
 
-- No OOM kill in any pod at any time. No container restart from the end of the deploy to the end of the run.
-- The short load completes: 2 minutes at 20 transactions per second (transfers and topic messages) from the runner,
-  every receipt SUCCESS. The `js-sdk` lane sends it with the candidate SDK, the other lanes with the kit's pinned
-  probe SDK. Then P6 runs again for the load's last transaction, to show the mirror importer kept up.
+October 19 feedback corrects the mini-perf method: shorten every performance phase to target about five minutes
+total; do not stop the long suite five minutes in. The
+[source suite](https://github.com/hiero-ledger/solo/blob/53ac1aded2ea5f71814a90b4bd244230234602a6/test/e2e/commands/performance.test.ts)
+covers Token, NFT, Crypto, HCS and Smart Contract phases. Its concise mode skips phases and is not an all-phase profile. A one-minute setting per phase still adds
+warm-up/cooldown time; it is not evidence of a five-minute end-to-end profile.
 
-Measured and reported, required later:
+**Proposed, to be measured and reviewed:** a kit-owned short profile preserving those phase classes and assertions,
+with explicit durations, pacing and warm-up/cooldown inside the approximately-five-minute exercise target; setup
+and export still count toward §9. Reuse the
+[perf workflow](https://github.com/hiero-ledger/solo/blob/53ac1aded2ea5f71814a90b4bd244230234602a6/.github/workflows/flow-performance-test.yaml)
+measurement/export conventions where suitable. The exact settings, artifact fields and runner load adapter are pending
+(OPEN-05); the former fixed two-minute/20-TPS load is not the agreed replacement. The `js-sdk` lane must continue to
+exercise the candidate SDK; other lanes use the kit's pinned probe SDK. Reusing workload definitions does not
+silently introduce a separate load-generator pod or bypass the candidate SDK. Re-run P6 for the final load transaction.
 
-- The kit adds `--metrics-server` to the deploy, samples `kubectl top pod --containers` every 15 seconds from the end
-  of the deploy to the end of the load, and records each container's peak memory and CPU.
-- Memory ceilings per lane and container start as report-only. After two weeks of runs on the caller's `main`, each
-  ceiling becomes the highest observed peak plus 25%, checked against the perf suite's values about 5 minutes into its
-  load, so that no ceiling sits far above what the perf suite sees. The ceilings ship in a kit
-  MINOR release, reviewed by the component team. From then on, a container above its ceiling fails the run.
-- CPU stays report-only, because shared runners make it noisy.
+- Sample container memory and CPU through the run; record profile revision, actual phase times, per-container peaks
+  and the captured measurements. The source workflow's exports are a starting point, not data already captured here.
+- Memory ceilings remain report-only initially. After two weeks of each lane's `main` runs, use its highest observed
+  peak plus 25%, reviewed by the component team and shipped at a new verified pin. Compare phase-aligned short-profile
+  data with the perf measurements; a single five-minute offset from the long run is not a valid reference.
+- After ceiling activation, exceeding one fails the run. CPU stays report-only. OOM/restart failures do not wait for
+  the two-week observation or for a ceiling decision.
 
-Resource limits are Solo's defaults, and callers cannot raise them: the check is about the configuration Solo users
-get. If Solo's defaults are too small for a released component on the CI runner, that is a Solo defect to fix before
-the lane becomes required. Local arm64 runs OOM-killed 4 of 5 MN modules at Solo's default limits; the observation
-period has to show what amd64 runners do.
-
-The load reuses the probe SDK the kit already has. `solo rapid-fire load start` would add a load-generator pod, its
-image pull and its start-up to every run. It stays the upgrade path if the team wants the perf suite's load classes.
+Resource limits remain Solo's defaults; callers cannot raise them. A released component that cannot run within
+those defaults on the CI runner needs a Solo fix before the lane becomes required. Prior local arm64 MN OOMs are
+not amd64 results. Profile implementation, phase measurements and ceiling calibration are delivery work, not
+architecture completion evidence.
 
 ## 9. Runtime budget
 
-**One deadline for the PR check:** 30 minutes of wall time for the whole caller job, candidate build included, as the
-October 12 draft defines it. Moving the build to another job would change what is counted, not how long the PR waits.
+**One end-to-end compatibility-workflow budget:** 30 minutes, including candidate and companion builds, setup,
+deploy, probes, the complete short profile, diagnostics, cleanup and artifact/result export. October 19 feedback
+confirms the full workflow scope. Splitting work into jobs does not reset that budget; a per-job timeout alone is
+insufficient for a multi-job caller. The examples keep compatibility work in one job with `timeout-minutes: 30`.
 
-| Part            | Limit  | `js-sdk` baseline, SDK 2.87.0 ([run 38865703167](https://github.com/hiero-ledger/hiero-sdk-js/actions/runs/38865703167/job/116858893738)) | `mirror-node`, expected |
-| --------------- | ------ | ---------------------------------------------- | -------------------------------------------- |
-| Job setup       | 1 min  | 38 s                                           | about 1 minute                               |
-| Candidate build | 9 min  | 84 s (build and pack)                          | not measured: six images                     |
-| Kit step        | 20 min | 4.2 minutes without the load step              | 11 to 13 minutes                             |
-| Total           | 30 min | 6.3 minutes end to end                         | fits only if the build stays under 9 minutes |
+**Internal allocations remain proposed.** The earlier nine-minute build / twenty-minute kit split and three-minute
+load cap were not measured for an all-phase profile. Do not retain that load cap while claiming five minutes of
+phase coverage. The implementation owners must measure and agree stage caps that fit the full 30 minutes, including
+build dependencies. Proposed: reserve the last three minutes for diagnostics, cleanup and results, stop test work
+before that reserve and fail any incomplete run. That reserve and the exact stage caps still need confirmation.
 
-**One deadline inside the kit step:** 20 minutes from the step's start.
+The SDK 2.87.0 baseline took 6.3 minutes, without the new load profile. The SDK 2.90.1 local proof (§11.1) excludes
+builds and Kind preparation. Neither establishes the new full-workflow timing. Record stage and workflow totals;
+write `tck-result.json`, `junit.xml` and the summary after cleanup so cleanup success is represented. A cancelled or
+timed-out run is incomplete and cannot pass.
 
-- Test stages may use the first 17 minutes. Inner caps keep one stage from taking the rest: setup and Solo install 3,
-  deploy 8, identity and probes 3, load and resource check 3. The SDK 2.87.0 baseline in CI measured Solo install 24 s,
-  deploy 187 s and probes 16 s; a separate local CN/MN deploy took 263 s. The candidate SDK's local proof is recorded
-  separately in §11.1 and excludes the load and resource checks.
-- The last 3 minutes are reserved for diagnostics, cleanup and the result. When a test stage runs into minute 17, the
-  kit stops it, and the run fails.
-- The kit writes `tck-result.json`, `junit.xml` and the job summary last, after cleanup, so they record whether cleanup
-  worked. A failed cleanup is recorded and changes no verdict.
-- If the job is cancelled or hits its timeout, the kit stops Solo and writes what it has, marked incomplete. An
-  incomplete run is never a pass.
+The MN lane must follow the accepted sequence before requesting an exception:
 
-The 30-minute build-inclusive limit was accepted in the October 16 review (§16). The MN six-image build is not
-measured yet. The MN lane follows this order before a runtime exception is proposed:
+1. Measure the complete six-image build and workflow.
+2. Try one Gradle invocation with the build cache.
+3. Try a larger runner.
+4. If still over budget, present the measurements for a maintainer exception decision or a build improvement.
 
-1. Measure the complete build and run against this budget.
-2. Try one Gradle invocation with the build cache, rather than separate invocations per image.
-3. Try a larger runner if the cached build still does not fit.
-4. If both changes still leave the check over budget, bring the measurements to the Solo maintainers for a further
-   decision. No MN exception has been agreed.
+No exception is approved. A slow build does not automatically extend the deadline. Runtime measurements and any
+explicit exception belong to implementation follow-up (OPEN-05), separate from architecture acceptance.
 
 ## 10. Verdict and failure handling
 
@@ -500,11 +519,14 @@ existed, because that would hide a flaky candidate. People re-run `environment` 
    verification). A red baseline says the candidate is probably not the cause. It does not say whether Solo, the kit,
    a companion or the environment is, so the Solo team attributes the failure.
 3. The team opens a Solo issue with the body from the job summary.
-4. **Proposed, not agreed:** a small bypass group in each caller's ruleset merges the PR with that issue linked, and
-   Solo answers within one working day and ships a fix or workaround within two working days (a Solo release followed
-   by a kit release, or a Solo commit the caller can pin meanwhile, §5.2). The times need the Solo team's agreement,
-   and the bypass groups need CI and release engineering and each component team.
-5. **Planned breaks**, where a component change needs a Solo change: Solo merges its change first, and the component
+4. October 19 feedback endorses a small bypass group per caller with the Solo issue linked. The check stays red;
+   bypass is a repository-governance action, not a kit outcome. Membership, ruleset permissions and audit procedure
+   still need CI/release engineering and the consumer team's agreement before a check becomes required.
+5. The Solo team and tech lead are accountable for fixes. Two working days is an initial fix/workaround target if
+   realistic for most cases, adjustable with experience; it is not an unconditional service guarantee. The separate
+   one-working-day response proposal was not explicitly confirmed. Release owners and the agreed publication model
+   deliver the fix, or the caller temporarily pins its full Solo commit (§5.2).
+6. **Planned breaks**, where a component change needs a Solo change: Solo merges its change first, and the component
    PR pins `solo-version` to that commit until the Solo release.
 
 ## 11. Caller example: a JS SDK pull request
@@ -513,11 +535,9 @@ This job replaces the Solo Compatibility job of hiero-sdk-js#4537. The caller ke
 the install, deploy, probe, diagnostics and destroy steps.
 
 ```yaml
-# hiero-sdk-js: .github/workflows/build.yml
+# hiero-sdk-js: dedicated .github/workflows/solo-tck.yaml (proposed)
   solo-tck:
     name: Solo TCK
-    needs:
-      - build
     runs-on: hiero-client-sdk-linux-large
     timeout-minutes: 30
     steps:
@@ -559,7 +579,7 @@ the install, deploy, probe, diagnostics and destroy steps.
 
       # Deployment, verification, cleanup and results.
       - name: Solo TCK
-        uses: hiero-ledger/solo/tck@<commit of tck-v0.1.0> # tck-v0.1.0
+        uses: hiero-ledger/solo/tck@<verified Solo release SHA> # verified release containing the SDK lane
         with:
           component: js-sdk
           candidate-packages: ${{ runner.temp }}/candidate
@@ -610,8 +630,9 @@ What the kit does:
 
    Then, with the candidate SDK as that account: `AccountInfoQuery` shows the new key; a transfer and a topic message
    get SUCCESS receipts; mirror REST returns both (`/api/v1/transactions/<id>`, `/api/v1/topics/<id>/messages/<seq>`).
-6. **Load (P8).** The candidate SDK sends 20 transactions per second for 2 minutes. Every receipt is SUCCESS, mirror REST
-   returns the last one, nothing restarted or was OOM-killed, and the peaks are recorded.
+6. **Load (P8).** Run the reviewed all-phase short profile (§8) through the candidate SDK, including its phase
+   assertions, final mirror read-back and measurement export. Exact phase settings and timings are pending; the
+   earlier two-minute/20-TPS example does not prove this coverage. No restart or OOM is allowed, and peaks are recorded.
 7. **Cleanup.** `solo one-shot falcon destroy --deployment solo-tck --quiet-mode`, then
    `kind delete cluster --name solo-cluster` if anything is left.
 8. **Results.** `tck-result.json`, `junit.xml`, the job summary and the artifact `solo-tck-js-sdk-1`.
@@ -622,14 +643,14 @@ Results:
   `NodeAccountId not recognized: 0.0.2`, so exit 5, reason `unknown`, stage deploy. Red is right: SDK 2.89.0 and newer
   cannot run inside Solo 0.93.0, as #4537 shows. The reason is `unknown` because the evidence does not say which side
   is wrong; people attributed it to Solo (§10.2).
-- **With the first Solo release that carries #6228:** expected green in about 9 to 10 minutes, based on the SDK 2.87.0
-  baseline's 6.3 minutes without the load step. This is an estimate for the full kit, not a measured result; the local
-  candidate SDK pilot below exercises a smaller contract.
+- **With the first verified Solo release that carries #6228:** the lane must pass the complete contract. Full timing
+  needs measurement with the all-phase profile; the former 9-to-10-minute estimate is not evidence for that workload.
+  The local candidate SDK pilot below exercises a smaller contract.
 
 Job summary for the first case:
 
 ```text
-Solo TCK tck-v0.1.0 | js-sdk | FAIL (unknown) at deploy
+Solo TCK <verified release ref> | js-sdk | FAIL (unknown) at deploy
 Solo 0.93.0 (input)   CN v0.77.2 (Solo default)   MN v0.163.0 (Solo default)
 Candidate @hiero-ledger/sdk 2.90.1, one copy, lock integrity matches, require and import resolve it
 
@@ -672,7 +693,8 @@ of released npm Solo 0.93.0.
 
 The elapsed time excludes SDK/Solo builds and Kind preparation. This pilot used `one-shot single`, including Explorer
 and Relay; the planned SDK kit lane uses Falcon with CN and MN only. It did not exercise the kit's pod watcher,
-2-minute load, resource sampling/ceilings or release negative controls, and it is not a GitHub Linux CI result.
+then-proposed two-minute load, the new all-phase profile, resource sampling/ceilings or release negative controls;
+it is not a GitHub Linux CI result.
 The next proof is the released Solo fix on Linux CI, followed by verification of the complete Falcon kit lane.
 
 ## 12. Caller example: a Mirror Node pull request
@@ -745,7 +767,7 @@ jobs:
 
       # Deployment, verification, cleanup and results.
       - name: Solo TCK
-        uses: hiero-ledger/solo/tck@<commit of tck-v0.2.0> # tck-v0.2.0
+        uses: hiero-ledger/solo/tck@<verified Solo release SHA> # verified release containing the MN lane
         with:
           component: mirror-node
           candidate-version: ${{ env.CANDIDATE_VERSION }}
@@ -809,7 +831,8 @@ What the kit does:
 
 Results:
 
-- **A healthy candidate:** green, in about 16 to 20 minutes including the build.
+- **A healthy candidate:** green only after the full workflow passes within the agreed budget; six-image build and
+  all-phase timing still need measurement. The earlier 16-to-20-minute estimate is not a measured result.
 - **The importer crashes on a bad migration:** the watcher sees the second restart of the candidate `importer`
   container during the deploy and fails at once: exit 1, reason `candidate`, stage deploy, with the importer's last
   log lines in the summary. Red, and blocking once required.
@@ -820,7 +843,7 @@ Results:
 Job summary for the crash:
 
 ```text
-Solo TCK tck-v0.2.0 | mirror-node | FAIL (candidate) at deploy
+Solo TCK <verified release ref> | mirror-node | FAIL (candidate) at deploy
 Solo 0.94.0 (kit default)   CN (Solo default)
 Candidate 0.166.0-tck.38712.1, chart charts/hedera-mirror 0.166.0-SNAPSHOT
 
@@ -831,16 +854,19 @@ P3 to P8      not run
 
 ## 13. Solo PRs and nightly runs
 
-**Solo PRs run two separate checks**, so a PR that changes Solo and the kit together cannot hide a break:
+Solo must test its own branch/main builds against the TCK. **Two independent checks remain the proposed wiring**,
+so a paired kit change cannot hide a Solo regression; workflow ownership and release-transition details remain open
+(OPEN-15).
 
 - **Solo compatibility.** Solo's CI packs the PR build and runs the newest released kit
-  (`uses: hiero-ledger/solo/tck@<sha> # tck-vX.Y.Z`, pinned and bumped like any caller's) with `component: solo` and
+  (`uses: hiero-ledger/solo/tck@<sha> # verified Solo release (proposed co-release ref)`, pinned and bumped like any caller's) with `component: solo` and
   `candidate-solo: <tarball>`. It runs on PRs that change `src/`, `resources/`, `version.ts`, `package.json` or
   `package-lock.json`, and proves that the Solo change works with the kit callers pin. If the change also needs a kit
-  change, that kit change ships first, as a kit release that works with both the current and the new Solo; otherwise
-  the Solo change would break every caller. This automates on every PR what the `solo-test-release` skill does by hand
+  change, the co-release model needs a reviewed backward-compatible transition or an explicit migration plan; a green
+  new-kit/new-Solo pair does not erase a red released-kit check. That transition is pending in OPEN-09/OPEN-15.
+  This automates on every PR what the `solo-test-release` skill does by hand
   before a release: pack Solo, deploy with one-shot, and confirm a real transaction through consensus and the mirror
-  node. Expected cost: about 7 minutes per PR, like the `js-sdk` lane.
+  node. Measure its cost with the new profile before committing a runtime estimate.
 - **Kit development.** PRs that change `tck/` run `uses: ./tck` against established baselines: each `supported` Solo
   release from npm, with released components as candidates, as in release verification (§6.4). This tests the kit
   change before it ships, without depending on an unreleased Solo.
@@ -858,7 +884,7 @@ Every lane goes through the same steps:
 1. The kit release that adds the lane passes release verification (§6.4).
 2. The component team adds the job as a non-required check.
 3. Observation: at least 10 working days and 20 runs on PRs and `main`, with no false red (a red that no fix to the
-   candidate would clear), and a 90th percentile job time under 30 minutes.
+   candidate would clear), and a 90th percentile full-workflow time under 30 minutes.
 4. The component team asks CI and release engineering to make it required, with the bypass group from §10.5.
 
 SDK-first delivery was accepted in the October 16 review (§16). The MN lane and
@@ -882,8 +908,9 @@ to a re-run (and to CI and release engineering if it repeats), `kit` and `unknow
 The architecture deliverable is this design, its decision register and the implementation handoff (#6223). It does
 not include implementing or releasing the kit, enabling required consumer checks, or maintaining the kit. The Solo
 team is the proposed kit implementation and maintenance owner; named implementers and release owners are confirmed
-separately. The plan distinguishes architecture completion from implementation acceptance. The response and fix
-times in §10.5 remain a proposal until the Solo team agrees to them.
+separately. The plan distinguishes architecture completion from implementation acceptance. The Solo team and tech
+lead own defect follow-through; §10.5 records the qualified two-day target, unconfirmed response time and pending
+bypass governance. This does not assign kit implementation or release delivery to the architecture owner.
 
 ## 15. Solo changes the lanes need
 
@@ -895,8 +922,8 @@ times in §10.5 remain a proposal until the Solo team agrees to them.
 | Fail fast on definitive image errors                                                | #6227          | The budget for broken candidates; the kit watches pods meanwhile |
 | A one-shot flag for the block node (today only `ONE_SHOT_WITH_BLOCK_NODE`)          | in #6223       | `block-node` lane; the env var works meanwhile                   |
 | The reverse SHA-256 rule (BN 0.45 with an older CN), and the real CN boundary       | #6202          | `block-node` and `consensus-node` lanes                          |
-| The `.releaserc` rule for scope `tck`, and `tck/` in `.npmignore`                   | #6234, PR #6235 | The first kit release                                            |
-| `--match 'v[0-9]*'` in the `solo-prepare-release` skill's `git describe`            | #6234, PR #6235 | The first kit release                                            |
+| Reconcile the `tck` scope rule and npm exclusion with the chosen release model | #6234, PR #6235 | First kit publication; mechanics pending OPEN-09 |
+| Review the tag-reader safeguard if independent kit tags remain | #6234, PR #6235 | Conditional on OPEN-09; not an automatic release prerequisite |
 | A distinct exit code for invalid input, and JSON output of what is deployed         | in #6223       | Exact `invalid` reasons and richer results; the kit reads `kubectl` meanwhile |
 
 The MN lane itself needs none of these: it runs with Explorer and Relay off, and turns the pinger off through the
@@ -904,35 +931,36 @@ The MN lane itself needs none of these: it runs with Explorer and Relay off, and
 
 ## 16. Decision register
 
-The three focused decisions were accepted in the
-[October 16 review](https://github.com/hiero-ledger/solo/pull/5165#issuecomment-6213315378): version policy
-(OPEN-02), first delivery (OPEN-06), and runtime and resources (OPEN-05). Their conditions are recorded in §5.2, §6.3,
-§9 and §14. The remaining maintainer review is pending. The IDs stay unchanged for existing references; other rows
-retain their own confirmation needs. The acceptance covers these three decisions, not every detail of the
-architecture.
+The [October 16 review](https://github.com/hiero-ledger/solo/pull/5165#issuecomment-6213315378) accepted version
+policy, SDK-first order and the budget/resource policy. October 19 maintainer feedback confirms released default,
+full-workflow timing and Explorer placement, endorses bypass in principle and qualifies the fix target. It also
+requests action reuse, branch-companion coverage and Solo style for ESM. The release direction is conditional on
+stakeholder alignment; exact load settings, interfaces and ownership are not approved by implication. Review
+comments are not blanket approval. IDs stay unchanged; owner entries without confirmed assignments remain roles
+asked to confirm, not accepted owned deferrals.
 
 | ID      | Decision                  | Answer or recommendation                                                                                                | Confirmation / remaining review    |
 | ------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
 | OPEN-01 | Requirements              | PRD v0.2 as restated in §1                                                                                              | PRD owner                          |
-| OPEN-02 | Version policy            | Released Solo by default; pinned companions with explicit overrides; planned-break SHA visible in the caller PR diff and removed once the fix ships; supported releases verified before admission, never retroactively (§5, §6.3) | Accepted October 16; maintainer review pending |
-| OPEN-03 | Contract                  | One spec and one "what Solo assumes" inventory per lane; Solo maintains them, component teams review them (§7.4)        | Solo maintainers, component teams  |
+| OPEN-02 | Version policy | Released default and visible temporary SHA pins retained; branch builds resolve to recorded SHAs; Solo tests branch/main (§5.2, §13) | Default confirmed October 19; direct branch-ref UX and exact dual-check wiring remain proposed |
+| OPEN-03 | Contract | One lane spec/inventory; assess existing action reuse with one cluster owner and a verified artifact/context handoff (§3, §7.4) | Solo/action maintainers and component teams; reuse boundary not yet agreed |
 | OPEN-04 | Adoption                  | Every lane is a PR check: non-required, then required by the component team after observation (§14)                     | Component teams                    |
-| OPEN-05 | Runtime and resources     | Accepted: 30 minutes including build, OOM kills and restarts fail from day one, ceilings at peak +25% after two weeks, kit-owned load. MN: measure, cached Gradle invocation, larger runner, then review an exception if still needed. The design allocates a 20-minute kit deadline with 3 minutes reserved (§8, §9) | Budget and resource choices accepted October 16; maintainer review pending; no MN exception |
-| OPEN-06 | First delivery            | `js-sdk` first (pilot #4537), then `mirror-node` with the MN team (plan slices 0 to 2). The MN lane and #6225 have an assigned owner on the Solo team | Order accepted October 16; SDK lane implementer to be confirmed; maintainer review pending |
-| OPEN-07 | Platform                  | Linux amd64, Kind, Solo's default runtime image, Node 22.x (§3); no JDK axis (the PRD has none)                  | Solo maintainers for Node; JDK closed |
+| OPEN-05 | Runtime and resources | Full workflow <=30 minutes; day-one OOM/restart failures; ceilings after two weeks at peak +25%. Compress all perf phases, target about five minutes; measure/cache/larger runner before an MN exception (§8, §9) | Policy confirmed; exact profile, exports and stage/reserve allocations pending; no exception approved |
+| OPEN-06 | First delivery | JS SDK first, then MN; MN lane/#6225 owner assigned; plan slices 0 to 2 | Order accepted October 16; SDK implementer and release owner still to be confirmed |
+| OPEN-07 | Platform | Linux amd64/Kind; Node 22 and plain ESM remain proposed. Solo class/static-helper conventions and .mjs lint apply (§3) | Solo maintainers confirm runtime/language; no JDK axis |
 | OPEN-08 | Preflight                 | Use one-shot's own tuple check; ask Solo for a distinct exit code for invalid input                                      | Solo maintainers                   |
-| OPEN-09 | Release mechanics         | `tck-v*` tags only, no GitHub Release; the supported Solo list by capability and verification; a kit release after each Solo release, by the Solo release owner; the `.releaserc` and skill changes (§6) | Supported-list admission accepted October 16; remaining release mechanics: Solo maintainers, CI and release engineering |
+| OPEN-09 | Release mechanics | Proposed kit/Solo co-release rather than independent tck-v* releases; preserve Latest and verified, non-retroactive admission (§6) | Direction supported October 19; stakeholder/PRD alignment, metadata, workflow and publishing ownership pending |
 | OPEN-10 | Evidence                  | CI artifacts and job summaries; no public record until someone needs one                                                | none                               |
-| OPEN-11 | Development companions    | Published releases and prereleases by explicit override; branch-built companions once a lane needs them                 | Solo maintainers, CN and BN teams  |
-| OPEN-12 | Failure policy            | §10.5: honest red, `unknown` until attributed, a baseline comparison. Proposed: a bypass group with a linked Solo issue, a one-day answer and a two-day fix | Solo maintainers for the times, CI and release engineering for the bypass |
+| OPEN-11 | Development companions | Cover BN+CN branch pairings both ways and SDK+CN branch; proposed companion-builds manifest, provenance and observed identity (§4.1, §5.3) | Solo/CI and component teams review schema/wiring; no accepted v1 deferral or implementation claim |
+| OPEN-12 | Failure policy | Red remains red; baseline attribution. Linked-issue bypass endorsed; Solo team/tech lead own fixes with an adjustable initial two-day target (§10.5) | Bypass membership/rulesets pending; one-working-day response unconfirmed; not a guaranteed SLA |
 | OPEN-13 | Trigger, cost and forks   | PRs that change runtime code, plus `main`. Fork PRs depend on the large-runner policy (Solo needs 6 CPUs)               | CI and release engineering         |
-| OPEN-14 | Explorer                  | No separate lane; probed in the MN lane after #6225 (R7)                                                                | Solo maintainers                   |
-| OPEN-15 | Solo's SDK pin and Solo PRs | Fix the ping (#6228) and keep the pin current; the `js-sdk` lane on SDK PRs; on Solo PRs, the Solo compatibility check with the released kit plus the kit development check (§13) | Solo maintainers |
+| OPEN-14 | Explorer | No separate lane; API coverage in MN after #6225 (§7.3) | Placement confirmed October 19; probe implementation and reviewer handoff remain |
+| OPEN-15 | Solo's SDK pin and Solo PRs | Release the ping fix/keep pin current; test Solo branch/main; released-kit compatibility plus kit-development checks remain proposed (§13) | Self-compatibility need confirmed; exact workflows, transition and ongoing owners pending |
 
 Kept from the earlier draft: the kit lives in the Solo repository (TCK-D2). A new repository would need TSC approval,
-so the standalone-repository thread
-([r3876503253](https://github.com/hiero-ledger/solo/pull/5165#discussion_r3876503253)) can close. Independent tags give
-callers the same pinning a separate repository would.
+so the standalone-repository question
+([r3876503253](https://github.com/hiero-ledger/solo/pull/5165#discussion_r3876503253)) does not require a second repository.
+Immutable caller pins remain possible under co-release. Reviewers decide thread resolution.
 
 Review threads this revision answers:
 
@@ -947,6 +975,15 @@ Review threads this revision answers:
 | [r4217105477](https://github.com/hiero-ledger/solo/pull/5165#discussion_r4217105477): skips inferred from runtime errors | §7.1 |
 | [r4217105500](https://github.com/hiero-ledger/solo/pull/5165#discussion_r4217105500): mirror the PRD requirements | §1 |
 
+October 19 inline feedback is addressed without treating proposed interfaces as implemented:
+
+| Review | Disposition |
+| --- | --- |
+| [Action reuse](https://github.com/hiero-ledger/solo/pull/5165#discussion_r4313967179) | §3: staged reuse/extension with one isolated cluster/deployment owner; exact adapter remains open |
+| [Branch-built companions](https://github.com/hiero-ledger/solo/pull/5165#discussion_r4314270358) | §4.1/§5.3: proposed artifact manifest, all three combinations and provenance/identity checks |
+| [Future component builders](https://github.com/hiero-ledger/solo/pull/5165#discussion_r4314401103) | Caller build-action reuse can follow when usable interfaces exist; keep the artifact contract |
+| [ESM conventions](https://github.com/hiero-ledger/solo/pull/5165#discussion_r4314489440) | §3/plan: Solo classes/static helpers, lint extension and review-scope acceptance |
+
 ## 17. Changes from the October 12 draft
 
 | October 12 draft (`4d215eab`)                                          | This revision                                                                          | Why                                                                                                  |
@@ -956,12 +993,12 @@ Review threads this revision answers:
 | An `expected-solo-break` input                                         | Pin the Solo fix commit in `solo-version` (§5.2, §10.5)                                | Only a full pass is green, so a declared break would have to turn a red run green. With the fix pinned, the run is green because the fix is in it |
 | `scope` and `topology` inputs with `pr-core`, `extended` and `nightly` | One lane per component, which always deploys the candidate (§7.1)                      | A BN caller could pass without deploying BN (r4257792780)                                            |
 | A canary per suite in every run                                        | An identity check in every run, and negative controls before each kit release (§6.4, §7.2) | The identity check proves the candidate ran; a broken input in every run costs time and proves less |
-| Mini-perf only in `extended`                                           | Stability and a short load in every lane (§8)                                          | Earlier risk reviews name more CPU or memory for four of five components                            |
+| Mini-perf only in `extended` | Stability in every lane; proposed shortened all-phase profile (§8) | October 19 feedback rejects sampling only the start of the long suite |
 | PR gates for MN, Relay and the SDK; CN and BN on schedules in v1       | Every lane is a PR check, non-required first (§14)                                     | The PRD asks for PR-time checks. Non-required first matches the earlier "optional first" guidance   |
 | Hybrid PR runs: the candidate plus latest-stable companions            | Pinned: the kit pins Solo, Solo pins the companions; latest only nightly (§5)          | Reproducible PR results: a new release changes a caller's result only through the caller's own bump PR |
 | A verdict through `--output json` on `DiagnosticsFinding`              | The kit's own `tck-result.json` (§4.2)                                                 | The kit must not depend on Solo internals (R1)                                                       |
 | A git-tracked conformance record (TCK-13)                              | CI artifacts first (OPEN-10)                                                           | Nobody needs a public record yet                                                                     |
-| Kit tags under `tck-v*`                                                | Kept, plus: no GitHub Release, the `.releaserc` scope rule and the skill fix (§6.1)    | A GitHub Release would take over Solo's Latest release (r4257792792)                                |
+| Kit tags under `tck-v*` | Proposed co-release, pending stakeholder/PRD alignment (§6.1) | Avoid a separate kit Release taking Solo's Latest; keep immutable verified pins |
 | Two SDK modes, the client mode first                                   | Both modes in the one `js-sdk` lane (§7.3)                                             | One deploy covers both, as #4537 shows                                                               |
 
 Kept unchanged: the Solo repository home, the black-box boundary, Explorer as a channel rather than a component, the

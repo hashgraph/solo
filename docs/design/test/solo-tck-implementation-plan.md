@@ -1,7 +1,8 @@
 # Solo TCK - Implementation Plan
 
-**Status:** Revised October 19, 2026. SDK-first delivery was accepted in the October 16 review; the remaining
-maintainer review is pending. Child issues of [#4272](https://github.com/hiero-ledger/solo/issues/4272), tracked in
+**Status:** Revised October 19, 2026 after maintainer feedback. SDK-first order remains accepted; the co-release
+model, exact short profile, branch-artifact interface and action-reuse wiring retain their confirmation needs.
+Child issues of [#4272](https://github.com/hiero-ledger/solo/issues/4272), tracked in
 [#6223](https://github.com/hiero-ledger/solo/issues/6223).
 **Design:** [solo-tck-conformance-gate.md](./solo-tck-conformance-gate.md). Decisions are recorded in design §16.
 The `mirror-node` lane and #6225 have an assigned owner on the Solo team; the SDK lane implementer is still to be
@@ -16,6 +17,9 @@ The architecture phase is complete when:
   remain identified as proposals until accepted.
 - The implementation handoff records the component contracts, interfaces, lane order, dependencies and acceptance
   criteria, with confirmed owners distinguished from ownership still to agree.
+- The co-release/PRD conflict, branch-companion schema, all-phase profile and action-reuse boundary are agreed or
+  explicitly deferred with accepted owners, linked follow-ups and return gates; a review comment alone closes none
+  of those details.
 
 Implementation, releases, runtime measurements and required consumer checks are separate delivery work. Their
 acceptance criteria below do not gate completion of the architecture phase.
@@ -24,10 +28,10 @@ acceptance criteria below do not gate completion of the architecture phase.
 
 | Slice | Work                                                                                                                         | Depends on                                         | Exit evidence                                                                                          | Owner                                 |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------- |
-| 0     | Solo: merge and release #6228; add the `.releaserc` rule for scope `tck`, `tck/` to `.npmignore`, and `--match 'v[0-9]*'` to the `solo-prepare-release` skill | none                                               | A Solo release with #6228; the hiero-sdk-js Solo Compatibility job green on it                         | Solo maintainers and release owner; to be confirmed |
-| 1     | Kit core and the `js-sdk` lane (TCK-3, TCK-4, TCK-6): move #4537's logic into `tck/`, add the pod watcher, load, results and `tck-release.yaml`; release `tck-v0.1.0` | 0                                                  | Release verification green, negative controls included; hiero-sdk-js calls the kit; measured times     | Solo team with SDK team; implementer to be confirmed |
-| 2     | The `mirror-node` lane: lane spec and inventory with the MN team; `tck-v0.2.0`; an MN workflow PR, non-required. Explorer and Relay join the lane after #6225 | 1                                                  | Identity on an amd64 runner; the negative controls fail as expected; measured build and run times      | Solo team (owner assigned), with the MN team |
-| 3     | On Solo PRs, the Solo compatibility check with the released kit and the kit development check; the nightly workflow        | 1                                                  | Solo PRs run both checks; one nightly result per lane                                                  | Solo team                             |
+| 0 | Solo: merge/release #6228; reconcile #6234/#6235 with the co-release decision, preserving Latest/installer and npm exclusion | Release model/owner agreement | A Solo release with #6228; released-version Linux pilot green; approved publication sequence | Solo maintainers and release owner; to be confirmed |
+| 1 | Kit core and JS SDK lane: candidate proof, proposed all-phase profile, results and verified publication; confirm action reuse, ESM lint and branch-artifact contracts | 0; design OPEN-03/05/07/09/11 | Release verification/negative controls green; caller pins verified ref; measured full-workflow time | Solo team with SDK team; implementer to be confirmed |
+| 2 | MN lane/spec/inventory and a non-required caller workflow; publish at the next agreed verified ref. Explorer/Relay join after #6225 | 1 | amd64 identity proof, negative controls, measured complete build/workflow and reviewed probes | Solo team (owner assigned), with MN team |
+| 3 | Solo branch/main compatibility, proposed released-kit and kit-development checks, nightly runs | 1; transition/workflow agreement | Independent results cannot hide a Solo regression behind a paired kit change | Solo team; workflow/upkeep owner to confirm |
 | 4     | Required checks: `js-sdk`, then `mirror-node`                                                                                | 1, 2, and the observation bar (design §14)         | 10 working days, 20 runs, no false red, 90th percentile under 30 minutes; the rulesets changed          | SDK team; MN team with CI and release engineering |
 | 5     | The `relay` and `consensus-node` lanes, then `block-node`                                                                    | 2; for BN, a CN that writes SHA-256 blocks, #6226 and #6202 | Each lane required by its team                                                                         | Solo team, with each component team   |
 | 6     | Memory ceilings (TCK-5), the user guide (TCK-14), the Solo matrix reduction (TCK-12)                                         | Ceilings: per lane, two weeks of its `main` runs after the slice that adds it (design §8). Guide and matrix reduction: 4 | Ceilings in a kit release; the guide live; each dropped Solo E2E case mapped to a required lane         | Solo team                             |
@@ -50,8 +54,10 @@ because it proves image injection.
   [#6237](https://github.com/hiero-ledger/solo/issues/6237) and open
   [PR #6238](https://github.com/hiero-ledger/solo/pull/6238), stacked on #6235. The latter includes Falcon deploy,
   candidate identity, probes, load/resource checks and cleanup, with two passing local macOS arm64 runs. Linux
-  network acceptance, independent kit release, supported-release admission, caller migration and resource ceilings
-  remain. Passing PR checks do not establish those results.
+  network acceptance, the agreed release model, supported-release admission, caller migration and resource ceilings
+  remain. Those local runs do not verify the newly proposed all-phase profile or branch-companion combinations. Passing PR checks do not establish those results.
+- #6235's release rules and #6238's load/deadlines need reconciliation with the new feedback; neither PR is
+  automatically accepted or obsolete. No implementation change is made by this architecture update.
 - The MN lane work includes measuring the complete six-image build, trying one cached Gradle invocation, then a
   larger runner if needed. A runtime exception requires a further decision with those measurements (design §9);
   none is approved. #6225 is assigned; the MN handoff and delivery date still need coordination.
@@ -64,17 +70,17 @@ The task IDs stay, so existing references keep working.
 | --------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | TCK-D0    | Mirror the PRD requirements | Done in design §1, from #6223. The PRD owner confirms (OPEN-01).                                                  |
 | TCK-D1    | Version model               | Version policy accepted (design §5), including visible temporary Solo SHA pins and verified supported versions    |
-| TCK-D2    | Repo home and tags          | Home decided; release mechanics in design §6                                                                       |
+| TCK-D2    | Repo home and tags          | Home decided; co-release/PRD alignment and mechanics pending in design §6                                                                       |
 | TCK-D3    | Version variables           | Design §5.2 and §6.3                                                                                               |
 | TCK-D4    | Deployment contract         | One spec and one "what Solo assumes" inventory per lane (design §7.4), first for `js-sdk` and `mirror-node`       |
 | TCK-D5    | Interdependency rules       | Solo's `ComponentCompatibility` (#6179) plus #6202; the kit adds no rules                                          |
 | TCK-D6    | Where the gate blocks       | Every lane is a PR check (design §14). Schedules are never the end state                                          |
-| TCK-1     | Branch-build flow           | Solo already loads branch builds; the remaining Solo changes are in design §15                                    |
+| TCK-1     | Branch-build flow           | Design §4.1/§5.3: multi-component branch artifacts, immutable provenance, identity and CLI wiring; proposal to review                                    |
 | TCK-2     | Suite selection             | The lane probes in design §7.3, plus each team's top breakages of the last six months as new probes               |
 | TCK-3     | Runner                      | Slice 1                                                                                                           |
 | TCK-4     | Core suites                 | The lanes: slices 1, 2 and 5                                                                                       |
 | TCK-5     | Memory smoke                | Stability in every lane from slice 1; memory ceilings in slice 6                                                  |
-| TCK-6     | Distribution                | Slice 1: composite action, `tck-release.yaml`, tags                                                               |
+| TCK-6     | Distribution                | Slice 1: action pin and verified publication; co-release workflow/permissions to agree                                                               |
 | TCK-6a    | Reusable workflow           | Deferred. The composite action is the interface; a reusable workflow can wrap it later                           |
 | TCK-7..11 | Consumer rollout            | CN (slice 5), MN (slices 2 and 4), BN (slice 5), Relay (slice 5), JS SDK (slices 1 and 4)                         |
 | TCK-12    | Shrink Solo's matrix        | Slice 6                                                                                                           |
@@ -92,18 +98,36 @@ completion above.
   deadlines, result files and exit codes work as design §4, §9 and §10 describe.
 - No run that left a default image in a target container can pass (negative control).
 - No run can pass with a probe that did not run.
-- The kit step keeps one 20-minute deadline: test stages stop at minute 17, and diagnostics, cleanup and the result
-  use the last 3 minutes. The result is written after cleanup and records whether cleanup worked.
+- The full compatibility workflow fits 30 minutes, including all build jobs, setup, deploy, the short profile,
+  diagnostics, cleanup and export. Stage caps and the proposed three-minute reserve must be measured/reviewed;
+  do not reuse the old three-minute load cap for five minutes of phase coverage. Results follow cleanup.
+- Cover BN candidate + CN branch, CN candidate + BN branch, and SDK candidate + CN branch with immutable provenance
+  and observed identity. Validate the proposed manifest and reject missing/conflicting artifacts without fallback.
+  An agreed deferral must name its owner/link and reopen before the affected lane needs the missing combination.
+- Use Solo's class/static-helper conventions, extend `.mjs` lint coverage and verify automated review scope.
+  For action reuse, prove one cluster owner, isolated context/state and artifact/cleanup handoff before changing the
+  verified Falcon path. The current action and placeholder build repository are not a ready-made TCK adapter.
 - Unit tests cover the reason assignment for each stage, including `unknown`.
 
 **TCK-6, distribution and releases:**
 
-- `tck-release.yaml` pushes a `tck-v*` tag after verification, and creates no GitHub Release.
-- After the first kit release, `GET /repos/hiero-ledger/solo/releases/latest` still returns the newest Solo `v*`
-  release, and `install.sh` from `releases/latest` still installs Solo.
-- A kit-only commit does not cut a Solo release, and the `solo-prepare-release` skill still finds the last Solo
-  release.
-- `npm pack --dry-run` of Solo lists nothing under `tck/`.
+- First agree the co-release/PRD disposition, version metadata, publishing order, failure handling and responsible
+  Solo/CI owners (OPEN-09). Do not assume a separate `tck-release.yaml` or kit tag is required.
+- Verify the exact published kit/Solo artifacts and supported list before admission; no retroactive support.
+- `GET /repos/hiero-ledger/solo/releases/latest` and its `install.sh` still resolve/install Solo, not a kit-only Release.
+- Record whether the selected model needs the existing `tck` scope/tag-reader safeguards; review #6234/#6235 accordingly.
+- `npm pack --dry-run` of Solo excludes `tck/`; sharing a release ref does not require npm packaging the action.
+
+**TCK-5, short profile and resources:**
+
+- Define and review all five workload classes, phase/warm-up/cooldown timing, pacing, adapter and measurements;
+  target approximately five minutes total exercise time and keep the complete workflow inside 30 minutes.
+- Do not use the existing concise mode or a first-five-minutes cutoff as full-phase coverage. A one-minute override
+  alone still exceeds five minutes with fixed waits. Candidate-SDK traffic must be proven; a Java NLG run does not
+  establish that the JS candidate generated its load.
+- Capture/export phase completion, actual durations and container timelines/peaks, including failure evidence;
+  missing phases cannot pass. OOM/restarts fail from day one. Ceiling activation still requires each lane's own
+  two weeks of data, peak +25%, review and a new verified release pin.
 
 **Each lane (TCK-4, TCK-7 to TCK-11):**
 

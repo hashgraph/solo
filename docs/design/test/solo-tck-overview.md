@@ -1,7 +1,8 @@
 # Solo TCK - Overview
 
-**Status:** Revised October 19, 2026. The three focused review decisions are accepted; the remaining maintainer
-review is pending. Implementation is tracked separately. See [review status](#review-status).
+**Status:** Revised October 19, 2026 after maintainer feedback. Accepted policy, conditional agreements and
+remaining decisions are distinguished below and in design §16. Implementation is tracked separately; feedback
+received is not blanket architecture approval. See [review status](#review-status).
 **Scope:** the architecture and its implementation handoff. Kit implementation, release and consumer adoption are
 separate work (design §14).
 **Epic:** [#4272](https://github.com/hiero-ledger/solo/issues/4272).
@@ -21,7 +22,7 @@ is no neutral, skipped or "infrastructure, ignore it" result.
 ```text
 component PR job
   build the candidate, with a version unique to the run
-  uses: hiero-ledger/solo/tck@<sha> # tck-vX.Y.Z      component: <lane>
+  uses: hiero-ledger/solo/tck@<sha> # verified Solo release (proposed co-release ref)      component: <lane>
     install the Solo release the kit pins
     solo one-shot falcon deploy, with the candidate in its component section
     prove the candidate runs, probe the network, run a short load and a resource check
@@ -34,15 +35,15 @@ component PR job
 | Topic            | Recommendation                                                                                                          | Design |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------- | ------ |
 | Ownership        | Solo owns what happens inside `solo one-shot falcon deploy`; the kit owns everything around it; callers build the candidate | §2     |
-| Home, releases   | `tck/` in the Solo repo, released as `tck-v*` tags only. Never a GitHub Release, so Solo's Latest release and `install.sh` cannot change | §6     |
+| Home, releases | `tck/` in Solo; proposed co-release at a verified Solo ref. Stakeholder/PRD alignment and publishing mechanics remain open; no separate kit Release may take Solo's Latest | §6, OPEN-09 |
 | Versions         | The kit release pins a Solo release, and that Solo release's defaults pin the other components. Callers override explicitly. Nothing floats on PRs; nightly runs discover new versions | §5     |
-| Supported Solo   | Each kit release lists the Solo releases that have every capability its lanes use and passed its verification. A Solo commit SHA is the explicit override for planned breaks | §5.2, §6.3 |
-| Deploy path      | `solo one-shot falcon deploy` only. Callers cannot pass Helm values or extra flags                                      | §3     |
+| Supported Solo | Verified capabilities and supported-list admission before publication, never retroactively. Branch diagnostics resolve to a recorded SHA; planned-break pins remain visible and temporary | §5.2, §6.3 |
+| Deploy path | Verified Falcon CLI path; evaluate reuse/extension of existing actions with one cluster owner and an isolated handoff. Reuse wiring remains proposed; no caller flags/Helm escape hatch | §3 |
 | Candidate proof  | A version unique to the run, built in, loaded from an archive with `pullPolicy: Never`; every target container must run it. For the SDK, Solo must resolve the PR's packages | §5.4, §7.2 |
 | Lanes            | One lane per component, and it always deploys the candidate. No suite or scope input                                    | §7     |
 | Verdict          | Pass only when every required probe passed. The reason (`candidate`, `invalid`, `environment`, `kit`, `unknown`) says where the evidence points; it never unblocks, and `unknown` stays until people attribute the failure | §10    |
-| Resources        | No OOM kill and no restart after the deploy, always. Memory ceilings after two weeks of data                           | §8     |
-| Budget           | 30 minutes per PR check, build included. The kit step has one 20-minute deadline, and its last 3 minutes are kept for diagnostics, cleanup and the result | §9     |
+| Resources | Day-one OOM/restart failures; ceilings at each lane's two-week peak +25%. Proposed all-phase short load targets about five minutes; exact timing, adapter and exports need review | §8 |
+| Budget | 30 minutes for the full compatibility workflow, builds and cleanup/export included. Stage caps and a proposed three-minute cleanup reserve need measurement/review; no exception granted | §9 |
 | Rollout          | Non-required first. The component team makes it required after 10 working days with no false red                      | §14    |
 
 Two complete caller examples, an SDK PR and an MN PR, are in design §11 and §12.
@@ -61,8 +62,8 @@ Two complete caller examples, an SDK PR and an MN PR, are in design §11 and §1
   verify the planned Falcon lane, load/resource checks or Linux CI. [Full evidence](./solo-tck-conformance-gate.md#111-local-sdk-pilot-evidence).
 - **Separate implementation is in review:** [#6235](https://github.com/hiero-ledger/solo/pull/6235) isolates kit
   releases and packaging; [#6238](https://github.com/hiero-ledger/solo/pull/6238), stacked on it, adds the first SDK
-  lane. Both remain open as of October 19. Local Falcon runs passed, but Linux network acceptance, kit release and
-  consumer migration remain. These PRs do not establish acceptance of this architecture.
+  lane. Both remain open as of October 19. Local Falcon runs passed, but Linux network acceptance, the agreed
+  publication flow and consumer migration remain. These PRs do not establish acceptance of this architecture.
 - **The MN candidate proof works locally:** all five running MN modules ran a unique tag from the archive with
   `pullPolicy: Never` (Solo 0.93.0, Kind, arm64).
 - **The MN lane has no Solo blocker:** it runs with Explorer and Relay off and turns the pinger off with a `mirrorNode`
@@ -88,5 +89,21 @@ The three focused decisions were accepted in the October 16 review (design §16)
    build, measure first, then try one Gradle invocation with the build cache, then a larger runner. Bring the
    measurements for an exception decision only if those steps still do not fit; no exception is agreed.
 
-The remaining maintainer review is pending. The acceptance covers these three decisions; the other choices retain
-their individual review status in design §16. What changed from the October 12 draft, and why, is in design §17.
+October 19 maintainer feedback adds these dispositions:
+
+- Released Solo stays the default, while Solo must test its own branch/main. A branch can be resolved to the existing
+  SHA input; moving branch names do not silently replace reproducible consumer pins.
+- The kit/Solo co-release direction is supported in principle, pending remaining stakeholder alignment and
+  reconciliation with the PRD's independent-cadence requirement. Exact tags, metadata and workflow remain open.
+- Thirty minutes covers the complete compatibility workflow. The mini-perf test should shorten all phases rather
+  than sample only the beginning of the long suite. The exact approximately-five-minute profile is not implemented
+  or approved; prior local load results do not prove it.
+- Explorer API coverage in MN is sufficient, after #6225. Linked-issue bypass is endorsed in principle; per-repo
+  rulesets/membership remain to agree. The Solo team and tech lead own fixes, with an adjustable initial target of
+  two working days. The proposed one-working-day response was not explicitly confirmed.
+- Review requests also cover existing-action reuse, multi-component branch artifacts and Solo class/lint conventions
+  for ESM. Design §3, §4.1 and §5.3 propose those contracts; a request is not evidence the implementation exists.
+
+The SDK lane implementer and release owner remain unconfirmed. Keep each remaining choice and any accepted, owned
+deferral explicit in design §16. The architecture deliverable remains the reviewed design, decisions and handoff;
+implementation, performance measurements, releases and required-check adoption are separate responsibilities.
