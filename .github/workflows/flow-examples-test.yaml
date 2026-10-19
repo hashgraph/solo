@@ -22,6 +22,9 @@ on:
     # Using 6 AM UTC to cover Central Daylight Time
     # Skip weekends to reduce noise and focus on testing during active development days
     - cron: '0 6 * * 1-5'
+    # Weekly run (Saturday, 6 AM UTC) with the root container using the consensus node deterministic image
+    # (NETWORK_NODE_LIFECYCLE_MODE=consensus-node-image) instead of the default solo-container image.
+    - cron: '0 6 * * 6'
   workflow_dispatch:
     inputs:
       node-version:
@@ -51,6 +54,11 @@ on:
         default: false
       use-reduced-test-matrix:
         description: "Use reduced test matrix for faster execution (only runs a subset of examples)."
+        type: boolean
+        required: false
+        default: false
+      consensus-node-image:
+        description: "Run with NETWORK_NODE_LIFECYCLE_MODE=consensus-node-image (consensus node deterministic image as the root container image)."
         type: boolean
         required: false
         default: false
@@ -432,8 +440,23 @@ jobs:
           MATRIX_BLOCK_NODE_ENABLED: ${{ matrix.example.block-node-enabled }}
           EXAMPLE_DIRECTORY: ${{ matrix.example.directory }}
           ENABLE_IMAGE_CACHE: 'true'
+          CONSENSUS_NODE_IMAGE_SCHEDULE: ${{ github.event.schedule == '0 6 * * 6' && 'true' || 'false' }}
+          CONSENSUS_NODE_IMAGE_INPUT: ${{ inputs.consensus-node-image || 'false' }}
         run: |
           export PATH=~/.solo/bin:${PATH}
+
+          # The weekly schedule and the manual consensus-node-image input opt in to the deterministic image;
+          # every other run keeps Solo's default (solo-container).
+          # version-upgrade-test is excluded: a version upgrade extracts the new platform into the root container,
+          # which the consensus node image mode does not support yet (it would need the image tag rolled).
+          if [ "${CONSENSUS_NODE_IMAGE_SCHEDULE}" = "true" ] || [ "${CONSENSUS_NODE_IMAGE_INPUT}" = "true" ]; then
+            if [ "${EXAMPLE_DIRECTORY}" = "version-upgrade-test" ]; then
+              echo "Skipping consensus-node-image mode for ${EXAMPLE_DIRECTORY}; using the default solo-container image."
+            else
+              export NETWORK_NODE_LIFECYCLE_MODE="consensus-node-image"
+            fi
+          fi
+          echo "NETWORK_NODE_LIFECYCLE_MODE: ${NETWORK_NODE_LIFECYCLE_MODE:-solo-container}"
           echo "Running example: ${EXAMPLE_NAME}"
           echo "Resolved example source: ${DISPLAY_DIR}"
           echo "Current directory: $(pwd)"

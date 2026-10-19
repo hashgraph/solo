@@ -134,6 +134,7 @@ import {PathEx} from '../../business/utils/path-ex.js';
 import {SubprocessEnvironment} from '../../core/subprocess-environment.js';
 import {SubprocessCommandProfile} from '../../core/subprocess-command-profile.js';
 import {helmValuesHelper} from '../../core/helm-values-helper.js';
+import {NetworkNodeLifecycle} from '../../core/network-node-lifecycle.js';
 import {type GitClient} from '../../integration/git/git-client.js';
 import {type NodeDestroyConfigClass} from './config-interfaces/node-destroy-config-class.js';
 import {type NodeRefreshConfigClass} from './config-interfaces/node-refresh-config-class.js';
@@ -486,7 +487,7 @@ export class NodeCommandTasks {
       .containers()
       .readByRef(ContainerReference.of(podReference, constants.ROOT_CONTAINER));
 
-    await container.execContainer(['bash', '-c', this.buildStopNetworkNodeCommand()]);
+    await container.execContainer(['bash', '-c', NetworkNodeLifecycle.buildStopCommand()]);
 
     // Remove existing jars before copying to prevent mixed-version classpath (issue #3848)
     await container.execContainer([
@@ -1849,7 +1850,7 @@ export class NodeCommandTasks {
           await container.execContainer([
             'bash',
             '-c',
-            `chown -R hedera:hedera ${constants.HEDERA_HAPI_PATH}/data/saved`,
+            NetworkNodeLifecycle.buildChangeOwnerCommand(`${constants.HEDERA_HAPI_PATH}/data/saved`),
           ]);
 
           // Rename node ID directories to match the target node
@@ -1876,7 +1877,7 @@ export class NodeCommandTasks {
           await container.execContainer([
             'bash',
             '-c',
-            `chown -R hedera:hedera ${constants.HEDERA_HAPI_PATH}/data/saved`,
+            NetworkNodeLifecycle.buildChangeOwnerCommand(`${constants.HEDERA_HAPI_PATH}/data/saved`),
           ]);
         }
       },
@@ -1969,6 +1970,13 @@ export class NodeCommandTasks {
         }
 
         context_.config.releaseTag = releaseTag;
+
+        const isVersionUpgrade: boolean = 'upgradeVersion' in context_.config && !!context_.config.upgradeVersion;
+        if (!localBuildPath && !isVersionUpgrade && NetworkNodeLifecycle.isConsensusNodeImage()) {
+          // The consensus node image already contains the jar files of the release tag it was pulled for
+          task.skip(`${task.title} ${chalk.yellow('[SKIPPING]')} platform software is baked into the node image`);
+          return;
+        }
 
         if (!localBuildPath) {
           return this._fetchPlatformSoftware(
@@ -2065,6 +2073,10 @@ export class NodeCommandTasks {
             this.configManager,
           );
         }
+        // Fetching the platform software used to create the staging directory as a side effect; make sure it exists
+        // for the network files generated below (it is skipped when the platform software is baked into the image).
+        fs.mkdirSync(config.stagingDir, {recursive: true});
+
         if (isGenesis) {
           await this.generateNetworkJson(
             constants.GENESIS_NETWORK_FILE,
@@ -2442,7 +2454,7 @@ export class NodeCommandTasks {
     const labels: string[] = [`solo.hedera.com/node-name=${nodeAlias}`, 'solo.hedera.com/type=network-node'];
     await this.k8Factory.getK8(context).pods().waitForReadyStatus(config.namespace, labels, 120, 1000, undefined, true);
 
-    const startCommand: string = this.buildStartNetworkNodeCommand();
+    const startCommand: string = NetworkNodeLifecycle.buildStartCommand();
 
     const container: Container = await new K8Helper(context).getConsensusNodeRootContainer(config.namespace, nodeAlias);
     if (config.localBuildPath) {
@@ -2481,7 +2493,9 @@ export class NodeCommandTasks {
       `  sync "${hapiPath}"`,
       'fi',
       `test -f "${applicationJar}" || { echo "missing ${applicationJar}" >&2; exit 1; }`,
-      `/command/s6-setuidgid hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class" | grep -q "com/hedera/node/app/ServicesMain.class" || { echo "missing ServicesMain in ${applicationJar}" >&2; exit 1; }`,
+      // s6-setuidgid needs root; the consensus node image already runs as the hedera user
+      'run_as_hedera() { if [ "$(id -u)" = "0" ]; then /command/s6-setuidgid hedera "$@"; else "$@"; fi; }',
+      `run_as_hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class" | grep -q "com/hedera/node/app/ServicesMain.class" || { echo "missing ServicesMain in ${applicationJar}" >&2; exit 1; }`,
     ].join('\n');
   }
 
@@ -2492,47 +2506,6 @@ export class NodeCommandTasks {
     return [
       `chown -R hedera:hedera "${applicationDirectory}" "${libraryDirectory}"`,
       `chmod -R u+rwX,g+rX,o+rX "${applicationDirectory}" "${libraryDirectory}"`,
-    ].join('\n');
-  }
-
-  /**
-   * Build the command used by `consensus node start` to restart the network-node service.
-   * Delegate lifecycle handling entirely to solo-container so Solo stays orchestration-only.
-   */
-  private buildStartNetworkNodeCommand(): string {
-    const lifecycleHelperPath: string = '/command/network-node-lifecycle';
-    return [
-      // Fail fast when the helper is missing so callers immediately know the image
-      // does not satisfy Solo's lifecycle contract.
-      `test -x "${lifecycleHelperPath}" || { echo "missing ${lifecycleHelperPath}; update solo-container image" >&2; exit 1; }`,
-      [
-        "if ps -ef | grep -q '[c]om.hedera.node.app.ServicesMain'",
-        "then curl -sf http://localhost:9999/metrics | grep 'platform_PlatformStatus' | grep -q ' 2[.]0$' && true < /dev/tcp/127.0.0.1/50211",
-        'else false',
-        'fi',
-      ].join('\n'),
-      // ACTIVE nodes only need the autostart marker restored; the full helper start
-      // path deliberately forces a down/up cycle for transitional or frozen nodes.
-      `if [ $? -eq 0 ]; then "${lifecycleHelperPath}" enable-autostart; exit 0; fi`,
-      // A JVM can remain alive with only background threads after the main platform
-      // exits. Clear any non-ready process before asking the helper to start it.
-      `"${lifecycleHelperPath}" stop-and-disable-autostart`,
-      // The helper owns both service control and autostart marker semantics.
-      `"${lifecycleHelperPath}" start-and-enable-autostart`,
-    ].join('\n');
-  }
-
-  /**
-   * Build the command used by `consensus node stop` to stop the network-node service.
-   * Delegate lifecycle handling entirely to solo-container so Solo stays orchestration-only.
-   */
-  private buildStopNetworkNodeCommand(): string {
-    const lifecycleHelperPath: string = '/command/network-node-lifecycle';
-    return [
-      `test -x "${lifecycleHelperPath}" || { echo "missing ${lifecycleHelperPath}; update solo-container image" >&2; exit 1; }`,
-      // Keep Solo orchestration-only: hard-stop and escalation logic must stay in
-      // solo-container's /command/network-node-lifecycle helper.
-      `"${lifecycleHelperPath}" stop-and-disable-autostart`,
     ].join('\n');
   }
 
@@ -2967,7 +2940,7 @@ export class NodeCommandTasks {
               task: async () => {
                 const container: Container = this.k8Factory.getK8(context).containers().readByRef(containerReference);
 
-                await container.execContainer(['bash', '-c', this.buildStopNetworkNodeCommand()]);
+                await container.execContainer(['bash', '-c', NetworkNodeLifecycle.buildStopCommand()]);
               },
             });
           }
@@ -5080,11 +5053,7 @@ export class NodeCommandTasks {
               .getK8(service.context)
               .containers()
               .readByRef(containerReference)
-              .execContainer([
-                'bash',
-                '-c',
-                'test -x "/command/network-node-lifecycle" && "/command/network-node-lifecycle" disable-autostart',
-              ]);
+              .execContainer(['bash', '-c', NetworkNodeLifecycle.buildDisableAutostartCommand()]);
           } catch {
             // Best-effort: container may already be restarting; the kill below will follow
           }
@@ -5144,11 +5113,7 @@ export class NodeCommandTasks {
               .getK8(service.context)
               .containers()
               .readByRef(containerReference)
-              .execContainer([
-                'bash',
-                '-c',
-                'test -x "/command/network-node-lifecycle" && "/command/network-node-lifecycle" disable-autostart',
-              ]);
+              .execContainer(['bash', '-c', NetworkNodeLifecycle.buildDisableAutostartCommand()]);
           } catch {
             // Best-effort: container may already be restarting; the kill below will follow
           }
@@ -5201,6 +5166,38 @@ export class NodeCommandTasks {
         }
 
         // set up the sub-tasks
+        return task.newListr(subTasks, {concurrent: true, rendererOptions: {collapseSubtasks: false}});
+      },
+    };
+  }
+
+  /**
+   * The consensus node image ships without zip, unzip and curl, which Solo uses to archive, extract and verify node
+   * state and platform archives and to read node metrics, so install them in every node's recreated pod once it is running.
+   */
+  public installRootContainerTools(): SoloListrTask<NodeUpdateContext | NodeAddContext | NodeDestroyContext> {
+    return {
+      title: 'Install zip, unzip and curl in the consensus node image',
+      skip: (): boolean => !NetworkNodeLifecycle.isConsensusNodeImage(),
+      task: (
+        context_: NodeUpdateContext | NodeAddContext | NodeDestroyContext,
+        task: SoloListrTaskWrapper<NodeUpdateContext | NodeAddContext | NodeDestroyContext>,
+      ): SoloListr<NodeUpdateContext | NodeAddContext | NodeDestroyContext> => {
+        const config: NodeUpdateConfigClass | NodeAddConfigClass | NodeDestroyConfigClass = context_.config;
+        const subTasks: SoloListrTask<NodeUpdateContext | NodeAddContext | NodeDestroyContext>[] =
+          config.allNodeAliases.map(
+            (nodeAlias: NodeAlias): SoloListrTask<NodeUpdateContext | NodeAddContext | NodeDestroyContext> => ({
+              title: `Install on node: ${chalk.yellow(nodeAlias)}`,
+              task: async (): Promise<void> => {
+                await NetworkNodeLifecycle.installRootContainerTools(
+                  extractContextFromConsensusNodes(nodeAlias, config.consensusNodes),
+                  config.namespace,
+                  nodeAlias,
+                );
+              },
+            }),
+          );
+
         return task.newListr(subTasks, {concurrent: true, rendererOptions: {collapseSubtasks: false}});
       },
     };
