@@ -6,12 +6,14 @@ import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {SoloErrors} from '../core/errors/solo-errors.js';
 import {UserBreak} from '../core/errors/user-break.js';
 import * as constants from '../core/constants.js';
+import {SoloChartRepository} from '../core/solo-chart-repository.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import {type AnyListrContext, type ArgvStruct} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {showVersionBanner, sleep} from '../core/helpers.js';
 import {SharedClusterResourceReport} from '../core/shared-cluster-resource-report.js';
+import {ClusterCrdProbe} from '../core/cluster-crd-probe.js';
 import {ImageReference, type ParsedImageReference} from '../business/utils/image-reference.js';
 import {
   type ClusterReferenceName,
@@ -27,11 +29,13 @@ import {type ClusterChecks} from '../core/cluster-checks.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {KeyManager} from '../core/key-manager.js';
+import {UserInput} from '../core/user-input.js';
 import {EXPLORER_VERSION, INGRESS_CONTROLLER_VERSION, MINIMUM_SOLO_CHART_VERSION} from '../../version.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {Lock} from '../core/lock/lock.js';
 import {IngressClass} from '../integration/kube/resources/ingress-class/ingress-class.js';
+import {type Service} from '../integration/kube/resources/service/service.js';
 import {CommandFlag, CommandFlags} from '../types/flag-types.js';
 import {Templates} from '../core/templates.js';
 import {PodReference} from '../integration/kube/resources/pod/pod-reference.js';
@@ -48,6 +52,12 @@ import {optionFromFlag} from './command-helpers.js';
 import {HelmChartValues} from '../integration/helm/model/values.js';
 import {HelmSchedulingValues} from '../core/util/helm-scheduling-values.js';
 
+type MirrorNodeServiceUrls = {
+  rest: string;
+  restjava: string;
+  web3: string;
+};
+
 interface ExplorerDeployConfigClass {
   cacheDir: string;
   chartDirectory: string;
@@ -61,6 +71,7 @@ interface ExplorerDeployConfigClass {
   explorerStaticIp: string | '';
   explorerVersion: string;
   componentImage: Optional<string>;
+  componentImageArchive: Optional<string>;
   loadBalancerEnabled: boolean;
   namespace: NamespaceName;
   tlsClusterIssuerType: string;
@@ -102,6 +113,7 @@ interface ExplorerUpgradeConfigClass {
   explorerStaticIp: string | '';
   explorerVersion: string;
   componentImage: Optional<string>;
+  componentImageArchive: Optional<string>;
   loadBalancerEnabled: boolean;
   namespace: NamespaceName;
   tlsClusterIssuerType: string;
@@ -122,6 +134,11 @@ interface ExplorerUpgradeConfigClass {
   mirrorNamespace: NamespaceNameAsString;
   mirrorNodeReleaseName: string;
   isMirrorNodeLegacyChartInstalled: boolean;
+
+  // Populated right before the post-upgrade Deployment restart annotation is patched, so the
+  // subsequent pod-ready check can use it as a createdAfter cutoff and wait for the new pod
+  // instead of the still-running old one (see restartExplorerDeploymentTask()).
+  explorerRestartTime?: Date;
 }
 
 interface ExplorerUpgradeContext {
@@ -183,6 +200,7 @@ export class ExplorerCommand extends BaseCommand {
       flags.explorerStaticIp,
       flags.explorerVersion,
       flags.componentImage,
+      flags.componentImageArchive,
       flags.loadBalancerEnabled,
       flags.namespace,
       flags.quiet,
@@ -215,6 +233,7 @@ export class ExplorerCommand extends BaseCommand {
       flags.explorerStaticIp,
       flags.explorerVersion,
       flags.componentImage,
+      flags.componentImageArchive,
       flags.loadBalancerEnabled,
       flags.namespace,
       flags.quiet,
@@ -252,13 +271,19 @@ export class ExplorerCommand extends BaseCommand {
     }
     chartValues.setLiteral('fullnameOverride', `${config.releaseName}-${config.namespace.name}`);
 
-    chartValues.setLiteral(
-      'proxyPass./api',
-      Templates.renderMirrorNodeRestServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
-    );
+    // The path-based proxy routing lives in EXPLORER_VALUES_FILE: the location keys are static, while
+    // the backend URLs depend on deploy-time facts (mirror release name and namespace, and whether the
+    // mirror ingress controller is installed), so only those are injected here.
+    const mirrorNodeServices: MirrorNodeServiceUrls = await this.resolveMirrorNodeServices(config);
+    chartValues
+      .setLiteral('mirrorNodeServices.rest', mirrorNodeServices.rest)
+      .setLiteral('mirrorNodeServices.restjava', mirrorNodeServices.restjava)
+      .setLiteral('mirrorNodeServices.web3', mirrorNodeServices.web3);
 
     if (config.domainName) {
-      chartValues.set('ingress.enabled', true).setLiteral('ingress.hosts[0].host', config.domainName);
+      chartValues
+        .set('ingress.enabled', true)
+        .setLiteral('ingress.hosts[0].host', UserInput.escapeHelmTemplate(config.domainName));
 
       if (config.tlsClusterIssuerType === 'self-signed') {
         // Create TLS secret for Explorer
@@ -271,11 +296,41 @@ export class ExplorerCommand extends BaseCommand {
         );
 
         if (config.enableIngress) {
-          chartValues.setLiteral('ingress.tls[0].hosts[0]', config.domainName);
+          chartValues.setLiteral('ingress.tls[0].hosts[0]', UserInput.escapeHelmTemplate(config.domainName));
         }
       }
     }
     return chartValues;
+  }
+
+  // When the mirror node ingress controller is installed it already routes the API paths to the
+  // correct mirror services (routing rules maintained by the mirror node chart), so every backend
+  // points at it: Solo does not duplicate a routing table that upstream keeps changing.
+  private async resolveMirrorNodeServices(
+    config: ExplorerDeployConfigClass | ExplorerUpgradeConfigClass,
+  ): Promise<MirrorNodeServiceUrls> {
+    if (await this.mirrorIngressControllerServiceExists(config)) {
+      const ingressControllerUrl: string = Templates.renderMirrorNodeIngressControllerUrl(config.mirrorNamespace);
+      return {rest: ingressControllerUrl, restjava: ingressControllerUrl, web3: ingressControllerUrl};
+    }
+
+    return {
+      rest: Templates.renderMirrorNodeRestServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
+      restjava: Templates.renderMirrorNodeRestJavaServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
+      web3: Templates.renderMirrorNodeWeb3ServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
+    };
+  }
+
+  private async mirrorIngressControllerServiceExists(
+    config: ExplorerDeployConfigClass | ExplorerUpgradeConfigClass,
+  ): Promise<boolean> {
+    const ingressControllerServiceName: string = `${constants.MIRROR_INGRESS_CONTROLLER}-${config.mirrorNamespace}`;
+    const mirrorServices: Service[] = await this.k8Factory
+      .getK8(config.clusterContext)
+      .services()
+      .list(NamespaceName.of(config.mirrorNamespace));
+
+    return mirrorServices.some((service: Service): boolean => service.metadata.name === ingressControllerServiceName);
   }
 
   private async prepareCertManagerChartValues(
@@ -318,21 +373,19 @@ export class ExplorerCommand extends BaseCommand {
         const {soloChartVersion} = config;
 
         const soloCertManagerChartValues: HelmChartValues = await this.prepareCertManagerChartValues(config);
-        // check if CRDs of cert-manager are already installed
-        let needInstall: boolean = false;
-        const foundCrdVersions: Set<string> = new Set<string>();
-        for (const crd of constants.CERT_MANAGER_CRDS) {
-          const crdLabels: Record<string, string> | undefined = await this.k8Factory
-            .getK8(config.clusterContext)
-            .crds()
-            .readLabels(crd);
-
-          if (crdLabels === undefined) {
-            needInstall = true;
-            break;
-          }
-          foundCrdVersions.add(SharedClusterResourceReport.versionFromLabels(crdLabels));
-        }
+        // check if CRDs of cert-manager are already installed — all of them, since a partial set means
+        // the chart still has work to do
+        const presentCrds: Map<string, Record<string, string>> = await ClusterCrdProbe.probe(
+          this.k8Factory,
+          config.clusterContext,
+          constants.CERT_MANAGER_CRDS,
+        );
+        const needInstall: boolean = presentCrds.size < constants.CERT_MANAGER_CRDS.length;
+        const foundCrdVersions: Set<string> = new Set<string>(
+          [...presentCrds.values()].map((crdLabels: Record<string, string>): string =>
+            SharedClusterResourceReport.versionFromLabels(crdLabels),
+          ),
+        );
 
         if (!needInstall) {
           SharedClusterResourceReport.show(
@@ -351,7 +404,7 @@ export class ExplorerCommand extends BaseCommand {
             NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
             constants.SOLO_CERT_MANAGER_CHART,
             constants.SOLO_CERT_MANAGER_CHART,
-            config.chartDirectory || constants.SOLO_TESTING_CHART_URL,
+            config.chartDirectory || SoloChartRepository.resolveUrl(soloChartVersion),
             soloChartVersion,
             new HelmChartValues().set('cert-manager.installCRDs', true),
             config.clusterContext,
@@ -382,7 +435,7 @@ export class ExplorerCommand extends BaseCommand {
           NamespaceName.of(constants.CERT_MANAGER_NAME_SPACE),
           constants.SOLO_CERT_MANAGER_CHART,
           constants.SOLO_CERT_MANAGER_CHART,
-          config.chartDirectory || constants.SOLO_TESTING_CHART_URL,
+          config.chartDirectory || SoloChartRepository.resolveUrl(soloChartVersion),
           soloChartVersion,
           soloCertManagerChartValues,
           config.clusterContext,
@@ -417,16 +470,28 @@ export class ExplorerCommand extends BaseCommand {
 
         if (config.componentImage) {
           const parsedReference: ParsedImageReference = ImageReference.parseImageReference(config.componentImage);
+          const isComponentImageAvailableForKind: boolean = this.isComponentImageAvailableForKind(
+            config.componentImage,
+            config.componentImageArchive,
+          );
 
-          if (this.isLocalImageAvailableInDocker(config.componentImage)) {
+          if (isComponentImageAvailableForKind) {
             explorerChartValues
               .setLiteral('image.registry', parsedReference.registry)
               .setLiteral('image.repository', parsedReference.repository)
               .set('image.tag', parsedReference.tag)
               .setLiteral('image.pullPolicy', 'Never');
           } else if (this.isLocalImageReference(config.componentImage)) {
-            // Local-looking ref but not in Docker — plain tag override, K8s will pull from registry.
-            explorerChartValues.set('image.tag', parsedReference.tag);
+            // Explicit local registry refs keep their registry/repository metadata even when Docker is missing.
+            if (this.isLocalRegistryImageReference(config.componentImage)) {
+              explorerChartValues
+                .setLiteral('image.registry', parsedReference.registry)
+                .setLiteral('image.repository', parsedReference.repository)
+                .set('image.tag', parsedReference.tag);
+            } else {
+              // Local-looking ref but not in Docker — plain tag override, K8s will pull from registry.
+              explorerChartValues.set('image.tag', parsedReference.tag);
+            }
           } else {
             // Explicit registry reference.
             explorerChartValues
@@ -435,6 +500,8 @@ export class ExplorerCommand extends BaseCommand {
               .set('image.tag', parsedReference.tag);
           }
         }
+
+        await this.loadComponentImage(config.componentImage, config.componentImageArchive, config.clusterContext);
 
         await this.chartManager.upgrade(
           config.namespace,
@@ -538,6 +605,10 @@ export class ExplorerCommand extends BaseCommand {
     return {
       title: 'Check explorer pod is ready',
       task: async ({config}: ExplorerDeployContext | ExplorerUpgradeContext): Promise<void> => {
+        // Only set on upgrade (see restartExplorerDeploymentTask()); undefined on add, where there
+        // is no stale pod to wait out.
+        const createdAfter: Optional<Date> = (config as ExplorerUpgradeConfigClass).explorerRestartTime;
+
         await this.k8Factory
           .getK8(config.clusterContext)
           .pods()
@@ -546,7 +617,34 @@ export class ExplorerCommand extends BaseCommand {
             Templates.renderExplorerLabels(config.id, config.isLegacyChartInstalled ? config.releaseName : undefined),
             constants.PODS_READY_MAX_ATTEMPTS,
             constants.PODS_READY_DELAY,
+            createdAfter,
           );
+      },
+    };
+  }
+
+  /**
+   * Force the explorer Deployment to roll after `explorer node upgrade`.
+   *
+   * The explorer chart mounts nginx.conf (and core-config.json/networks-config.json) via
+   * `subPath`, which kubelet never live-refreshes in a running pod, and the Deployment's pod
+   * template carries no checksum/restart annotation tied to the ConfigMap content. So a Helm
+   * upgrade that only changes the ConfigMap (e.g. a new mirror node backend URL) leaves the
+   * already-running pod serving stale routing forever (see issue #6118). Patching a timestamp
+   * annotation onto the pod template triggers a rollout unconditionally, since there is no cheap
+   * way to know in advance whether the rendered config actually changed.
+   */
+  private restartExplorerDeploymentTask(): SoloListrTask<ExplorerUpgradeContext> {
+    return {
+      title: 'Restart explorer deployment',
+      task: async ({config}: ExplorerUpgradeContext): Promise<void> => {
+        config.explorerRestartTime = new Date();
+
+        // Matches the `fullnameOverride` set in prepareHederaExplorerChartValues(), which the
+        // explorer chart truncates to 63 chars and strips a trailing '-' from.
+        const deploymentName: string = `${config.releaseName}-${config.namespace.name}`.slice(0, 63).replace(/-$/, '');
+
+        await this.patchDeploymentRestartAnnotation(config.clusterContext, config.namespace, deploymentName);
       },
     };
   }
@@ -895,6 +993,7 @@ export class ExplorerCommand extends BaseCommand {
         this.loadRemoteConfigTask(argv),
         this.installCertManagerTask(ExplorerCommandType.UPGRADE),
         this.installExplorerTask(ExplorerCommandType.UPGRADE),
+        this.restartExplorerDeploymentTask(),
         this.installExplorerIngressControllerTask(),
         this.checkExplorerPodIsReadyTask(),
         this.checkExplorerIngressControllerPodIsReadyTask(),
@@ -1010,6 +1109,12 @@ export class ExplorerCommand extends BaseCommand {
                   .delete(context_.config.ingressReleaseName);
               }
             }
+
+            // Delete the namespace-scoped TLS secret created for the ingress on deploy; delete() tolerates NotFound
+            await this.k8Factory
+              .getK8(context_.config.clusterContext)
+              .secrets()
+              .delete(context_.config.namespace, constants.EXPLORER_INGRESS_TLS_SECRET_NAME);
           },
         },
         this.disableMirrorNodeExplorerComponents(),

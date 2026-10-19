@@ -58,7 +58,6 @@ kubectl config set-context kind-${SOLO_CLUSTER_NAME} \
 kubectl config use-context kind-${SOLO_CLUSTER_NAME}
 
 # Run solo test commands using npx
-npx solo init
 npx solo cluster-ref config connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME}
 npx solo deployment config create --deployment ${SOLO_DEPLOYMENT} --namespace ${SOLO_NAMESPACE}
 npx solo deployment cluster attach --deployment ${SOLO_DEPLOYMENT} --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes 1

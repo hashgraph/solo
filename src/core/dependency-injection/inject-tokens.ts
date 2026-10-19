@@ -32,13 +32,13 @@ export class InjectTokens {
   public static RemoteConfigRuntimeState: symbol = Symbol.for('RemoteConfigRuntimeState');
   public static ClusterChecks: symbol = Symbol.for('ClusterChecks');
   public static NetworkNodes: symbol = Symbol.for('NetworkNodes');
+  public static PvcMountVerifier: symbol = Symbol.for('PvcMountVerifier');
   public static AccountCommand: symbol = Symbol.for('AccountCommand');
   public static FileCommand: symbol = Symbol.for('FileCommand');
   public static ClusterCommand: symbol = Symbol.for('ClusterCommand');
   public static NodeCommand: symbol = Symbol.for('NodeCommand');
   public static DeploymentCommand: symbol = Symbol.for('DeploymentCommand');
   public static ExplorerCommand: symbol = Symbol.for('ExplorerCommand');
-  public static InitCommand: symbol = Symbol.for('InitCommand');
   public static MirrorNodeCommand: symbol = Symbol.for('MirrorNodeCommand');
   public static NetworkCommand: symbol = Symbol.for('NetworkCommand');
   public static RelayCommand: symbol = Symbol.for('RelayCommand');
@@ -89,7 +89,6 @@ export class InjectTokens {
   public static GvproxyDependencyManager: symbol = Symbol.for('GvproxyDependencyManager');
   public static NetavarkDependencyManager: symbol = Symbol.for('NetavarkDependencyManager');
   public static AardvarkDnsDependencyManager: symbol = Symbol.for('AardvarkDnsDependencyManager');
-  public static CraneDependencyManager: symbol = Symbol.for('CraneDependencyManager');
 
   // Dependency Directories
   public static HelmInstallationDirectory: symbol = Symbol.for('HelmInstallationDirectory');
@@ -97,7 +96,6 @@ export class InjectTokens {
   public static KubectlInstallationDirectory: symbol = Symbol.for('KubectlInstallationDirectory');
   public static PodmanInstallationDirectory: symbol = Symbol.for('PodmanInstallationDirectory');
   public static PodmanDependenciesInstallationDirectory: symbol = Symbol.for('PodmanDependenciesInstallationDirectory');
-  public static CraneInstallationDirectory: symbol = Symbol.for('CraneInstallationDirectory');
 
   // Dependency Versions
   public static HelmVersion: symbol = Symbol.for('HelmVersion');
@@ -108,7 +106,6 @@ export class InjectTokens {
   public static GvproxyVersion: symbol = Symbol.for('GvproxyVersion');
   public static NetavarkVersion: symbol = Symbol.for('NetavarkVersion');
   public static AardvarkDnsVersion: symbol = Symbol.for('AardvarkDnsVersion');
-  public static CraneVersion: symbol = Symbol.for('CraneVersion');
 
   // Cache
   public static CacheHandlerRegistry: symbol = Symbol.for('CacheHandlerRegistry');
@@ -121,6 +118,7 @@ export class InjectTokens {
   // Command Definitions
   public static BackupRestoreCommandDefinition: symbol = Symbol.for('BackupRestoreCommandDefinition');
   public static BlockCommandDefinition: symbol = Symbol.for('BlockCommandDefinition');
+  public static InitCommandDefinition: symbol = Symbol.for('InitCommandDefinition');
   public static ClusterReferenceCommandDefinition: symbol = Symbol.for('ClusterReferenceCommandDefinition');
   public static ConsensusCommandDefinition: symbol = Symbol.for('ConsensusCommandDefinition');
   public static DeploymentCommandDefinition: symbol = Symbol.for('DeploymentCommandDefinition');

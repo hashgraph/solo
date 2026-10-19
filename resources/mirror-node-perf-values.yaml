@@ -1,0 +1,29 @@
+# JFR overlay for the mirror node importer (perf tests); the image swap and repository path are enforced by mirror-node-values.test.ts.
+importer:
+  # Solo's default importer is a GraalVM native image: it has no Java Flight Recorder and ignores JAVA_TOOL_OPTIONS.
+  # Run the mirror node team's production JVM (Temurin JRE) image instead; Solo pins the tag from the mirror node version.
+  image:
+    registry: gcr.io
+    repository: mirrornode/hedera-mirror-importer
+  # The JVM importer needs more memory than the native binary Solo runs by default.
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  # Dedicated writable volume for JFR output (the importer's root filesystem is read-only), mirroring the block node output dir.
+  volumeMounts:
+    jfr:
+      mountPath: /opt/hiero/mirror-node/output/jfr
+  volumes:
+    jfr:
+      emptyDir:
+        sizeLimit: 1Gi
+  env:
+    JAVA_TOOL_OPTIONS: >-
+      -Xms256m
+      -Xmx1g
+      -XX:FlightRecorderOptions=repository=/opt/hiero/mirror-node/output/jfr,maxchunksize=1m
+      -XX:StartFlightRecording=name=mirror-importer,settings=profile,disk=true,maxsize=100m,maxage=30m,dumponexit=true,filename=/opt/hiero/mirror-node/output/jfr/recording.jfr

@@ -48,6 +48,88 @@ const soloLocalPlugin = {
       },
     },
 
+    // Every direct node:child_process invocation must state its `shell` option explicitly, so the
+    // call site documents that no shell interprets its arguments; exec/execSync always run a shell
+    // and are banned outright. PR #4804 swept the implicit-shell call sites once already and they
+    // drifted back (#5869) — this rule keeps them out.
+    'require-explicit-shell': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description: 'Require an explicit `shell` option on child_process calls and ban exec/execSync.',
+        },
+        schema: [],
+        messages: {
+          missingShell:
+            'Pass an explicit `shell` option (normally `shell: false`) to child_process.{{name}} ' +
+            'so the call site documents that no shell interprets its arguments.',
+          shellOnly: 'child_process.{{name}} always runs a shell — use execFile/spawn with an argument array instead.',
+        },
+      },
+      create(context) {
+        const spawnLikeNames = new Set(['spawn', 'spawnSync', 'execFile', 'execFileSync']);
+        const shellOnlyNames = new Set(['exec', 'execSync']);
+        const namedImportLocals = new Map(); // local identifier name -> imported child_process member name
+        const moduleObjectLocals = new Set(); // locals bound to the whole module (namespace/default import)
+
+        function hasExplicitShellOption(callArguments) {
+          return callArguments.some(
+            argument =>
+              argument.type === 'ObjectExpression' &&
+              argument.properties.some(
+                property =>
+                  property.type === 'Property' &&
+                  !property.computed &&
+                  (property.key.name === 'shell' || property.key.value === 'shell'),
+              ),
+          );
+        }
+
+        function childProcessMemberName(callee) {
+          if (callee.type === 'Identifier') {
+            return namedImportLocals.get(callee.name);
+          }
+          if (
+            callee.type === 'MemberExpression' &&
+            !callee.computed &&
+            callee.object.type === 'Identifier' &&
+            moduleObjectLocals.has(callee.object.name)
+          ) {
+            return callee.property.name;
+          }
+          return undefined;
+        }
+
+        return {
+          ImportDeclaration(node) {
+            if (node.source.value !== 'node:child_process' && node.source.value !== 'child_process') {
+              return;
+            }
+            for (const specifier of node.specifiers) {
+              if (specifier.type === 'ImportSpecifier') {
+                namedImportLocals.set(specifier.local.name, specifier.imported.name);
+              } else {
+                moduleObjectLocals.add(specifier.local.name);
+              }
+            }
+          },
+          CallExpression(node) {
+            const name = childProcessMemberName(node.callee);
+            if (name === undefined) {
+              return;
+            }
+            if (shellOnlyNames.has(name)) {
+              context.report({node, messageId: 'shellOnly', data: {name}});
+              return;
+            }
+            if (spawnLikeNames.has(name) && !hasExplicitShellOption(node.arguments)) {
+              context.report({node, messageId: 'missingShell', data: {name}});
+            }
+          },
+        };
+      },
+    },
+
     // Each exported interface must be in its own file named in kebab-case matching the
     // interface name — §3.5. No off-the-shelf rule covers name-matching; unicorn/filename-case
     // enforces kebab-case style but not that the filename matches the interface name.
@@ -88,6 +170,76 @@ const soloLocalPlugin = {
                 messageId: 'filenameMismatch',
                 data: {interfaceName, expectedFilename},
               });
+            }
+          },
+        };
+      },
+    },
+
+    // patchInject resolves an undefined constructor parameter from its token, which must match the @inject token.
+    'patch-inject-token-matches-inject': {
+      meta: {
+        type: 'problem',
+        docs: {
+          description: "Require patchInject to use the same token as the constructor parameter's @inject decorator.",
+        },
+        schema: [],
+        messages: {
+          tokenMismatch: 'patchInject resolves "{{name}}" from {{actual}}, but its @inject token is {{expected}}.',
+        },
+      },
+      create(context) {
+        const sourceCode = context.sourceCode;
+
+        function parameterName(parameter) {
+          const binding = parameter.type === 'TSParameterProperty' ? parameter.parameter : parameter;
+          return (binding.type === 'AssignmentPattern' ? binding.left : binding).name;
+        }
+
+        function injectToken(parameter) {
+          const decorator = parameter.decorators?.find(
+            candidate =>
+              candidate.expression.type === 'CallExpression' &&
+              candidate.expression.callee.type === 'Identifier' &&
+              candidate.expression.callee.name === 'inject',
+          );
+          return decorator?.expression.arguments[0];
+        }
+
+        // Accepts both patchInject(parameter, ...) and patchInject(this.parameterProperty, ...).
+        function patchedName(argument) {
+          if (argument?.type === 'Identifier') {
+            return argument.name;
+          }
+          if (
+            argument?.type === 'MemberExpression' &&
+            argument.object.type === 'ThisExpression' &&
+            !argument.computed
+          ) {
+            return argument.property.name;
+          }
+          return undefined;
+        }
+
+        return {
+          'CallExpression[callee.name="patchInject"]'(node) {
+            const [patchedArgument, tokenArgument] = node.arguments;
+            const name = patchedName(patchedArgument);
+            if (!name || !tokenArgument) {
+              return;
+            }
+            const constructorNode = sourceCode
+              .getAncestors(node)
+              .findLast(ancestor => ancestor.type === 'MethodDefinition' && ancestor.kind === 'constructor');
+            const parameter = constructorNode?.value.params.find(candidate => parameterName(candidate) === name);
+            const expectedToken = parameter && injectToken(parameter);
+            if (!expectedToken) {
+              return;
+            }
+            const expected = sourceCode.getText(expectedToken);
+            const actual = sourceCode.getText(tokenArgument);
+            if (actual !== expected) {
+              context.report({node: tokenArgument, messageId: 'tokenMismatch', data: {name, actual, expected}});
             }
           },
         };
@@ -211,7 +363,9 @@ export default [
       'n/no-unsupported-features/node-builtins': [
         'error',
         {
-          ignores: ['fs.cpSync', 'CryptoKey', 'fetch'],
+          // node:sea is still flagged experimental by Node itself even on the versions this
+          // project targets (>=22) — there is no non-experimental SEA API to migrate to.
+          ignores: ['fs.cpSync', 'CryptoKey', 'fetch', 'sea'],
         },
       ],
       'no-prototype-builtins': 'off',
@@ -314,11 +468,15 @@ export default [
   {
     // No exported functions in source code — see §10.3.1.
     // One exported interface per file, filename matches interface name in kebab-case — see §3.5.
+    // Explicit `shell` option on every child_process call — see #5869.
+    // patchInject token matches the constructor parameter's @inject token — see #6074.
     files: ['src/**/*.ts'],
     plugins: {solo: soloLocalPlugin},
     rules: {
       'solo/no-exported-function': 'error',
       'solo/exported-interface-in-own-file': 'error',
+      'solo/require-explicit-shell': 'error',
+      'solo/patch-inject-token-matches-inject': 'error',
     },
   },
   {

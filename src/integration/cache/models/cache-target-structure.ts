@@ -40,7 +40,7 @@ export interface CacheTargetStructure {
    *
    * Examples:
    * - "ghcr.io"
-   * - "oci://ghcr.io/hashgraph/solo-charts"
+   * - "oci://ghcr.io/hiero-ledger/solo-charts"
    * - "https://charts.example.com"
    */
   readonly source?: string;

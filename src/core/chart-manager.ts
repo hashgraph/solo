@@ -177,6 +177,7 @@ export class ChartManager {
     atomic: boolean = false,
     waitFor: boolean = false,
     dependencyUpdate: boolean = false,
+    skipCrds: boolean = false,
   ): Promise<boolean> {
     try {
       const isInstalled: boolean = await this.isChartInstalled(namespaceName, chartReleaseName, kubeContext);
@@ -192,7 +193,8 @@ export class ChartManager {
           .atomic(atomic)
           .waitFor(waitFor)
           .valueArguments(chartValues.toArguments())
-          .dependencyUpdate(dependencyUpdate);
+          .dependencyUpdate(dependencyUpdate)
+          .skipCrds(skipCrds);
 
         // A local chart tarball is self-describing; `helm install` rejects `--version` for a local chart.
         if (version && !cachedChartPath) {
@@ -231,22 +233,35 @@ export class ChartManager {
     return (await this.getInstalledRelease(namespaceName, chartReleaseName, kubeContext)) !== undefined;
   }
 
-  /** Returns the installed Helm release matching the given release name, or undefined when it is not installed. */
+  /**
+   * Returns every installed Helm release. Pass `undefined` for `namespaceName` to search across all namespaces.
+   */
+  public async getInstalledReleases(
+    namespaceName: NamespaceName | undefined,
+    kubeContext?: string,
+  ): Promise<ReleaseItem[]> {
+    try {
+      return await this.helm.listReleases(!namespaceName, namespaceName?.name, kubeContext);
+    } catch (error) {
+      this.logger.showUserError(error);
+      throw new SoloErrors.system.helmChartListFailed(error);
+    }
+  }
+
+  /**
+   * Returns the installed Helm release matching the given release name, or undefined when it is not installed.
+   * Pass `undefined` for `namespaceName` to search across all namespaces.
+   */
   public async getInstalledRelease(
-    namespaceName: NamespaceName,
+    namespaceName: NamespaceName | undefined,
     chartReleaseName: string,
     kubeContext?: string,
   ): Promise<ReleaseItem | undefined> {
     this.logger.debug(
       `> checking if chart is installed [ chart: ${chartReleaseName}, namespace: ${namespaceName}, kubeContext: ${kubeContext} ]`,
     );
-    try {
-      const releases: ReleaseItem[] = await this.helm.listReleases(!namespaceName, namespaceName?.name, kubeContext);
-      return releases.find((release: ReleaseItem): boolean => release.name === chartReleaseName);
-    } catch (error) {
-      this.logger.showUserError(error);
-      throw new SoloErrors.system.helmChartListFailed(error);
-    }
+    const releases: ReleaseItem[] = await this.getInstalledReleases(namespaceName, kubeContext);
+    return releases.find((release: ReleaseItem): boolean => release.name === chartReleaseName);
   }
 
   public async uninstall(

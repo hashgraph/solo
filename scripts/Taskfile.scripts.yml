@@ -35,12 +35,11 @@ tasks:
       - task: "start"
 
   install:
-    desc: solo init, solo cluster-ref config create, solo keys consensus generate, solo consensus network deploy
+    desc: solo cluster-ref config create, solo keys consensus generate, solo consensus network deploy
     deps:
       - task: "init"
     cmds:
       - task: "cluster:create"
-      - task: "solo:init"
       - task: "solo:cluster:setup"
       - task: "solo:cluster-ref:connect"
       - task: "solo:deployment:create"
@@ -158,25 +157,6 @@ tasks:
         pwd
       - npm install
       - touch {{ .solo_install_file }}
-
-  solo:init:
-    internal: true
-    silent: true
-    deps:
-      - task: "init"
-    status:
-      - test -f {{ .solo_bin_dir }}/helm || command -v helm
-      - test -f {{ .solo_bin_dir }}/kubectl || command -v kubectl
-      - test -f {{ .solo_bin_dir }}/kind || command -v kind
-      - test -f {{ .solo_cache_dir }}/templates/api-permission.properties
-      - test -f {{ .solo_cache_dir }}/templates/application.properties
-      - test -f {{ .solo_cache_dir }}/templates/bootstrap.properties
-      - test -f {{ .solo_cache_dir }}/templates/settings.txt
-      - test -f {{ .solo_cache_dir }}/templates/log4j2.xml
-      #- test "$(yq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.yaml)" == "{{ .node_identifiers }}"
-      - test "$(jq -r '.flags."node-ids"' < {{ .solo_user_dir }}/solo.config)" == "{{ .node_identifiers }}"
-    cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- init --dev
 
   solo:cluster-ref:connect:
     silent: true

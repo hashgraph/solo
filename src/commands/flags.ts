@@ -23,6 +23,8 @@ import {FlagRules} from './validation/flag-rules.js';
 import {FlagValidation} from './validation/flag-validation.js';
 
 const TLS_CLUSTER_ISSUER_TYPES: string[] = ['acme-staging', 'acme-prod', 'self-signed'];
+// Each component needs its own JVM image swap and values overlay (rest-java, web3 and grpc are native images too).
+const MIRROR_NODE_DEBUG_COMPONENTS: string[] = ['importer'];
 
 export class Flags {
   public static KEY_COMMON: string = '_COMMON_';
@@ -460,11 +462,46 @@ export class Flags {
     },
   };
 
+  public static readonly transplant: CommandFlag = {
+    constName: 'transplant',
+    name: 'transplant',
+    definition: {
+      describe:
+        'Treat the supplied state file as captured on a different network.' +
+        "\nInstalls this network's address book as override-network.json so the consensus node adopts it" +
+        " instead of the roster carried by the state. Leave unset when restoring a network's own state.",
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
   public static readonly upgradeZipFile: CommandFlag = {
     constName: 'upgradeZipFile',
     name: 'upgrade-zip-file',
     definition: {
       describe: 'A zipped file used for network upgrade',
+      defaultValue: '',
+      type: 'string',
+    },
+  };
+
+  public static readonly simpleFeesSchedulesFile: CommandFlag = {
+    constName: 'simpleFeesSchedulesFile',
+    name: 'simple-fees-schedules-file',
+    definition: {
+      describe:
+        'simpleFeesSchedules.json file applied to the network during the upgrade; must match the target version',
+      defaultValue: '',
+      type: 'string',
+    },
+  };
+
+  public static readonly throttlesFile: CommandFlag = {
+    constName: 'throttlesFile',
+    name: 'throttles-file',
+    definition: {
+      describe: 'throttles.json file applied to the network during the upgrade; must match the target version',
       defaultValue: '',
       type: 'string',
     },
@@ -538,12 +575,26 @@ export class Flags {
     name: 'component-image',
     definition: {
       describe:
-        'Docker image override. Accepts a registry reference (e.g. ghcr.io/hiero-ledger/block-node-server:0.36.0) ' +
-        'or a local reference (e.g. block-node-server:0.36.0-SNAPSHOT). ' +
-        'Local images found in Docker are automatically loaded into the Kind cluster.',
+        'Docker image override. Supports a published registry reference (e.g. ghcr.io/hiero-ledger/component:1.2.3), ' +
+        'a locally built image (e.g. component:1.2.3), or a Kind-attached local registry ' +
+        '(e.g. localhost:5001/component:1.2.3). Locally available images are loaded into every target Kind ' +
+        'cluster and use pullPolicy: Never. For non-Kind targets, publish the image to a registry reachable by the cluster. ' +
+        'Some multi-module components treat the value as a repository prefix and derive and load each module image from it.',
       defaultValue: '',
       type: 'string',
       alias: 'relay-image',
+    },
+  };
+
+  public static readonly componentImageArchive: CommandFlag = {
+    constName: 'componentImageArchive',
+    name: 'component-image-archive',
+    definition: {
+      describe:
+        'Path to a docker save image archive. Requires --component-image to identify the archived image. ' +
+        'The archive is loaded into every target Kind cluster and uses pullPolicy: Never.',
+      defaultValue: '',
+      type: 'string',
     },
   };
 
@@ -844,6 +895,19 @@ export class Flags {
         'Skip submitting the NodeUpdateTransaction that sets the gRPC web proxy endpoint.' +
         '\nUse during restore when the endpoint is already correct in the restored state' +
         ' to avoid triggering TSS re-evaluation.',
+      type: 'boolean',
+      defaultValue: false,
+    },
+  };
+
+  public static readonly resumeFromFreeze: CommandFlag = {
+    constName: 'resumeFromFreeze',
+    name: 'resume-from-freeze',
+    definition: {
+      describe:
+        'When restoring from --state-file lands every node in FREEZE_COMPLETE, automatically restart them' +
+        ' once more so they resume ACTIVE instead of staying frozen. Only used with --state-file.' +
+        '\nLeave unset to restore a frozen snapshot as-is and keep it frozen.',
       type: 'boolean',
       defaultValue: false,
     },
@@ -1626,6 +1690,32 @@ export class Flags {
     ): Promise<boolean> {
       return await Flags.prompt('toggle', task, input, Flags.persistentVolumeClaims);
     },
+  };
+
+  public static readonly verifyPersistentVolumeClaimMounts: CommandFlag = {
+    constName: 'verifyPersistentVolumeClaimMounts',
+    name: 'verify-pvc-mounts',
+    definition: {
+      describe:
+        'Fail the deployment when a persistent volume claim is mounted on storage smaller than it requested; requires --pvcs',
+      defaultValue: false,
+      type: 'boolean',
+    },
+    prompt: undefined,
+  };
+
+  public static readonly debugMirrorNodeComponent: CommandFlag = {
+    constName: 'debugMirrorNodeComponent',
+    name: 'debug-mirror-node-component',
+    definition: {
+      describe:
+        'Open the default jvm debug port (5005) on the given mirror node component and port-forward it to localhost. ' +
+        `Allowed values: ${MIRROR_NODE_DEBUG_COMPONENTS.join(', ')}`,
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+    rules: [FlagRules.oneOf(...MIRROR_NODE_DEBUG_COMPONENTS)],
   };
 
   public static readonly debugNodeAlias: CommandFlag = {
@@ -2632,6 +2722,16 @@ export class Flags {
     },
   };
 
+  public static readonly minTps: CommandFlag = {
+    constName: 'minTps',
+    name: 'min-tps',
+    definition: {
+      describe: 'Minimum acceptable transactions per second achieved by the NLG load test; 0 disables the check',
+      type: 'number',
+      defaultValue: 0,
+    },
+  };
+
   public static readonly performanceTest: CommandFlag = {
     constName: 'performanceTest',
     name: 'test',
@@ -2807,6 +2907,7 @@ export class Flags {
     Flags.clusterSetupNamespace,
     Flags.context,
     Flags.createAmount,
+    Flags.debugMirrorNodeComponent,
     Flags.debugNodeAlias,
     Flags.deletePvcs,
     Flags.deleteSecrets,
@@ -2872,6 +2973,7 @@ export class Flags {
     Flags.outputDir,
     Flags.outputValuesFile,
     Flags.persistentVolumeClaims,
+    Flags.verifyPersistentVolumeClaimMounts,
     Flags.pinger,
     Flags.predefinedAccounts,
     Flags.privateKey,
@@ -2879,20 +2981,25 @@ export class Flags {
     Flags.output,
     Flags.imageTag,
     Flags.componentImage,
+    Flags.componentImageArchive,
     Flags.relayReleaseTag,
     Flags.relayVersion,
     Flags.releaseTag,
     Flags.consensusNodeVersion,
     Flags.upgradeVersion,
     Flags.freezeBlockDrainSeconds,
+    Flags.resumeFromFreeze,
     Flags.skipNodeStart,
     Flags.replicaCount,
     Flags.setAlias,
     Flags.settingTxt,
+    Flags.simpleFeesSchedulesFile,
     Flags.soloChartVersion,
     Flags.stakeAmounts,
     Flags.stateFile,
     Flags.storageType,
+    Flags.throttlesFile,
+    Flags.transplant,
     Flags.gcsWriteAccessKey,
     Flags.gcsWriteSecrets,
     Flags.gcsEndpoint,
@@ -2963,6 +3070,7 @@ export class Flags {
     Flags.zipFile,
     Flags.maxTps,
     Flags.maxRtt,
+    Flags.minTps,
     Flags.enableMonitoringSupport,
     Flags.blockNodeMapping,
     Flags.externalBlockNodeMapping,

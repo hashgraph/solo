@@ -16,6 +16,7 @@ import {PodReference} from '../../../../src/integration/kube/resources/pod/pod-r
 import {ContainerReference} from '../../../../src/integration/kube/resources/container/container-reference.js';
 import {Argv} from '../../../helpers/argv-wrapper.js';
 import {SoloError} from '../../../../src/core/errors/solo-error.js';
+import {NetworkNodeLifecycle} from '../../../../src/core/network-node-lifecycle.js';
 
 const defaultTimeout: number = Duration.ofSeconds(20).toMillis();
 
@@ -81,7 +82,11 @@ endToEndTestSuite(namespace.name, argv, {startNodes: false}, ({opts}): void => {
       }
     }).timeout(defaultTimeout);
 
-    it('should succeed with valid tag and pod', async (): Promise<void> => {
+    // extract-platform.sh runs as root, but the consensus node image runs as uid 2000 and is never extracted into
+    const itSoloContainerOnly: Mocha.TestFunction | Mocha.PendingTestFunction =
+      NetworkNodeLifecycle.isConsensusNodeImage() ? it.skip : it;
+
+    itSoloContainerOnly('should succeed with valid tag and pod', async (): Promise<void> => {
       expect(await platformInstaller.fetchPlatform(podReference, packageVersion, zipPath, checksumPath)).to.be.true;
       const outputs: string = await k8Factory
         .default()

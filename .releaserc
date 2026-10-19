@@ -45,11 +45,6 @@
       "channel": "alpha"
     },
     {
-      "name": "ci/*",
-      "prerelease": "alpha",
-      "channel": "alpha"
-    },
-    {
       "name": "beta/*",
       "prerelease": "beta",
       "channel": "beta"

@@ -10,9 +10,11 @@ import {type DependencyManager} from '../core/dependency-managers/index.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type HelmClient} from '../integration/helm/helm-client.js';
 import {type LocalConfigRuntimeState} from '../business/runtime-state/config/local/local-config-runtime-state.js';
+import {type SoloLogger} from '../core/logging/solo-logger.js';
 import * as constants from '../core/constants.js';
 import fs from 'node:fs';
 import os from 'node:os';
+import * as tar from 'tar';
 import {
   type ClusterReferenceName,
   type ClusterReferences,
@@ -44,9 +46,11 @@ import {type ConfigProvider} from '../data/configuration/api/config-provider.js'
 import {type DefaultKindClientBuilder} from '../integration/kind/impl/default-kind-client-builder.js';
 import {type KindClient} from '../integration/kind/kind-client.js';
 import {LoadDockerImageOptionsBuilder} from '../integration/kind/model/load-docker-image/load-docker-image-options-builder.js';
-import {checkDockerImageExists} from '../core/helpers.js';
+import {LoadImageArchiveOptionsBuilder} from '../integration/kind/model/load-image-archive/load-image-archive-options-builder.js';
+import {checkDockerImageExists, Helpers} from '../core/helpers.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {OperatingSystem} from '../business/utils/operating-system.js';
+import {ImageReference, type ParsedImageReference} from '../business/utils/image-reference.js';
 import {getEnvironmentVariable} from '../core/constants.js';
 
 interface DockerDesktopContainerdCheckResult {
@@ -132,7 +136,7 @@ export abstract class BaseCommand extends ShellRunner {
     return paths;
   }
 
-  private static checkDockerDesktopContainerdSetting(): DockerDesktopContainerdCheckResult {
+  public static checkDockerDesktopContainerdSetting(): DockerDesktopContainerdCheckResult {
     if (OperatingSystem.isLinux()) {
       return {containerdSnapshotterEnabled: false};
     }
@@ -175,17 +179,25 @@ export abstract class BaseCommand extends ShellRunner {
    * warning when it is. This check is relevant for any Solo command that deploys pods,
    * since the containerd snapshotter setting can cause ImageInspectError failures.
    * The task is non-blocking - it warns only and does not halt the command.
+   *
+   * The static overload accepts an explicit logger so it can be called from classes
+   * that are not `BaseCommand` subclasses (e.g. `Subcommand`).
    */
-  protected dockerDesktopPreflightTask(): SoloListrTask<AnyListrContext> {
+  public static dockerDesktopPreflightTask(logger: SoloLogger): SoloListrTask<AnyListrContext> {
     return {
       title: 'Pre-flight: check Docker Desktop containerd setting',
       task: async (): Promise<void> => {
         const result: DockerDesktopContainerdCheckResult = BaseCommand.checkDockerDesktopContainerdSetting();
         if (result.containerdSnapshotterEnabled && result.warningMessage) {
-          this.logger.warn(result.warningMessage);
+          logger.warn(result.warningMessage);
         }
       },
     };
+  }
+
+  /** Instance convenience wrapper — delegates to the static implementation. */
+  protected dockerDesktopPreflightTask(): SoloListrTask<AnyListrContext> {
+    return BaseCommand.dockerDesktopPreflightTask(this.logger);
   }
 
   /**
@@ -262,11 +274,16 @@ export abstract class BaseCommand extends ShellRunner {
     return resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
   }
 
-  protected kindClusterNameFromContext(clusterContext: string): string {
-    return clusterContext.startsWith('kind-') ? clusterContext.slice('kind-'.length) : clusterContext;
+  /** Resolves the Kind cluster name the given kubeconfig context targets, or undefined for a non-Kind context. */
+  protected kindClusterNameFromContext(clusterContext: string): string | undefined {
+    return Helpers.kindClusterNameForContext(clusterContext, this.k8Factory);
   }
 
   protected isLocalImageReference(imageReference: string): boolean {
+    if (this.isLocalRegistryImageReference(imageReference)) {
+      return true;
+    }
+
     const withoutTag: string = imageReference.includes(':')
       ? imageReference.slice(0, imageReference.lastIndexOf(':'))
       : imageReference;
@@ -274,7 +291,19 @@ export abstract class BaseCommand extends ShellRunner {
     return !firstSegment.includes('.') && !firstSegment.includes(':') && firstSegment !== 'localhost';
   }
 
+  protected isLocalRegistryImageReference(imageReference: string): boolean {
+    return /^localhost:\d+\//.test(imageReference);
+  }
+
   protected splitImageNameTag(imageReference: string): {name: string; tag: string} {
+    if (this.isLocalRegistryImageReference(imageReference)) {
+      const parsedReference: ParsedImageReference = ImageReference.parseImageReference(imageReference);
+      return {
+        name: `${parsedReference.registry}/${parsedReference.repository}`,
+        tag: parsedReference.tag,
+      };
+    }
+
     const colonIndex: number = imageReference.lastIndexOf(':');
     if (colonIndex === -1) {
       throw new SoloErrors.validation.illegalArgument(
@@ -292,14 +321,213 @@ export abstract class BaseCommand extends ShellRunner {
     return checkDockerImageExists(name, tag);
   }
 
-  protected async kindLoadComponentImage(componentImage: string, clusterContext: string): Promise<void> {
-    const kindClusterName: string = this.kindClusterNameFromContext(clusterContext);
-    this.logger.debug(`Loading '${componentImage}' into Kind cluster '${kindClusterName}'`);
+  protected hasComponentImageArchiveValue(componentImageArchive: Optional<string>): boolean {
+    return Boolean(componentImageArchive?.trim());
+  }
+
+  protected validateComponentImageArchive(
+    componentImage: Optional<string | string[]>,
+    componentImageArchive: Optional<string>,
+  ): void {
+    if (!this.hasComponentImageArchiveValue(componentImageArchive)) {
+      return;
+    }
+
+    const expectedImages: string[] = (Array.isArray(componentImage) ? componentImage : [componentImage]).filter(
+      (image: Optional<string>): boolean => Boolean(image?.trim()),
+    );
+    if (expectedImages.length === 0) {
+      throw new SoloErrors.validation.illegalArgument(
+        `--${flags.componentImageArchive.name} requires --${flags.componentImage.name} to identify the image in the archive.`,
+        componentImageArchive,
+      );
+    }
+
+    if (!fs.existsSync(componentImageArchive)) {
+      throw new SoloErrors.system.fileNotFound(componentImageArchive);
+    }
+
+    const repoTags: Optional<string[]> = this.readComponentImageArchiveRepoTags(componentImageArchive);
+    const missingImages: string[] =
+      repoTags === undefined ? [] : expectedImages.filter((image: string): boolean => !repoTags.includes(image));
+    if (missingImages.length > 0) {
+      throw new SoloErrors.validation.componentImageArchiveTagMismatch(missingImages, componentImageArchive, repoTags);
+    }
+  }
+
+  /**
+   * Reads the `RepoTags` recorded for every image in a `docker save` archive's `manifest.json`, or
+   * `undefined` if the manifest is absent or unparsable (e.g. a non-Docker tar), in which case the
+   * tag-mismatch check is skipped rather than blocking an otherwise-valid deployment.
+   */
+  private readComponentImageArchiveRepoTags(componentImageArchive: string): Optional<string[]> {
+    const temporaryDirectory: string = fs.mkdtempSync(
+      PathEx.join(os.tmpdir(), 'solo-component-image-archive-manifest-'),
+    );
+    try {
+      tar.x({file: componentImageArchive, C: temporaryDirectory, sync: true}, ['manifest.json']);
+      const manifestPath: string = PathEx.join(temporaryDirectory, 'manifest.json');
+      if (!fs.existsSync(manifestPath)) {
+        return undefined;
+      }
+
+      const manifest: {RepoTags?: string[]}[] = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      return manifest.flatMap((entry: {RepoTags?: string[]}): string[] => entry.RepoTags ?? []);
+    } catch {
+      // best-effort: an archive whose manifest.json is missing, non-standard, or unparsable skips this check
+      return undefined;
+    } finally {
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    }
+  }
+
+  protected async loadComponentImage(
+    componentImage: Optional<string>,
+    componentImageArchive: Optional<string>,
+    clusterContext: Context,
+  ): Promise<void> {
+    if (this.hasComponentImageArchiveValue(componentImageArchive)) {
+      this.validateComponentImageArchive(componentImage, componentImageArchive);
+      await this.kindLoadComponentImageArchive(componentImageArchive, clusterContext, this.remoteConfig.getContexts());
+      return;
+    }
+
+    if (componentImage && this.isLocalImageAvailableInDocker(componentImage)) {
+      await this.kindLoadComponentImage(componentImage, clusterContext, this.remoteConfig.getContexts());
+    }
+  }
+
+  protected isComponentImageAvailableForKind(
+    componentImage: Optional<string>,
+    componentImageArchive: Optional<string>,
+  ): boolean {
+    if (this.hasComponentImageArchiveValue(componentImageArchive)) {
+      this.validateComponentImageArchive(componentImage, componentImageArchive);
+      return true;
+    }
+
+    return Boolean(componentImage && this.isLocalImageAvailableInDocker(componentImage));
+  }
+
+  /** Loads a local component image into the required cluster context's Kind cluster, then best-effort into any additional Kind contexts. */
+  protected async kindLoadComponentImage(
+    componentImage: string,
+    clusterContext: string,
+    additionalContexts: Context[] = [],
+  ): Promise<void> {
+    await this.preloadIntoKindClusters(
+      componentImage,
+      flags.componentImage.name,
+      clusterContext,
+      additionalContexts,
+      (kindClient: KindClient, kindClusterName: string): Promise<void> =>
+        this.loadImageIntoKindCluster(kindClient, componentImage, kindClusterName),
+    );
+  }
+
+  /** Loads a component image archive into the required cluster context's Kind cluster, then best-effort into any additional Kind contexts. */
+  protected async kindLoadComponentImageArchive(
+    componentImageArchive: string,
+    clusterContext: Context,
+    additionalContexts: Context[] = [],
+  ): Promise<void> {
+    await this.preloadIntoKindClusters(
+      componentImageArchive,
+      flags.componentImageArchive.name,
+      clusterContext,
+      additionalContexts,
+      (kindClient: KindClient, kindClusterName: string): Promise<void> =>
+        this.loadImageArchiveIntoKindCluster(kindClient, componentImageArchive, kindClusterName),
+    );
+  }
+
+  /**
+   * Loads a component image (or archive) into the required cluster context's Kind cluster, then
+   * best-effort into any additional Kind contexts. Hard-fails only when the required cluster context
+   * is not a Kind cluster, since the image is only ever loaded through Kind and has no registry
+   * fallback there; additional contexts that are stale, unreachable, or not Kind are skipped with a
+   * warning so they never fail the deploy to the required cluster.
+   */
+  private async preloadIntoKindClusters(
+    componentImageSource: string,
+    sourceFlagName: string,
+    clusterContext: string,
+    additionalContexts: Context[],
+    loadIntoKindCluster: (kindClient: KindClient, kindClusterName: string) => Promise<void>,
+  ): Promise<void> {
+    const primaryKindCluster: string | undefined = this.kindClusterNameFromContext(clusterContext);
+    if (primaryKindCluster === undefined) {
+      throw this.nonKindTargetContextsError(componentImageSource, sourceFlagName, [clusterContext]);
+    }
+
     const kindExecutable: string = await this.depManager.getExecutable(constants.KIND);
     const kindClient: KindClient = await this.kindBuilder.executable(kindExecutable).build();
+
+    await loadIntoKindCluster(kindClient, primaryKindCluster);
+
+    const loadedKindClusters: Set<string> = new Set<string>([primaryKindCluster]);
+    const extraContexts: Context[] = [...new Set<Context>(additionalContexts)].filter(
+      (context: Context): boolean => context !== clusterContext,
+    );
+    for (const targetContext of extraContexts) {
+      const kindClusterName: string | undefined = this.kindClusterNameFromContext(targetContext);
+      if (kindClusterName === undefined) {
+        this.logger.warn(
+          `Skipping preload of component image '${componentImageSource}' into non-Kind cluster context ` +
+            `'${targetContext}'; components deployed there must pull the image from a registry.`,
+        );
+        continue;
+      }
+      if (loadedKindClusters.has(kindClusterName)) {
+        continue;
+      }
+      loadedKindClusters.add(kindClusterName);
+      try {
+        await loadIntoKindCluster(kindClient, kindClusterName);
+      } catch (error) {
+        // best-effort: a stale or unreachable additional Kind context must not fail the deploy to the required cluster
+        this.logger.warn(
+          `Failed to preload component image '${componentImageSource}' into Kind cluster context '${targetContext}'; continuing`,
+          error,
+        );
+      }
+    }
+  }
+
+  private nonKindTargetContextsError(
+    componentImageSource: string,
+    sourceFlagName: string,
+    nonKindContexts: Context[],
+  ): InstanceType<typeof SoloErrors.validation.illegalArgument> {
+    return new SoloErrors.validation.illegalArgument(
+      `Component image source '${componentImageSource}' from --${sourceFlagName} requires Kind image loading, but target ` +
+        `cluster context(s) '${nonKindContexts.join("', '")}' are not Kind clusters. Push the image to a registry ` +
+        'reachable from every target cluster and pass that registry image reference to --component-image.',
+      componentImageSource,
+    );
+  }
+
+  private async loadImageIntoKindCluster(
+    kindClient: KindClient,
+    componentImage: string,
+    kindClusterName: string,
+  ): Promise<void> {
+    this.logger.debug(`Loading '${componentImage}' into Kind cluster '${kindClusterName}'`);
     await kindClient.loadDockerImage(
       componentImage,
       LoadDockerImageOptionsBuilder.builder().name(kindClusterName).build(),
+    );
+  }
+
+  private async loadImageArchiveIntoKindCluster(
+    kindClient: KindClient,
+    componentImageArchive: string,
+    kindClusterName: string,
+  ): Promise<void> {
+    this.logger.debug(`Loading image archive '${componentImageArchive}' into Kind cluster '${kindClusterName}'`);
+    await kindClient.loadImageArchive(
+      componentImageArchive,
+      LoadImageArchiveOptionsBuilder.builder().name(kindClusterName).build(),
     );
   }
 
@@ -307,6 +535,39 @@ export abstract class BaseCommand extends ShellRunner {
     if (!(await this.k8Factory.getK8(context).namespaces().has(namespace))) {
       throw new SoloErrors.system.namespaceNotFound(namespace.name);
     }
+  }
+
+  /**
+   * Trigger a Deployment rollout by patching a restart annotation onto its pod template.
+   * This avoids delete/recreate and keeps restart behavior explicit; it is used whenever a
+   * Deployment's ConfigMap-backed configuration may have changed but the pod template itself
+   * was left byte-identical by Helm, so Kubernetes would otherwise never recreate the pod.
+   */
+  protected async patchDeploymentRestartAnnotation(
+    context: Context,
+    namespace: NamespaceName,
+    deploymentName: string,
+  ): Promise<void> {
+    await this.k8Factory
+      .getK8(context)
+      .manifests()
+      .patchObject({
+        apiVersion: 'apps/v1',
+        kind: 'Deployment',
+        metadata: {
+          name: deploymentName,
+          namespace: namespace.name,
+        },
+        spec: {
+          template: {
+            metadata: {
+              annotations: {
+                'solo.hedera.com/restartedAt': new Date().toISOString(),
+              },
+            },
+          },
+        },
+      });
   }
 
   private inferMirrorNodeDataFromRemoteConfig(namespace: NamespaceName): {

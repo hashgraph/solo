@@ -99,12 +99,12 @@ export class ClusterChecks {
    * Searches specific namespace for remote config's config map
    *
    * @param namespace - namespace where to search
+   * @param context - the cluster to search in; defaults to the default cluster when omitted
    * @returns true if found else false
    */
-  public async isRemoteConfigPresentInNamespace(namespace: NamespaceName): Promise<boolean> {
+  public async isRemoteConfigPresentInNamespace(namespace: NamespaceName, context?: Context): Promise<boolean> {
     try {
-      const configmaps: ConfigMap[] = await this.k8Factory
-        .default()
+      const configmaps: ConfigMap[] = await (context ? this.k8Factory.getK8(context) : this.k8Factory.default())
         .configMaps()
         .list(namespace, [constants.SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR]);
 

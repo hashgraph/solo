@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {expect} from 'chai';
+import path from 'node:path';
 import sinon, {type SinonSandbox, type SinonStub} from 'sinon';
 import {afterEach, beforeEach, describe, it} from 'mocha';
 import {ShellRunner} from '../../../../src/core/shell-runner.js';
@@ -14,6 +15,7 @@ describe('PodmanClient', (): void => {
   let sandbox: SinonSandbox;
   let shellRunnerRunStub: SinonStub;
   let containerConfigEnvironmentStub: SinonStub;
+  let runtimeBinaryDirectoryStub: SinonStub;
 
   beforeEach((): void => {
     previousKindProvider = process.env.KIND_EXPERIMENTAL_PROVIDER;
@@ -23,6 +25,7 @@ describe('PodmanClient', (): void => {
     containerConfigEnvironmentStub = sandbox
       .stub(PodmanDependencyManager.prototype, 'containerConfigEnvironment')
       .returns({});
+    runtimeBinaryDirectoryStub = sandbox.stub(PodmanDependencyManager.prototype, 'getConfiguredRuntimeBinaryDirectory');
   });
 
   afterEach((): void => {
@@ -94,6 +97,22 @@ describe('PodmanClient', (): void => {
     const command: ContainerEngineCommand | undefined = await client.getKindContainerCommand('kind-control-plane');
 
     expect(command?.argumentsPrefix).to.include('CONTAINERS_CONF=/solo/config/containers.conf');
+  });
+
+  it('prepends the persisted brew podman directory to the rootful podman PATH', async (): Promise<void> => {
+    delete process.env.KIND_EXPERIMENTAL_PROVIDER;
+    runtimeBinaryDirectoryStub.returns('/home/linuxbrew/.linuxbrew/bin');
+    shellRunnerRunStub
+      .withArgs('podman', PodmanClientTestBuilder.containerExistsArguments('kind-control-plane'), sinon.match.object)
+      .rejects(new Error('missing rootless container'));
+    shellRunnerRunStub.withArgs('sudo', sinon.match.array, sinon.match.object).resolves([]);
+
+    const client: PodmanClient = PodmanClientTestBuilder.build();
+    const command: ContainerEngineCommand | undefined = await client.getKindContainerCommand('kind-control-plane');
+
+    expect(command?.argumentsPrefix).to.include(
+      `PATH=/home/linuxbrew/.linuxbrew/bin${path.delimiter}${process.env.PATH || ''}`,
+    );
   });
 
   it('uses podman when the kind provider environment variable is set to podman', async (): Promise<void> => {

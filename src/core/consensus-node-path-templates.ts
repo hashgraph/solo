@@ -39,7 +39,15 @@ export class ConsensusNodePathTemplates {
 
   public static readonly BLOCK_NODES_JSON: string = `${this.DATA_CONFIG}/block-nodes.json`;
 
-  public static readonly GENESIS_NETWORK_JSON: string = `${this.DATA_CONFIG}/genesis-network.json`;
+  public static readonly GENESIS_NETWORK_JSON: string = `${this.DATA_CONFIG}/${constants.GENESIS_NETWORK_FILE}`;
+
+  /** Replaces the address book carried by a state restored from another network. */
+  public static readonly OVERRIDE_NETWORK_JSON: string = `${this.DATA_CONFIG}/${constants.OVERRIDE_NETWORK_FILE}`;
+
+  public static readonly CONFIG_ARCHIVE: string = `${this.DATA_CONFIG}/.archive`;
+
+  /** Untouched copy of the address book solo installed, kept for restores after the live file changes. */
+  public static readonly ARCHIVE_GENESIS_NETWORK_JSON: string = `${this.CONFIG_ARCHIVE}/${constants.GENESIS_NETWORK_FILE}`;
 
   public static readonly GENESIS_THROTTLES_JSON: string = `${this.DATA_CONFIG}/genesis-throttles.json`;
 

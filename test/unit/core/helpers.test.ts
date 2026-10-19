@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {PathEx} from '../../../src/business/utils/path-ex.js';
+
 import {expect} from 'chai';
 import {describe, it, beforeEach, afterEach} from 'mocha';
 import each from 'mocha-each';
@@ -32,6 +34,19 @@ import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {SoloErrors} from '../../../src/core/errors/solo-errors.js';
+import {NetworkNodeLifecycle} from '../../../src/core/network-node-lifecycle.js';
+import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
+
+/** Builds a K8Factory whose default kubeconfig resolves a context to the given cluster entry names. */
+function stubK8FactoryWithClusterEntries(clusterEntriesByContext: Record<string, string>): K8Factory {
+  return {
+    default: (): unknown => ({
+      contexts: (): unknown => ({
+        readClusterOfContext: (context: string): string => clusterEntriesByContext[context] ?? '',
+      }),
+    }),
+  } as unknown as K8Factory;
+}
 
 function makeConsensusNode(name: NodeAlias, nodeId: number): ConsensusNode {
   return new ConsensusNode(
@@ -99,6 +114,58 @@ describe('Helpers', (): void => {
     const ipV4Address: string = '192.168.0.1';
     const byteString: string = ipV4ToBase64(ipV4Address);
     expect(byteString).to.equal('wKgAAQ==');
+  });
+
+  describe('resolveValidJsonFilePath', (): void => {
+    let temporaryDirectory: string;
+    let defaultFile: string;
+
+    // writes the candidate file, or leaves it missing when contents is undefined
+    const candidateFile: (contents?: string) => string = (contents?: string): string => {
+      const filePath: string = path.join(temporaryDirectory, 'candidate.json');
+      fs.rmSync(filePath, {force: true});
+      if (contents !== undefined) {
+        fs.writeFileSync(filePath, contents);
+      }
+      return filePath;
+    };
+
+    beforeEach((): void => {
+      temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'solo-json-file-'));
+      defaultFile = path.join(temporaryDirectory, 'default.json');
+      fs.writeFileSync(defaultFile, '{}');
+    });
+
+    afterEach((): void => {
+      fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+    });
+
+    it('returns the resolved path of a valid JSON file', (): void => {
+      const filePath: string = candidateFile('{"valid": true}');
+      expect(Helpers.resolveValidJsonFilePath(filePath, defaultFile)).to.equal(fs.realpathSync(filePath));
+    });
+
+    it('falls back on the default for a missing, empty or invalid file', (): void => {
+      for (const contents of [undefined, '', 'not json']) {
+        expect(Helpers.resolveValidJsonFilePath(candidateFile(contents), defaultFile)).to.equal(
+          fs.realpathSync(defaultFile),
+        );
+      }
+    });
+
+    it('reports a missing file without a default as not found', (): void => {
+      expect((): string => Helpers.resolveValidJsonFilePath(candidateFile())).to.throw(SoloErrors.system.fileNotFound);
+    });
+
+    it('reports an empty file without a default as empty', (): void => {
+      expect((): string => Helpers.resolveValidJsonFilePath(candidateFile(''))).to.throw(SoloErrors.system.fileEmpty);
+    });
+
+    it('reports an invalid file without a default as invalid JSON', (): void => {
+      expect((): string => Helpers.resolveValidJsonFilePath(candidateFile('not json'))).to.throw(
+        SoloErrors.system.fileInvalidJson,
+      );
+    });
   });
 
   describe('resolveBlockStreamModeForConsensusVersion', (): void => {
@@ -189,14 +256,14 @@ describe('Helpers', (): void => {
       ]);
     });
 
-    it('does not overwrite streamWrappedRecordBlocks in BOTH mode', (): void => {
+    it('keeps wrapped record block publishing enabled for BOTH mode', (): void => {
       const lines: string[] = ['blockStream.streamMode=BLOCKS', 'blockStream.streamWrappedRecordBlocks=false'];
 
       Helpers.updateBlockStreamPropertiesForMode(lines, 'BOTH');
 
       expect(lines).to.deep.equal([
         'blockStream.streamMode=BOTH',
-        'blockStream.streamWrappedRecordBlocks=false',
+        'blockStream.streamWrappedRecordBlocks=true',
         'blockStream.writerMode=FILE_AND_GRPC',
       ]);
     });
@@ -246,6 +313,9 @@ describe('Helpers', (): void => {
         );
         expect(result.hedera.nodes[0].root?.extraEnv).to.deep.equal([
           {name: 'USER_ENV', value: 'user-value'},
+          ...(NetworkNodeLifecycle.isConsensusNodeImage()
+            ? [{name: 'AUTO_START_CONSENSUS_SERVICE', value: 'false'}]
+            : []),
           {
             name: 'TSS_LIB_WRAPS_ARTIFACTS_PATH',
             value: `${constants.HEDERA_HAPI_PATH}/data/keys/wraps-v1.0.0`,
@@ -498,6 +568,126 @@ describe('Helpers', (): void => {
     });
   });
 
+  describe('hasExplicitMinioEnabled', (): void => {
+    it('returns false when no file paths are provided', (): void => {
+      expect(helmValuesHelper.hasExplicitMinioEnabled()).to.be.false;
+      expect(helmValuesHelper.hasExplicitMinioEnabled([])).to.be.false;
+    });
+
+    it('returns false for unreadable or non-existent file paths', (): void => {
+      expect(helmValuesHelper.hasExplicitMinioEnabled(['/non/existent/file.yaml'])).to.be.false;
+    });
+
+    it('returns false when values file contains only non-MinIO configs', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const temporaryFile: string = PathEx.join(temporaryDirectory, 'values.yaml');
+      fs.writeFileSync(temporaryFile, 'hedera:\n  nodes:\n    - name: node1\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([temporaryFile])).to.be.false;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns false when values file defines only minio-server overrides without cloud.minio.enabled', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const temporaryFile: string = PathEx.join(temporaryDirectory, 'silo-values.yaml');
+      fs.writeFileSync(temporaryFile, 'minio-server:\n  tenant:\n    buckets:\n      - name: falcon-bucket\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([temporaryFile])).to.be.false;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns true when values file defines cloud.minio.enabled: true', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const temporaryFile: string = PathEx.join(temporaryDirectory, 'cloud-minio.yaml');
+      fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: true\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([temporaryFile])).to.be.true;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns false when values file defines cloud.minio.enabled: false', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const temporaryFile: string = PathEx.join(temporaryDirectory, 'cloud-minio-false.yaml');
+      fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: false\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([temporaryFile])).to.be.false;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns false when cloud.minio.enabled: true is followed by cloud.minio.enabled: false', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const fileTrue: string = PathEx.join(temporaryDirectory, 'minio-true.yaml');
+      const fileFalse: string = PathEx.join(temporaryDirectory, 'minio-false.yaml');
+      fs.writeFileSync(fileTrue, 'cloud:\n  minio:\n    enabled: true\n', 'utf8');
+      fs.writeFileSync(fileFalse, 'cloud:\n  minio:\n    enabled: false\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([fileTrue, fileFalse])).to.be.false;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns true when cloud.minio.enabled: false is followed by cloud.minio.enabled: true', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const fileFalse: string = PathEx.join(temporaryDirectory, 'minio-false.yaml');
+      const fileTrue: string = PathEx.join(temporaryDirectory, 'minio-true.yaml');
+      fs.writeFileSync(fileFalse, 'cloud:\n  minio:\n    enabled: false\n', 'utf8');
+      fs.writeFileSync(fileTrue, 'cloud:\n  minio:\n    enabled: true\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([fileFalse, fileTrue])).to.be.true;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('preserves the last explicitly defined value across multiple files even when later files do not configure MinIO', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const fileTrue: string = PathEx.join(temporaryDirectory, 'minio-true.yaml');
+      const fileFalse: string = PathEx.join(temporaryDirectory, 'minio-false.yaml');
+      const fileUnrelated: string = PathEx.join(temporaryDirectory, 'unrelated.yaml');
+      fs.writeFileSync(fileTrue, 'cloud:\n  minio:\n    enabled: true\n', 'utf8');
+      fs.writeFileSync(fileFalse, 'cloud:\n  minio:\n    enabled: false\n', 'utf8');
+      fs.writeFileSync(fileUnrelated, 'hedera:\n  nodes:\n    - name: node1\n', 'utf8');
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([fileTrue, fileFalse, fileUnrelated])).to.be.false;
+        expect(helmValuesHelper.hasExplicitMinioEnabled([fileFalse, fileTrue, fileUnrelated])).to.be.true;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+
+    it('returns false when cloud.minio.enabled: false is combined with unrelated minio-server configuration', (): void => {
+      const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-minio-test-'));
+      const temporaryFile: string = PathEx.join(temporaryDirectory, 'silo-minio-false.yaml');
+      fs.writeFileSync(
+        temporaryFile,
+        'cloud:\n  minio:\n    enabled: false\nminio-server:\n  tenant:\n    buckets:\n      - name: falcon-bucket\n',
+        'utf8',
+      );
+
+      try {
+        expect(helmValuesHelper.hasExplicitMinioEnabled([temporaryFile])).to.be.false;
+      } finally {
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+      }
+    });
+  });
+
   describe('isKindContext', (): void => {
     it('recognizes a context kind wrote for one of its clusters', (): void => {
       expect(Helpers.isKindContext('kind-solo')).to.be.true;
@@ -514,6 +704,39 @@ describe('Helpers', (): void => {
       const unresolvedContext: string = undefined;
       expect(Helpers.isKindContext(unresolvedContext)).to.be.false;
       expect(Helpers.isKindContext('')).to.be.false;
+    });
+
+    it('recognizes a renamed context through its kubeconfig cluster entry', (): void => {
+      expect(Helpers.isKindContext('solo-renamed', stubK8FactoryWithClusterEntries({'solo-renamed': 'kind-solo'}))).to
+        .be.true;
+    });
+  });
+
+  describe('kindClusterNameForContext', (): void => {
+    it('resolves the cluster name from a context kind wrote', (): void => {
+      expect(Helpers.kindClusterNameForContext('kind-solo')).to.equal('solo');
+      expect(Helpers.kindClusterNameForContext('kind-solo-cluster')).to.equal('solo-cluster');
+    });
+
+    it('resolves the cluster name of a renamed context through its kubeconfig cluster entry', (): void => {
+      const k8Factory: K8Factory = stubK8FactoryWithClusterEntries({'solo-renamed': 'kind-solo'});
+      expect(Helpers.kindClusterNameForContext('solo-renamed', k8Factory)).to.equal('solo');
+    });
+
+    it('returns undefined when neither the context nor its cluster entry is Kind-named', (): void => {
+      const k8Factory: K8Factory = stubK8FactoryWithClusterEntries({'gke-prod': 'gke-prod-entry'});
+      expect(Helpers.kindClusterNameForContext('gke-prod', k8Factory)).to.be.undefined;
+      expect(Helpers.kindClusterNameForContext('gke-prod')).to.be.undefined;
+      expect(Helpers.kindClusterNameForContext(undefined, k8Factory)).to.be.undefined;
+    });
+
+    it('returns undefined when the kubeconfig cluster entry cannot be read', (): void => {
+      const k8Factory: K8Factory = {
+        default: (): never => {
+          throw new Error('kubeconfig unavailable');
+        },
+      } as unknown as K8Factory;
+      expect(Helpers.kindClusterNameForContext('solo-renamed', k8Factory)).to.be.undefined;
     });
   });
 

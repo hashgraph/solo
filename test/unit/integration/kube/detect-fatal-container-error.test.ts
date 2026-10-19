@@ -153,7 +153,7 @@ describe('detectFatalContainerError', (): void => {
     });
   });
 
-  for (const reason of ['InvalidImageName', 'RegistryUnavailable']) {
+  for (const reason of ['InvalidImageName', 'RegistryUnavailable', 'CrashLoopBackOff']) {
     it(`should detect fatal waiting reason: ${reason}`, (): void => {
       const pod: Pod = buildPod([buildWaiting('test-container', reason)]);
       const result: string | undefined = podsClient.detectFatalContainerError(pod);

@@ -14,6 +14,7 @@ import {PacmanPackageManager} from './pacman-package-manager.js';
 import {ApkPackageManager} from './apk-package-manager.js';
 import {OperatingSystem} from '../../business/utils/operating-system.js';
 import {SoloErrors} from '../errors/solo-errors.js';
+import {SubprocessEnvironment} from '../subprocess-environment.js';
 
 /**
  * Selects the correct {@link PackageManager} for the host operating system and — on Linux — for the
@@ -129,7 +130,7 @@ export class OsPackageManager {
 
   /** Returns true if the given executable is found on the PATH (synchronous, no subprocess). */
   private static isCommandAvailable(command: string): boolean {
-    const pathValue: string = process.env.PATH ?? '';
+    const pathValue: string = SubprocessEnvironment.currentPath();
     return pathValue.split(path.delimiter).some((directory: string): boolean => {
       try {
         fs.accessSync(path.join(directory, command), fs.constants.X_OK);

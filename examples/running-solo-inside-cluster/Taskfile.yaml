@@ -6,8 +6,6 @@ env:
 tasks:
   default:
     cmds:
-      # Run solo init to install dependencies
-      - cmd: $SOLO_COMMAND init --dev
 
       # Create .task-tmp directory
       - cmd: mkdir -p {{.TASKFILE_DIR}}/.task-tmp

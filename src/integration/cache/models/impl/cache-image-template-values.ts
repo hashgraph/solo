@@ -8,6 +8,7 @@ export class CacheImageTemplateValues implements CacheImageTemplateValuesStructu
   public readonly RELAY_VERSION: string;
   public readonly EXPLORER_VERSION: string;
   public readonly MINIO_OPERATOR_VERSION: string;
+  public readonly MINIO_IMAGE_DIGEST: string;
   public readonly SOLO_CHEETAH_VERSION: string;
   public readonly SOLO_CONTAINERS_VERSION: string;
 
@@ -17,6 +18,7 @@ export class CacheImageTemplateValues implements CacheImageTemplateValuesStructu
     relayVersion: string,
     explorerVersion: string,
     minioOperatorVersion: string,
+    minioImageDigest: string,
     soloCheetahVersion: string,
     soloContainersVersion: string,
   ) {
@@ -25,6 +27,7 @@ export class CacheImageTemplateValues implements CacheImageTemplateValuesStructu
     this.RELAY_VERSION = this.removeVPrefix(relayVersion);
     this.EXPLORER_VERSION = this.removeVPrefix(explorerVersion);
     this.MINIO_OPERATOR_VERSION = this.ensureVPrefix(minioOperatorVersion);
+    this.MINIO_IMAGE_DIGEST = minioImageDigest;
     this.SOLO_CHEETAH_VERSION = this.removeVPrefix(soloCheetahVersion);
     this.SOLO_CONTAINERS_VERSION = this.removeVPrefix(soloContainersVersion);
   }

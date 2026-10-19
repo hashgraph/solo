@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {expect} from 'chai';
-import {before, describe, it} from 'mocha';
+import {afterEach, before, describe, it} from 'mocha';
+import sinon, {type SinonStub} from 'sinon';
 
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as constants from '../../../src/core/constants.js';
 import {type PlatformInstaller} from '../../../src/core/platform-installer.js';
+import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {IllegalArgumentError} from '../../../src/core/errors/classes/validation/illegal-argument-error.js';
 import {MissingArgumentError} from '../../../src/core/errors/classes/validation/missing-argument-error.js';
 import {PodName} from '../../../src/integration/kube/resources/pod/pod-name.js';
@@ -22,6 +24,10 @@ describe('PackageInstaller', (): void => {
 
   before((): void => {
     installer = container.resolve(InjectTokens.PlatformInstaller);
+  });
+
+  afterEach((): void => {
+    sinon.restore();
   });
 
   describe('validatePlatformReleaseDir', (): void => {
@@ -87,7 +93,7 @@ describe('PackageInstaller', (): void => {
 
     it('should fail for missing pod name', async (): Promise<void> => {
       await expect(
-        installer.fetchPlatform(null as PodReference, packageVersion, zipPath, checksumPath),
+        installer.fetchPlatform(undefined as PodReference, packageVersion, zipPath, checksumPath),
       ).to.be.rejectedWith(MissingArgumentError);
     });
     it('should fail for missing tag', async (): Promise<void> => {
@@ -99,6 +105,41 @@ describe('PackageInstaller', (): void => {
           checksumPath,
         ),
       ).to.be.rejectedWith(MissingArgumentError);
+    });
+  });
+  describe('fetchPlatform verification', (): void => {
+    it('should verify extracted jar integrity after extraction', async (): Promise<void> => {
+      const copyFilesStub: SinonStub = sinon.stub(installer, 'copyFiles' as never) as SinonStub;
+      copyFilesStub.resolves([]);
+      const execContainerStub: SinonStub = sinon.stub().resolves('');
+      const readByReferenceStub: SinonStub = sinon.stub().returns({execContainer: execContainerStub});
+      const containersStub: SinonStub = sinon.stub().returns({readByRef: readByReferenceStub});
+      const getK8Stub: SinonStub = sinon.stub().returns({containers: containersStub});
+      const installerWithK8Factory: {k8Factory: K8Factory} = installer as unknown as {k8Factory: K8Factory};
+      const originalK8Factory: K8Factory = installerWithK8Factory.k8Factory;
+      installerWithK8Factory.k8Factory = {getK8: getK8Stub} as unknown as K8Factory;
+
+      try {
+        await installer.fetchPlatform(
+          PodReference.of(NamespaceName.of('platform-installer-test'), PodName.of('network-node1-0')),
+          'v0.42.5',
+          '/tmp/build-v0.42.5.zip',
+          '/tmp/build-v0.42.5.sha384',
+        );
+      } finally {
+        installerWithK8Factory.k8Factory = originalK8Factory;
+      }
+
+      expect(copyFilesStub).to.have.been.calledTwice;
+      expect(execContainerStub.callCount).to.equal(5);
+      const verificationCallArguments: string[] = execContainerStub.getCall(4).args[0];
+      expect(verificationCallArguments[0]).to.equal('bash');
+      expect(verificationCallArguments[1]).to.equal('-c');
+      expect(verificationCallArguments[2]).to.include('unzip -t');
+      expect(verificationCallArguments[2]).to.include(
+        `${constants.HEDERA_HAPI_PATH}/${constants.HEDERA_DATA_APPS_DIR}`,
+      );
+      expect(verificationCallArguments[2]).to.include(`${constants.HEDERA_HAPI_PATH}/${constants.HEDERA_DATA_LIB_DIR}`);
     });
   });
 

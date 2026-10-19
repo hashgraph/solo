@@ -45,8 +45,6 @@ export async function update(): Promise<void> {
     `kind create cluster -n ${process.env.SOLO_CLUSTER_NAME} --config resources/kind-config.yaml`,
   );
 
-  await addCommandOutput(soloCommandOutput, 'solo-init', 'solo init');
-
   await addCommandOutput(
     soloCommandOutput,
     'solo-cluster-ref-config-connect',

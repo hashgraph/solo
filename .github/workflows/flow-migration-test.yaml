@@ -54,7 +54,6 @@ defaults:
 
 permissions:
   contents: read
-  actions: write
 
 env:
   STEP_TIMEOUT_MINUTES: '5'
@@ -68,17 +67,19 @@ jobs:
     runs-on: hiero-solo-linux-large
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: 24
@@ -91,7 +92,7 @@ jobs:
           version: "v3.12.3" # helm version
 
       - name: Setup Kind
-        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+        uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           install_only: true
@@ -142,16 +143,27 @@ jobs:
             echo "from_solo_version=${FROM_INPUT}" >> $GITHUB_OUTPUT
             echo "to_consensus_node_version=${TO_CN_INPUT}" >> $GITHUB_OUTPUT
 
+      - name: Restore Solo Bin Cache
+        id: solo-bin-cache
+        if: ${{ !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Restore Solo Image Cache
         id: solo-image-cache
         if: ${{ !cancelled() && !failure() }}
-        uses: ./.github/actions/solo-image-cache
+        uses: $/.github/actions/solo-image-cache
         with:
           operation: restore
           key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
 
       - name: Launch Network with Prior Release ${{ steps.get-version.outputs.from_solo_version }}
         timeout-minutes: 60
+        env:
+          FROM_SOLO_VERSION: ${{ steps.get-version.outputs.from_solo_version }}
+          TO_CONSENSUS_NODE_VERSION: ${{ steps.get-version.outputs.to_consensus_node_version }}
         run: |
           export PATH=~/.solo/bin:${PATH}
           echo "Configure APT to use main Ubuntu archive (disable mirror rotation)..."
@@ -186,21 +198,28 @@ jobs:
           trap cleanup SIGTERM SIGINT
 
           .github/workflows/script/launch_network.sh \
-            "${{ steps.get-version.outputs.from_solo_version }}" \
-            "${{ steps.get-version.outputs.to_consensus_node_version }}" &
+            "${FROM_SOLO_VERSION}" \
+            "${TO_CONSENSUS_NODE_VERSION}" &
           SCRIPT_PID=$!
           wait "${SCRIPT_PID}" || RC=$?
           SCRIPT_PID=""
           trap - SIGTERM SIGINT
 
           if [[ "$RC" != "0" ]]; then
-            echo "Failed to launch network with release version ${{ steps.get-version.outputs.from_solo_version }}"
+            echo "Failed to launch network with release version ${FROM_SOLO_VERSION}"
             exit $RC
           fi
 
+      - name: Save Solo Bin Cache
+        if: ${{ github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Save Solo Image Cache
         if: ${{ github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
-        uses: ./.github/actions/solo-image-cache
+        uses: $/.github/actions/solo-image-cache
         with:
           operation: save
           key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
@@ -214,7 +233,7 @@ jobs:
 
       - name: Upload Logs to GitHub
         if: ${{ !cancelled() && always() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: solo-logs

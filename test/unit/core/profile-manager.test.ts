@@ -30,6 +30,8 @@ import {SemanticVersion} from '../../../src/business/utils/semantic-version.js';
 import {BlockNodeStateSchema} from '../../../src/data/schema/model/remote/state/block-node-state-schema.js';
 import {ComponentStateMetadataSchema} from '../../../src/data/schema/model/remote/state/component-state-metadata-schema.js';
 import {ClusterSchema} from '../../../src/data/schema/model/common/cluster-schema.js';
+import {SoloErrors} from '../../../src/core/errors/solo-errors.js';
+import {NetworkNodeLifecycle} from '../../../src/core/network-node-lifecycle.js';
 function invokeExtractSavedEndpoint(
   manager: ProfileManager,
   consensusNode: ConsensusNode,
@@ -183,6 +185,33 @@ describe('ProfileManager', (): void => {
       // validate the yaml
       const valuesYaml: AnyObject = yaml.parse(fs.readFileSync(valuesFile, 'utf8')) as AnyObject;
       expect(valuesYaml.hedera.nodes.length).to.equal(3);
+    });
+
+    it('should use the consensus node image as the root image in the consensus-node-image mode', async (): Promise<void> => {
+      configManager.setFlag(flags.namespace, 'test-namespace');
+      const isImageStub: sinon.SinonStub = sinon.stub(NetworkNodeLifecycle, 'isConsensusNodeImage').returns(true);
+
+      try {
+        const sourceDirectory: string = PathEx.joinWithRealPath(PathEx.join('resources'), 'templates');
+        const destinationDirectory: string = PathEx.resolve(PathEx.join(cacheDirectory, 'templates'));
+        fs.mkdirSync(destinationDirectory, {recursive: true});
+        fs.cpSync(sourceDirectory, destinationDirectory, {recursive: true});
+
+        const valuesFileMapping: Record<string, string> = await profileManager.prepareValuesForSoloChart(
+          consensusNodes,
+          deploymentName,
+          PathEx.join(cacheDirectory, 'templates', constants.APPLICATION_PROPERTIES),
+        );
+        const valuesYaml: AnyObject = yaml.parse(
+          fs.readFileSync(Object.values(valuesFileMapping)[0], 'utf8'),
+        ) as AnyObject;
+
+        expect(valuesYaml.defaults.root.image.registry).to.equal(constants.CONSENSUS_NODE_IMAGE_REGISTRY);
+        expect(valuesYaml.defaults.root.image.repository).to.equal(constants.CONSENSUS_NODE_IMAGE_REPOSITORY);
+        expect(valuesYaml.defaults.volumeClaims.appJarsInImage).to.equal(true);
+      } finally {
+        isImageStub.restore();
+      }
     });
 
     it('prepareValuesForSoloChart should set the value of a key to the contents of a file', async (): Promise<void> => {
@@ -459,6 +488,49 @@ describe('ProfileManager', (): void => {
       expect(updatedApplicationProperties).to.contain('tss.historyEnabled=false');
       expect(updatedApplicationProperties).to.contain('tss.forceMockSignatures=false');
       expect(updatedApplicationProperties).to.contain('tss.wrapsEnabled=false');
+    });
+  });
+
+  describe('_setChartItems', (): void => {
+    it('should flatten nested objects and arrays into the YAML root', (): void => {
+      const yamlRoot: AnyObject = {defaults: {keep: true}};
+      const date: Date = new Date(0);
+      profileManager._setChartItems(
+        'defaults',
+        {
+          root: {extraEnvironment: [{name: 'JAVA_OPTS', value: '-Xmx1g'}], date},
+          list: [[1, 2], {nested: [{deep: 'x'}]}],
+          empty: {},
+          emptyList: [],
+        },
+        yamlRoot,
+      );
+
+      expect(yamlRoot).to.deep.equal({
+        defaults: {
+          keep: true,
+          root: {extraEnvironment: [{name: 'JAVA_OPTS', value: '-Xmx1g'}], date},
+          list: [[1, 2], {nested: [{deep: 'x'}]}],
+          empty: {},
+          emptyList: [],
+        },
+      });
+    });
+
+    it('should do nothing when items are undefined', (): void => {
+      const yamlRoot: AnyObject = {a: 1};
+      profileManager._setChartItems('', undefined, yamlRoot);
+      expect(yamlRoot).to.deep.equal({a: 1});
+    });
+
+    it('should reject an item path that reaches the object prototype', (): void => {
+      // JSON.parse keeps __proto__ as an own key, as a parsed profile file would
+      const items: AnyObject = JSON.parse('{"__proto__": {"polluted": true}}');
+
+      expect((): void => profileManager._setChartItems('defaults', items, {defaults: {}})).to.throw(
+        SoloErrors.validation.illegalArgument,
+      );
+      expect(({} as AnyObject).polluted).to.be.undefined;
     });
   });
 

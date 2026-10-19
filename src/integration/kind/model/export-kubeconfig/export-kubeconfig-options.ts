@@ -41,7 +41,7 @@ export class ExportKubeConfigOptions implements Options {
       builder.argument('name', this._name);
     }
     if (this._internal) {
-      builder.flag('internal');
+      builder.flag('--internal');
     }
     if (this._kubeconfig) {
       builder.argument('kubeconfig', this._kubeconfig);

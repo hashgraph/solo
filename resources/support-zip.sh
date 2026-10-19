@@ -28,8 +28,28 @@ readonly UPGRADE_DIR=${DATA_DIR}/upgrade
 readonly STATS_DIR=${DATA_DIR}/stats
 readonly JOURNAL_CTL_LOG=${HAPI_DIR}/${OUTPUT_DIR}/journalctl.log
 readonly LOG_FILE=${HAPI_DIR}/${OUTPUT_DIR}/support-zip.log
+# svlogd's actively-written log for the consensus node's supervised process;
+# carries the tail end of stdout/stderr, including native crash signal output.
+readonly NETWORK_NODE_CURRENT_LOG=/var/log/network-node/current
+# JVM writes one hs_err_pid<PID>.log per native crash directly in the CWD.
+readonly HS_ERR_LOG_GLOB="${HAPI_DIR}"/hs_err_*.log
 rm ${LOG_FILE} 2>/dev/null || true
 rm ${FILE_LIST} 2>/dev/null || true
+
+# Copies crash-diagnostic artifacts that live outside the directories already
+# bundled below into ${OUTPUT_DIR}, which is added to the file list as-is.
+CollectCrashArtifacts()
+{
+  if [[ -f "${NETWORK_NODE_CURRENT_LOG}" ]]; then
+    cp "${NETWORK_NODE_CURRENT_LOG}" "${HAPI_DIR}/${OUTPUT_DIR}/network-node-current.log" 2>/dev/null || true
+  fi
+
+  for hsErrLog in ${HS_ERR_LOG_GLOB}; do
+    if [[ -f "${hsErrLog}" ]]; then
+      cp "${hsErrLog}" "${HAPI_DIR}/${OUTPUT_DIR}/" 2>/dev/null || true
+    fi
+  done
+}
 
 AddToFileList()
 {
@@ -57,6 +77,7 @@ cd ${HAPI_DIR}
 pwd | tee -a ${LOG_FILE}
 echo -n > ${FILE_LIST}
 (journalctl > ${JOURNAL_CTL_LOG} 2>/dev/null) || true
+CollectCrashArtifacts
 AddToFileList ${SETTINGS_TXT}
 AddToFileList ${SETTINGS_USED_TXT}
 if [[ "${excludeSensitiveData}" != "true" ]]; then

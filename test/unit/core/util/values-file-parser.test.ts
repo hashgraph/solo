@@ -75,6 +75,25 @@ describe('Values file parser', (): void => {
     expect(troubleshootingSteps.join('\n')).to.contain('parsed as strict JSON');
   });
 
+  it('should strip prototype-pollution keys from a JSON values file', (): void => {
+    const parsed: Record<string, unknown> = ValuesFileParser.parse(
+      valuesFilePath,
+      '{"hedera":{"__proto__":{"polluted":true},"nodeId":0}}',
+    ) as Record<string, unknown>;
+
+    expect(parsed).to.deep.equal({hedera: {nodeId: 0}});
+    expect(({} as Record<string, unknown>).polluted).to.equal(undefined);
+  });
+
+  it('should strip prototype-pollution keys from a YAML values file', (): void => {
+    const parsed: Record<string, unknown> = ValuesFileParser.parse(
+      valuesFilePath,
+      'hedera:\n  __proto__:\n    polluted: true\n  nodeId: 0\n',
+    ) as Record<string, unknown>;
+
+    expect(parsed).to.deep.equal({hedera: {nodeId: 0}});
+  });
+
   it('should tell the user how to regenerate the offending values file', (): void => {
     let thrownError: ValuesFileParseFailedSoloError | undefined;
 

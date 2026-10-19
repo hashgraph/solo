@@ -3,13 +3,13 @@
 import {inject, injectable} from 'tsyringe-neo';
 import {ShellRunner} from './shell-runner.js';
 import {SubprocessCommandProfile} from './subprocess-command-profile.js';
+import {SubprocessEnvironment} from './subprocess-environment.js';
 import {InjectTokens} from './dependency-injection/inject-tokens.js';
 import {OsPackageManager} from './package-managers/os-package-manager.js';
 import {BrewPackageManager} from './package-managers/brew-package-manager.js';
 import {type PackageManager} from './package-managers/package-manager.js';
 import {patchInject} from './dependency-injection/container-helper.js';
 import {PodmanMode, SoloListrTask, type SoloListrTaskWrapper} from '../types/index.js';
-import {InitContext} from '../commands/init/init-context.js';
 import {SoloErrors} from './errors/solo-errors.js';
 import * as constants from './constants.js';
 import {getTemporaryDirectory} from './helpers.js';
@@ -30,10 +30,6 @@ import {MissingActiveContextError} from '../integration/kube/errors/missing-acti
 import {MissingActiveClusterError} from '../integration/kube/errors/missing-active-cluster-error.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
 import {type GitClient} from '../integration/git/git-client.js';
-import {ImageCacheHandler} from '../integration/cache/impl/image-cache-handler.js';
-import {KindNodeImageTargetProvider} from '../integration/cache/target-providers/kind-image-target-provider.js';
-import {ImageCacheHandlerBuilder} from '../integration/cache/impl/image-cache-handler-builder.js';
-import {type ContainerEngineClient} from '../integration/container-engine/container-engine-client.js';
 
 @injectable()
 export class ClusterTaskManager extends ShellRunner {
@@ -61,7 +57,6 @@ export class ClusterTaskManager extends ShellRunner {
     @inject(InjectTokens.DependencyManager) protected readonly depManager: DependencyManager,
     @inject(InjectTokens.KindInstallationDirectory) protected readonly kindInstallationDirectory: string,
     @inject(InjectTokens.GitClient) protected readonly gitClient: GitClient,
-    @inject(InjectTokens.ContainerEngineClient) protected readonly containerEngineClient: ContainerEngineClient,
   ) {
     super();
 
@@ -69,10 +64,14 @@ export class ClusterTaskManager extends ShellRunner {
     this.kindBuilder = patchInject(kindBuilder, InjectTokens.KindBuilder, ClusterTaskManager.name);
     this.podmanDependencyManager = patchInject(
       podmanDependencyManager,
-      InjectTokens.KindBuilder,
+      InjectTokens.PodmanDependencyManager,
       ClusterTaskManager.name,
     );
-    this.kindDependencyManager = patchInject(kindDependencyManager, InjectTokens.KindBuilder, ClusterTaskManager.name);
+    this.kindDependencyManager = patchInject(
+      kindDependencyManager,
+      InjectTokens.KindDependencyManager,
+      ClusterTaskManager.name,
+    );
     this.podmanInstallationDirectory = patchInject(
       podmanInstallationDirectory,
       InjectTokens.PodmanInstallationDirectory,
@@ -86,14 +85,9 @@ export class ClusterTaskManager extends ShellRunner {
       ClusterTaskManager.name,
     );
     this.gitClient = patchInject(gitClient, InjectTokens.GitClient, ClusterTaskManager.name);
-    this.containerEngineClient = patchInject(
-      containerEngineClient,
-      InjectTokens.ContainerEngineClient,
-      ClusterTaskManager.name,
-    );
   }
 
-  private sudoCallbacks(task: SoloListrTaskWrapper<InitContext>): {
+  private sudoCallbacks(task: SoloListrTaskWrapper<AnyObject>): {
     onSudoRequested: (message: string) => void;
     onSudoGranted: (message: string) => void;
   } {
@@ -109,9 +103,9 @@ export class ClusterTaskManager extends ShellRunner {
   }
 
   public rootfullInstallTasks(
-    parentTask: SoloListrTaskWrapper<InitContext>,
+    parentTask: SoloListrTaskWrapper<AnyObject>,
     useSmallMemoryCluster: boolean,
-  ): SoloListrTask<InitContext>[] {
+  ): SoloListrTask<AnyObject>[] {
     return [
       {
         title: 'Install git, iptables...',
@@ -152,38 +146,39 @@ export class ClusterTaskManager extends ShellRunner {
           } catch {
             this.logger.info('Podman not found, installing Podman...');
             await this.brewPackageManager.installPackages(['podman']);
-            const brewBin: string[] = await this.run('which', ['podman']);
-            process.env.PATH = `${process.env.PATH}:${brewBin.join('').replace('/podman', '')}`;
           }
         },
-      } as SoloListrTask<InitContext>,
+      } as SoloListrTask<AnyObject>,
       {
         title: 'Configure podman container runtime...',
-        task: async (_context: InitContext, task: SoloListrTaskWrapper<InitContext>): Promise<void> => {
+        task: async (_context: AnyObject, task: SoloListrTaskWrapper<AnyObject>): Promise<void> => {
           void _context;
           await this.configureBrewPodmanRuntime(task);
         },
-      } as SoloListrTask<InitContext>,
+      } as SoloListrTask<AnyObject>,
       {
         title: 'Creating local cluster...',
-        task: async (_context: InitContext, task: SoloListrTaskWrapper<InitContext>): Promise<void> => {
+        task: async (_context: AnyObject, task: SoloListrTaskWrapper<AnyObject>): Promise<void> => {
           void _context;
-          const whichPodman: string[] = await this.run('which', ['podman']);
-          const podmanPath: string = whichPodman.join('').replace('/podman', '');
+          const podmanBinaryDirectory: string | undefined =
+            await this.podmanDependencyManager.getRuntimeBinaryDirectory();
+          if (!podmanBinaryDirectory) {
+            throw new SoloErrors.system.dependencyNotFound(constants.PODMAN);
+          }
           const sudoEnvironment: Record<string, string> = {
             PATH:
               `${this.podmanInstallationDirectory}${path.delimiter}` +
-              `${this.kindInstallationDirectory}${path.delimiter}${process.env.PATH}`,
+              `${this.kindInstallationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
           };
-          // PATH must include both kindInstallationDirectory (for kind) and podmanPath (for podman).
-          const kindRuntimePath: string = `${sudoEnvironment.PATH}${path.delimiter}${podmanPath}`;
+          // PATH must include both kindInstallationDirectory (for kind) and podmanBinaryDirectory (for podman).
+          const kindRuntimePath: string = `${sudoEnvironment.PATH}${path.delimiter}${podmanBinaryDirectory}`;
           // podman picks its OCI runtime from absolute paths, not from PATH, so extending PATH above
           // is not enough to keep it away from an older distribution crun. configureBrewPodmanRuntime
           // pins the runtime through CONTAINERS_CONF, but only for a Homebrew-managed podman; this
           // covers the self-contained bundles it deliberately leaves alone. CONTAINERS_CONF_OVERRIDE
           // layers on top of CONTAINERS_CONF, so the two compose when both apply.
           const runtimeOverridePath: string | undefined = PodmanDependencyManager.writeRuntimeOverride(
-            podmanPath,
+            podmanBinaryDirectory,
             constants.SOLO_HOME_DIR,
           );
           const {onSudoGranted, onSudoRequested} = this.sudoCallbacks(task);
@@ -294,7 +289,7 @@ export class ClusterTaskManager extends ShellRunner {
           fs.writeFileSync(`/home/${user}/.kube/config`, yaml.stringify(userConfig), 'utf8');
           fs.rmSync(`${temporaryDirectory}/kube-config-root`);
         },
-      } as SoloListrTask<InitContext>,
+      } as SoloListrTask<AnyObject>,
     ];
   }
 
@@ -305,12 +300,12 @@ export class ClusterTaskManager extends ShellRunner {
    * self-consistent, and only the brew podman suffers version skew against a stale system stack
    * under /etc/containers.
    */
-  private async configureBrewPodmanRuntime(task: SoloListrTaskWrapper<InitContext>): Promise<void> {
-    const podmanBinaryDirectory: string | undefined = await this.resolveBrewPodmanBinaryDirectory();
-    if (!podmanBinaryDirectory) {
+  private async configureBrewPodmanRuntime(task: SoloListrTaskWrapper<AnyObject>): Promise<void> {
+    if (!(await this.podmanDependencyManager.isBrewManaged())) {
       this.logger.info('podman is not Homebrew-managed; leaving the host container configuration untouched');
       return;
     }
+    const podmanBinaryDirectory: string = await this.podmanDependencyManager.getRuntimeBinaryDirectory();
 
     // The netavark/aardvark-dns helpers publish x86_64 binaries only, so fail early and clearly on
     // any other architecture rather than downloading a binary the host cannot execute.
@@ -361,7 +356,7 @@ export class ClusterTaskManager extends ShellRunner {
         onSudoGranted,
         'env',
         [
-          `PATH=${podmanBinaryDirectory}${path.delimiter}${process.env.PATH || ''}`,
+          `PATH=${podmanBinaryDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
           ...configurationArguments,
           'podman',
           'info',
@@ -379,42 +374,10 @@ export class ClusterTaskManager extends ShellRunner {
     }
   }
 
-  /**
-   * Resolves the directory of the podman binary when — and only when — it is Homebrew-managed
-   * (resolves from inside the brew prefix); returns undefined for a distribution podman or when
-   * podman/brew are absent.
-   */
-  private async resolveBrewPodmanBinaryDirectory(): Promise<string | undefined> {
-    let podmanPath: string;
-    try {
-      const whichPodman: string[] = await this.run('which', ['podman']);
-      podmanPath = whichPodman.join('').trim();
-    } catch {
-      // podman is not on the PATH, so there is no brew installation to configure
-      return undefined;
-    }
-    if (!podmanPath) {
-      return undefined;
-    }
-
-    try {
-      const brewPrefixOutput: string[] = await this.run('brew', ['--prefix'], {
-        commandProfile: SubprocessCommandProfile.BREW,
-      });
-      const brewPrefix: string = brewPrefixOutput.join('').trim();
-      if (brewPrefix && podmanPath.startsWith(`${brewPrefix}${path.sep}`)) {
-        return path.dirname(podmanPath);
-      }
-    } catch {
-      // brew is unavailable, so the podman on the PATH cannot be Homebrew-managed
-    }
-    return undefined;
-  }
-
   public async installationTasks(
-    parentTask: SoloListrTaskWrapper<InitContext>,
+    parentTask: SoloListrTaskWrapper<AnyObject>,
     useSmallMemoryCluster: boolean = false,
-  ): Promise<SoloListrTask<InitContext>[]> {
+  ): Promise<SoloListrTask<AnyObject>[]> {
     const skipPodmanTasks: boolean = !(await this.podmanDependencyManager.shouldInstall());
     if (this.podmanDependencyManager.mode === PodmanMode.ROOTFUL) {
       {
@@ -429,7 +392,7 @@ export class ClusterTaskManager extends ShellRunner {
             title: 'Create Podman machine...',
             task: async (): Promise<void> => {
               const podmanEnvironment: Record<string, string> = {
-                PATH: `${this.podmanInstallationDirectory}${path.delimiter}${process.env.PATH}`,
+                PATH: `${this.podmanInstallationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
               };
               await this.podmanDependencyManager.setupConfig();
               const podmanExecutable: string = await this.podmanDependencyManager.getExecutable();
@@ -458,14 +421,14 @@ export class ClusterTaskManager extends ShellRunner {
               }
             },
             skip: (): boolean => skipPodmanTasks,
-          } as SoloListrTask<InitContext>,
+          } as SoloListrTask<AnyObject>,
           {
             title: 'Configure kind to use podman...',
             task: async (): Promise<void> => {
-              process.env.KIND_EXPERIMENTAL_PROVIDER = 'podman';
+              SubprocessEnvironment.setSessionVariable('KIND_EXPERIMENTAL_PROVIDER', constants.PODMAN);
             },
             skip: (): boolean => skipPodmanTasks,
-          } as SoloListrTask<InitContext>,
+          } as SoloListrTask<AnyObject>,
           this.defaultCreateClusterTask(parentTask, useSmallMemoryCluster),
         ];
       }
@@ -475,24 +438,14 @@ export class ClusterTaskManager extends ShellRunner {
   }
 
   private defaultCreateClusterTask(
-    parentTask: SoloListrTaskWrapper<InitContext>,
+    parentTask: SoloListrTaskWrapper<AnyObject>,
     useSmallMemoryCluster: boolean = false,
-  ): SoloListrTask<InitContext> {
+  ): SoloListrTask<AnyObject> {
     return {
       title: 'Creating local cluster...',
       task: async (): Promise<void> => {
         const kindExecutable: string = await this.kindDependencyManager.getExecutable();
         const kindClient: KindClient = await this.kindBuilder.executable(kindExecutable).build();
-
-        if (constants.CONFIG.ENABLE_IMAGE_CACHE) {
-          const kindImageCacheHandler: ImageCacheHandler = new ImageCacheHandlerBuilder()
-            .provider(new KindNodeImageTargetProvider())
-            .engine(this.containerEngineClient)
-            .build();
-
-          await kindImageCacheHandler.pullKindNodeImageIfMissing();
-          await kindImageCacheHandler.loadKindNodeImageIntoEngine();
-        }
 
         const kindConfigFilePath: string = this.getConfigFilePath(useSmallMemoryCluster);
         const clusterCreateOptions: ClusterCreateOptions = ClusterCreateOptionsBuilder.builder()
@@ -511,7 +464,7 @@ export class ClusterTaskManager extends ShellRunner {
 
         parentTask.title = `Created local cluster '${clusterResponse.name}'; connect with context '${clusterResponse.context}'`;
       },
-    } as SoloListrTask<InitContext>;
+    } as SoloListrTask<AnyObject>;
   }
 
   private getConfigFilePath(useSmallMemoryCluster: boolean): string {
@@ -561,11 +514,11 @@ export class ClusterTaskManager extends ShellRunner {
     return stagedConfigFilePath;
   }
 
-  public setupLocalClusterTasks(useSmallMemoryCluster: boolean = false): SoloListrTask<InitContext>[] {
+  public setupLocalClusterTasks(useSmallMemoryCluster: boolean = false): SoloListrTask<AnyObject>[] {
     return [
       {
         title: 'Install Kind',
-        task: async (_context: InitContext, task: SoloListrTaskWrapper<InitContext>): Promise<unknown> => {
+        task: async (_context: AnyObject, task: SoloListrTaskWrapper<AnyObject>): Promise<unknown> => {
           void _context;
           const podmanDependency: PodmanDependencyManager = this.podmanDependencyManager;
           const shouldInstallPodman: boolean = await podmanDependency.shouldInstall();
@@ -577,7 +530,7 @@ export class ClusterTaskManager extends ShellRunner {
 
           const deps: string[] = [...podmanDependencies, constants.KIND];
 
-          const subTasks: SoloListrTask<InitContext>[] = this.depManager.taskCheckDependencies<InitContext>(deps);
+          const subTasks: SoloListrTask<AnyObject>[] = this.depManager.taskCheckDependencies<AnyObject>(deps);
 
           // set up the sub-tasks
           return task.newListr(subTasks, {
@@ -591,9 +544,9 @@ export class ClusterTaskManager extends ShellRunner {
       },
       {
         title: 'Create default cluster',
-        task: async (_context: InitContext, task: SoloListrTaskWrapper<InitContext>): Promise<unknown> => {
+        task: async (_context: AnyObject, task: SoloListrTaskWrapper<AnyObject>): Promise<unknown> => {
           void _context;
-          const subTasks: SoloListrTask<InitContext>[] = await this.installationTasks(task, useSmallMemoryCluster);
+          const subTasks: SoloListrTask<AnyObject>[] = await this.installationTasks(task, useSmallMemoryCluster);
           return task.newListr(subTasks, {
             concurrent: false, // should not use concurrent as cluster creation may be called before dependencies are finished installing
             rendererOptions: {

@@ -11,11 +11,14 @@ env:
 
 vars:
   DEPLOYMENT: "falcon-deployment"
-  CLUSTER_NAME: "falcon-cluster"
-  CONTEXT: "kind-falcon-cluster"
+  # one-shot falcon deploy always creates its Kind cluster as constants.DEFAULT_CLUSTER
+  # ('solo-cluster'); there is no flag to name it after this example.
+  CLUSTER_NAME: "solo-cluster"
+  CONTEXT: "kind-solo-cluster"
   TEMP_DIR: "{{ .USER_WORKING_DIR }}/.tmp"
   KILLED_PORT_FILE: "{{ .TEMP_DIR }}/killed_port.txt"
   EXPECTED_PORT_COUNT_FILE: "{{ .TEMP_DIR }}/expected_port_count.txt"
+  CUSTOM_BUCKET: "falcon-values-file-override"
   RELEASE_TAG:
     sh: |
       awk -v RS=';' '/HEDERA_PLATFORM_VERSION[[:space:]]*:[[:space:]]*string[[:space:]]*=/{s=$0;v="";while(match(s,/'"'"'[^'"'"']*'"'"'/)){v=substr(s,RSTART+1,RLENGTH-2);s=substr(s,RSTART+RLENGTH)};if(v!="")print v}' \
@@ -44,14 +47,35 @@ tasks:
 
       # Solo one-shot falcon deploy
       - cmd: |
-          RESOLVED=$(mktemp /tmp/falcon-values-XXXXXX)
+          # Resolved alongside falcon-values.yaml (not /tmp): the nested --values-file it
+          # references (silo-helm-values.yaml) is a bare filename resolved next to whichever
+          # file references it, so the copy must stay in the same directory as the original.
+          RESOLVED=$(mktemp "{{ .USER_WORKING_DIR }}/falcon-values-XXXXXX")
+          trap 'rm -f "${RESOLVED}"' EXIT
           RELEASE_TAG="{{ .RELEASE_TAG }}"
           sed -e "s/\${SOLO_RELEASE_TAG_NO_V}/${RELEASE_TAG#v}/g" \
               -e "s/\${SOLO_RELEASE_TAG}/${RELEASE_TAG}/g" \
             "{{ .USER_WORKING_DIR }}/falcon-values.yaml" > "${RESOLVED}"
           $SOLO_COMMAND one-shot falcon deploy \
             --values-file "${RESOLVED}" --num-consensus-nodes 2 --no-rollback
-          rm -f "${RESOLVED}"
+          NAMESPACE="$(node {{ .USER_WORKING_DIR }}/resolve-deployment.mjs "{{ .DEPLOYMENT }}" namespace)"
+          BUCKETS="$(kubectl --context "{{ .CONTEXT }}" --namespace "${NAMESPACE}" \
+            get tenants.minio.min.io/minio -o jsonpath='{range .spec.buckets[*]}{.name}{"\n"}{end}')"
+          echo "Configured Silo buckets:"
+          echo "${BUCKETS}"
+          if ! printf '%s\n' "${BUCKETS}" | grep -Fxq "{{ .CUSTOM_BUCKET }}"; then
+            echo "Expected custom bucket '{{ .CUSTOM_BUCKET }}' was not applied" >&2
+            exit 1
+          fi
+          echo "Verified nested custom values file was applied successfully"
+
+  deploy-defaults:
+    desc: Deploy without a values file, using the one-shot single defaults
+    env:
+      ONE_SHOT_WITH_BLOCK_NODE: '{{default "true" .ONE_SHOT_WITH_BLOCK_NODE}}'
+    cmds:
+      # Solo one-shot falcon deploy with no --values-file falls back to the one-shot single defaults
+      - cmd: $SOLO_COMMAND one-shot falcon deploy
 
   deploy-minimal:
     desc: Deploy with consensus and mirror node only (without explorer and relay)
@@ -60,7 +84,11 @@ tasks:
     cmds:
       # Solo one-shot falcon deploy with disabled components
       - cmd: |
-          RESOLVED=$(mktemp /tmp/falcon-values-XXXXXX)
+          # Resolved alongside falcon-values.yaml (not /tmp): the nested --values-file it
+          # references (silo-helm-values.yaml) is a bare filename resolved next to whichever
+          # file references it, so the copy must stay in the same directory as the original.
+          RESOLVED=$(mktemp "{{ .USER_WORKING_DIR }}/falcon-values-XXXXXX")
+          trap 'rm -f "${RESOLVED}"' EXIT
           RELEASE_TAG="{{ .RELEASE_TAG }}"
           sed -e "s/\${SOLO_RELEASE_TAG_NO_V}/${RELEASE_TAG#v}/g" \
               -e "s/\${SOLO_RELEASE_TAG}/${RELEASE_TAG}/g" \
@@ -68,7 +96,6 @@ tasks:
           $SOLO_COMMAND one-shot falcon deploy \
             --values-file "${RESOLVED}" --num-consensus-nodes 2 \
             --deploy-explorer=false --deploy-relay=false
-          rm -f "${RESOLVED}"
 
   deploy-consensus-only:
     desc: Deploy consensus nodes only (without mirror, explorer, and relay)
@@ -77,7 +104,11 @@ tasks:
     cmds:
       # Solo one-shot falcon deploy with only consensus nodes
       - cmd: |
-          RESOLVED=$(mktemp /tmp/falcon-values-XXXXXX)
+          # Resolved alongside falcon-values.yaml (not /tmp): the nested --values-file it
+          # references (silo-helm-values.yaml) is a bare filename resolved next to whichever
+          # file references it, so the copy must stay in the same directory as the original.
+          RESOLVED=$(mktemp "{{ .USER_WORKING_DIR }}/falcon-values-XXXXXX")
+          trap 'rm -f "${RESOLVED}"' EXIT
           RELEASE_TAG="{{ .RELEASE_TAG }}"
           sed -e "s/\${SOLO_RELEASE_TAG_NO_V}/${RELEASE_TAG#v}/g" \
               -e "s/\${SOLO_RELEASE_TAG}/${RELEASE_TAG}/g" \
@@ -85,7 +116,6 @@ tasks:
           $SOLO_COMMAND one-shot falcon deploy \
             --values-file "${RESOLVED}" --num-consensus-nodes 2 \
             --deploy-mirror-node=false --deploy-explorer=false --deploy-relay=false
-          rm -f "${RESOLVED}"
 
   test-refresh:
     desc: Kill one port-forward, then run deployment refresh port-forwards
@@ -169,10 +199,96 @@ tasks:
             echo "Skipping solo smoke test: not running from a git repo checkout (likely release zip)."
           fi
 
+  test-env-passthrough:
+    desc: Demonstrate subprocess.additionalEnvironmentVariables against an isolated Solo home
+    env:
+      EXAMPLE_PASSTHROUGH_ACCEPTED: "accepted-value"
+      EXAMPLE_PASSTHROUGH_CONTROL: "control-value"
+    cmds:
+      # Solo does not forward this shell's environment to the commands it runs; it builds each
+      # command's environment from a per-command allowlist, so a variable a managed-Kubernetes
+      # credential plugin needs (EKS IRSA and friends) must be named explicitly. See GitHub
+      # issue #5895.
+      #
+      # This task uses a throwaway SOLO_HOME and never touches ~/.solo: the operator's real
+      # solo-config.yaml must not be overwritten by running an example.
+      #
+      # ACCEPTED is declared for helm and kubectl only. CONTROL is declared nowhere, so the
+      # assertions below fail if the feature silently stops working.
+      - cmd: |
+          set -eu
+          # Rooted under the system temp directory (not .tmp inside the git workspace): Solo's
+          # config-file trust check walks every ancestor directory up to the filesystem root and
+          # only stops early at a sticky-bit directory such as /tmp. On self-hosted runners whose
+          # home directory is group-writable, a workspace-nested path never reaches that stop and
+          # the config file is refused as untrusted (issue #6127).
+          DEMO_SOLO_HOME="$(mktemp -d "${TMPDIR:-/tmp}/env-passthrough-home.XXXXXX")"
+          trap 'rm -rf "${DEMO_SOLO_HOME}"' EXIT
+          cat > "${DEMO_SOLO_HOME}/solo-config.yaml" <<'SOLO_CONFIG'
+          subprocess:
+            additionalEnvironmentVariables:
+              helm:
+                - EXAMPLE_PASSTHROUGH_ACCEPTED
+              kubectl:
+                - EXAMPLE_PASSTHROUGH_ACCEPTED
+          SOLO_CONFIG
+          # Solo refuses the file unless it, and the directories above it, are owner-only.
+          chmod 700 "${DEMO_SOLO_HOME}"
+          chmod 600 "${DEMO_SOLO_HOME}/solo-config.yaml"
+
+          # Run Solo against the cluster this example already created, with the isolated home.
+          SOLO_HOME="${DEMO_SOLO_HOME}" $SOLO_COMMAND cluster-ref config connect \
+            --cluster-ref env-passthrough-ref --context {{ .CONTEXT }}
+          SOLO_HOME="${DEMO_SOLO_HOME}" $SOLO_COMMAND cluster-ref config setup \
+            --cluster-ref env-passthrough-ref
+
+          SOLO_LOG="${DEMO_SOLO_HOME}/logs/solo.log"
+          echo "==== Verifying subprocess environment passthrough against ${SOLO_LOG} ===="
+
+          if ! grep -q "withheld from " "${SOLO_LOG}"; then
+            echo "ERROR: no withheld-variable diagnostics in ${SOLO_LOG}" >&2
+            exit 1
+          fi
+
+          # helm is guaranteed: cluster-ref config setup installs charts through it. kubectl is
+          # asserted only when present, because it is spawned by the dependency check rather than
+          # by these commands directly, and an example should not fail on an incidental detail.
+          # Exhaustive per-profile behaviour is covered by
+          # test/unit/core/subprocess-environment.test.ts, which is where it belongs.
+          for profile in helm kubectl; do
+            if ! grep -q "withheld from '\?${profile}'\?:" "${SOLO_LOG}"; then
+              if [ "${profile}" = "helm" ]; then
+                echo "ERROR: no withheld-variable diagnostics for helm; expected chart installation to spawn it" >&2
+                exit 1
+              fi
+              echo "SKIP: ${profile} was not spawned during this run"
+              continue
+            fi
+            if grep "withheld from '\?${profile}'\?:" "${SOLO_LOG}" | grep -q "EXAMPLE_PASSTHROUGH_ACCEPTED"; then
+              echo "ERROR: EXAMPLE_PASSTHROUGH_ACCEPTED was withheld from ${profile} despite being declared for it" >&2
+              exit 1
+            fi
+            if ! grep "withheld from '\?${profile}'\?:" "${SOLO_LOG}" | grep -q "EXAMPLE_PASSTHROUGH_CONTROL"; then
+              echo "ERROR: EXAMPLE_PASSTHROUGH_CONTROL should have been withheld from ${profile}" >&2
+              exit 1
+            fi
+            echo "OK: ${profile} received EXAMPLE_PASSTHROUGH_ACCEPTED and not EXAMPLE_PASSTHROUGH_CONTROL"
+          done
+
+          # Per-command containment: a variable declared for helm/kubectl must not reach npm.
+          if grep -q "withheld from '\?npm'\?:" "${SOLO_LOG}"; then
+            if ! grep "withheld from '\?npm'\?:" "${SOLO_LOG}" | grep -q "EXAMPLE_PASSTHROUGH_ACCEPTED"; then
+              echo "ERROR: EXAMPLE_PASSTHROUGH_ACCEPTED reached npm, which it was not declared for" >&2
+              exit 1
+            fi
+            echo "OK: EXAMPLE_PASSTHROUGH_ACCEPTED did not reach npm"
+          fi
+
   test:
     desc: Run deploy + refresh-recovery verification
     cmds:
       - task: deploy
+      - task: test-env-passthrough
       - task: test-refresh
       - task: verify
 

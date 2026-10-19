@@ -23,6 +23,7 @@ import {container} from 'tsyringe-neo';
 import {Duration} from '../../../core/time/duration.js';
 import path from 'node:path';
 import {type PodMetricsItem} from '../../../integration/kube/resources/pod/pod-metrics-item.js';
+import {SubprocessEnvironment} from '../../../core/subprocess-environment.js';
 
 @injectable()
 export class MetricsServerImpl implements MetricsServer {
@@ -248,7 +249,7 @@ export class MetricsServerImpl implements MetricsServer {
       verbose: true,
       commandProfile: SubprocessCommandProfile.KUBECTL,
       environmentVariablesToAppend: {
-        PATH: `${this.installationDirectory}${path.delimiter}${process.env.PATH}`,
+        PATH: `${this.installationDirectory}${path.delimiter}${SubprocessEnvironment.currentPath()}`,
       },
     });
     if (results?.length > 0) {

@@ -33,7 +33,7 @@ vars:
 
 tasks:
   default:
-    desc: create the cluster, solo init, solo cluster-ref create, solo keys consensus generate, solo consensus network deploy
+    desc: create the cluster, solo cluster-ref create, solo keys consensus generate, solo consensus network deploy
     cmds:
       # Install Solo CLI
       - cmd: |
@@ -43,8 +43,6 @@ tasks:
             echo "Skipping npm install - using development version"
           fi
 
-      # Run solo init to install dependencies
-      - cmd: $SOLO_COMMAND init --dev
 
       # Create Kind cluster"
       - cmd: |

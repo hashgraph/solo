@@ -51,13 +51,43 @@ Open these before writing any feedback. They are the rulebook — the review mus
      drift from existing patterns.
    - **Minor** — naming, comment hygiene, suggestion-block one-liners.
    - **Question** — something that looks off but might have a reason. Ask before claiming.
-5. **Test pass.** Are there tests? Are they unit (cheap, fast) or did the author reach for E2E/nightly when a unit test
-   would do? Flag missing unit coverage explicitly.
-6. **Write the report.** Use the template in §Output. Lead with the critical/major findings; line-level suggestion
+5. **Comment-to-implementation pass.** For every changed behavioral comment, JSDoc, test name/comment, example,
+   documentation claim, and PR-description assertion, trace the claim to the final source and test behavior. Confirm
+   that APIs, control flow, process boundaries, logging, configuration propagation, and claimed coverage are exactly
+   what the text says. Treat wording left over from an earlier commit or implementation as a finding — not as reliable
+   context — and distinguish a documentation-only mismatch from behavior that is actually broken or concealed by the
+   stale wording.
+6. **Test pass.** Are there tests? Are they unit (cheap, fast) or did the author reach for E2E/nightly when a unit test
+   would do? Do the tests execute the behavior their names and the PR description claim they cover? Flag missing or
+   overstated unit coverage explicitly.
+7. **Verification ledger.** Before writing anything, tag every Critical and Major with the evidence actually behind it:
+   - **executed** — you ran a command and read its output. Quote the load-bearing lines in the finding itself.
+   - **read-in-full** — you read the entire file, issue, or rule the claim depends on.
+   - **inferred** — you reasoned from the diff without running or fully reading anything.
+
+   Verify or demote every `inferred` finding. A Question the author can answer costs a round-trip; an assertion they
+   can refute costs the whole review its credibility. Evidence attaches to an individual claim, never to the report —
+   a "what I verified locally" section does not vouch for the claims next to it. Traps that have each produced a
+   retracted finding:
+   - **Negative claims** ("issue N does not cover this", "this env var is undocumented", "the rule bans this here")
+     require reading the whole source. A positive claim needs one witness; a negative claim needs an exhaustive read.
+     Never assert what a document does not say from a truncated read.
+   - **Suggestion blocks are one-click-appliable.** Type-check any non-trivial code before posting it. A suggestion
+     that fails `tsc`, or an invented API that fails open rather than erroring, is worse than no comment.
+   - **Line numbers** come from the source file at the head SHA, never from a saved diff — the coordinate systems
+     differ, and a wrong anchor makes a correct finding look careless.
+   - **Contaminated environments.** A worktree with a symlinked or stale `node_modules`, a warm cache, or a
+     non-default toolchain invalidates any finding about dependency resolution, caching, or build behavior.
+     Reproduce cleanly or drop it.
+   - **Rule citations.** Re-read the scope line of every rule you cite — which paths it covers, whether it is an
+     error or a warning. Citing a rule you have misread is worse than citing nothing.
+8. **Write the report.** Use the template in §Output. Lead with the critical/major findings; line-level suggestion
    blocks come after.
 
 > **Checkpoint:** before delivering the report, re-read it and ask: *"If I were the author, would I be able to act on
-> every comment without another round-trip?"* If not, tighten the wording or add a code example.
+> every comment without another round-trip?"* If not, tighten the wording or add a code example. Then ask: *"Which
+> findings would survive the author pushing back with a command output?"* Anything that would not survive is not
+> ready to post.
 
 ## Reference guide
 
@@ -199,6 +229,11 @@ when a pending review already exists.
 
 - <question that needs an answer before this can be Approved>
 
+## Comment and description consistency
+
+- <State that each changed behavioral claim was checked against the final implementation, or list the stale/mismatched
+  claims with their source and actual behavior.>
+
 ## Positive
 
 - <specific thing done well — be concrete, not generic>
@@ -220,7 +255,15 @@ one-click apply.
   as a review comment and the summary verdict as the review body.
 - End the turn by linking the pending review and asking the user to vet and submit it themselves.
 - Cite the rule being applied (style-guide section, eslint rule, or prior PR convention) for every Critical and Major
-  finding.
+  finding, having re-read that rule's scope line rather than recalling its gist.
+- Run the verification ledger (workflow step 7) before writing the report: tag every Critical and Major `executed`,
+  `read-in-full`, or `inferred`, and verify or demote to a Question everything left `inferred`.
+- Read the whole source — issue body, rule, file — before making any claim about what it does **not** say or cover.
+- Type-check every non-trivial suggestion block before posting it.
+- Take line numbers from the source file at the head SHA, not from a saved diff.
+- Verify every changed behavioral comment and claim — including JSDoc, test names/comments, examples, documentation,
+  and the PR description — against the final source and test execution before reporting. Never rely on text that may
+  describe an earlier revision; report the actual final behavior and identify stale wording explicitly.
 - Prefer fixing existing methods over adding new ones when they overlap (DRY).
 - Push back when a CLI flag description leaks command-specific context — flags belong to the whole CLI.
 - Ask "is this a workaround?" whenever the change adds polling loops, sleep/wait, or `kubectl exec` of imperative shell
@@ -233,6 +276,10 @@ one-click apply.
 - **Submit the review.** Never POST `/reviews/<id>/events` and never set `event` on the review-create
   call. The user submits. Phrasing like "Approve", "Request changes", or "Comment" belongs in the
   summary body for the user to choose from — the skill never makes the submit call itself.
+- Let a report-level "what I verified locally" framing vouch for claims you did not individually test. Findings that
+  rode in on a neighbouring finding's evidence are the ones that get retracted.
+- Report a finding first observed in a knowingly contaminated environment without reproducing it cleanly — including
+  one you already suspected was an artifact. If you wrote down the confound, that is the finding to drop.
 - Block on personal style preferences when a linter or formatter already enforces (or doesn't enforce) the choice.
 - Repeat the same comment on every occurrence — leave one comment with "applies in N other places" and list them.
 - Demand renames or refactors in files the PR didn't otherwise touch.

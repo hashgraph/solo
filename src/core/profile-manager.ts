@@ -4,7 +4,6 @@ import {SoloErrors} from './errors/solo-errors.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as yaml from 'yaml';
-import dot from 'dot-object';
 import {readFile, writeFile} from 'node:fs/promises';
 
 import {Flags as flags} from '../commands/flags.js';
@@ -39,6 +38,7 @@ import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import {type Container} from '../integration/kube/resources/container/container.js';
+import {NetworkNodeLifecycle} from './network-node-lifecycle.js';
 
 @injectable()
 export class ProfileManager {
@@ -82,6 +82,11 @@ export class ProfileManager {
     let current: AnyObject = parent;
     let previousItemPath: string | number = '';
     for (const itemPathPart of itemPathParts) {
+      // a profile file must not be able to reach Object.prototype through the path
+      if (['__proto__', 'constructor', 'prototype'].includes(itemPathPart)) {
+        throw new SoloErrors.validation.illegalArgument(`Unsafe item path: ${itemPath}`, itemPath);
+      }
+
       if (Numbers.isNumeric(itemPathPart)) {
         const itemPathIndex: number = Number.parseInt(itemPathPart, 10); // numeric path part can only be array index
         if (!Array.isArray(parent[previousItemPath])) {
@@ -122,22 +127,27 @@ export class ProfileManager {
       return;
     }
 
-    const dotItems: AnyObject = dot.dot(items) as AnyObject;
+    for (const [itemKey, value] of ProfileManager.flattenItems(items)) {
+      this._setValue(itemPath ? `${itemPath}.${itemKey}` : itemKey, value, yamlRoot);
+    }
+  }
 
-    for (const key in dotItems) {
-      let itemKey: string = key;
-
-      // if it is an array key like extraEnvironment[0].JAVA_OPTS, convert it into a dot separated key as extraEnvironment.0.JAVA_OPTS
-      if (key.includes('[')) {
-        itemKey = key.replace('[', '.').replace(']', '');
-      }
-
-      if (itemPath) {
-        this._setValue(`${itemPath}.${itemKey}`, dotItems[key], yamlRoot);
+  /**
+   * Flatten a nested object into [dot.separated.path, leaf value] pairs. Array indexes become path
+   * parts (extraEnvironment.0.name). Empty objects/arrays and non-plain objects (e.g. Date) are leaves.
+   */
+  private static flattenItems(items: AnyObject, prefix: string = ''): [string, unknown][] {
+    const entries: [string, unknown][] = [];
+    for (const [key, value] of Object.entries(items)) {
+      const itemKey: string = prefix ? `${prefix}.${key}` : key;
+      const isContainer: boolean = Array.isArray(value) || Object.prototype.toString.call(value) === '[object Object]';
+      if (isContainer && Object.keys(value as object).length > 0) {
+        entries.push(...ProfileManager.flattenItems(value as AnyObject, itemKey));
       } else {
-        this._setValue(itemKey, dotItems[key], yamlRoot);
+        entries.push([itemKey, value]);
       }
     }
+    return entries;
   }
 
   public async prepareStagingDirectory(
@@ -449,6 +459,14 @@ export class ProfileManager {
         }
         this._setChartItems('defaults.root', soloValuesYaml.defaults.root, yamlRoot);
       }
+
+      // Use the released consensus node image as the root container image when requested (and tell the chart its
+      // jar files are baked in). Set after the JFR block above so it is merged into defaults rather than overwritten.
+      this._setChartItems(
+        'defaults',
+        NetworkNodeLifecycle.buildDefaultsValues(this.resolveStagingOptions(stagingOptions).releaseTag),
+        yamlRoot,
+      );
 
       // Override defaults.root.extraEnv with values from the staged application.env file.
       // This must run AFTER the JFR block above, which overwrites defaults.root from solo-values.yaml.
@@ -858,9 +876,7 @@ export class ProfileManager {
     }
 
     const configFilePath: string = PathEx.join(destinationPath, 'config.txt');
-    if (fs.existsSync(configFilePath)) {
-      fs.unlinkSync(configFilePath);
-    }
+    fs.rmSync(configFilePath, {force: true});
 
     // init variables
     const internalPort: number = +constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT;
@@ -871,7 +887,7 @@ export class ProfileManager {
       const configLines: string[] = [`swirld, ${chainId}`, `app, ${appName}`];
 
       const shouldAvoidGossipFqdn: boolean =
-        gossipFqdnRestricted || Helpers.hasMultipleKubernetesContexts(consensusNodes);
+        gossipFqdnRestricted || ProfileManager.hasMultipleKubernetesContexts(consensusNodes);
 
       let nodeSeq: number = 0;
       for (const consensusNode of consensusNodes) {
@@ -910,6 +926,11 @@ export class ProfileManager {
         error instanceof Error ? error : new Error(String(error)),
       );
     }
+  }
+
+  private static hasMultipleKubernetesContexts(consensusNodes: ConsensusNode[]): boolean {
+    const contexts: Set<string> = new Set(consensusNodes.map((node: ConsensusNode): string => node.context));
+    return contexts.size > 1;
   }
 
   private async getGossipFqdnRestricted(

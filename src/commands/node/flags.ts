@@ -10,6 +10,8 @@ const PREPARE_UPGRADE_FLAGS_OPTIONAL_FLAGS: CommandFlag[] = [
   flags.debugMode,
   flags.quiet,
   flags.skipNodeAlias,
+  flags.simpleFeesSchedulesFile,
+  flags.throttlesFile,
 ];
 export const PREPARE_UPGRADE_FLAGS: {optional: CommandFlag[]; required: CommandFlag[]} = {
   required: PREPARE_UPGRADE_FLAGS_REQUIRED_FLAGS,
@@ -30,6 +32,8 @@ const COMMON_UPGRADE_FLAGS_OPTIONAL_FLAGS: CommandFlag[] = [
   flags.localBuildPath,
   flags.force,
   flags.upgradeZipFile,
+  flags.simpleFeesSchedulesFile,
+  flags.throttlesFile,
   flags.upgradeVersion,
   flags.freezeBlockDrainSeconds,
   flags.skipNodeStart,
@@ -267,6 +271,7 @@ export const REFRESH_FLAGS: CommandFlags = {
     flags.domainNames,
     flags.gossipEndpointPort,
     flags.serviceEndpointPort,
+    flags.force,
   ],
 };
 
@@ -304,12 +309,20 @@ export const START_FLAGS: CommandFlags = {
     flags.nodeAliasesUnparsed,
     flags.debugNodeAlias,
     flags.stateFile,
+    flags.resumeFromFreeze,
+    flags.transplant,
     flags.stakeAmounts,
     flags.forcePortForward,
     flags.externalAddress,
     flags.wrapsKeyPath,
     flags.grpcWebEndpoints,
     flags.skipGrpcWebEndpoint,
+    // The override roster --transplant writes describes the endpoints these three define. Solo does not
+    // persist what `consensus node setup` was given, so a transplant into a network that overrode them
+    // has to be given the same values again, or the roster would be written on the defaults.
+    flags.domainNames,
+    flags.gossipEndpointPort,
+    flags.serviceEndpointPort,
   ],
 };
 
@@ -336,6 +349,7 @@ export const SETUP_FLAGS: CommandFlags = {
     flags.domainNames,
     flags.gossipEndpointPort,
     flags.serviceEndpointPort,
+    flags.force,
   ],
 };
 

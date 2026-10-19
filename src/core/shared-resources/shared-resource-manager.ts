@@ -8,6 +8,7 @@ import {type HelmClient} from '../../integration/helm/helm-client.js';
 import {type ChartManager} from '../chart-manager.js';
 import {type NamespaceName} from '../../types/namespace/namespace-name.js';
 import * as constants from '../../core/constants.js';
+import {SoloChartRepository} from '../solo-chart-repository.js';
 import {HelmChartValues, type HelmChartValue} from '../../integration/helm/model/values.js';
 import {HelmSchedulingValues} from '../util/helm-scheduling-values.js';
 
@@ -118,7 +119,7 @@ export class SharedResourceManager {
       namespace,
       constants.SOLO_SHARED_RESOURCES_CHART,
       constants.SOLO_SHARED_RESOURCES_CHART,
-      chartDirectory || constants.SOLO_TESTING_CHART_URL,
+      chartDirectory || SoloChartRepository.resolveUrl(soloChartVersion),
       soloChartVersion,
       chartValues,
       context,

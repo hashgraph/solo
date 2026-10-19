@@ -22,6 +22,8 @@ interface BlockNodeValuesConfig {
   blockNode?: {
     config?: {
       ROSTER_BOOTSTRAP_TSS_BLOCK_NODE_SOURCES_PATH?: string;
+      SERVER_SOCKET_RECEIVE_BUFFER_SIZE_BYTES?: string;
+      SERVER_SOCKET_SEND_BUFFER_SIZE_BYTES?: string;
     };
     persistence?: BlockNodePersistenceConfig;
   };
@@ -54,13 +56,22 @@ describe('Block node default values', (): void => {
       '/opt/hiero/block-node/backfill/block-node-sources.json',
     );
   });
+
+  it('should pin both socket buffers to fit the memory-constrained pod', (): void => {
+    const valuesContent: string = fs.readFileSync(constants.BLOCK_NODE_VALUES_FILE, 'utf8');
+    const parsedValues: BlockNodeValuesConfig = yaml.parse(valuesContent) as BlockNodeValuesConfig;
+
+    // BN 0.45+ defaults both buffers to kernel autotune, which can grow each connection's buffers to several MB
+    // and exhaust the 160Mi limit; pin them to match the block node chart's nano profile.
+    expect(parsedValues.blockNode?.config?.SERVER_SOCKET_RECEIVE_BUFFER_SIZE_BYTES).to.equal('131072');
+    expect(parsedValues.blockNode?.config?.SERVER_SOCKET_SEND_BUFFER_SIZE_BYTES).to.equal('131072');
+  });
 });
 
 interface BlockNodePerformanceValuesConfig {
   blockNode?: {
     config?: {
       JAVA_OPTS?: string;
-      SERVER_MAX_MESSAGE_SIZE_BYTES?: string;
     };
   };
 }
@@ -74,9 +85,7 @@ describe('Block node TSS values', (): void => {
       valuesContent,
     ) as BlockNodePerformanceValuesConfig;
     const javaOptions: string | undefined = parsedValues.blockNode?.config?.JAVA_OPTS;
-    const maxMessageSize: string | undefined = parsedValues.blockNode?.config?.SERVER_MAX_MESSAGE_SIZE_BYTES;
 
-    expect(maxMessageSize, 'TSS max message size should cover the genesis WRAPS proof').to.equal('37748736');
     expect(javaOptions, 'TSS JAVA_OPTS should be defined').to.be.a('string');
     expect(javaOptions, 'TSS heap should have enough headroom for the large bootstrap block').to.include('-Xmx512m');
     expect(javaOptions, 'TSS direct memory should be larger than one max block message').to.include(

@@ -4,6 +4,7 @@ templates:
   - RELAY_VERSION
   - EXPLORER_VERSION
   - MINIO_OPERATOR_VERSION
+  - MINIO_IMAGE_DIGEST
   - SOLO_CHEETAH_VERSION
   - SOLO_CONTAINERS_VERSION
 
@@ -65,9 +66,11 @@ images:
     version: MINIO_OPERATOR_VERSION
     source: quay.io
 
-  - name: quay.io/minio/minio
-    version: RELEASE.2024-08-03T04-33-23Z
-    source: quay.io
+  # quay.io/minio/minio stopped publishing new community images after 2025-10-23; replaced with
+  # Silo (docker.io/pgsty/silo), a MinIO fork that keeps publishing dated releases, pinned by digest.
+  - name: docker.io/pgsty/silo@sha256
+    version: MINIO_IMAGE_DIGEST
+    source: docker.io
 
   - name: quay.io/minio/operator-sidecar
     version: v7.0.1
@@ -127,7 +130,7 @@ images:
     version: SOLO_CHEETAH_VERSION
     source: ghcr.io
 
-  - name: ghcr.io/hashgraph/solo-containers/debian-s6-java25
+  - name: ghcr.io/hiero-ledger/solo-containers/debian-s6-java25
     version: SOLO_CONTAINERS_VERSION
     source: ghcr.io
 

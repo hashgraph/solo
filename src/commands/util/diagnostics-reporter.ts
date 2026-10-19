@@ -284,6 +284,7 @@ export class DiagnosticsReporter {
    */
   public static executeGhCommand(arguments_: string[]): SpawnSyncReturns<string> {
     return spawnSync('gh', arguments_, {
+      shell: false,
       encoding: 'utf8',
       env: SubprocessEnvironment.forCommand(SubprocessCommandProfile.GITHUB_CLI),
     });
@@ -309,9 +310,9 @@ export class DiagnosticsReporter {
     zipFilePath?: string,
   ): Promise<string> {
     // Write body to a temp file to avoid any shell interpretation of the markdown content.
-    // We use spawnSync without shell:true so the title and all other args are passed
-    // verbatim — ShellRunner uses shell:true which splits space-containing args into separate
-    // tokens, breaking both multi-word titles and multi-line bodies.
+    // spawnSync without a shell passes the title and all other args verbatim and returns the
+    // exit status synchronously — ShellRunner (also shell-less since #4804) is async and
+    // throws on a non-zero exit, which this flow inspects instead.
     const bodyFilePath: string = PathEx.join(os.tmpdir(), `solo-gh-issue-body-${Date.now()}.md`);
     fs.writeFileSync(bodyFilePath, body, 'utf8');
     try {

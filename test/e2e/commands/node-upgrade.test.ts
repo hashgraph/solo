@@ -7,7 +7,6 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {Duration} from '../../../src/core/time/duration.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {EndToEndTestSuiteBuilder} from '../end-to-end-test-suite-builder.js';
-import {InitTest} from './tests/init-test.js';
 import {ClusterReferenceTest} from './tests/cluster-reference-test.js';
 import {DeploymentTest} from './tests/deployment-test.js';
 import {ConsensusNodeTest} from './tests/consensus-node-test.js';
@@ -24,6 +23,7 @@ import {HelmMetricsServer} from '../../helpers/helm-metrics-server.js';
 import {HelmMetalLoadBalancer} from '../../helpers/helm-metal-load-balancer.js';
 import {type EndToEndTestSuite} from '../end-to-end-test-suite.js';
 import {TEST_UPGRADE_FROM_VERSION} from '../../../version-test.js';
+import {NetworkNodeLifecycle} from '../../../src/core/network-node-lifecycle.js';
 
 const testName: string = 'node-upgrade-test';
 
@@ -74,7 +74,6 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           testLogger.info(`${testName}: finished resetting containers for each test`);
         });
 
-        InitTest.init(options);
         ClusterReferenceTest.connect(options);
         DeploymentTest.create(options);
         DeploymentTest.addCluster(options);
@@ -92,7 +91,11 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
 
         // ConsensusNodeTest.upgrade(options);
 
-        ConsensusNodeTest.upgradeConfigs(options);
+        // a version upgrade needs a new image tag rolled through the upgrade flow, which the consensus node image
+        // mode does not support yet
+        if (!NetworkNodeLifecycle.isConsensusNodeImage()) {
+          ConsensusNodeTest.upgradeConfigs(options);
+        }
 
         describe('Write log metrics', async (): Promise<void> => {
           it('Should write log metrics', async (): Promise<void> => {

@@ -135,7 +135,7 @@ flags may be specified at any level of the command hierarchy.
 
 | Group       | Resource           | Operation(s)                                                                       |
 |-------------|--------------------|------------------------------------------------------------------------------------|
-| block       | node               | < list & info & logs & add & upgrade & destroy >                                   |
+| block       | node               | < list & info & logs & add & upgrade & destroy & collect-jfr >                     |
 | cluster-ref | config             | < list & info & connect & disconnect >                                             |
 | consensus   | network            | < info & deploy & freeze & upgrade & destroy >                                     |
 | consensus   | node               | < list & info & logs & add & update & destroy & start & stop & restart & refresh > |
@@ -156,7 +156,7 @@ flags may be specified at any level of the command hierarchy.
 | ledger      | account            | < list & info & create & update & delete & import >                                |
 | ledger      | crypto             | < transfer & balance >                                                             |
 | ledger      | file               | < create & update >                                                                |
-| mirror      | node               | < list & info & logs & add & upgrade & destroy >                                   |
+| mirror      | node               | < list & info & logs & add & upgrade & destroy & collect-jfr >                     |
 | relay       | node               | < list & info & logs & add & upgrade & destroy >                                   |
 | one-shot    | < single & multi & falcon & show > | < deploy & destroy & prepare & deployment & accounts >             |
 | cache       | < images & charts > | < pull & load & list & clear & prune & status >                                   |
@@ -173,8 +173,10 @@ solo deployment config import [--namespace <name>] [--context <context>] # Recon
 solo deployment cluster attach --deployment <name> --cluster-ref <name> --num-consensus-nodes 3 
 solo keys consensus generate --deployment <name> --gossip-tls-keys --grpc-tls-keys
 solo block node add --deployment <name> --cluster-ref <name> 
+solo block node collect-jfr --deployment <name> # Download the block node's Java Flight Recorder recording; requires a JFR-enabled block node
 solo consensus network deploy --deployment <name> --no-start # Optionally do not start the network nodes, but do everything else including software install and configuration
 solo mirror node add --deployment <name> --cluster-ref <name> 
+solo mirror node collect-jfr --deployment <name> # Download the importer's Java Flight Recorder recording; requires a JFR-enabled mirror node
 solo relay node add --deployment <name> --cluster-ref <name>
 solo explorer node add --deployment <name> --cluster-ref <name> 
 solo deployment port-forwards stop --deployment <name> # Close down all port-forwards for the deployment
@@ -376,6 +378,7 @@ operations associated with each resource.
 | **Add**        | `add`          | Creates and configures a new block node instance for the specified deployment using the specified Kubernetes cluster. The cluster must be accessible and attached to the specified deployment. |
 | **Upgrade**    | `upgrade`      | Upgrades a single block node instance in the specified deployment. Requires access to all Kubernetes clusters attached to the deployment.                                                      |
 | **Destroy**    | `destroy`      | Destroys a single block node instance in the specified deployment. Requires access to all Kubernetes clusters attached to the deployment.                                                      |
+| **Collect JFR** | `collect-jfr` | Downloads the Java Flight Recorder recording from a single block node instance to the local logs directory. Requires a block node deployed with Java Flight Recorder enabled.                 |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>
@@ -592,14 +595,15 @@ operations associated with each resource.
 
 #### Node
 
-| Operation Name | Command Syntax | Description                                              |
-|----------------|----------------|----------------------------------------------------------|
-| **List**       | `list`         | Lists all nodes of the given type in the deployment.     |
-| **Info**       | `info`         | Shows detailed information for a specific node instance. |
-| **Logs**       | `logs`         | Displays logs from the specified node instance.          |
-| **Add**        | `add`          | Adds and configures a new node instance.                 |
-| **Upgrade**    | `upgrade`      | Upgrades the node software to a new version.             |
-| **Destroy**    | `destroy`      | Deletes the specified node from the deployment.          |
+| Operation Name  | Command Syntax | Description                                                                                                                                  |
+|-----------------|----------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| **List**        | `list`         | Lists all nodes of the given type in the deployment.                                                                                         |
+| **Info**        | `info`         | Shows detailed information for a specific node instance.                                                                                     |
+| **Logs**        | `logs`         | Displays logs from the specified node instance.                                                                                              |
+| **Add**         | `add`          | Adds and configures a new node instance.                                                                                                     |
+| **Upgrade**     | `upgrade`      | Upgrades the node software to a new version.                                                                                                 |
+| **Destroy**     | `destroy`      | Deletes the specified node from the deployment.                                                                                              |
+| **Collect JFR** | `collect-jfr`  | Downloads the Java Flight Recorder recording from the mirror node importer to the local logs directory. Requires a JFR-enabled mirror node. |
 
 <p align="right">
 :arrow_up_small: <a href="#table-of-contents">Back to top</a>

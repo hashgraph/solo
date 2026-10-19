@@ -8,7 +8,6 @@ import {type CommandFlags} from '../types/flag-types.js';
 import chalk from 'chalk';
 import yaml from 'yaml';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import {type ConfigMap} from '../integration/kube/resources/config-map/config-map.js';
@@ -28,7 +27,7 @@ import {
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
 import {NetworkNodes} from '../core/network-nodes.js';
-import {extractContextFromConsensusNodes, sleep} from '../core/helpers.js';
+import {extractContextFromConsensusNodes, Helpers, sleep} from '../core/helpers.js';
 import {Duration} from '../core/time/duration.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
@@ -38,6 +37,8 @@ import {RemoteConfig} from '../business/runtime-state/config/remote/remote-confi
 import {type DeploymentStateSchema} from '../data/schema/model/remote/deployment-state-schema.js';
 import {type BlockNodeStateSchema} from '../data/schema/model/remote/state/block-node-state-schema.js';
 import {type ConsensusNodeStateSchema} from '../data/schema/model/remote/state/consensus-node-state-schema.js';
+import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
+import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {type MirrorNodeStateSchema} from '../data/schema/model/remote/state/mirror-node-state-schema.js';
 import {type RelayNodeStateSchema} from '../data/schema/model/remote/state/relay-node-state-schema.js';
 import {type DeploymentName} from '../types/index.js';
@@ -74,6 +75,7 @@ import {type Service} from '../integration/kube/resources/service/service.js';
 import {Templates} from '../core/templates.js';
 import * as Base64 from 'js-base64';
 import {K8Helper} from '../business/utils/k8-helper.js';
+import {NetworkNodeLifecycle} from '../core/network-node-lifecycle.js';
 
 interface ExpectedLbIpAssignment {
   context: Context;
@@ -416,12 +418,45 @@ export class BackupRestoreCommand extends BaseCommand {
           title: 'Download Node State Files',
           task: async (_, task): Promise<void> => {
             const networkNodes: NetworkNodes = container.resolve<NetworkNodes>(InjectTokens.NetworkNodes);
+            const nodePhases: Map<NodeAlias, DeploymentPhase> = new Map();
             for (const node of consensusNodes) {
               const nodeAlias: NodeAlias = node.name;
               const context: Context = extractContextFromConsensusNodes(nodeAlias, consensusNodes);
               const clusterReference: string = node.cluster; // Get cluster ref from node metadata
               const statesDirectory: string = PathEx.join(outputDirectory, 'states', clusterReference);
-              await networkNodes.getStatesFromPod(namespace, nodeAlias, context, statesDirectory);
+              const nodeComponent: ConsensusNodeStateSchema = this.remoteConfig.configuration.components.getComponent(
+                ComponentTypes.ConsensusNode,
+                Templates.renderComponentIdFromNodeAlias(nodeAlias),
+              );
+              const deploymentPhase: DeploymentPhase = nodeComponent.metadata.phase;
+              nodePhases.set(nodeAlias, deploymentPhase);
+              // Passing the phase lets state download prefer a fully signed freeze round over a
+              // stale non-freeze round when the network was just frozen (see "Freeze network"
+              // above); otherwise the archive's preconsensus-events stream can outrun the selected
+              // round and replay straight back into the freeze when the backup is later restored.
+              await networkNodes.getStatesFromPod(namespace, nodeAlias, context, statesDirectory, deploymentPhase);
+            }
+            for (const clusterReference of new Set(consensusNodes.map((node): string => node.cluster))) {
+              const clusterNodes: ConsensusNode[] = consensusNodes.filter(
+                (node): boolean => node.cluster === clusterReference,
+              );
+              const statesDirectory: string = PathEx.join(outputDirectory, 'states', clusterReference);
+              const clusterNodeAliases: NodeAlias[] = clusterNodes.map((node): NodeAlias => node.name);
+              const allNodesFrozen: boolean = clusterNodeAliases.every(
+                (nodeAlias: NodeAlias): boolean => nodePhases.get(nodeAlias) === DeploymentPhase.FROZEN,
+              );
+              await networkNodes.normalizeDownloadedStateArchives(
+                namespace,
+                clusterNodeAliases,
+                statesDirectory,
+                allNodesFrozen ? DeploymentPhase.FROZEN : undefined,
+                // This backup/restore workflow resumes the restored network as a live, active
+                // deployment rather than leaving it frozen, so any preconsensus event beyond the
+                // selected round (e.g. the freeze transaction the network reaches moments later)
+                // must be trimmed; otherwise replaying it on restart pins the node in
+                // FREEZE_COMPLETE instead of ACTIVE.
+                true,
+              );
             }
             task.title = `Download Node State Files: ${consensusNodes.length} node(s) completed`;
           },
@@ -808,6 +843,10 @@ export class BackupRestoreCommand extends BaseCommand {
 
         // Unzip the log file
         this.logger.showUser(chalk.gray(`    Extracting log file in pod: ${podName}`));
+        if (NetworkNodeLifecycle.isConsensusNodeImage()) {
+          // pods deployed by restore-network are not covered by the network deploy install step
+          await NetworkNodeLifecycle.installToolsInContainer(container);
+        }
         await container.execContainer([
           'unzip',
           '-o',
@@ -818,7 +857,11 @@ export class BackupRestoreCommand extends BaseCommand {
 
         // Fix ownership of extracted files to hedera user
         this.logger.showUser(chalk.gray(`    Setting ownership for extracted files in pod: ${podName}`));
-        await container.execContainer(['bash', '-c', `chown -R hedera:hedera ${constants.HEDERA_HAPI_PATH}`]);
+        await container.execContainer([
+          'bash',
+          '-c',
+          NetworkNodeLifecycle.buildChangeOwnerCommand(constants.HEDERA_HAPI_PATH),
+        ]);
 
         this.logger.showUser(chalk.green(`    ✓ Restored log for pod: ${podName}`));
       }
@@ -884,41 +927,6 @@ export class BackupRestoreCommand extends BaseCommand {
         undefined,
         true,
       );
-  }
-
-  /**
-   * Resolve mirror release name while supporting legacy release naming.
-   * Mirror node id=1 may still be installed under the old fixed release name.
-   */
-  /**
-   * Trigger a deployment rollout by patching a restart annotation.
-   * This avoids delete/recreate and keeps restart behavior explicit.
-   */
-  private async patchDeploymentRestartAnnotation(
-    context: Context,
-    namespace: NamespaceName,
-    deploymentName: string,
-  ): Promise<void> {
-    await this.k8Factory
-      .getK8(context)
-      .manifests()
-      .patchObject({
-        apiVersion: 'apps/v1',
-        kind: 'Deployment',
-        metadata: {
-          name: deploymentName,
-          namespace: namespace.name,
-        },
-        spec: {
-          template: {
-            metadata: {
-              annotations: {
-                'solo.hedera.com/restartedAt': new Date().toISOString(),
-              },
-            },
-          },
-        },
-      });
   }
 
   /**
@@ -1839,12 +1847,13 @@ export class BackupRestoreCommand extends BaseCommand {
         [applicationPropertiesFileName]: updated,
       });
 
-      const temporaryFile: string = path.join(os.tmpdir(), applicationPropertiesFileName);
-      fs.writeFileSync(temporaryFile, updated);
+      const temporaryDirectory: string = Helpers.getTemporaryDirectory();
       try {
+        const temporaryFile: string = path.join(temporaryDirectory, applicationPropertiesFileName);
+        fs.writeFileSync(temporaryFile, updated);
         await container.copyTo(temporaryFile, targetDirectory);
       } finally {
-        fs.unlinkSync(temporaryFile);
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
       }
 
       this.logger.info(`Reset blockStream.writerMode to FILE_AND_GRPC for ${consensusNode.name}`);
@@ -3248,17 +3257,6 @@ export class BackupRestoreCommand extends BaseCommand {
       );
 
       initTasks.push(
-        // Initialize Solo for the cluster
-        invokeSoloCommand(
-          `Initialize Solo for cluster '${clusterReference}'`,
-          'init',
-          (): string[] => {
-            const argv: string[] = CommandHelpers.newArgv();
-            argv.push('init');
-            return argv;
-          },
-          this.taskList,
-        ),
         invokeSoloCommand(
           `Connect to cluster '${contextName}'`,
           ClusterReferenceCommandDefinition.CONNECT_COMMAND,

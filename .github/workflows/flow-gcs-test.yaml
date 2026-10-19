@@ -34,9 +34,7 @@ defaults:
     shell: bash
 
 permissions:
-  id-token: write
   contents: read
-  actions: write
 
 env:
   STEP_TIMEOUT_MINUTES: '5'
@@ -44,6 +42,10 @@ env:
 
 jobs:
   gcs-storage-test:
+    permissions:
+      contents: read
+      actions: read # gha-jobid-action reads the jobs of the current workflow run
+      id-token: write # OIDC token for google-github-auth workload identity federation
     name: "GCS Storage Test - ${{ matrix.storageType }}"
     if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}
     timeout-minutes: 40
@@ -57,8 +59,10 @@ jobs:
       - name: Check if job should be skipped
         id: check
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
         run: |
-          if [[ "${{ github.actor }}" == "dependabot[bot]" || "${{ github.event.pull_request.head.repo.fork }}" == "true" ]]; then
+          if [[ "${GITHUB_ACTOR}" == "dependabot[bot]" || "${IS_FORK}" == "true" ]]; then
             echo "run=false" >> $GITHUB_OUTPUT
           else
             echo "run=true" >> $GITHUB_OUTPUT
@@ -66,7 +70,7 @@ jobs:
 
       - name: Harden Runner
         if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
@@ -74,6 +78,8 @@ jobs:
       - name: Checkout Code
         if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Authenticate to Google Cloud
@@ -102,9 +108,11 @@ jobs:
       - name: Create Bucket Name and Prefix
         if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          JOB_ID: ${{ steps.jobs.outputs.job_id }}
         run: |
           export BUCKET_NAME="solo-ci-test-streams"
-          export PREFIX=${{ steps.jobs.outputs.job_id }}
+          export PREFIX="${JOB_ID}"
 
           echo "BUCKET_NAME=${BUCKET_NAME}" >> $GITHUB_ENV
           echo "PREFIX=${PREFIX}" >> $GITHUB_ENV          
@@ -114,7 +122,7 @@ jobs:
 
       - name: Setup Node
         if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: 24
@@ -137,22 +145,45 @@ jobs:
         if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
         id: npm-deps
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        run: |
-          npm ci
-          SOLO_NO_CACHE=true npm install -g @hashgraph/solo
+        run: npm ci
 
       - name: Compile Project
         if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: task build:compile
 
+      - name: Restore Solo Bin Cache
+        id: solo-bin-cache
+        if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: restore
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Restore Solo Image Cache
         id: solo-image-cache
         if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
-        uses: ./.github/actions/solo-image-cache
+        uses: $/.github/actions/solo-image-cache
         with:
           operation: restore
           key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
+
+      - name: Install Helm
+        if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          version: 'v3.14.2'
+
+      - name: Install Kind
+        if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
+        uses: helm/kind-action@1544676c07bb3570fcb70166beaa07c4528fd4aa # v1.15.1
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          install_only: true
+          version: 'v0.29.0'
+          node_image: 'kindest/node:v1.31.9@sha256:b94a3a6c06198d17f59cca8c6f486236fa05e2fb359cbd75dabbfc348a10b211'
+          kubectl_version: 'v1.32.2'
 
       - name: Run GCS Test Script for type ${{ matrix.storageType }}
         id: run-gcs-script
@@ -174,16 +205,23 @@ jobs:
             exit ${RC}
           fi
 
+      - name: Save Solo Bin Cache
+        if: ${{ steps.check.outputs.run == 'true' && github.event_name != 'pull_request' && steps.solo-bin-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
+        uses: $/.github/actions/solo-bin-cache
+        with:
+          operation: save
+          key-suffix: ${{ hashFiles('version.ts') }}
+
       - name: Save Solo Image Cache
         if: ${{ steps.check.outputs.run == 'true' && github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
-        uses: ./.github/actions/solo-image-cache
+        uses: $/.github/actions/solo-image-cache
         with:
           operation: save
           key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
 
       - name: Upload Logs to GitHub
         if: ${{ steps.check.outputs.run == 'true' && !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: solo-logs-${{ matrix.storageType }}
@@ -195,9 +233,10 @@ jobs:
         if: ${{ steps.check.outputs.run == 'true' && always() && (matrix.storageType == 'gcs_only' || matrix.storageType == 'aws_only') }}
         continue-on-error: true
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          PROJECT_ID: ${{ vars.GCP_S3_PROJECT_ID }}
+          JOB_PREFIX: ${{ steps.jobs.outputs.job_id }}
         run: |
-          PROJECT_ID="${{ vars.GCP_S3_PROJECT_ID }}"
-          JOB_PREFIX="${{ steps.jobs.outputs.job_id }}"
 
           # Guardrails: never allow accidental bucket-root cleanup.
           if [[ -z "${JOB_PREFIX}" ]]; then

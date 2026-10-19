@@ -37,30 +37,43 @@ defaults:
 
 permissions:
   contents: read
-  actions: write
-  pull-requests: write
 
 env:
   STEP_TIMEOUT_MINUTES: '5'
+  # Tools are downloaded directly and verified against these pinned linux/amd64 checksums.
+  JQ_VERSION: 'jq-1.8.2'
+  JQ_SHA256: 'b1c22172dd303f3be49e935aa56aa48a8b7a46e0bc838b4997d3bb451495870f'
+  KUBECTL_VERSION: 'v1.31.4'
+  KUBECTL_SHA256: '298e19e9c6c17199011404278f0ff8168a7eca4217edad9097af577023a5620f'
+  KIND_VERSION: 'v0.26.0'
+  KIND_SHA256: 'd445b44c28297bc23fd67e51cc24bb294ae7b977712be2d4d312883d0835829b'
 
 jobs:
+  build-sea:
+    name: Build SEA Binaries
+    uses: $/.github/workflows/flow-build-sea.yaml
+    with:
+      node-version: ${{ inputs.node-version || '24' }}
+
   prepare-setup:
     name: Prepare Setup
     runs-on: hiero-solo-linux-medium
     timeout-minutes: 15
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: ${{ inputs.node-version || '24' }}
@@ -85,21 +98,30 @@ jobs:
       matrix: ${{ steps.set_matrix.outputs.matrix }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+
+      - name: Install jq
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/bin"
+          curl -fsSL --retry 5 --retry-all-errors -o "${RUNNER_TEMP}/bin/jq" \
+            "https://github.com/jqlang/jq/releases/download/${JQ_VERSION}/jq-linux-amd64"
+          echo "${JQ_SHA256}  ${RUNNER_TEMP}/bin/jq" | sha256sum -c -
+          chmod +x "${RUNNER_TEMP}/bin/jq"
+          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
 
       - name: Read JSON and Set Matrix Output
         id: set_matrix
         run: |
-          # Install jq (a lightweight and flexible command-line JSON processor)
-          sudo apt-get update && sudo apt-get install -y jq
-
           # Read script-only test array for matrix runner.
           JSON_CONTENT=$(jq -c '.tests | map(select(.type == "script"))' .github/workflows/support/extended-test-matrix.json)
 
@@ -120,17 +142,19 @@ jobs:
         test: ${{ fromJSON(needs.generate_matrix.outputs.matrix) }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
 
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: ${{ inputs.node-version || '24' }}
@@ -147,33 +171,28 @@ jobs:
           timeout_minutes: 10
           command: npm ci
 
-      - name: Install jq
+      - name: Install jq, Kubectl and Kind
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
-          sudo apt-get update
-          sudo apt-get install -y jq
+          TOOL_DIRECTORY="${RUNNER_TEMP}/bin"
+          mkdir -p "${TOOL_DIRECTORY}"
 
-      - name: Install Kubectl
-        uses: step-security/setup-kubectl@b256bc71248a59f1e3a278fc75a65646d6a8a1c4 # pinned to v5.1.0
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        with:
-          version: "v1.31.4"
+          install_tool() {
+            local name="$1" url="$2" sha256="$3"
+            curl -fsSL --retry 5 --retry-all-errors -o "${TOOL_DIRECTORY}/${name}" "${url}"
+            echo "${sha256}  ${TOOL_DIRECTORY}/${name}" | sha256sum -c -
+            chmod +x "${TOOL_DIRECTORY}/${name}"
+          }
 
-      - name: Setup Kind
-        uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        with:
-          install_only: true
-          node_image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
-          version: v0.26.0
-          kubectl_version: v1.31.4
-          verbosity: 3
-          wait: 120s
+          install_tool jq "https://github.com/jqlang/jq/releases/download/${JQ_VERSION}/jq-linux-amd64" "${JQ_SHA256}"
+          install_tool kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" "${KUBECTL_SHA256}"
+          install_tool kind "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-linux-amd64" "${KIND_SHA256}"
+          echo "${TOOL_DIRECTORY}" >> "${GITHUB_PATH}"
 
       - name: Restore Solo Image Cache
         id: solo-image-cache
         if: ${{ !cancelled() && !failure() }}
-        uses: ./.github/actions/solo-image-cache
+        uses: $/.github/actions/solo-image-cache
         with:
           operation: restore
           key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
@@ -202,7 +221,7 @@ jobs:
 
       - name: Save Solo Image Cache
         if: ${{ github.event_name != 'pull_request' && steps.solo-image-cache.outputs.cache-hit != 'true' && !cancelled() && !failure() }}
-        uses: ./.github/actions/solo-image-cache
+        uses: $/.github/actions/solo-image-cache
         with:
           operation: save
           key-suffix: ${{ hashFiles('version.ts', 'version-test.ts', 'resources/config/solo-cache-images-target.yaml') }}
@@ -238,7 +257,7 @@ jobs:
 
       - name: Upload Logs to GitHub
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: solo-logs-${{ matrix.test.name }}
@@ -253,21 +272,40 @@ jobs:
     name: Extended Test (one-shot-timing)
     needs:
       - generate_matrix
-    uses: ./.github/workflows/flow-one-shot-timing.yaml
-    secrets: inherit
+    uses: $/.github/workflows/flow-one-shot-timing.yaml
+    secrets:
+      SLACK_TEST_WEBHOOK: ${{ secrets.SLACK_TEST_WEBHOOK }}
 
   ledger-reset-warm-start-timing:
     name: Extended Test (ledger-reset-warm-start-timing)
     needs:
       - generate_matrix
-    uses: ./.github/workflows/flow-ledger-reset-warm-start-timing.yaml
-    secrets: inherit
+    uses: $/.github/workflows/flow-ledger-reset-warm-start-timing.yaml
+    secrets:
+      SLACK_TEST_WEBHOOK: ${{ secrets.SLACK_TEST_WEBHOOK }}
 
   flow-performance-test:
     name: Extended Test (flow-performance-test)
+    permissions:
+      contents: read
+      actions: read # flow-performance-test.yaml polls the current workflow run
     needs:
       - generate_matrix
-    uses: ./.github/workflows/flow-performance-test.yaml
+    # Only the nightly Slack webhook is passed explicitly; secrets.GITHUB_TOKEN is provided to
+    # called workflows automatically and cannot be passed here.
+    uses: $/.github/workflows/flow-performance-test.yaml
     with:
-      cn-edge-version: v0.75.1
-    secrets: inherit
+      cn-edge-version: v0.76.4
+      report-to-slack: true
+    secrets:
+      SLACK_TEST_WEBHOOK: ${{ secrets.SLACK_TEST_WEBHOOK }}
+
+  windows-one-shot-redeployment:
+    name: Extended Test (windows-one-shot-redeployment)
+    needs:
+      - generate_matrix
+    uses: $/.github/workflows/flow-standard-runner-one-shot-windows.yaml
+    with:
+      run-twice: true
+    # The called workflow only uses the automatically provided GITHUB_TOKEN;
+    # forwarding every repository secret is unnecessary and unsafe.

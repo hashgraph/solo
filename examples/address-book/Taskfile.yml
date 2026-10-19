@@ -25,8 +25,6 @@ tasks:
             echo "Skipping npm install - using development version"
           fi
 
-      # "Run solo init to install dependencies"
-      - cmd: $SOLO_COMMAND init --dev
 
       # "Create Kind cluster"
       - cmd: |

@@ -37,9 +37,7 @@ on:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 defaults:
   run:
@@ -49,12 +47,17 @@ jobs:
   deploy:
     name: Deploy
     runs-on: hiero-solo-linux-medium
+    # Callers must grant these scopes on the calling job; otherwise the run fails to start.
+    permissions:
+      contents: write # gh release upload attaches the docs archives to the release
+      pages: write # configure-pages and deploy-pages
+      id-token: write # required by actions/deploy-pages
     environment:
       name: github-pages # security guard on what branch/tag can run this job
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
@@ -73,24 +76,25 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Download Hugo Build Artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: hugo-build-artifacts
           path: docs/site
 
       - name: Download Solo Command Output Artifacts
         if: ${{ inputs.attach-docs-enabled }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: solo-command-output
           path: docs/site/build
 
       - name: Download Solo CLI Help Artifacts
         if: ${{ inputs.attach-docs-enabled }}
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: solo-cli-help
           path: docs/site/build
@@ -104,17 +108,20 @@ jobs:
 
       - name: Attach Docs as Release Artifacts
         if: ${{ inputs.attach-docs-enabled && !inputs.dry-run-enabled && !cancelled() && !failure() }}
+        env:
+          DOCS_BUILD_LABEL_INPUT: ${{ inputs.docs-build-label }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -eo pipefail
-          RELEASE_VERSION="${{ inputs.docs-build-label }}"
+          RELEASE_VERSION="${DOCS_BUILD_LABEL_INPUT}"
           # Ensure the release version is set
           if [[ -z "${RELEASE_VERSION}" ]]; then
             echo "Error: docs-build-label input is required for attaching release artifacts." >&2
             exit 1
           fi
           cd docs/site
-          # Create the release artifact tarballs
-          GH_TOKEN=${{ secrets.GITHUB_TOKEN }} HUGO_SOLO_VERSION="${RELEASE_VERSION}" task github:upload:release:assets
+          # Create the release artifact tarballs; GH_TOKEN is inherited from the step environment.
+          HUGO_SOLO_VERSION="${RELEASE_VERSION}" task github:upload:release:assets
 
       # Upload / stage the built site to GitHub Pages
       - name: Upload Pages Artifact
@@ -126,4 +133,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         if: ${{ !inputs.dry-run-enabled && !cancelled() && !failure() }}
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -12,7 +12,6 @@
  * part of `task build` means the reminder is seen constantly by developers and in CI without blocking anyone.
  */
 
-// eslint-disable-next-line n/no-extraneous-import
 import 'reflect-metadata';
 import chalk from 'chalk';
 import {container} from 'tsyringe-neo';

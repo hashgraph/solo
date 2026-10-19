@@ -9,7 +9,6 @@ import {type ConsensusNode} from '../core/model/consensus-node.js';
 import {type BlockNodeStateSchema} from '../data/schema/model/remote/state/block-node-state-schema.js';
 
 export interface NetworkDeployConfigClass {
-  isUpgrade: boolean;
   applicationEnv: string;
   chainId: string;
   cacheDir: string;
@@ -19,7 +18,8 @@ export interface NetworkDeployConfigClass {
   namespace: NamespaceName;
   deployment: string;
   nodeAliasesUnparsed: string;
-  persistentVolumeClaims: string;
+  persistentVolumeClaims: boolean;
+  verifyPersistentVolumeClaimMounts: boolean;
   releaseTag: string;
   keysDir: string;
   nodeAliases: NodeAliases;

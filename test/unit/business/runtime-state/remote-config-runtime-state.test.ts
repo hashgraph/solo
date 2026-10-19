@@ -31,13 +31,25 @@ import {type Context} from '../../../../src/types/index.js';
 const namespace: NamespaceName = NamespaceName.of('solo');
 const remoteConfigMap: ConfigMap = {name: 'solo-remote-config'} as unknown as ConfigMap;
 
+/** Kubeconfig cluster entry lookup for the stubbed K8Factory; a context defaults to an equally-named entry. */
+function stubReadClusterOfContext(clusterEntriesByContext: Record<string, string>): (context: string) => string {
+  return (context: string): string => clusterEntriesByContext[context] ?? context;
+}
+
 /**
  * Builds a runtime state over a stubbed ConfigMap read and a stubbed container engine. Only those two
  * dependencies are exercised; the rest are non-null so they are not resolved from the container.
  */
-function buildRuntimeState(read: SinonStub, resumeStoppedClusterNode: SinonStub): RemoteConfigRuntimeState {
+function buildRuntimeState(
+  read: SinonStub,
+  resumeStoppedClusterNode: SinonStub,
+  clusterEntriesByContext: Record<string, string> = {},
+): RemoteConfigRuntimeState {
   const k8Factory: K8Factory = {
     getK8: (): unknown => ({configMaps: (): unknown => ({read})}),
+    default: (): unknown => ({
+      contexts: (): unknown => ({readClusterOfContext: stubReadClusterOfContext(clusterEntriesByContext)}),
+    }),
   } as unknown as K8Factory;
 
   return new RemoteConfigRuntimeState(
@@ -57,6 +69,30 @@ async function readFailure(runtimeState: RemoteConfigRuntimeState, context: Cont
     (): Error => undefined,
     (error: Error): Error => error,
   );
+}
+
+/** Builds a loaded runtime state of a two-cluster deployment over the given local cluster ref mappings. */
+function buildLeaseRuntimeState(
+  sandbox: SinonSandbox,
+  clusterReferences: Map<string, string>,
+): RemoteConfigRuntimeState {
+  const runtimeState: RemoteConfigRuntimeState = new RemoteConfigRuntimeState(
+    {} as unknown as K8Factory,
+    {} as unknown as SoloLogger,
+    {configuration: {clusterRefs: clusterReferences}} as unknown as LocalConfigRuntimeState,
+    {} as unknown as ConfigManager,
+    {} as unknown as RemoteConfigValidatorApi,
+    {} as unknown as ObjectMapper,
+    {} as unknown as ContainerEngineClient,
+  );
+  // a deployment spanning two clusters; the remote config is the same on both clusters
+  sandbox.stub(runtimeState, 'configuration').get((): unknown => ({
+    clusters: [
+      {name: 'cluster-1', namespace: 'solo-ns'},
+      {name: 'cluster-2', namespace: 'solo-ns'},
+    ],
+  }));
+  return runtimeState;
 }
 
 describe('RemoteConfigRuntimeState', (): void => {
@@ -97,6 +133,9 @@ describe('RemoteConfigRuntimeState', (): void => {
     const k8Factory: K8Factory = {
       getK8: (): {configMaps: () => {read: sinon.SinonStub}} => ({
         configMaps: (): {read: sinon.SinonStub} => ({read: readStub}),
+      }),
+      default: (): unknown => ({
+        contexts: (): unknown => ({readClusterOfContext: stubReadClusterOfContext({})}),
       }),
     } as unknown as K8Factory;
 
@@ -257,6 +296,20 @@ describe('RemoteConfigRuntimeState', (): void => {
     expect(read).to.have.been.calledTwice;
   });
 
+  it('should resume a stopped kind cluster reached through a renamed context', async (): Promise<void> => {
+    read.onFirstCall().rejects(new Error('connect ECONNREFUSED 127.0.0.1:52810'));
+    read.onSecondCall().resolves(remoteConfigMap);
+    resumeStoppedClusterNode.resolves(ClusterNodeResumeOutcome.RESUMED);
+
+    const exists: boolean = await buildRuntimeState(read, resumeStoppedClusterNode, {
+      'solo-renamed': 'kind-solo',
+    }).remoteConfigExists(namespace, 'solo-renamed');
+
+    expect(exists).to.be.true;
+    expect(resumeStoppedClusterNode).to.have.been.calledOnceWithExactly('solo');
+    expect(read).to.have.been.calledTwice;
+  });
+
   it('should throw KindClusterStoppedError when a resumed kind cluster never answers', async (): Promise<void> => {
     const cause: Error = new Error('connect ECONNREFUSED 127.0.0.1:52810');
     read.rejects(cause);
@@ -272,5 +325,31 @@ describe('RemoteConfigRuntimeState', (): void => {
     // The initial read, then one read per resume attempt, sleeping between the attempts but not before the first.
     expect(read.callCount).to.equal(31);
     expect(sleep.callCount).to.equal(29);
+  });
+
+  describe('getLeaseContext', (): void => {
+    it('should return the context of the first cluster of the remote config', (): void => {
+      const runtimeState: RemoteConfigRuntimeState = buildLeaseRuntimeState(
+        sandbox,
+        new Map<string, string>([
+          ['cluster-2', 'context-2'],
+          ['cluster-1', 'context-1'],
+        ]),
+      );
+
+      expect(runtimeState.getLeaseContext()).to.equal('context-1');
+    });
+
+    it('should throw ClusterReferenceNotFoundError when the local config has no context for the first cluster', (): void => {
+      const runtimeState: RemoteConfigRuntimeState = buildLeaseRuntimeState(
+        sandbox,
+        new Map<string, string>([['cluster-2', 'context-2']]),
+      );
+
+      expect((): string => runtimeState.getLeaseContext()).to.throw(
+        SoloErrors.deployment.clusterRefNotFound,
+        'Cluster ref cluster-1 not found in local config',
+      );
+    });
   });
 });

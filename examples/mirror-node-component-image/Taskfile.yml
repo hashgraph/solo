@@ -1,0 +1,187 @@
+version: 3
+
+env:
+  SOLO_COMMAND:
+    sh: |
+      if [ "${USE_RELEASED_VERSION}" = "true" ]; then
+        echo "npx @hashgraph/solo"
+      else
+        echo "npm run solo --"
+      fi
+
+vars:
+  SOLO_NAMESPACE: "mirror-component-image-ns"
+  SOLO_DEPLOYMENT: "mirror-component-image-deployment"
+  SOLO_CLUSTER_NAME: "mirror-component-image-cluster"
+  SOLO_CLUSTER_REF: "mirror-component-image-cluster-ref"
+
+  ROOT_DIR:
+    sh: git rev-parse --show-toplevel
+
+  # Component versions - prefer env vars (set by CI), fall back to version.ts
+  CN_VERSION:
+    sh: echo "${CONSENSUS_NODE_VERSION:-$(awk -F"'" '/^export const HEDERA_PLATFORM_VERSION/ {print $(NF-1); exit}' ../../version.ts)}"
+  MIRROR_NODE_VERSION:
+    sh: awk -F"'" '/^export const MIRROR_NODE_VERSION/ {print $(NF-1); exit}' ../../version.ts
+
+  # Local repository (cloned next to the solo repo) used only to build the six Mirror Node module
+  # images; Solo's own bundled hedera-mirror chart is used for the deployment (no --mirror-node-chart-dir).
+  MIRROR_NODE_REPO_DIR: "{{.ROOT_DIR}}/../hiero-mirror-node"
+
+  # Must NOT look like a real registry host (no dot, no colon, not "localhost"): Solo's
+  # isLocalImageReference classifies a reference by its first path segment, and anything that
+  # looks like a registry hostname (e.g. the gradle default "gcr.io/mirrornode") is treated as a
+  # published remote image and never loaded into Kind, even if it happens to exist locally.
+  IMAGE_REGISTRY: "solo-local-test"
+  IMAGE_TAG: "solo-component-image-test"
+  COMPONENT_IMAGE: "{{.IMAGE_REGISTRY}}/hedera-mirror:{{.IMAGE_TAG}}"
+
+  # The six images Mirror Node's build publishes (see hiero-mirror-node/settings.gradle.kts);
+  # --component-image is expanded into exactly these by Solo (src/commands/mirror-node-module-images.ts)
+  MODULES: "grpc importer monitor rest web3 rest-java"
+
+tasks:
+  checkout-repo:
+    desc: Checkout hiero-mirror-node at the version defined in version.ts (source for the module images)
+    cmds:
+      - cmd: |
+          if [ ! -d "{{.MIRROR_NODE_REPO_DIR}}" ]; then
+            git clone https://github.com/hiero-ledger/hiero-mirror-node.git \
+              --depth 1 --branch {{.MIRROR_NODE_VERSION}} {{.MIRROR_NODE_REPO_DIR}}
+          else
+            echo "Skipping clone: {{.MIRROR_NODE_REPO_DIR}} already exists"
+          fi
+
+  build-module-images:
+    desc: Build the six Mirror Node module Docker images locally via Gradle, tagged under one prefix
+    cmds:
+      - cmd: |
+          cd {{.MIRROR_NODE_REPO_DIR}}
+          for module in {{.MODULES}}; do
+            echo "Building hedera-mirror-${module}:{{.IMAGE_TAG}}..."
+            ./gradlew ":${module}:dockerBuild" -x :rest:monitoring:dockerBuild \
+              -PimageRegistry={{.IMAGE_REGISTRY}} -PimageTag={{.IMAGE_TAG}} --stacktrace
+          done
+          echo "Built module images:"
+          docker images --filter "reference={{.IMAGE_REGISTRY}}/hedera-mirror-*:{{.IMAGE_TAG}}"
+
+  deploy:
+    desc: Deploy a consensus-only network, then add Mirror Node using the locally built module images
+    cmds:
+      # Build the six module images this deployment will use
+      - task: checkout-repo
+      - task: build-module-images
+
+      # Install Solo CLI
+      - cmd: |
+          if [ "${USE_RELEASED_VERSION}" = "true" ]; then
+            npm i @hashgraph/solo@latest
+          else
+            echo "Skipping npm install - using development version"
+          fi
+
+      # Create Kind cluster
+      - cmd: |
+          SHARED_KIND_CONFIG="{{ .TASKFILE_DIR }}/../../resources/kind-config.yaml"
+          if [ -f "${SHARED_KIND_CONFIG}" ]; then
+            kind create cluster -n {{ .SOLO_CLUSTER_NAME }} --config "${SHARED_KIND_CONFIG}"
+          else
+            kind create cluster -n {{ .SOLO_CLUSTER_NAME }}
+          fi
+
+      - cmd: |
+          # Solo cluster-ref config connect
+          $SOLO_COMMAND cluster-ref config connect --cluster-ref {{ .SOLO_CLUSTER_REF }} --context kind-{{.SOLO_CLUSTER_NAME}} --dev
+
+      - cmd: |
+          # Solo deployment config create
+          $SOLO_COMMAND deployment config create -n {{ .SOLO_NAMESPACE }} --deployment {{ .SOLO_DEPLOYMENT }} --dev
+
+      - cmd: |
+          # Solo deployment cluster attach
+          $SOLO_COMMAND deployment cluster attach --deployment {{ .SOLO_DEPLOYMENT }} --cluster-ref {{ .SOLO_CLUSTER_REF }} \
+          --num-consensus-nodes 1 --dev
+
+      - cmd: |
+          # Solo keys consensus generate
+          $SOLO_COMMAND keys consensus generate --gossip-keys --tls-keys --deployment {{ .SOLO_DEPLOYMENT }} --dev
+
+      - cmd: |
+          # Solo cluster-ref config setup
+          $SOLO_COMMAND cluster-ref config setup -s {{ .SOLO_NAMESPACE }} --dev
+
+      - cmd: |
+          # Solo consensus network deploy
+          $SOLO_COMMAND consensus network deploy --deployment {{ .SOLO_DEPLOYMENT }} --release-tag {{ .CN_VERSION }} --dev
+
+      - cmd: |
+          # Solo consensus node setup
+          $SOLO_COMMAND consensus node setup --deployment {{ .SOLO_DEPLOYMENT }} --release-tag {{ .CN_VERSION }} --dev
+
+      - cmd: |
+          # Solo consensus node start
+          $SOLO_COMMAND consensus node start --deployment {{ .SOLO_DEPLOYMENT }} --dev
+
+      - cmd: |
+          # Solo mirror node add, using the six locally built module images via --component-image.
+          # Solo expands this prefix into the six module images (importer, grpc, rest, rest-java,
+          # web3, monitor), loads whichever are found in the local Docker daemon into the Kind
+          # cluster, and sets pullPolicy: Never only for those — see issue #5938.
+          # mirror-memory-values.yaml raises memory limits above Solo's defaults for this
+          # deployment only; a cold start was observed to OOMKill several modules at the defaults.
+          $SOLO_COMMAND mirror node add --deployment {{ .SOLO_DEPLOYMENT }} \
+          --mirror-node-version {{ .MIRROR_NODE_VERSION }} --component-image {{.COMPONENT_IMAGE}} \
+          --values-file {{ .TASKFILE_DIR }}/mirror-memory-values.yaml --dev
+
+      - task: verify
+
+  verify:
+    desc: Verify the Helm release has all six module images wired up, and that their pods are Ready
+    cmds:
+      - cmd: |
+          echo "==== Checking registry/repository/tag/pullPolicy for all six modules on the Helm release ===="
+          # Checked against the rendered Helm release values rather than live pods: the "monitor"
+          # module is not enabled by Solo's default mirror-node-values.yaml (no pod is ever
+          # created for it), but Solo still must set its image values correctly — this check
+          # covers all six regardless of which ones actually get a running pod.
+          VALUES_JSON="$(helm get values mirror-1 -n {{ .SOLO_NAMESPACE }} --all -o json)"
+          for module in {{.MODULES}}; do
+            chartKey="$(printf '%s' "${module}" | tr -d '-')"
+            ACTUAL="$(printf '%s' "${VALUES_JSON}" | jq -r --arg key "${chartKey}" \
+              '.[$key].image | "\(.registry)/\(.repository):\(.tag) \(.pullPolicy)"')"
+            EXPECTED="docker.io/{{.IMAGE_REGISTRY}}/hedera-mirror-${module}:{{.IMAGE_TAG}} Never"
+            if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+              echo "ERROR: ${module} (chart key ${chartKey}) image mismatch: got '${ACTUAL}', expected '${EXPECTED}'" >&2
+              exit 1
+            fi
+            echo "OK: ${module} (chart key ${chartKey}) -> ${ACTUAL}"
+          done
+
+      - cmd: |
+          echo "==== Waiting for the deployed Mirror Node pods to become Ready ===="
+          if ! kubectl wait --for=condition=Ready pods --all -n {{ .SOLO_NAMESPACE }} \
+            -l app.kubernetes.io/instance=mirror-1 --timeout=15m; then
+            echo "ERROR: not every Mirror Node pod became Ready; see pod status below" >&2
+            kubectl get pods -n {{ .SOLO_NAMESPACE }} -l app.kubernetes.io/instance=mirror-1 -o wide
+            exit 1
+          fi
+
+  destroy:
+    desc: Destroy the Solo network and clean up
+    cmds:
+      - cmd: |
+          # Solo mirror node destroy
+          $SOLO_COMMAND mirror node destroy --deployment {{ .SOLO_DEPLOYMENT }} --force --dev
+
+      - cmd: |
+          # Solo consensus network destroy
+          $SOLO_COMMAND consensus network destroy --deployment {{ .SOLO_DEPLOYMENT }} --force --dev --delete-pvcs --delete-secrets -q
+
+      - cmd: |
+          # Delete Kind cluster
+          kind delete cluster -n {{ .SOLO_CLUSTER_NAME }}
+
+  default:
+    desc: Run the complete deploy + verify workflow
+    cmds:
+      - task: deploy

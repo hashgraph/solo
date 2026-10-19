@@ -14,7 +14,6 @@ import {
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {InjectTokens} from '../../../../core/dependency-injection/inject-tokens.js';
-import {UserInput} from '../../../../core/user-input.js';
 import {patchInject} from '../../../../core/dependency-injection/container-helper.js';
 import {type TaskList} from '../../../../core/task-list/task-list.js';
 import {type SoloEventBus} from '../../../../core/events/solo-event-bus.js';
@@ -63,13 +62,7 @@ import {KeysCommandDefinition} from '../../../command-definitions/keys-command-d
 import {type InvokedSoloCommand, invokeSoloCommand} from '../../../command-helpers.js';
 import {Flags as flags} from '../../../flags.js';
 import * as constants from '../../../../core/constants.js';
-import {
-  createDirectoryIfNotExists,
-  entityId,
-  Helpers,
-  remoteConfigsToDeploymentsTable,
-  sleep,
-} from '../../../../core/helpers.js';
+import {createDirectoryIfNotExists, entityId, Helpers, sleep} from '../../../../core/helpers.js';
 import {Duration} from '../../../../core/time/duration.js';
 import {BlockNodeDeployedEvent} from '../../../../core/events/event-types/block-node-deployed-event.js';
 import {MirrorNodeDeployedEvent} from '../../../../core/events/event-types/mirror-node-deployed-event.js';
@@ -93,13 +86,13 @@ import {ExplorerStateSchema} from '../../../../data/schema/model/remote/state/ex
 import {RelayNodeStateSchema} from '../../../../data/schema/model/remote/state/relay-node-state-schema.js';
 import {DeploymentPhase} from '../../../../data/schema/model/remote/deployment-phase.js';
 import {ComponentTypes} from '../../../../core/config/remote/enumerations/component-types.js';
-import {ConfigMap} from '../../../../integration/kube/resources/config-map/config-map.js';
 import {ServiceReference} from '../../../../integration/kube/resources/service/service-reference.js';
 import {ServiceName} from '../../../../integration/kube/resources/service/service-name.js';
 import chalk from 'chalk';
 import fs from 'node:fs';
 import path from 'node:path';
 import {DeployArgvBuilders} from './deploy-argv-builders.js';
+import {ComponentCompatibility} from '../../../../business/compatibility/component-compatibility.js';
 import {OrchestratorPipeline} from '../orchestrator-pipeline.js';
 import {SINGLE_DESTROY_COMMAND} from '../../one-shot-command-paths.js';
 import {MINIMUM_CN_VERSION_FOR_SMALL_MEMORY, MINIMUM_CN_VERSION_FOR_STATE_ON_DISK} from '../../../../../version.js';
@@ -203,13 +196,13 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             configReference.value = config;
             config.argv = argv;
 
-            config.consensusNodeConfiguration = {};
-            config.mirrorNodeConfiguration = {};
-            config.blockNodeConfiguration = {};
-            config.explorerNodeConfiguration = {};
-            config.relayNodeConfiguration = {};
-            config.networkConfiguration = {};
-            config.setupConfiguration = {};
+            config.consensusNodeConfiguration ??= {};
+            config.mirrorNodeConfiguration ??= {};
+            config.blockNodeConfiguration ??= {};
+            config.explorerNodeConfiguration ??= {};
+            config.relayNodeConfiguration ??= {};
+            config.networkConfiguration ??= {};
+            config.setupConfiguration ??= {};
             config.versions = versions;
             // The dependency-install preamble ran before this pipeline; if it created the Kind
             // cluster, the one-shot extraPortMappings exist and port-forwards can be skipped.
@@ -217,36 +210,7 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
 
             config.cacheDir ??= constants.SOLO_CACHE_DIR;
 
-            if (config.valuesFile) {
-              if (!fs.existsSync(config.valuesFile)) {
-                throw new ValuesFileNotFoundSoloError(config.valuesFile);
-              }
-              const valuesFileContent: string = fs.readFileSync(context_.config.valuesFile, 'utf8');
-              const profileItems: Record<string, object> =
-                (ValuesFileParser.parse(context_.config.valuesFile, valuesFileContent) as Record<string, object>) ?? {};
-
-              if (profileItems.network) {
-                config.networkConfiguration = profileItems.network as object;
-              }
-              if (profileItems.setup) {
-                config.setupConfiguration = profileItems.setup as object;
-              }
-              if (profileItems.consensusNode) {
-                config.consensusNodeConfiguration = profileItems.consensusNode as object;
-              }
-              if (profileItems.mirrorNode) {
-                config.mirrorNodeConfiguration = profileItems.mirrorNode as object;
-              }
-              if (profileItems.blockNode) {
-                config.blockNodeConfiguration = profileItems.blockNode as object;
-              }
-              if (profileItems.explorerNode) {
-                config.explorerNodeConfiguration = profileItems.explorerNode as object;
-              }
-              if (profileItems.relayNode) {
-                config.relayNodeConfiguration = profileItems.relayNode as object;
-              }
-            }
+            this.applyValuesFileOverrides(config);
             config.clusterRef ||= 'one-shot';
             config.context ||= this.k8Factory.default().contexts().readCurrent();
             config.deployment ||= constants.ONE_SHOT_DEPLOYMENT_NAME;
@@ -366,6 +330,13 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             config.deployRelay = config.deployRelay === undefined ? true : config.deployRelay;
             config.pinger = config.pinger === undefined ? true : config.pinger;
 
+            ComponentCompatibility.assertCompatible(
+              DeployArgvBuilders.buildComponentVersionTuple(config),
+              undefined,
+              config.force,
+              this.logger,
+            );
+
             context_.createdAccounts = [];
           },
         }),
@@ -448,37 +419,6 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             leaseReference.value = await this.leaseManager.create();
             return ListrLock.newAcquireLockTask(leaseReference.value, task);
           },
-        }),
-      }),
-      new OrchestratorPipelinePhase('Check for other deployments', {
-        asListrTask: (): SoloListrTask<OneShotSingleDeployContext> => ({
-          title: 'Check for other deployments',
-          task: async (
-            _: OneShotSingleDeployContext,
-            task: SoloListrTaskWrapper<OneShotSingleDeployContext>,
-          ): Promise<void> => {
-            const existingRemoteConfigs: ConfigMap[] = await this.k8Factory
-              .default()
-              .configMaps()
-              .listForAllNamespaces(Templates.renderConfigMapRemoteConfigLabels());
-            if (existingRemoteConfigs.length > 0) {
-              const existingDeploymentsTable: string[] = remoteConfigsToDeploymentsTable(existingRemoteConfigs);
-              const promptOptions: {default: boolean; message: string} = {
-                default: false,
-                message:
-                  'Warning: Existing solo deployment detected in cluster.\n\n' +
-                  existingDeploymentsTable.join('\n') +
-                  '\n\nCreating another deployment will require additional' +
-                  ' CPU and memory resources. Do you want to proceed and create another deployment?',
-              };
-              const proceed: boolean = await task.prompt(ListrInquirerPromptAdapter).run(confirmPrompt, promptOptions);
-              if (!proceed) {
-                throw new UserBreak('Aborted by user');
-              }
-            }
-          },
-          skip: (context_: OneShotSingleDeployContext): boolean =>
-            context_.config.force === true || context_.config.quiet === true,
         }),
       }),
       OrchestratorPipelinePhase.composite(
@@ -792,7 +732,7 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             this.showVersions(PathEx.join(outputDirectory, 'versions'), deployConfig);
             await this.exposeNodePortServices(deployConfig);
             this.showPortForwards(PathEx.join(outputDirectory, 'forwards'));
-            this.showCacheImageFailures();
+            this.showCacheImageMessages();
             this.showAccounts(context_.createdAccounts, context_, PathEx.join(outputDirectory, 'accounts.json'));
           },
         }),
@@ -920,7 +860,7 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
   }
 
   private getOneShotOutputDirectory(deploymentName: string): string {
-    return PathEx.join(constants.SOLO_HOME_DIR, `one-shot-${UserInput.safeFilenameComponent(deploymentName)}`);
+    return Templates.renderOneShotOutputDirectory(deploymentName);
   }
 
   /**
@@ -996,7 +936,7 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
    */
   private async isRemoteConfigOrphanedOnKindCluster(deployConfig: OneShotSingleDeployConfigClass): Promise<boolean> {
     try {
-      if (!Helpers.isKindContext(deployConfig.context)) {
+      if (!Helpers.isKindContext(deployConfig.context, this.k8Factory)) {
         return false;
       }
 
@@ -1092,9 +1032,12 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
     }
   }
 
-  // Surfaces any images that failed to cache or load during the run. Only shown when there were
-  // failures, so a clean run prints nothing.
-  private showCacheImageFailures(): void {
+  // Surfaces any images that failed to cache or load during the run, and any cache files the pull removed.
+  // Each group is only shown when it has messages, so a clean run prints nothing.
+  private showCacheImageMessages(): void {
+    if (this.logger.getMessageGroupKeys().includes(constants.CACHE_IMAGE_MAINTENANCE_MESSAGE_GROUP)) {
+      this.logger.showMessageGroup(constants.CACHE_IMAGE_MAINTENANCE_MESSAGE_GROUP);
+    }
     if (this.logger.getMessageGroupKeys().includes(constants.CACHE_IMAGE_FAILURE_MESSAGE_GROUP)) {
       this.logger.showMessageGroup(constants.CACHE_IMAGE_FAILURE_MESSAGE_GROUP, MessageLevel.WARN);
     }
@@ -1349,6 +1292,65 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
     }
   }
 
+  /** Loads the per-component sections from `--values-file`; without one, the one-shot single defaults stay in place. */
+  private applyValuesFileOverrides(config: OneShotSingleDeployConfigClass): void {
+    // The command-line profile path is authoritative for this invocation. ConfigManager can
+    // retain a previously persisted value, which otherwise prevents a newly supplied profile
+    // from being loaded and drops its nested component overrides.
+    const profileValuesFile: string = `${config.argv[flags.valuesFile.name] ?? config.valuesFile ?? ''}`;
+    if (!profileValuesFile) {
+      return;
+    }
+    config.valuesFile = PathEx.resolve(profileValuesFile);
+    if (!fs.existsSync(config.valuesFile)) {
+      throw new ValuesFileNotFoundSoloError(config.valuesFile);
+    }
+    const valuesFileContent: string = fs.readFileSync(config.valuesFile, 'utf8');
+    const profileItems: Record<string, object> =
+      (ValuesFileParser.parse(config.valuesFile, valuesFileContent) as Record<string, object>) ?? {};
+
+    // Merge profile values with existing defaults: overwrite matching keys, append new keys,
+    // and preserve existing keys that are not defined by the profile.
+    if (profileItems.network) {
+      config.networkConfiguration = {...config.networkConfiguration, ...(profileItems.network as object)};
+      const networkValuesFileKey: string = flags.getFormattedFlagKey(flags.valuesFile);
+      const networkValuesFile: unknown = config.networkConfiguration[networkValuesFileKey];
+      if (typeof networkValuesFile === 'string' && networkValuesFile) {
+        // Relative to the directory containing the outer --values-file, not the process cwd:
+        // npm run-script executes with cwd set to the package root, not the caller's directory,
+        // which otherwise silently resolves this against the wrong base.
+        config.networkConfiguration[networkValuesFileKey] = PathEx.resolve(
+          PathEx.dirname(config.valuesFile),
+          networkValuesFile,
+        );
+      }
+    }
+    if (profileItems.setup) {
+      config.setupConfiguration = {...config.setupConfiguration, ...(profileItems.setup as object)};
+    }
+    if (profileItems.consensusNode) {
+      config.consensusNodeConfiguration = {
+        ...config.consensusNodeConfiguration,
+        ...(profileItems.consensusNode as object),
+      };
+    }
+    if (profileItems.mirrorNode) {
+      config.mirrorNodeConfiguration = {...config.mirrorNodeConfiguration, ...(profileItems.mirrorNode as object)};
+    }
+    if (profileItems.blockNode) {
+      config.blockNodeConfiguration = {...config.blockNodeConfiguration, ...(profileItems.blockNode as object)};
+    }
+    if (profileItems.explorerNode) {
+      config.explorerNodeConfiguration = {
+        ...config.explorerNodeConfiguration,
+        ...(profileItems.explorerNode as object),
+      };
+    }
+    if (profileItems.relayNode) {
+      config.relayNodeConfiguration = {...config.relayNodeConfiguration, ...(profileItems.relayNode as object)};
+    }
+  }
+
   /**
    * The per-component sections of a values file (network, blockNode, mirrorNode, explorerNode,
    * relayNode) can override a component's version independently of the `config.versions` resolved
@@ -1379,7 +1381,7 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
     config: OneShotSingleDeployConfigClass,
     task: SoloListrTaskWrapper<OneShotSingleDeployContext>,
   ): Promise<void> {
-    if (config.quiet === true || Helpers.isKindContext(config.context)) {
+    if (config.quiet === true || Helpers.isKindContext(config.context, this.k8Factory)) {
       return;
     }
 

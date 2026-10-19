@@ -1,0 +1,10 @@
+{
+  "name": "solo-ci-snyk-tools",
+  "private": true,
+  "description": "Pinned, lockfile-resolved CLI tools for the Snyk Scan CI step. Not part of the Solo package graph.",
+  "dependencies": {
+    "snyk": "1.1307.1",
+    "snyk-to-html": "3.7.9",
+    "@wcj/html-to-markdown-cli": "2.1.1"
+  }
+}

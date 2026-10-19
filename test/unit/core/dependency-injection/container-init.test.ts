@@ -8,6 +8,7 @@ import {container} from 'tsyringe-neo';
 import {Container} from '../../../../src/core/dependency-injection/container-init.js';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import * as constants from '../../../../src/core/constants.js';
+import {resetTestContainer} from '../../../test-container.js';
 import {PathEx} from '../../../../src/business/utils/path-ex.js';
 import {type LocalConfigRuntimeState} from '../../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
 
@@ -19,8 +20,10 @@ describe('Container', (): void => {
   });
 
   afterEach((): void => {
-    // Restore the container to the standard configuration so other suites are unaffected.
-    Container.getInstance().reset(constants.SOLO_HOME_DIR, constants.SOLO_CACHE_DIR, constants.SOLO_LOG_LEVEL);
+    // Restore the container to the test configuration so other suites are unaffected. Restoring the
+    // real Solo home instead would point the logger at the user's own ~/.solo/logs for every suite
+    // that runs afterwards.
+    resetTestContainer();
     fs.rmSync(temporaryDirectory, {recursive: true, force: true});
   });
 
