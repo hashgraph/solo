@@ -263,6 +263,7 @@ import {ConfirmationRequiredSoloError} from './classes/validation/confirmation-r
 import {ValuesFileNotFoundSoloError} from './classes/validation/values-file-not-found-solo-error.js';
 import {ValuesFileParseFailedSoloError} from './classes/validation/values-file-parse-failed-solo-error.js';
 import {InvalidFlagValueSoloError} from './classes/validation/invalid-flag-value-solo-error.js';
+import {InvalidNetworkNodeLifecycleModeSoloError} from './classes/validation/invalid-network-node-lifecycle-mode-solo-error.js';
 import {ComponentVersionIncompatibleSoloError} from './classes/validation/component-version-incompatible-solo-error.js';
 import {ComponentUpgradeRequiresRedeploySoloError} from './classes/validation/component-upgrade-requires-redeploy-solo-error.js';
 import {ComponentImageArchiveTagMismatchSoloError} from './classes/validation/component-image-archive-tag-mismatch-solo-error.js';
@@ -703,6 +704,7 @@ export class SoloErrors {
     readonly valuesFileNotFound: typeof ValuesFileNotFoundSoloError;
     readonly valuesFileParseFailed: typeof ValuesFileParseFailedSoloError;
     readonly invalidFlagValue: typeof InvalidFlagValueSoloError;
+    readonly invalidNetworkNodeLifecycleMode: typeof InvalidNetworkNodeLifecycleModeSoloError;
     readonly componentVersionIncompatible: typeof ComponentVersionIncompatibleSoloError;
     readonly componentUpgradeRequiresRedeploy: typeof ComponentUpgradeRequiresRedeploySoloError;
     readonly componentImageArchiveTagMismatch: typeof ComponentImageArchiveTagMismatchSoloError;
@@ -790,6 +792,7 @@ export class SoloErrors {
     valuesFileNotFound: ValuesFileNotFoundSoloError,
     valuesFileParseFailed: ValuesFileParseFailedSoloError,
     invalidFlagValue: InvalidFlagValueSoloError,
+    invalidNetworkNodeLifecycleMode: InvalidNetworkNodeLifecycleModeSoloError,
     componentVersionIncompatible: ComponentVersionIncompatibleSoloError,
     componentUpgradeRequiresRedeploy: ComponentUpgradeRequiresRedeploySoloError,
     componentImageArchiveTagMismatch: ComponentImageArchiveTagMismatchSoloError,

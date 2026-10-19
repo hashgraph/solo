@@ -65,6 +65,7 @@ import {Zippy} from '../../../../src/core/zippy.js';
 import {type NetworkNodes} from '../../../../src/core/network-nodes.js';
 import {NodeStatusCodes} from '../../../../src/core/enumerations.js';
 import {type LocalConfigRuntimeState} from '../../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
+import {NetworkNodeLifecycle} from '../../../../src/core/network-node-lifecycle.js';
 
 export class ConsensusNodeTest extends BaseCommandTest {
   public static keys(options: BaseTestOptions): void {
@@ -458,7 +459,8 @@ export class ConsensusNodeTest extends BaseCommandTest {
           ROOT_CONTAINER,
         );
 
-        if (!enableLocalBuildPathTesting) {
+        // the consensus node image already contains the platform software, so nothing is fetched or extracted
+        if (!enableLocalBuildPathTesting && !NetworkNodeLifecycle.isConsensusNodeImage()) {
           expect(
             await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`),
             'expect extract-platform.sh to be present on the pods',
