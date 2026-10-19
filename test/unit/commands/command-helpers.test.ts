@@ -12,6 +12,7 @@ import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens
 import {type TaskList, type TaskNodeType} from '../../../src/core/task-list/task-list.js';
 import {type ListrContext, type ListrRendererValue} from 'listr2';
 import {BASE_TEST_DIR, getTestLogger} from '../../test-utility.js';
+import {type AnyObject} from '../../../src/types/aliases.js';
 
 describe('CommandHelpers.subTaskSoloCommand', (): void => {
   let configManager: ConfigManager;
@@ -41,9 +42,10 @@ describe('CommandHelpers.subTaskSoloCommand', (): void => {
     let scopedComponentImage: string | undefined;
     let scopedComponentImageArchive: string | undefined;
 
-    sinon.stub(ArgumentProcessor, 'process').callsFake(async (): Promise<void> => {
+    sinon.stub(ArgumentProcessor, 'process').callsFake(async (): Promise<AnyObject> => {
       scopedComponentImage = configManager.getFlag<string>(flags.componentImage);
       scopedComponentImageArchive = configManager.getFlag<string>(flags.componentImageArchive);
+      return {};
     });
 
     await CommandHelpers.subTaskSoloCommand(
