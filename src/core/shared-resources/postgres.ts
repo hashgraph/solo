@@ -27,6 +27,7 @@ import {Duration} from '../time/duration.js';
 import {type Pod} from '../../integration/kube/resources/pod/pod.js';
 import {type Pods} from '../../integration/kube/resources/pod/pods.js';
 import {SemanticVersion} from '../../business/utils/semantic-version.js';
+import {MirrorNodeResourceNames, type MirrorNodeDatabaseUser} from '../mirror-node-resource-names.js';
 
 @injectable()
 export class PostgresSharedResource {
@@ -76,10 +77,38 @@ export class PostgresSharedResource {
     return Base64.decode(value) || value;
   }
 
+  private static readOptionalSecretValue(secret: Secret, key: string, fallback: string): string {
+    const encoded: string | undefined = secret.data[key];
+    return encoded ? Base64.decode(encoded) : fallback;
+  }
+
+  /**
+   * The upstream init script creates the `readonly`, `readwrite` and `temporary_admin` roles unconditionally.
+   * Those roles are cluster-wide, so a second mirror node database in the same Postgres would fail on them.
+   * Returns the path of a copy of the script in which each of those statements only runs if the role is missing.
+   */
+  private static writeReusableInitScript(initScriptLocalPath: string): string {
+    const script: string = fs.readFileSync(initScriptLocalPath, 'utf8');
+    // `$$` is escaped because the statements sit inside an unquoted shell heredoc
+    const patched: string = script.replaceAll(
+      /^create role (\w+)( in role \w+)?;$/gm,
+      (_statement: string, role: string, membership: string | undefined): string =>
+        String.raw`do \$\$ begin if not exists (select from pg_roles where rolname = '${role}') then ` +
+        String.raw`create role ${role}${membership ?? ''}; end if; end \$\$;`,
+    );
+
+    const directory: string = PathEx.join(PathEx.dirname(initScriptLocalPath), 'reusable');
+    fs.mkdirSync(directory, {recursive: true});
+    const patchedPath: string = PathEx.join(directory, PathEx.basename(initScriptLocalPath));
+    fs.writeFileSync(patchedPath, patched);
+    return patchedPath;
+  }
+
   public async initializeMirrorNode(
     namespace: NamespaceName,
     context: string,
     prefix: string = 'HIERO',
+    names: MirrorNodeResourceNames = MirrorNodeResourceNames.primary(),
   ): Promise<void> {
     const containerReference: ContainerReference = await this.resolveContainerReference(namespace, context);
     const k8Container: Container = this.k8Factory.getK8(context).containers().readByRef(containerReference);
@@ -99,7 +128,7 @@ export class PostgresSharedResource {
     }
 
     try {
-      await k8Container.copyTo(initScriptLocalPath, '/tmp');
+      await k8Container.copyTo(PostgresSharedResource.writeReusableInitScript(initScriptLocalPath), '/tmp');
       await k8Container.execContainer('chmod +x /tmp/init-postgres.sh');
     } catch (error) {
       throw new SoloErrors.component.postgresInitScriptCopyFailed(namespace.name, error as Error);
@@ -116,7 +145,7 @@ export class PostgresSharedResource {
     const mirrorPasswordsSecret: Secret = await this.k8Factory
       .getK8(context)
       .secrets()
-      .read(namespace, 'mirror-passwords');
+      .read(namespace, names.passwordsSecretName);
 
     const superUserPassword: string = Base64.decode(postgresPasswordsSecret.data['password']);
     const databaseName: string = Base64.decode(mirrorPasswordsSecret.data[`${prefix}_MIRROR_IMPORTER_DB_NAME`]);
@@ -127,7 +156,24 @@ export class PostgresSharedResource {
     const restUsernameEncoded: string | undefined =
       mirrorPasswordsSecret.data[`${prefix}_MIRROR_REST_DB_USERNAME`] ??
       mirrorPasswordsSecret.data[`${prefix}_MIRROR_IMPORTER_DB_RESTUSERNAME`];
-    const restUsername: string = restUsernameEncoded ? Base64.decode(restUsernameEncoded) : 'mirror_rest';
+    const restUsername: string = restUsernameEncoded
+      ? Base64.decode(restUsernameEncoded)
+      : names.databaseUsername('rest');
+    const usernameOf: (module: string, user: MirrorNodeDatabaseUser) => string = (
+      module: string,
+      user: MirrorNodeDatabaseUser,
+    ): string =>
+      PostgresSharedResource.readOptionalSecretValue(
+        mirrorPasswordsSecret,
+        `${prefix}_MIRROR_${module}_DB_USERNAME`,
+        names.databaseUsername(user),
+      );
+    const importerUsername: string = usernameOf('IMPORTER', 'importer');
+    const graphqlUsername: string = usernameOf('GRAPHQL', 'graphql');
+    const grpcUsername: string = usernameOf('GRPC', 'grpc');
+    const restJavaUsername: string = usernameOf('RESTJAVA', 'restjava');
+    const rosettaUsername: string = usernameOf('ROSETTA', 'rosetta');
+    const web3Username: string = usernameOf('WEB3', 'web3');
 
     const maxAttempts: number = 3;
     const backoff: number = 2;
@@ -168,6 +214,12 @@ export class PostgresSharedResource {
           `export IMPORTER_PASSWORD=${PostgresSharedResource.tryToDecode(mirrorPasswordsSecret.data[`${prefix}_MIRROR_IMPORTER_DB_PASSWORD`])}`,
           `export REST_PASSWORD=${PostgresSharedResource.tryToDecode(mirrorPasswordsSecret.data[`${prefix}_MIRROR_REST_DB_PASSWORD`])}`,
           `export REST_USERNAME=${restUsername}`,
+          `export IMPORTER_USERNAME=${importerUsername}`,
+          `export GRAPHQL_USERNAME=${graphqlUsername}`,
+          `export GRPC_USERNAME=${grpcUsername}`,
+          `export REST_JAVA_USERNAME=${restJavaUsername}`,
+          `export ROSETTA_USERNAME=${rosettaUsername}`,
+          `export WEB3_USERNAME=${web3Username}`,
           `export REST_JAVA_PASSWORD=${PostgresSharedResource.tryToDecode(mirrorPasswordsSecret.data[`${prefix}_MIRROR_RESTJAVA_DB_PASSWORD`])}`,
           `export ROSETTA_PASSWORD=${PostgresSharedResource.tryToDecode(mirrorPasswordsSecret.data[`${prefix}_MIRROR_ROSETTA_DB_PASSWORD`])}`,
           `export WEB3_PASSWORD=${PostgresSharedResource.tryToDecode(mirrorPasswordsSecret.data[`${prefix}_MIRROR_WEB3_DB_PASSWORD`])}`,
@@ -182,7 +234,7 @@ export class PostgresSharedResource {
           '  # regenerated while this PVC survived a prior destroy, leaving the stored passwords stale.',
           '  # Re-apply the current passwords to every role to avoid an auth mismatch.',
           '  # Guard on role existence so optional roles (graphql/rosetta) are skipped cleanly',
-          '  reconcile_roles=("${OWNER_USERNAME}" mirror_importer "${REST_USERNAME}" mirror_rest_java mirror_web3 mirror_grpc mirror_graphql mirror_rosetta)',
+          '  reconcile_roles=("${OWNER_USERNAME}" "${IMPORTER_USERNAME}" "${REST_USERNAME}" "${REST_JAVA_USERNAME}" "${WEB3_USERNAME}" "${GRPC_USERNAME}" "${GRAPHQL_USERNAME}" "${ROSETTA_USERNAME}")',
           '  reconcile_passwords=("${OWNER_PASSWORD}" "${IMPORTER_PASSWORD}" "${REST_PASSWORD}" "${REST_JAVA_PASSWORD}" "${WEB3_PASSWORD}" "${GRPC_PASSWORD}" "${GRAPHQL_PASSWORD}" "${ROSETTA_PASSWORD}")',
           '  for i in "${!reconcile_roles[@]}"; do',
           "    role_exists=$(psql -tAc \"SELECT 1 FROM pg_roles WHERE rolname = '${reconcile_roles[$i]}'\" 2>/dev/null | tr -d '[:space:]')",
@@ -201,10 +253,11 @@ export class PostgresSharedResource {
           `  echo "Partial initialization detected: database '${databaseName}' exists but no sentinel. Cleaning up for fresh initialization."`,
           `  psql -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${databaseName}' AND pid <> pg_backend_pid();" 2>/dev/null || true`,
           `  psql -c "DROP DATABASE IF EXISTS ${databaseName};"`,
-          `  for role in mirror_graphql mirror_grpc mirror_importer mirror_api ${restUsername} mirror_rest_java mirror_rosetta mirror_web3 ${ownerUsername}; do`,
+          `  for role in ${graphqlUsername} ${grpcUsername} ${importerUsername} mirror_api ${restUsername} ${restJavaUsername} ${rosettaUsername} ${web3Username} ${ownerUsername}; do`,
           '    psql -c "DROP USER IF EXISTS ${role};" 2>/dev/null || true',
           '  done',
-          '  psql -c "DROP ROLE IF EXISTS temporary_admin, readwrite, readonly;" 2>/dev/null || true',
+          '  # readonly, readwrite and temporary_admin are shared by every mirror node database in this Postgres',
+          '  # (the importer migrations hardcode temporary_admin), so they are never dropped here.',
           'else',
           '  # Database does not exist — check whether only the owner user was created (crash',
           '  # between CREATE USER and CREATE DATABASE). Drop the orphaned user so the init',
@@ -255,6 +308,42 @@ export class PostgresSharedResource {
           throw new SoloErrors.component.postgresInitScriptFailed(attempt, error);
         }
         await sleep(Duration.ofSeconds(backoff * attempt)); // wait before retrying
+      }
+    }
+  }
+
+  /**
+   * Drops the database and the login roles of one mirror node, leaving the shared roles and the
+   * databases of the other mirror nodes in the same Postgres untouched.
+   */
+  public async dropMirrorNode(
+    namespace: NamespaceName,
+    context: string,
+    names: MirrorNodeResourceNames,
+  ): Promise<void> {
+    const k8Container: Container = this.k8Factory
+      .getK8(context)
+      .containers()
+      .readByRef(await this.resolveContainerReference(namespace, context));
+
+    const statements: string[] = [
+      `DROP DATABASE IF EXISTS "${names.databaseName}" WITH (FORCE);`,
+      ...Object.values(names.databaseUsernames).map((username: string): string => `DROP ROLE IF EXISTS "${username}";`),
+    ];
+
+    for (const statement of statements) {
+      try {
+        await k8Container.execContainer([
+          'bash',
+          '-c',
+          `PGPASSWORD=$(cat $POSTGRES_PASSWORD_FILE) psql -U postgres -h 127.0.0.1 -v ON_ERROR_STOP=1 -c '${statement}'`,
+        ]);
+      } catch (error) {
+        // best-effort cleanup: a leftover role or database must not block destroying the mirror node
+        this.logger.warn(
+          `Failed to run '${statement}' while dropping mirror node database ${names.databaseName}`,
+          error,
+        );
       }
     }
   }
