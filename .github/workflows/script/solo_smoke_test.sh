@@ -56,8 +56,9 @@ function dump_socket_state ()
   local reason="${1:-requested}"
   printf "\r::group::Socket state (ss -tn) at %s: %s\n" "$(date -u +%H:%M:%S)" "${reason}"
   if command -v ss > /dev/null 2>&1; then
-    # relay (37546), mirror rest (38081), haproxy node1 (35211)
-    ss -tn | grep -E 'State|:(37546|38081|35211)\b' || true
+    # unfiltered with owning process, timers and last send/receive ages: the loopback side of a port-forward
+    # alone looks identical for a stuck request and an idle connection
+    ss -tnpio || true
   else
     echo "ss is not available on this runner"
   fi
@@ -65,12 +66,12 @@ function dump_socket_state ()
   printf "\r::endgroup::\n"
 }
 
-# Mocha prints "  N) <test title>" the moment a test fails (including 'Timeout of ...ms exceeded'), so watch the
+# Mocha prints "  N) <test title>" (possibly wrapped in ANSI color codes) the moment a test fails (including 'Timeout of ...ms exceeded'), so watch the
 # test output and capture the socket state once, right when the first failure shows up.
 function watch_contract_test_timeout ()
 {
   local output_file="$1"
-  until grep -Eq '^[[:space:]]+[0-9]+\) ' "${output_file}" 2> /dev/null; do
+  until grep -Eq $'^[[:space:]]*(\e\\[[0-9;]*m)*[[:space:]]*[0-9]+\\) ' "${output_file}" 2> /dev/null; do
     sleep 2
   done
   dump_socket_state "first smart contract test failure detected"
@@ -85,6 +86,9 @@ function start_contract_test ()
   result=0
   local test_output
   test_output=$(mktemp)
+  if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v ss > /dev/null 2>&1; then
+    { sudo apt-get update -qq && sudo apt-get install -y -qq iproute2; } > /dev/null 2>&1 || true
+  fi
   watch_contract_test_timeout "${test_output}" &
   local watcher_pid=$!
   npm run hh:test 2>&1 | tee "${test_output}" || result=$?
