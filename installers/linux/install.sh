@@ -152,11 +152,34 @@ compute_sha256() {
   fi
 }
 
+# Prints the local cosign version as "major minor patch", or nothing when cosign does not report one.
+cosign_version() {
+  cosign version 2>&1 |
+    sed -n 's/^GitVersion:[[:space:]]*v\{0,1\}\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\).*/\1 \2 \3/p' |
+    head -n 1
+}
+
 # Verifies the SHA256SUMS signature when cosign is installed; the checksum check itself always runs.
 verify_checksums_signature() {
   if ! command -v cosign >/dev/null 2>&1; then
     info "cosign not found; skipping signature verification of ${CHECKSUMS_ASSET} (checksum is still verified)"
     return 0
+  fi
+
+  read -r cosign_major cosign_minor cosign_patch <<EOF
+$(cosign_version)
+EOF
+  # The release bundles use the Sigstore bundle format: cosign 2.4.2 reads it, 2.4.1 needs a flag, older releases cannot.
+  bundle_format_option=''
+  if [ -n "${cosign_patch}" ]; then
+    cosign_release=$((cosign_major * 1000000 + cosign_minor * 1000 + cosign_patch))
+    if [ "${cosign_release}" -lt 2004001 ]; then
+      warn "cosign ${cosign_major}.${cosign_minor}.${cosign_patch} cannot verify the release signature (needs 2.4.1 or later); skipping signature verification of ${CHECKSUMS_ASSET} (checksum is still verified)"
+      return 0
+    fi
+    if [ "${cosign_release}" -lt 2004002 ]; then
+      bundle_format_option='--new-bundle-format'
+    fi
   fi
 
   bundle="${work_directory}/${CHECKSUMS_ASSET}.sigstore.json"
@@ -166,6 +189,7 @@ verify_checksums_signature() {
   fi
 
   if ! cosign_output="$(cosign verify-blob \
+    ${bundle_format_option:+"${bundle_format_option}"} \
     --bundle "${bundle}" \
     --certificate-identity-regexp "^${SOLO_REPOSITORY_URL}/\\.github/workflows/" \
     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
