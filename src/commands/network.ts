@@ -11,12 +11,8 @@ import {UserBreak} from '../core/errors/user-break.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
-import {SoloChartRepository} from '../core/solo-chart-repository.js';
-import {
-  type ConsensusChartTarget,
-  ConsensusChartOrchestrator,
-  RetryPolicy,
-} from '../core/consensus-chart-orchestrator.js';
+import {ConsensusChartOrchestrator, RetryPolicy} from '../core/consensus-chart-orchestrator.js';
+import {type ConsensusChartTarget} from '../core/consensus-chart-target.js';
 import {type ConsensusChartLayout} from '../core/consensus-chart-layout.js';
 import {DEFAULT_SOLO_NAMESPACE_LABELS, getEnvironmentVariable} from '../core/constants.js';
 import {NetworkNodeLifecycle} from '../core/network-node-lifecycle.js';
@@ -126,11 +122,7 @@ export class NetworkCommand extends BaseCommand {
     this.zippy = patchInject(zippy, InjectTokens.Zippy, this.constructor.name);
     this.downloader = patchInject(downloader, InjectTokens.PackageDownloader, this.constructor.name);
     this.pvcMountVerifier = patchInject(pvcMountVerifier, InjectTokens.PvcMountVerifier, this.constructor.name);
-    this.consensusCharts = patchInject(
-      consensusCharts,
-      InjectTokens.ConsensusChartOrchestrator,
-      this.constructor.name,
-    );
+    this.consensusCharts = patchInject(consensusCharts, InjectTokens.ConsensusChartOrchestrator, this.constructor.name);
   }
 
   private static readonly DEPLOY_CONFIGS_NAME: string = 'deployConfigs';
@@ -1398,10 +1390,7 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /** Node aliases this deployment places in the given cluster, in declaration order. */
-  private nodeAliasesForCluster(
-    config: NetworkDeployConfigClass,
-    clusterReference: ClusterReferenceName,
-  ): NodeAlias[] {
+  private nodeAliasesForCluster(config: NetworkDeployConfigClass, clusterReference: ClusterReferenceName): NodeAlias[] {
     return config.consensusNodes
       .filter((candidate): boolean => candidate.cluster === clusterReference)
       .map((candidate): NodeAlias => candidate.name as NodeAlias);
@@ -2025,7 +2014,11 @@ export class NetworkCommand extends BaseCommand {
 
               // A first deploy is the one moment the layout is a free choice; every later command
               // discovers it from the installed releases instead.
-              await this.renderNetwork(config, clusterReference, constants.CONFIG.EXPERIMENTAL_PER_CONSENSUS_NODE_CHART);
+              await this.renderNetwork(
+                config,
+                clusterReference,
+                constants.CONFIG.EXPERIMENTAL_PER_CONSENSUS_NODE_CHART,
+              );
               showVersionBanner(this.logger, this.consensusChartName, config.soloChartVersion);
             }
           },

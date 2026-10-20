@@ -4,12 +4,9 @@ import {expect} from 'chai';
 import {describe, it, beforeEach, afterEach} from 'mocha';
 import sinon, {type SinonStub} from 'sinon';
 
-import {
-  type ConsensusChartTarget,
-  ConsensusChartOrchestrator,
-  RetryPolicy,
-} from '../../../src/core/consensus-chart-orchestrator.js';
-import {ConsensusChartLayoutKind} from '../../../src/core/consensus-chart-layout.js';
+import {ConsensusChartOrchestrator, RetryPolicy} from '../../../src/core/consensus-chart-orchestrator.js';
+import {type ConsensusChartTarget} from '../../../src/core/consensus-chart-target.js';
+import {type ConsensusChartLayout, ConsensusChartLayoutKind} from '../../../src/core/consensus-chart-layout.js';
 import {NamespaceName} from '../../../src/types/namespace/namespace-name.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import * as constants from '../../../src/core/constants.js';
@@ -17,6 +14,8 @@ import {SoloConfigSchema} from '../../../src/data/schema/model/solo/solo-config-
 import {Duration} from '../../../src/core/time/duration.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import fs from 'node:fs';
+import {dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 /**
  * The orchestrator is the only thing that decides which Helm releases exist and in what order they
@@ -41,11 +40,13 @@ describe('ConsensusChartOrchestrator', (): void => {
 
   /** Every `chartManager.upgrade` call as `[releaseName, chartName, reuseValues]`. */
   function upgradeCalls(): Array<[string, string, boolean]> {
-    return chartManager.upgrade.getCalls().map((call): [string, string, boolean] => [
-      call.args[1] as string,
-      call.args[2] as string,
-      call.args[7] as boolean,
-    ]);
+    return chartManager.upgrade
+      .getCalls()
+      .map((call): [string, string, boolean] => [
+        call.args[1] as string,
+        call.args[2] as string,
+        call.args[7] as boolean,
+      ]);
   }
 
   function buildOrchestrator(): ConsensusChartOrchestrator {
@@ -108,7 +109,9 @@ describe('ConsensusChartOrchestrator', (): void => {
     it('treats a namespace it cannot list as nothing installed', async (): Promise<void> => {
       chartManager.getInstalledReleases.rejects(new Error('namespaces "solo-e2e" not found'));
 
-      expect((await orchestrator.discover(target)).kind).to.equal(ConsensusChartLayoutKind.NONE);
+      const layout: ConsensusChartLayout = await orchestrator.discover(target);
+
+      expect(layout.kind).to.equal(ConsensusChartLayoutKind.NONE);
     });
 
     it('keys the cache by context as well as namespace', async (): Promise<void> => {
@@ -125,9 +128,7 @@ describe('ConsensusChartOrchestrator', (): void => {
    * turn an umbrella deployment into a split one, however the flag is set.
    */
   describe('existing deployments are never converted', (): void => {
-    const umbrellaRelease: Array<{name: string; chart: string}> = [
-      {name: SHARED, chart: 'solo-deployment-0.67.0'},
-    ];
+    const umbrellaRelease: Array<{name: string; chart: string}> = [{name: SHARED, chart: 'solo-deployment-0.67.0'}];
     const delta: Record<string, unknown> = {hedera: {nodes: [{name: 'node1'}, {name: 'node2'}]}};
     let flagWasSet: boolean;
 
@@ -178,7 +179,8 @@ describe('ConsensusChartOrchestrator', (): void => {
       // The real invariant behind this policy: no command may convert a deployment. Asserting it on
       // the orchestrator alone would not catch somebody re-wiring `convertToSplit` into a lifecycle
       // task, which is exactly how the conversion got there the first time.
-      const sourceRoot: string = PathEx.join(import.meta.dirname, '..', '..', '..', 'src');
+      const here: string = dirname(fileURLToPath(import.meta.url));
+      const sourceRoot: string = PathEx.join(here, '..', '..', '..', 'src');
       const definition: string = PathEx.join(sourceRoot, 'core', 'consensus-chart-orchestrator.ts');
 
       const callers: string[] = [];
@@ -187,10 +189,12 @@ describe('ConsensusChartOrchestrator', (): void => {
           const entryPath: string = PathEx.join(directory, entry.name);
           if (entry.isDirectory()) {
             walk(entryPath);
-          } else if (entry.name.endsWith('.ts') && entryPath !== definition) {
-            if (fs.readFileSync(entryPath, 'utf8').includes('.convertToSplit(')) {
-              callers.push(entryPath.slice(sourceRoot.length + 1));
-            }
+          } else if (
+            entry.name.endsWith('.ts') &&
+            entryPath !== definition &&
+            fs.readFileSync(entryPath, 'utf8').includes('.convertToSplit(')
+          ) {
+            callers.push(entryPath.slice(sourceRoot.length + 1));
           }
         }
       };
@@ -269,7 +273,7 @@ describe('ConsensusChartOrchestrator', (): void => {
         nodes: [{alias: 'node1' as NodeAlias, action: 'upgrade'}],
       });
 
-      expect(upgradeCalls().every(([, , reuseValues]): boolean => reuseValues)).to.be.true;
+      expect(upgradeCalls().every((call: [string, string, boolean]): boolean => call[2])).to.be.true;
     });
 
     it('does not reuse values for a node being installed for the first time', async (): Promise<void> => {
@@ -324,7 +328,12 @@ describe('ConsensusChartOrchestrator', (): void => {
       chartManager.getReleaseValues.resolves({
         cloud: {generateNewSecrets: true, minio: {enabled: true}},
         defaults: {root: {image: {tag: '0.46.2'}}},
-        hedera: {nodes: [{name: 'node1', nodeId: 0}, {name: 'node2', nodeId: 1}]},
+        hedera: {
+          nodes: [
+            {name: 'node1', nodeId: 0},
+            {name: 'node2', nodeId: 1},
+          ],
+        },
       });
     });
 
@@ -378,9 +387,7 @@ describe('ConsensusChartOrchestrator', (): void => {
 
     it('reports how far it got when a node release fails', async (): Promise<void> => {
       // Every attempt must fail: a single rejection is absorbed by the bounded retry, by design.
-      chartManager.upgrade
-        .withArgs(sinon.match.any, 'consensus-node-node2')
-        .rejects(new Error('boom'));
+      chartManager.upgrade.withArgs(sinon.match.any, 'consensus-node-node2').rejects(new Error('boom'));
 
       await expect(orchestrator.convertToSplit(target, aliases)).to.be.rejectedWith(/1 of 2/);
     });

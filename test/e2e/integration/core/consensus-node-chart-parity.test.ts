@@ -5,7 +5,6 @@ import {expect} from 'chai';
 import {execFileSync} from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
-import path from 'node:path';
 import * as yaml from 'yaml';
 
 import {ConsensusNodeValuesTranslator} from '../../../../src/core/consensus-node-values-translator.js';
@@ -92,7 +91,8 @@ describe('consensus-node chart renders the same objects as the umbrella chart', 
 
   before(function (): void {
     if (!chartsDirectory || !fs.existsSync(PathEx.join(chartsDirectory, constants.CONSENSUS_NODE_CHART))) {
-      // eslint-disable-next-line @typescript-eslint/no-invalid-this
+      // mocha's own skip mechanism; it is only reachable through the hook's `this`
+      // eslint-disable-next-line unicorn/no-this-outside-of-class
       this.skip();
     }
     workDirectory = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'chart-parity-'));
@@ -143,8 +143,12 @@ describe('consensus-node chart renders the same objects as the umbrella chart', 
     const actual: Map<string, RenderedObject> = parseManifests(splitManifest);
 
     const missing: string[] = [
-      ...[...expected.keys()].filter((key: string): boolean => !actual.has(key)).map((key: string): string => `-${key}`),
-      ...[...actual.keys()].filter((key: string): boolean => !expected.has(key)).map((key: string): string => `+${key}`),
+      ...[...expected.keys()]
+        .filter((key: string): boolean => !actual.has(key))
+        .map((key: string): string => `-${key}`),
+      ...[...actual.keys()]
+        .filter((key: string): boolean => !expected.has(key))
+        .map((key: string): string => `+${key}`),
     ];
 
     const changed: string[] = [];
@@ -174,14 +178,11 @@ describe('consensus-node chart renders the same objects as the umbrella chart', 
   ];
 
   for (const {name, overrides} of cases) {
-    it(`renders the same object set with ${name}`, function (): void {
-      // eslint-disable-next-line @typescript-eslint/no-invalid-this
-      this.timeout(120_000);
-
+    it(`renders the same object set with ${name}`, (): void => {
       const {missing, changed} = compareRenders(name.replaceAll(/\W+/g, '-'), overrides);
 
       expect(missing, `objects present on only one side with ${name}`).to.deep.equal([]);
       expect(changed, `fields that differ between the two renders with ${name}`).to.deep.equal([]);
-    });
+    }).timeout(120_000);
   }
 });

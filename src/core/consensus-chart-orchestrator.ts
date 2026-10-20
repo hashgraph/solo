@@ -20,31 +20,10 @@ import {HelmChartValues} from '../integration/helm/model/values.js';
 import {type ReleaseItem} from '../integration/helm/model/release/release-item.js';
 import {type NamespaceName} from '../types/namespace/namespace-name.js';
 import {type AnyObject, type NodeAlias} from '../types/aliases.js';
-import {type ClusterReferenceName, type Context} from '../types/index.js';
+import {type Context} from '../types/index.js';
 import {PathEx} from '../business/utils/path-ex.js';
-
-/** Everything the orchestrator needs to address one cluster's half of a deployment. */
-export interface ConsensusChartTarget {
-  namespace: NamespaceName;
-  kubeContext: Context;
-  clusterReference: ClusterReferenceName;
-  /** A local charts directory; empty/undefined resolves the published OCI repository instead. */
-  chartDirectory?: string;
-  soloChartVersion: string;
-  cacheDirectory: string;
-}
-
-/** What should happen to one node's release. */
-export type NodeAction = 'upgrade' | 'install' | 'uninstall';
-
-/**
- * One declarative description of a release-level change, so the ordering rules live in a single
- * place instead of being re-derived by each caller.
- */
-export interface DeltaPlan {
-  shared: 'upgrade' | 'skip';
-  nodes: ReadonlyArray<{alias: NodeAlias; action: NodeAction}>;
-}
+import {type ConsensusChartTarget} from './consensus-chart-target.js';
+import {type ConsensusChartDeltaPlan} from './consensus-chart-delta-plan.js';
 
 /**
  * How a failed upgrade is retried.
@@ -234,7 +213,11 @@ export class ConsensusChartOrchestrator {
    * "umbrella" has no `defaults.*` or `cloud.*` and would render a node from chart defaults.
    * `--reuse-values` is what supplies the rest, and it is why the delta must stay a delta.
    */
-  public async applyDelta(target: ConsensusChartTarget, umbrellaDelta: AnyObject, plan: DeltaPlan): Promise<void> {
+  public async applyDelta(
+    target: ConsensusChartTarget,
+    umbrellaDelta: AnyObject,
+    plan: ConsensusChartDeltaPlan,
+  ): Promise<void> {
     const layout: ConsensusChartLayout = await this.discover(target);
 
     if (!layout.isSplit()) {
@@ -380,7 +363,11 @@ export class ConsensusChartOrchestrator {
           ConsensusChartLayout.perNodeReleaseName(nodeAlias),
           constants.CONSENSUS_NODE_CHART,
           new HelmChartValues().file(
-            this.writeValues(target, `convert-${nodeAlias}`, ConsensusNodeValuesTranslator.toNodeValues(umbrella, nodeAlias)),
+            this.writeValues(
+              target,
+              `convert-${nodeAlias}`,
+              ConsensusNodeValuesTranslator.toNodeValues(umbrella, nodeAlias),
+            ),
           ),
           false,
           RetryPolicy.RETRY_ONLY,
@@ -392,7 +379,7 @@ export class ConsensusChartOrchestrator {
         // same command resume it.
         throw new SoloErrors.component.chartInstallFailed(
           `${ConsensusChartLayout.perNodeReleaseName(nodeAlias)} (${installed.length} of ${nodeAliases.length} ` +
-            `consensus node releases installed; re-run to resume)`,
+            'consensus node releases installed; re-run to resume)',
           error,
         );
       }
@@ -481,5 +468,3 @@ export class ConsensusChartOrchestrator {
     }
   }
 }
-
-export {ConsensusChartLayoutKind};

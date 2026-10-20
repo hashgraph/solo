@@ -8,7 +8,7 @@ import {getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
-import {ConsensusChartOrchestrator} from '../../../src/core/consensus-chart-orchestrator.js';
+import {type ConsensusChartOrchestrator} from '../../../src/core/consensus-chart-orchestrator.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {type ChartManager} from '../../../src/core/chart-manager.js';
@@ -237,9 +237,7 @@ describe('NetworkCommand unit tests', (): void => {
       options.chartManager.install = sinon.stub().returns(true);
       options.chartManager.uninstall = sinon.stub().returns(true);
       options.chartManager.getInstalledReleases = sinon.stub().resolves([]);
-      container
-        .resolve<ConsensusChartOrchestrator>(InjectTokens.ConsensusChartOrchestrator)
-        .invalidateAll();
+      container.resolve<ConsensusChartOrchestrator>(InjectTokens.ConsensusChartOrchestrator).invalidateAll();
 
       options.remoteConfig = container.resolve<RemoteConfigRuntimeState>(InjectTokens.RemoteConfigRuntimeState);
       options.remoteConfig.isLoaded = sinon.stub().returns(true);
@@ -295,9 +293,7 @@ describe('NetworkCommand unit tests', (): void => {
         options.chartManager.getInstalledReleases = sinon
           .stub()
           .resolves([{name: constants.SOLO_DEPLOYMENT_CHART, chart: `${constants.SOLO_DEPLOYMENT_CHART}-0.67.0`}]);
-        container
-          .resolve<ConsensusChartOrchestrator>(InjectTokens.ConsensusChartOrchestrator)
-          .invalidateAll();
+        container.resolve<ConsensusChartOrchestrator>(InjectTokens.ConsensusChartOrchestrator).invalidateAll();
 
         // @ts-expect-error - TS2341: to mock
         networkCommand.componentFactory = {

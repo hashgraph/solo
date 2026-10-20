@@ -15,12 +15,9 @@ import {type HelmClient} from '../../integration/helm/helm-client.js';
 import {ReleaseItem} from '../../integration/helm/model/release/release-item.js';
 import {Zippy} from '../../core/zippy.js';
 import * as constants from '../../core/constants.js';
-import {SoloChartRepository} from '../../core/solo-chart-repository.js';
-import {
-  type ConsensusChartTarget,
-  type DeltaPlan,
-  ConsensusChartOrchestrator,
-} from '../../core/consensus-chart-orchestrator.js';
+import {ConsensusChartOrchestrator} from '../../core/consensus-chart-orchestrator.js';
+import {type ConsensusChartTarget} from '../../core/consensus-chart-target.js';
+import {type ConsensusChartDeltaPlan} from '../../core/consensus-chart-delta-plan.js';
 import {ConsensusChartLayout} from '../../core/consensus-chart-layout.js';
 import {ConsensusNodeValuesTranslator} from '../../core/consensus-node-values-translator.js';
 import {
@@ -401,11 +398,7 @@ export class NodeCommandTasks {
     this.gitClient = patchInject(gitClient, InjectTokens.GitClient, this.constructor.name);
     this.eventBus = patchInject(eventBus, InjectTokens.SoloEventBus, this.constructor.name);
     configProvider = patchInject(configProvider, InjectTokens.ConfigProvider, this.constructor.name);
-    this.consensusCharts = patchInject(
-      consensusCharts,
-      InjectTokens.ConsensusChartOrchestrator,
-      this.constructor.name,
-    );
+    this.consensusCharts = patchInject(consensusCharts, InjectTokens.ConsensusChartOrchestrator, this.constructor.name);
     this.soloConfig = SoloConfig.getConfig(configProvider);
   }
 
@@ -4050,13 +4043,7 @@ export class NodeCommandTasks {
         const nodeId: NodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
 
         if (loadBalancerRequired) {
-          await this.createGeneratedGossipLoadBalancerService(
-            config,
-            k8,
-            nodeId,
-            context_.newNode.accountId,
-            context,
-          );
+          await this.createGeneratedGossipLoadBalancerService(config, k8, nodeId, context_.newNode.accountId, context);
         }
 
         const newConsensusNode: ConsensusNode = new ConsensusNode(
@@ -4613,7 +4600,7 @@ export class NodeCommandTasks {
     consensusNodes: ConsensusNode[],
     clusterReference: ClusterReferenceName,
     changedNodeAlias: NodeAlias,
-  ): DeltaPlan {
+  ): ConsensusChartDeltaPlan {
     const aliasesInCluster: NodeAlias[] = consensusNodes
       .filter((node: ConsensusNode): boolean => node.cluster === clusterReference)
       .map((node: ConsensusNode): NodeAlias => node.name as NodeAlias);
@@ -4878,9 +4865,7 @@ export class NodeCommandTasks {
             // changes. It stays a delta: `--reuse-values` supplies everything else, and rebuilding a
             // whole values set from it would have no `defaults.*` or `cloud.*` and would re-render
             // every node from chart defaults.
-            const umbrellaDelta: AnyObject = ConsensusNodeValuesTranslator.fromHelmArguments(
-              chartValues.toArguments(),
-            );
+            const umbrellaDelta: AnyObject = ConsensusNodeValuesTranslator.fromHelmArguments(chartValues.toArguments());
 
             await this.consensusCharts.applyDelta(
               target,

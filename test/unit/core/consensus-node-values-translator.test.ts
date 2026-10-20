@@ -244,6 +244,18 @@ describe('ConsensusNodeValuesTranslator', (): void => {
       expect(a.string).to.equal('true');
     });
 
+    it('refuses a values path that would reach the prototype chain', (): void => {
+      // Solo only ever emits its own paths, but this helper walks an arbitrary dotted chain, so a
+      // `__proto__` segment would otherwise corrupt every object in the process.
+      for (const unsafe of ['__proto__.polluted', 'a.constructor.prototype.polluted', 'prototype.x']) {
+        expect((): AnyObject => ConsensusNodeValuesTranslator.fromHelmArguments(['--set', `${unsafe}=1`])).to.throw(
+          /unsafe values path/,
+        );
+      }
+
+      expect(({} as AnyObject).polluted).to.be.undefined;
+    });
+
     it('ignores --values entries that do not exist and unknown flags', (): void => {
       const values: AnyObject = ConsensusNodeValuesTranslator.fromHelmArguments([
         '--values',

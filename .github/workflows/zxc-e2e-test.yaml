@@ -33,14 +33,6 @@ on:
         type: string
         required: false
         default: "E2E Test"
-      solo-charts-ref:
-        description: "solo-charts ref the Consensus Chart Layout suite renders charts from:"
-        type: string
-        required: false
-        # TODO(5172): revert to "main" once the consensus-node chart is released. Until then the
-        # suite has to render from the branch that carries the chart, because the released
-        # solo-charts does not contain it.
-        default: "5172-migrate-from-the-solo-chartssolo-deployment-helm-chart-to-a-new-chart-that-represents-a-single-consensus-node-solo-chartsconsensus-node"
       test-script:
         description: "NPM Test Run Script:"
         type: string
@@ -138,14 +130,6 @@ on:
         type: string
         required: false
         default: "E2E Test"
-      solo-charts-ref:
-        description: "solo-charts ref the Consensus Chart Layout suite renders charts from:"
-        type: string
-        required: false
-        # TODO(5172): revert to "main" once the consensus-node chart is released. Until then the
-        # suite has to render from the branch that carries the chart, because the released
-        # solo-charts does not contain it.
-        default: "5172-migrate-from-the-solo-chartssolo-deployment-helm-chart-to-a-new-chart-that-represents-a-single-consensus-node-solo-chartsconsensus-node"
       test-script:
         description: "NPM Test Run Script:"
         type: string
@@ -265,12 +249,15 @@ jobs:
 
       # The consensus chart layout suite passes `--chart-dir`, so it needs the charts themselves
       # rather than the published release. Only that suite does, so only it pays for the checkout.
-      - name: Checkout solo-charts (${{ inputs.solo-charts-ref }})
+      - name: Checkout solo-charts
         if: ${{ inputs.custom-job-label == 'Consensus Chart Layout' && !cancelled() && !failure() }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hiero-ledger/solo-charts
-          ref: ${{ inputs.solo-charts-ref }}
+          # TODO(5172): revert to the default branch once the consensus-node chart is released.
+          # Pinned as a literal rather than a workflow input on purpose: an input that feeds a
+          # checkout ref is a cache-poisoning vector in a privileged context.
+          ref: "5172-migrate-from-the-solo-chartssolo-deployment-helm-chart-to-a-new-chart-that-represents-a-single-consensus-node-solo-chartsconsensus-node"
           path: solo-charts
           persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}

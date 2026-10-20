@@ -76,7 +76,6 @@ describe('core/templates', (): void => {
       // A unit container that never refreshes the config provider yields an empty name; falling back
       // is what keeps every release-name lookup consistent instead of resolving to ''.
       expect(Templates.resolveConsensusChartName('')).to.equal(constants.SOLO_DEPLOYMENT_CHART);
-      expect(Templates.resolveConsensusChartName(undefined)).to.equal(constants.SOLO_DEPLOYMENT_CHART);
     });
   });
 

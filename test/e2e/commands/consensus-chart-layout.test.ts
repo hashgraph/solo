@@ -24,7 +24,7 @@ import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 import {type K8} from '../../../src/integration/kube/k8.js';
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
 import {type ChartManager} from '../../../src/core/chart-manager.js';
-import {ConsensusChartOrchestrator} from '../../../src/core/consensus-chart-orchestrator.js';
+import {type ConsensusChartOrchestrator} from '../../../src/core/consensus-chart-orchestrator.js';
 import {ClusterReferenceTest} from './tests/cluster-reference-test.js';
 import {DeploymentTest} from './tests/deployment-test.js';
 import {ConsensusNodeTest} from './tests/consensus-node-test.js';
@@ -203,7 +203,8 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           // upgrade flow is not supported there yet.
           if (NetworkNodeLifecycle.isConsensusNodeImage()) {
             it(`${testName}: consensus network upgrade [skipped in consensus node image mode]`, function (): void {
-              // eslint-disable-next-line @typescript-eslint/no-invalid-this
+              // mocha's own skip mechanism; it is only reachable through the test's `this`
+              // eslint-disable-next-line unicorn/no-this-outside-of-class
               this.skip();
             });
           } else {

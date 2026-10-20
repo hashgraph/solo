@@ -253,6 +253,13 @@ export class ConsensusNodeValuesTranslator {
       }
     }
 
+    if (segments.some((segment: string | number): boolean => ConsensusNodeValuesTranslator.isUnsafeKey(segment))) {
+      // A Helm `--set` path is assembled from Solo's own arguments, so this should be unreachable —
+      // but walking an attacker-chosen chain onto Object.prototype would corrupt every object in
+      // the process, which is too sharp an edge to leave on a generic path-assignment helper.
+      throw new SoloErrors.validation.illegalArgument(`refusing to assign the unsafe values path '${path}'`);
+    }
+
     let cursor: AnyObject | unknown[] = target;
     for (let index: number = 0; index < segments.length - 1; index++) {
       const segment: string | number = segments[index];
@@ -267,6 +274,17 @@ export class ConsensusNodeValuesTranslator {
     }
 
     (cursor as AnyObject)[segments.at(-1)] = value;
+  }
+
+  /** Keys that would let a values path reach the prototype chain instead of the values object. */
+  private static readonly UNSAFE_PATH_SEGMENTS: ReadonlySet<string> = new Set([
+    '__proto__',
+    'constructor',
+    'prototype',
+  ]);
+
+  private static isUnsafeKey(segment: string | number): boolean {
+    return typeof segment === 'string' && ConsensusNodeValuesTranslator.UNSAFE_PATH_SEGMENTS.has(segment);
   }
 
   /** Mirrors Helm's `--set` scalar coercion; `--set-literal` and `--set-string` bypass this. */
