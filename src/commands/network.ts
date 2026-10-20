@@ -13,6 +13,7 @@ import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {SoloChartRepository} from '../core/solo-chart-repository.js';
 import {DEFAULT_SOLO_NAMESPACE_LABELS, getEnvironmentVariable} from '../core/constants.js';
+import {NetworkNodeLifecycle} from '../core/network-node-lifecycle.js';
 import {SharedClusterResourceReport} from '../core/shared-cluster-resource-report.js';
 import {ClusterCrdProbe} from '../core/cluster-crd-probe.js';
 import {Templates} from '../core/templates.js';
@@ -343,6 +344,37 @@ export class NetworkCommand extends BaseCommand {
   }
 
   /**
+   * The consensus node image ships without zip, unzip and curl, which Solo uses to archive, extract and verify node
+   * state and platform archives and to read node metrics, so install them in each root container once its pod is running.
+   */
+  private installRootContainerTools(): SoloListrTask<NetworkDeployContext> {
+    return {
+      title: 'Install zip, unzip and curl in the consensus node image',
+      skip: (): boolean => !NetworkNodeLifecycle.isConsensusNodeImage(),
+      task: (
+        context_: NetworkDeployContext,
+        task: SoloListrTaskWrapper<NetworkDeployContext>,
+      ): SoloListr<NetworkDeployContext> => {
+        const config: NetworkDeployConfigClass = context_.config;
+        const subTasks: SoloListrTask<NetworkDeployContext>[] = config.consensusNodes.map(
+          (consensusNode: ConsensusNode): SoloListrTask<NetworkDeployContext> => ({
+            title: `Install on node: ${chalk.yellow(consensusNode.name)}, cluster: ${chalk.yellow(consensusNode.cluster)}`,
+            task: async (): Promise<void> => {
+              await NetworkNodeLifecycle.installRootContainerTools(
+                consensusNode.context,
+                config.namespace,
+                consensusNode.name,
+              );
+            },
+          }),
+        );
+
+        return task.newListr(subTasks, {concurrent: true, rendererOptions: {collapseSubtasks: false}});
+      },
+    };
+  }
+
+  /**
    * Confirms each consensus node's persistent volume claims are mounted on the storage they asked
    * for. A claim can bind and mount successfully against a filesystem far too small to hold it —
    * directory-based provisioners do not enforce the requested size — so without this check a node
@@ -587,7 +619,10 @@ export class NetworkCommand extends BaseCommand {
     // array-replacement semantics from inserting nodes from other clusters.
     const perClusterExtraEnvironmentValuesFiles: Record<ClusterReferenceName, string> = {};
     const needsExtraEnvironment: boolean =
-      config.wrapsEnabled || !!config.debugNodeAlias || config.app !== constants.HEDERA_APP_NAME; // JAVA_MAIN_CLASS for tools/local builds
+      config.wrapsEnabled ||
+      !!config.debugNodeAlias ||
+      config.app !== constants.HEDERA_APP_NAME || // JAVA_MAIN_CLASS for tools/local builds
+      NetworkNodeLifecycle.isConsensusNodeImage(); // AUTO_START_CONSENSUS_SERVICE=false
 
     if (needsExtraEnvironment) {
       const realm: Realm = this.localConfig.configuration.realmForDeployment(config.deployment);
@@ -1709,18 +1744,9 @@ export class NetworkCommand extends BaseCommand {
     namespace,
     deployment,
   }: NetworkDeployConfigClass): Promise<void> {
-    const CRDS: {key: string; crd: string}[] = [
-      {key: 'alertmanagerconfigs', crd: 'alertmanagerconfigs.monitoring.coreos.com'},
-      {key: 'alertmanagers', crd: 'alertmanagers.monitoring.coreos.com'},
-      {key: 'podmonitors', crd: 'podmonitors.monitoring.coreos.com'},
-      {key: 'probes', crd: 'probes.monitoring.coreos.com'},
-      {key: 'prometheusagents', crd: 'prometheusagents.monitoring.coreos.com'},
-      {key: 'prometheuses', crd: 'prometheuses.monitoring.coreos.com'},
-      {key: 'prometheusrules', crd: 'prometheusrules.monitoring.coreos.com'},
-      {key: 'scrapeconfigs', crd: 'scrapeconfigs.monitoring.coreos.com'},
-      {key: 'servicemonitors', crd: 'servicemonitors.monitoring.coreos.com'},
-      {key: 'thanosrulers', crd: 'thanosrulers.monitoring.coreos.com'},
-    ];
+    const CRDS: {key: string; crd: string}[] = constants.PROMETHEUS_OPERATOR_CRDS.map(
+      (crd: string): {key: string; crd: string} => ({key: crd.split('.', 1)[0], crd}),
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     for (const [_, context] of clusterRefs) {
@@ -2182,6 +2208,7 @@ export class NetworkCommand extends BaseCommand {
         },
         this.waitForNetworkPvcs(),
         this.waitForNetworkPods(),
+        this.installRootContainerTools(),
         this.verifyPersistentVolumeClaimMounts(),
         {
           title: 'Check proxy pods are running',
