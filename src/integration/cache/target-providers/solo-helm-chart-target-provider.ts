@@ -22,6 +22,14 @@ export class SoloHelmChartTargetProvider implements CacheTargetProvider {
         version.SOLO_CHART_VERSION,
         SoloChartRepository.resolveUrl(version.SOLO_CHART_VERSION),
       ),
+      // Installed once per consensus node under the split layout; without it every per-node install
+      // misses the chart cache and pulls from the network.
+      new CacheTarget(
+        CacheArtifactEnum.HELM_CHART,
+        constants.CONSENSUS_NODE_CHART,
+        version.SOLO_CHART_VERSION,
+        SoloChartRepository.resolveUrl(version.SOLO_CHART_VERSION),
+      ),
       new CacheTarget(
         CacheArtifactEnum.HELM_CHART,
         constants.SOLO_CERT_MANAGER_CHART,

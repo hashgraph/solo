@@ -12,6 +12,12 @@ import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {SoloChartRepository} from '../core/solo-chart-repository.js';
+import {
+  type ConsensusChartTarget,
+  ConsensusChartOrchestrator,
+  RetryPolicy,
+} from '../core/consensus-chart-orchestrator.js';
+import {type ConsensusChartLayout} from '../core/consensus-chart-layout.js';
 import {DEFAULT_SOLO_NAMESPACE_LABELS, getEnvironmentVariable} from '../core/constants.js';
 import {NetworkNodeLifecycle} from '../core/network-node-lifecycle.js';
 import {SharedClusterResourceReport} from '../core/shared-cluster-resource-report.js';
@@ -108,6 +114,8 @@ export class NetworkCommand extends BaseCommand {
     @inject(InjectTokens.PackageDownloader) private readonly downloader: PackageDownloader,
     @inject(InjectTokens.SoloEventBus) private readonly eventBus: SoloEventBus,
     @inject(InjectTokens.PvcMountVerifier) private readonly pvcMountVerifier: PvcMountVerifier,
+    @inject(InjectTokens.ConsensusChartOrchestrator)
+    private readonly consensusCharts: ConsensusChartOrchestrator,
   ) {
     super();
 
@@ -118,6 +126,11 @@ export class NetworkCommand extends BaseCommand {
     this.zippy = patchInject(zippy, InjectTokens.Zippy, this.constructor.name);
     this.downloader = patchInject(downloader, InjectTokens.PackageDownloader, this.constructor.name);
     this.pvcMountVerifier = patchInject(pvcMountVerifier, InjectTokens.PvcMountVerifier, this.constructor.name);
+    this.consensusCharts = patchInject(
+      consensusCharts,
+      InjectTokens.ConsensusChartOrchestrator,
+      this.constructor.name,
+    );
   }
 
   private static readonly DEPLOY_CONFIGS_NAME: string = 'deployConfigs';
@@ -1204,36 +1217,26 @@ export class NetworkCommand extends BaseCommand {
     deleteSecrets: boolean,
     contexts: Context[],
   ): Promise<void> {
-    task.title = `Uninstalling chart ${this.consensusChartName}`;
-
-    // Uninstall all 'solo deployment' charts for each cluster using the contexts
+    // One sweep for both layouts. The orchestrator removes the per-node releases and the shared one,
+    // discovering them rather than deriving them from the current node list, so a network deployed
+    // as one release per node is still destroyable by an invocation that was never told about the
+    // split, and a node the deployment has since forgotten is still collected. Going through it
+    // also keeps its layout cache honest — uninstalling the shared release here directly would
+    // leave the cache claiming a release that no longer exists.
+    task.title = `Uninstalling chart ${this.consensusChartName} and ${constants.CONSENSUS_NODE_CHART} releases in namespace ${namespace}`;
     await this.logDestroyResults(
-      'Uninstall solo-deployment chart',
-      await Promise.allSettled(
-        contexts.map(async (context): Promise<void> => {
-          await this.chartManager.uninstall(
-            namespace,
-            this.consensusChartName,
-            this.k8Factory.getK8(context).contexts().readCurrent(),
-          );
-        }),
-      ),
-    );
-
-    // Always sweep per-node releases, regardless of how this deployment was installed: a network
-    // deployed with EXPERIMENTAL_PER_CONSENSUS_NODE_CHART set must still be destroyable by an
-    // invocation without it, otherwise the releases are orphaned and only a manual `helm uninstall`
-    // can remove them.
-    task.title = `Uninstalling ${constants.CONSENSUS_NODE_CHART} releases in namespace ${namespace}`;
-    await this.logDestroyResults(
-      'Uninstall consensus-node releases',
+      'Uninstall consensus network releases',
       await Promise.allSettled(
         contexts.map(async (context): Promise<void> => {
           const kubeContext: Context = this.k8Factory.getK8(context).contexts().readCurrent();
 
-          for (const releaseName of await this.consensusNodeReleaseNames(namespace, kubeContext)) {
-            await this.chartManager.uninstall(namespace, releaseName, kubeContext);
-          }
+          await this.consensusCharts.uninstallAll({
+            namespace,
+            kubeContext,
+            clusterReference: kubeContext,
+            soloChartVersion: '',
+            cacheDirectory: constants.SOLO_CACHE_DIR,
+          });
         }),
       ),
     );
@@ -1379,153 +1382,54 @@ export class NetworkCommand extends BaseCommand {
     await Promise.all(promises);
   }
 
-  /** Release name for a node's own chart, e.g. `consensus-node-node1`. */
-  private static consensusNodeReleaseName(nodeAlias: string): string {
-    return `${constants.CONSENSUS_NODE_CHART}-${nodeAlias}`;
+  /**
+   * Describes one cluster's half of this deployment to {@link ConsensusChartOrchestrator}, which owns
+   * every decision about which releases exist and in what order they are rendered.
+   */
+  private chartTarget(config: NetworkDeployConfigClass, clusterReference: ClusterReferenceName): ConsensusChartTarget {
+    return {
+      namespace: config.namespace,
+      kubeContext: config.clusterRefs.get(clusterReference),
+      clusterReference,
+      chartDirectory: config.chartDirectory,
+      soloChartVersion: config.soloChartVersion,
+      cacheDirectory: config.cacheDir,
+    };
   }
 
-  /**
-   * Names of the installed per-node releases in a namespace, discovered rather than derived so that
-   * teardown also catches nodes that are no longer in the current node list.
-   */
-  private async consensusNodeReleaseNames(namespace: NamespaceName, kubeContext: Context): Promise<string[]> {
-    let installed: string[];
-
-    try {
-      installed = await this.chartManager.getInstalledCharts(namespace, kubeContext);
-    } catch {
-      // best-effort: a namespace that is already gone has nothing to sweep
-      return [];
-    }
-
-    return (
-      installed
-        // entries are formatted as `<release> [<chart>]`
-        .map((entry): string => entry.split(' ', 1)[0])
-        .filter((releaseName): boolean => releaseName.startsWith(`${constants.CONSENSUS_NODE_CHART}-`))
-    );
-  }
-
-  /**
-   * Installs a network as a shared release plus one release per consensus node.
-   *
-   * The shared release is the same `solo-deployment` chart with its node list emptied, so it renders
-   * only the network-scoped objects (MinIO, the shared secrets and ConfigMaps, `dns-validation-script`).
-   * Each node then comes from the single-node `consensus-node` chart. Rendering both halves reproduces
-   * the umbrella object set exactly.
-   */
-  private async installSplitCharts(
+  /** Node aliases this deployment places in the given cluster, in declaration order. */
+  private nodeAliasesForCluster(
     config: NetworkDeployConfigClass,
     clusterReference: ClusterReferenceName,
+  ): NodeAlias[] {
+    return config.consensusNodes
+      .filter((candidate): boolean => candidate.cluster === clusterReference)
+      .map((candidate): NodeAlias => candidate.name as NodeAlias);
+  }
+
+  /**
+   * Renders one cluster's consensus network from the values Solo assembled for it.
+   *
+   * The umbrella values are rebuilt from the exact Helm arguments the install would have used, so the
+   * runtime `--set` overrides (storage backend, `crds.*` toggles, static IPs, per-node names) survive
+   * the split translation. Translating the values files alone would silently drop them.
+   */
+  private async renderNetwork(
+    config: NetworkDeployConfigClass,
+    clusterReference: ClusterReferenceName,
+    splitLayout: boolean,
   ): Promise<void> {
-    const kubeContext: Context = config.clusterRefs.get(clusterReference);
-    // Rebuild from the exact arguments the umbrella install would have used, so the runtime `--set`
-    // overrides (storage backend, crds toggles, static IPs, per-node names) survive the split. Each
-    // release then receives one complete values file and no `--set` flags of its own.
     const umbrella: AnyObject = ConsensusNodeValuesTranslator.fromHelmArguments(
       config.chartValuesMap[clusterReference].toArguments(),
     );
-    const outputDirectory: string = PathEx.join(config.cacheDir, 'split-charts', clusterReference);
 
-    const installRelease: (releaseName: string, chartName: string, values: AnyObject) => Promise<void> = async (
-      releaseName: string,
-      chartName: string,
-      values: AnyObject,
-    ): Promise<void> => {
-      const valuesFile: string = ConsensusNodeValuesTranslator.writeValuesFile(
-        outputDirectory,
-        `${releaseName}-values.yaml`,
-        values,
-      );
-
-      await this.upgradeChartWithRetries(
-        config,
-        kubeContext,
-        releaseName,
-        chartName,
-        new HelmChartValues().file(valuesFile),
-      );
-      showVersionBanner(this.logger, releaseName, config.soloChartVersion);
-    };
-
-    await installRelease(
-      this.consensusChartName,
-      this.consensusChartName,
-      ConsensusNodeValuesTranslator.toSharedValues(umbrella),
+    await this.consensusCharts.renderNetwork(
+      this.chartTarget(config, clusterReference),
+      umbrella,
+      this.nodeAliasesForCluster(config, clusterReference),
+      splitLayout,
+      RetryPolicy.CLEAN_RETRY,
     );
-
-    for (const consensusNode of config.consensusNodes.filter(
-      (candidate): boolean => candidate.cluster === clusterReference,
-    )) {
-      await installRelease(
-        NetworkCommand.consensusNodeReleaseName(consensusNode.name),
-        constants.CONSENSUS_NODE_CHART,
-        ConsensusNodeValuesTranslator.toNodeValues(umbrella, consensusNode.name),
-      );
-    }
-  }
-
-  /** Installs the solo-deployment chart with bounded retries to ride out transient API server outages. */
-  private async installSoloDeploymentChart(
-    config: NetworkDeployConfigClass,
-    clusterReference: ClusterReferenceName,
-  ): Promise<void> {
-    await this.upgradeChartWithRetries(
-      config,
-      config.clusterRefs.get(clusterReference),
-      this.consensusChartName,
-      this.consensusChartName,
-      config.chartValuesMap[clusterReference],
-    );
-  }
-
-  /**
-   * Upgrades one release with bounded retries to ride out transient API server outages, removing the
-   * release left behind by a failed attempt so the retry starts clean.
-   */
-  private async upgradeChartWithRetries(
-    config: NetworkDeployConfigClass,
-    kubeContext: Context,
-    releaseName: string,
-    chartName: string,
-    chartValues: HelmChartValues,
-  ): Promise<void> {
-    for (let attempt: number = 1; attempt <= constants.NETWORK_CHART_INSTALL_MAX_ATTEMPTS; attempt++) {
-      try {
-        await this.chartManager.upgrade(
-          config.namespace,
-          releaseName,
-          chartName,
-          config.chartDirectory || SoloChartRepository.resolveUrl(config.soloChartVersion),
-          config.soloChartVersion,
-          chartValues,
-          kubeContext,
-          false,
-          true,
-        );
-        return;
-      } catch (error) {
-        if (attempt === constants.NETWORK_CHART_INSTALL_MAX_ATTEMPTS) {
-          throw error;
-        }
-
-        this.logger.warn(
-          `Attempt ${attempt} of ${constants.NETWORK_CHART_INSTALL_MAX_ATTEMPTS} to install chart ` +
-            `'${chartName}' as release '${releaseName}' failed, retrying in ` +
-            `${constants.NETWORK_CHART_INSTALL_RETRY_DELAY_SECS} seconds`,
-          error,
-        );
-        await sleep(Duration.ofSeconds(constants.NETWORK_CHART_INSTALL_RETRY_DELAY_SECS));
-
-        try {
-          // remove the release left behind by the failed attempt so the retry starts from a clean state
-          await this.chartManager.uninstall(config.namespace, releaseName, kubeContext);
-        } catch (uninstallError) {
-          // best-effort cleanup: a persistent failure will surface on the next upgrade attempt
-          this.logger.warn(`Failed to uninstall release '${releaseName}' before retry`, uninstallError);
-        }
-      }
-    }
   }
 
   /**
@@ -2025,12 +1929,19 @@ export class NetworkCommand extends BaseCommand {
           title: 'Check for an existing network deployment',
           task: async ({config}): Promise<void> => {
             for (const [clusterReference, context] of config.clusterRefs) {
-              const isInstalled: boolean = await this.chartManager.isChartInstalled(
-                config.namespace,
-                constants.SOLO_DEPLOYMENT_CHART,
-                context,
-              );
-              if (isInstalled) {
+              // Ask the orchestrator rather than probing one release name: a half-finished split
+              // install leaves `consensus-node-*` releases with no shared release, which a probe for
+              // `solo-deployment` alone reports as "not deployed" and the next deploy then collides
+              // with on every per-node object.
+              const layout: ConsensusChartLayout = await this.consensusCharts.discover({
+                namespace: config.namespace,
+                kubeContext: context,
+                clusterReference,
+                chartDirectory: config.chartDirectory,
+                soloChartVersion: config.soloChartVersion,
+                cacheDirectory: config.cacheDir,
+              });
+              if (layout.isDeployed()) {
                 throw new SoloErrors.deployment.networkAlreadyDeployed(
                   config.deployment,
                   config.namespace.name,
@@ -2112,12 +2023,9 @@ export class NetworkCommand extends BaseCommand {
                 versions.MINIMUM_SOLO_CHART_VERSION,
               );
 
-              if (constants.CONFIG.EXPERIMENTAL_PER_CONSENSUS_NODE_CHART) {
-                await this.installSplitCharts(config, clusterReference);
-                continue;
-              }
-
-              await this.installSoloDeploymentChart(config, clusterReference);
+              // A first deploy is the one moment the layout is a free choice; every later command
+              // discovers it from the installed releases instead.
+              await this.renderNetwork(config, clusterReference, constants.CONFIG.EXPERIMENTAL_PER_CONSENSUS_NODE_CHART);
               showVersionBanner(this.logger, this.consensusChartName, config.soloChartVersion);
             }
           },
@@ -2173,7 +2081,7 @@ export class NetworkCommand extends BaseCommand {
           title: 'Redeploy chart with external IP address config',
           skip: ({config: {loadBalancerEnabled}}): boolean => loadBalancerEnabled === false,
           task: async ({config}, task): Promise<SoloListr<NetworkDeployContext>> => {
-            const {namespace, chartDirectory, soloChartVersion, clusterRefs} = config;
+            const {namespace, soloChartVersion, clusterRefs} = config;
 
             // Update the chartValuesMap with the external IP addresses
             // This regenerates the genesis-network.json file with the external IP addresses
@@ -2185,18 +2093,15 @@ export class NetworkCommand extends BaseCommand {
               subTasks.push({
                 title: `Upgrade chart for cluster: ${chalk.yellow(clusterReference)}`,
                 task: async (): Promise<void> => {
-                  await this.chartManager.upgrade(
-                    namespace,
-                    constants.SOLO_DEPLOYMENT_CHART,
-                    constants.SOLO_DEPLOYMENT_CHART,
-                    chartDirectory || SoloChartRepository.resolveUrl(soloChartVersion),
-                    soloChartVersion,
-                    config.chartValuesMap[clusterReference],
-                    clusterRefs.get(clusterReference),
-                    false,
-                    true,
+                  // Re-render through the orchestrator rather than upgrading the umbrella release
+                  // directly: this runs right after the install, so under the split layout the
+                  // per-node objects belong to their own releases and a single umbrella upgrade
+                  // would be rejected for taking ownership of them.
+                  const layout: ConsensusChartLayout = await this.consensusCharts.discover(
+                    this.chartTarget(config, clusterReference),
                   );
-                  showVersionBanner(this.logger, constants.SOLO_DEPLOYMENT_CHART, soloChartVersion, 'Upgraded');
+                  await this.renderNetwork(config, clusterReference, layout.isSplit());
+                  showVersionBanner(this.logger, this.consensusChartName, soloChartVersion, 'Upgraded');
 
                   // TODO: Remove this code now that we have made the config dynamic and can update it without redeploying
                   const k8: K8 = this.k8Factory.getK8(clusterRefs.get(clusterReference));

@@ -84,9 +84,13 @@ export const CONFIG: {ENABLE_IMAGE_CACHE: boolean; EXPERIMENTAL_PER_CONSENSUS_NO
 
   // Deploys each consensus node as its own `consensus-node` Helm release alongside a shared release for
   // the network-scoped resources, instead of one umbrella `solo-deployment` release holding every node.
-  // Experimental and unvalidated against a live cluster, so it is opt-in and defaults to off. Teardown
-  // sweeps per-node releases regardless of this flag, so a network deployed with it on stays destroyable
-  // with it off.
+  //
+  // Consulted at first deploy only. An existing deployment is never converted: every later command
+  // discovers the layout from the installed releases and re-renders that, so a network created on the
+  // single chart stays on it whether or not this is set. Teardown likewise sweeps per-node releases
+  // regardless of the flag, so a network deployed with it on stays destroyable with it off.
+  //
+  // Experimental and opt-in; defaults to off.
   EXPERIMENTAL_PER_CONSENSUS_NODE_CHART:
     getEnvironmentVariable('EXPERIMENTAL_PER_CONSENSUS_NODE_CHART') === 'true' || false,
 };

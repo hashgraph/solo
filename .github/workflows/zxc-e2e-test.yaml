@@ -33,6 +33,14 @@ on:
         type: string
         required: false
         default: "E2E Test"
+      solo-charts-ref:
+        description: "solo-charts ref the Consensus Chart Layout suite renders charts from:"
+        type: string
+        required: false
+        # TODO(5172): revert to "main" once the consensus-node chart is released. Until then the
+        # suite has to render from the branch that carries the chart, because the released
+        # solo-charts does not contain it.
+        default: "5172-migrate-from-the-solo-chartssolo-deployment-helm-chart-to-a-new-chart-that-represents-a-single-consensus-node-solo-chartsconsensus-node"
       test-script:
         description: "NPM Test Run Script:"
         type: string
@@ -130,6 +138,14 @@ on:
         type: string
         required: false
         default: "E2E Test"
+      solo-charts-ref:
+        description: "solo-charts ref the Consensus Chart Layout suite renders charts from:"
+        type: string
+        required: false
+        # TODO(5172): revert to "main" once the consensus-node chart is released. Until then the
+        # suite has to render from the branch that carries the chart, because the released
+        # solo-charts does not contain it.
+        default: "5172-migrate-from-the-solo-chartssolo-deployment-helm-chart-to-a-new-chart-that-represents-a-single-consensus-node-solo-chartsconsensus-node"
       test-script:
         description: "NPM Test Run Script:"
         type: string
@@ -246,6 +262,29 @@ jobs:
         with:
           persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+
+      # The consensus chart layout suite passes `--chart-dir`, so it needs the charts themselves
+      # rather than the published release. Only that suite does, so only it pays for the checkout.
+      - name: Checkout solo-charts (${{ inputs.solo-charts-ref }})
+        if: ${{ inputs.custom-job-label == 'Consensus Chart Layout' && !cancelled() && !failure() }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: hiero-ledger/solo-charts
+          ref: ${{ inputs.solo-charts-ref }}
+          path: solo-charts
+          persist-credentials: false
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+
+      - name: Resolve solo-charts dependencies
+        if: ${{ inputs.custom-job-label == 'Consensus Chart Layout' && !cancelled() && !failure() }}
+        run: |
+          # *.tgz is gitignored in solo-charts, so a fresh checkout has no subcharts and Helm cannot
+          # render solo-deployment from the working tree without resolving them first.
+          for chart in solo-charts/charts/*/; do
+            if grep -q '^dependencies:' "${chart}Chart.yaml"; then
+              helm dependency update "${chart}"
+            fi
+          done
 
       - name: Setup Posix Dependencies
         id: set-posix-dependencies
@@ -491,6 +530,14 @@ jobs:
 
           if [[ "${CUSTOM_JOB_LABEL_INPUT}" == "One Shot Single" ]]; then
             echo "ENABLE_IMAGE_CACHE=true" >> .env
+          fi
+
+          if [[ "${CUSTOM_JOB_LABEL_INPUT}" == "Consensus Chart Layout" ]]; then
+            # The suite needs the charts themselves because it passes `--chart-dir`. It does NOT get
+            # EXPERIMENTAL_PER_CONSENSUS_NODE_CHART here: it sets the flag itself per phase, and a
+            # process-wide value would defeat the phase that proves an existing deployment is left
+            # on the single chart.
+            echo "SOLO_CHARTS_DIR=${GITHUB_WORKSPACE}/solo-charts/charts" >> .env
           fi
 
           cat .env

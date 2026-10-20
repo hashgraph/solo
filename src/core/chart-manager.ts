@@ -264,6 +264,29 @@ export class ChartManager {
     return releases.find((release: ReleaseItem): boolean => release.name === chartReleaseName);
   }
 
+  /**
+   * The values an installed release was last rendered with, coalesced with the chart's own defaults.
+   *
+   * This is the only authoritative record of what a running release was configured with. Solo computes
+   * a large part of a deployment as `--set` overrides at deploy time — the storage backend, the
+   * `crds.*` toggles, static IPs, `cloud.generateNewSecrets` — and those appear in no values file on
+   * disk. A later command that has to re-render the release without losing them has to read them back
+   * from here.
+   *
+   * @returns the coalesced values, or an empty object when the release has none.
+   */
+  public async getReleaseValues(
+    namespaceName: NamespaceName,
+    chartReleaseName: string,
+    kubeContext?: string,
+  ): Promise<Record<string, unknown>> {
+    try {
+      return await this.helm.getValues(chartReleaseName, namespaceName?.name, kubeContext);
+    } catch (error) {
+      throw new SoloErrors.system.helmChartListFailed(error);
+    }
+  }
+
   public async uninstall(
     namespaceName: NamespaceName,
     chartReleaseName: string,

@@ -745,6 +745,17 @@ describe('NodeCommandTasks generated gossip endpoints', (): void => {
     };
     (nodeCommandTasks as unknown as {getGossipFqdnRestricted: () => Promise<boolean>}).getGossipFqdnRestricted =
       async (): Promise<boolean> => false;
+    // This instance bypasses the container, so the orchestrator has to be supplied by hand. The
+    // generated gossip Service stamps Helm ownership metadata, and which release owns it depends on
+    // the layout; an umbrella layout keeps the historical `solo-deployment` owner.
+    (
+      nodeCommandTasks as unknown as {
+        consensusCharts: {discover: () => Promise<{isSplit: () => boolean}>; sharedReleaseName: string};
+      }
+    ).consensusCharts = {
+      discover: async (): Promise<{isSplit: () => boolean}> => ({isSplit: (): boolean => false}),
+      sharedReleaseName: constants.SOLO_DEPLOYMENT_CHART,
+    };
 
     const context_: PrepareGossipContext = {
       config: {

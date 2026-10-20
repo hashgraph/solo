@@ -23,6 +23,7 @@ export class InjectTokens {
   public static Helm: symbol = Symbol.for('Helm');
   public static KindBuilder: symbol = Symbol.for('KindBuilder');
   public static ChartManager: symbol = Symbol.for('ChartManager');
+  public static ConsensusChartOrchestrator: symbol = Symbol.for('ConsensusChartOrchestrator');
   public static ConfigManager: symbol = Symbol.for('ConfigManager');
   public static AccountManager: symbol = Symbol.for('AccountManager');
   public static PlatformInstaller: symbol = Symbol.for('PlatformInstaller');

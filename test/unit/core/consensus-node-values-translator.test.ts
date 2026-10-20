@@ -64,6 +64,21 @@ describe('ConsensusNodeValuesTranslator', (): void => {
       expect(roster.map((node: AnyObject): unknown => node.name)).to.deep.equal(['node1', 'node2']);
     });
 
+    it('keeps the full node objects in the roster so a half-finished conversion can resume', (): void => {
+      // `convertToSplit` empties `hedera.nodes` on the shared release before installing the per-node
+      // releases. If it fails in between, the only remaining description of the nodes is
+      // `rosterNodes` — reducing it to a list of names would strand the deployment with no way to
+      // rebuild the per-node values.
+      const shared: AnyObject = ConsensusNodeValuesTranslator.toSharedValues(umbrellaValues());
+      const roster: AnyObject[] = (shared.hedera as AnyObject).rosterNodes as AnyObject[];
+
+      expect(roster[0]).to.include({name: 'node1', nodeId: 0, accountId: '0.0.3'});
+      expect(ConsensusNodeValuesTranslator.toNodeValues({hedera: {nodes: roster}}, 'node2')).to.include({
+        name: 'node2',
+        nodeId: 1,
+      });
+    });
+
     it('does not mutate the input', (): void => {
       const input: AnyObject = umbrellaValues();
       ConsensusNodeValuesTranslator.toSharedValues(input);
@@ -113,10 +128,41 @@ describe('ConsensusNodeValuesTranslator', (): void => {
       expect(flat.cloud).to.have.nested.property('minio.enabled', true);
     });
 
+    it('carries the whole volumeClaims subtree, including keys the umbrella gains later', (): void => {
+      // The lift is by subtree rather than by key, which is what lets a chart feature gated on a new
+      // `defaults.volumeClaims.*` value (`appJarsInImage`, `capacityCheck`) reach the single-node
+      // chart without a translator change. Pinning that here keeps the two charts from drifting.
+      const umbrella: AnyObject = umbrellaValues();
+      const volumeClaims: AnyObject = {
+        ...((umbrella.defaults as AnyObject).volumeClaims as AnyObject),
+        appJarsInImage: true,
+        capacityCheck: {enabled: true, tolerancePercent: 90},
+      };
+      (umbrella.defaults as AnyObject).volumeClaims = volumeClaims;
+
+      const flat: AnyObject = ConsensusNodeValuesTranslator.toNodeValues(umbrella, 'node1');
+
+      expect(flat.volumeClaims).to.deep.equal(volumeClaims);
+    });
+
     it('passes the shared init containers through', (): void => {
       const flat: AnyObject = ConsensusNodeValuesTranslator.toNodeValues(umbrellaValues(), 'node1');
 
       expect(flat.initContainers).to.deep.equal([{name: 'seed'}]);
+    });
+
+    it('omits rather than empties the keys a partial delta does not mention', (): void => {
+      // The node-lifecycle builders pass only the keys they are changing and rely on `--reuse-values`
+      // for the rest. Emitting an empty `cloud` or `root` here would overwrite the live release's
+      // values with nothing and re-render the node from chart defaults.
+      const delta: AnyObject = {hedera: {nodes: [{name: 'node1', accountId: '0.0.9'}]}};
+
+      const flat: AnyObject = ConsensusNodeValuesTranslator.toNodeValues(delta, 'node1');
+
+      expect(flat).to.deep.equal({name: 'node1', accountId: '0.0.9'});
+      expect(flat).to.not.have.property('cloud');
+      expect(flat).to.not.have.property('root');
+      expect(flat).to.not.have.property('configMaps');
     });
 
     it('throws a registered SoloError naming the node when it is absent', (): void => {
