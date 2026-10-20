@@ -1,0 +1,11 @@
+# Headroom above Solo's default resources/relay-values.yaml limits (250Mi) for this example's
+# deployment only. The relay and its websocket server are OOMKilled (exit 137) at the default
+# while initializing against the mirror node.
+relay:
+  resources:
+    limits:
+      memory: 1000Mi
+ws:
+  resources:
+    limits:
+      memory: 1000Mi

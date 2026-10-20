@@ -1244,6 +1244,11 @@ export class Flags {
       describe: 'Enable recursive WRAPs aggregation for hinTS/TSS (CN >= v0.72).',
       type: 'boolean',
       defaultValue: false,
+      deprecated: {
+        since: '0.94.0',
+        removalIssue: 6174,
+        reason: 'Consensus node v0.79.0 and later embed the WRAPS proving parameters, so it has no effect on them.',
+      },
     },
   };
 
@@ -1253,6 +1258,11 @@ export class Flags {
     definition: {
       describe: 'Path to a local directory containing pre-existing WRAPs proving key files (.bin)',
       type: 'string',
+      deprecated: {
+        since: '0.94.0',
+        removalIssue: 6174,
+        reason: 'Consensus node v0.79.0 and later embed the WRAPS proving parameters, so it has no effect on them.',
+      },
     },
   };
 
@@ -2722,6 +2732,16 @@ export class Flags {
     },
   };
 
+  public static readonly minTps: CommandFlag = {
+    constName: 'minTps',
+    name: 'min-tps',
+    definition: {
+      describe: 'Minimum acceptable transactions per second achieved by the NLG load test; 0 disables the check',
+      type: 'number',
+      defaultValue: 0,
+    },
+  };
+
   public static readonly performanceTest: CommandFlag = {
     constName: 'performanceTest',
     name: 'test',
@@ -3060,6 +3080,7 @@ export class Flags {
     Flags.zipFile,
     Flags.maxTps,
     Flags.maxRtt,
+    Flags.minTps,
     Flags.enableMonitoringSupport,
     Flags.blockNodeMapping,
     Flags.externalBlockNodeMapping,

@@ -4,6 +4,8 @@ import {describe, it, afterEach} from 'mocha';
 import {expect} from 'chai';
 import sinon from 'sinon';
 import fs from 'node:fs';
+import os from 'node:os';
+import {PathEx} from '../../../../../../src/business/utils/path-ex.js';
 import {ConsensusCommandDefinition} from '../../../../../../src/commands/command-definitions/consensus-command-definition.js';
 import {MirrorCommandDefinition} from '../../../../../../src/commands/command-definitions/mirror-command-definition.js';
 import * as constants from '../../../../../../src/core/constants.js';
@@ -23,7 +25,6 @@ import {ComponentTypes} from '../../../../../../src/core/config/remote/enumerati
 afterEach((): void => {
   delete process.env.ONE_SHOT_WITH_BLOCK_NODE;
   delete process.env.BLOCK_STREAM_STREAM_MODE;
-  delete process.env.ONE_SHOT_BLOCK_NODE_PERF;
 });
 
 function makeConfig(overrides: Partial<OneShotSingleDeployConfigClass> = {}): OneShotSingleDeployConfigClass {
@@ -76,10 +77,9 @@ describe('buildBlockNodeArgv', (): void => {
     expect(argv[valueIndex + 1]).to.equal(`${existingFile},${constants.BLOCK_NODE_SOLO_DEV_FILE}`);
   });
 
-  it('injects RSA bootstrap values for one-shot block node WRB/RSA deploys outside perf mode', (): void => {
+  it('injects RSA bootstrap values for one-shot block node WRB/RSA deploys', (): void => {
     process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
     process.env.BLOCK_STREAM_STREAM_MODE = 'BOTH';
-    process.env.ONE_SHOT_BLOCK_NODE_PERF = 'false';
 
     const argv: string[] = DeployArgvBuilders.buildBlockNodeArgv(
       makeConfig({
@@ -429,7 +429,7 @@ describe('buildClusterSetupArgv', (): void => {
     expect(argv).to.include('test-cluster');
   });
 
-  it('adds --no-minio when ONE_SHOT_WITH_BLOCK_NODE is enabled', (): void => {
+  it('adds --no-minio when ONE_SHOT_WITH_BLOCK_NODE is enabled and no values file is present', (): void => {
     process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
     const argv: string[] = DeployArgvBuilders.buildClusterSetupArgv(
       makeConfig({
@@ -445,6 +445,254 @@ describe('buildClusterSetupArgv', (): void => {
     );
 
     expect(argv).to.include(negatedOptionFromFlag(Flags.deployMinio));
+  });
+
+  it('adds --no-minio when ONE_SHOT_WITH_BLOCK_NODE is enabled and a values file has only minio-server overrides', (): void => {
+    process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
+    const temporaryFile: string = PathEx.join(os.tmpdir(), `silo-minio-${Date.now()}.yaml`);
+    fs.writeFileSync(temporaryFile, 'minio-server:\n  tenant:\n    buckets:\n      - name: falcon-bucket\n');
+
+    try {
+      const argv: string[] = DeployArgvBuilders.buildClusterSetupArgv(
+        makeConfig({
+          versions: {
+            explorer: '2.5.0',
+            soloChart: '0.0.0',
+            consensus: 'v0.74.0',
+            mirror: '0.0.0',
+            relay: '0.0.0',
+            blockNode: '0.0.0',
+          },
+          networkConfiguration: {
+            [Flags.getFormattedFlagKey(Flags.valuesFile)]: temporaryFile,
+          },
+        }),
+      );
+
+      expect(argv).to.include(negatedOptionFromFlag(Flags.deployMinio));
+    } finally {
+      if (fs.existsSync(temporaryFile)) {
+        fs.unlinkSync(temporaryFile);
+      }
+    }
+  });
+
+  it('does not add --no-minio when ONE_SHOT_WITH_BLOCK_NODE is enabled and networkConfiguration explicitly sets cloud.minio.enabled: true', (): void => {
+    process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
+    const temporaryFile: string = PathEx.join(os.tmpdir(), `cloud-minio-${Date.now()}.yaml`);
+    fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: true\n');
+
+    try {
+      const argv: string[] = DeployArgvBuilders.buildClusterSetupArgv(
+        makeConfig({
+          versions: {
+            explorer: '2.5.0',
+            soloChart: '0.0.0',
+            consensus: 'v0.74.0',
+            mirror: '0.0.0',
+            relay: '0.0.0',
+            blockNode: '0.0.0',
+          },
+          networkConfiguration: {
+            [Flags.getFormattedFlagKey(Flags.valuesFile)]: temporaryFile,
+          },
+        }),
+      );
+
+      expect(argv).to.not.include(negatedOptionFromFlag(Flags.deployMinio));
+    } finally {
+      if (fs.existsSync(temporaryFile)) {
+        fs.unlinkSync(temporaryFile);
+      }
+    }
+  });
+
+  it('does not add --no-minio when values file is cluster-ref qualified with cloud.minio.enabled: true', (): void => {
+    process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
+    const temporaryFile: string = PathEx.join(os.tmpdir(), `cluster-cloud-minio-${Date.now()}.yaml`);
+    fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: true\n');
+
+    try {
+      const argv: string[] = DeployArgvBuilders.buildClusterSetupArgv(
+        makeConfig({
+          versions: {
+            explorer: '2.5.0',
+            soloChart: '0.0.0',
+            consensus: 'v0.74.0',
+            mirror: '0.0.0',
+            relay: '0.0.0',
+            blockNode: '0.0.0',
+          },
+          networkConfiguration: {
+            [Flags.getFormattedFlagKey(Flags.valuesFile)]: `cluster-1=${temporaryFile}`,
+          },
+        }),
+      );
+
+      expect(argv).to.not.include(negatedOptionFromFlag(Flags.deployMinio));
+    } finally {
+      if (fs.existsSync(temporaryFile)) {
+        fs.unlinkSync(temporaryFile);
+      }
+    }
+  });
+
+  it('does not add --no-minio when multiple values files are supplied and one enables MinIO', (): void => {
+    process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
+    const unrelatedFile: string = PathEx.join(os.tmpdir(), `unrelated-${Date.now()}.yaml`);
+    const minioFile: string = PathEx.join(os.tmpdir(), `cloud-minio-${Date.now()}.yaml`);
+    fs.writeFileSync(unrelatedFile, 'hedera:\n  nodes:\n    - name: node1\n');
+    fs.writeFileSync(minioFile, 'cloud:\n  minio:\n    enabled: true\n');
+
+    try {
+      const argv: string[] = DeployArgvBuilders.buildClusterSetupArgv(
+        makeConfig({
+          versions: {
+            explorer: '2.5.0',
+            soloChart: '0.0.0',
+            consensus: 'v0.74.0',
+            mirror: '0.0.0',
+            relay: '0.0.0',
+            blockNode: '0.0.0',
+          },
+          networkConfiguration: {
+            [Flags.getFormattedFlagKey(Flags.valuesFile)]: `${unrelatedFile},${minioFile}`,
+          },
+        }),
+      );
+
+      expect(argv).to.not.include(negatedOptionFromFlag(Flags.deployMinio));
+    } finally {
+      if (fs.existsSync(unrelatedFile)) {
+        fs.unlinkSync(unrelatedFile);
+      }
+      if (fs.existsSync(minioFile)) {
+        fs.unlinkSync(minioFile);
+      }
+    }
+  });
+
+  it('adds --no-minio when multiple values files are supplied and the last defined value is cloud.minio.enabled: false', (): void => {
+    process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
+    const minioFile: string = PathEx.join(os.tmpdir(), `cloud-minio-true-${Date.now()}.yaml`);
+    const overrideFile: string = PathEx.join(os.tmpdir(), `cloud-minio-false-${Date.now()}.yaml`);
+    fs.writeFileSync(minioFile, 'cloud:\n  minio:\n    enabled: true\n');
+    fs.writeFileSync(overrideFile, 'cloud:\n  minio:\n    enabled: false\n');
+
+    try {
+      const argv: string[] = DeployArgvBuilders.buildClusterSetupArgv(
+        makeConfig({
+          versions: {
+            explorer: '2.5.0',
+            soloChart: '0.0.0',
+            consensus: 'v0.74.0',
+            mirror: '0.0.0',
+            relay: '0.0.0',
+            blockNode: '0.0.0',
+          },
+          networkConfiguration: {
+            [Flags.getFormattedFlagKey(Flags.valuesFile)]: `${minioFile},${overrideFile}`,
+          },
+        }),
+      );
+
+      expect(argv).to.include(negatedOptionFromFlag(Flags.deployMinio));
+    } finally {
+      if (fs.existsSync(minioFile)) {
+        fs.unlinkSync(minioFile);
+      }
+      if (fs.existsSync(overrideFile)) {
+        fs.unlinkSync(overrideFile);
+      }
+    }
+  });
+
+  it('adds --no-minio when values file explicitly sets cloud.minio.enabled: false', (): void => {
+    process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
+    const temporaryFile: string = PathEx.join(os.tmpdir(), `cloud-minio-false-${Date.now()}.yaml`);
+    fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: false\n');
+
+    try {
+      const argv: string[] = DeployArgvBuilders.buildClusterSetupArgv(
+        makeConfig({
+          versions: {
+            explorer: '2.5.0',
+            soloChart: '0.0.0',
+            consensus: 'v0.74.0',
+            mirror: '0.0.0',
+            relay: '0.0.0',
+            blockNode: '0.0.0',
+          },
+          networkConfiguration: {
+            [Flags.getFormattedFlagKey(Flags.valuesFile)]: temporaryFile,
+          },
+        }),
+      );
+
+      expect(argv).to.include(negatedOptionFromFlag(Flags.deployMinio));
+    } finally {
+      if (fs.existsSync(temporaryFile)) {
+        fs.unlinkSync(temporaryFile);
+      }
+    }
+  });
+
+  it('adds --no-minio when values file is provided via config.valuesFile (profile) rather than networkConfiguration', (): void => {
+    process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
+    const temporaryFile: string = PathEx.join(os.tmpdir(), `profile-minio-${Date.now()}.yaml`);
+    fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: true\n');
+
+    try {
+      const argv: string[] = DeployArgvBuilders.buildClusterSetupArgv(
+        makeConfig({
+          versions: {
+            explorer: '2.5.0',
+            soloChart: '0.0.0',
+            consensus: 'v0.74.0',
+            mirror: '0.0.0',
+            relay: '0.0.0',
+            blockNode: '0.0.0',
+          },
+          valuesFile: temporaryFile,
+        }),
+      );
+
+      expect(argv).to.include(negatedOptionFromFlag(Flags.deployMinio));
+    } finally {
+      if (fs.existsSync(temporaryFile)) {
+        fs.unlinkSync(temporaryFile);
+      }
+    }
+  });
+
+  it('adds --no-minio when ONE_SHOT_WITH_BLOCK_NODE is enabled and a values file has only non-MinIO configs', (): void => {
+    process.env.ONE_SHOT_WITH_BLOCK_NODE = 'true';
+    const temporaryFile: string = PathEx.join(os.tmpdir(), `non-minio-${Date.now()}.yaml`);
+    fs.writeFileSync(temporaryFile, 'hedera:\n  nodes:\n    - name: node1\n');
+
+    try {
+      const argv: string[] = DeployArgvBuilders.buildClusterSetupArgv(
+        makeConfig({
+          versions: {
+            explorer: '2.5.0',
+            soloChart: '0.0.0',
+            consensus: 'v0.74.0',
+            mirror: '0.0.0',
+            relay: '0.0.0',
+            blockNode: '0.0.0',
+          },
+          networkConfiguration: {
+            [Flags.getFormattedFlagKey(Flags.valuesFile)]: temporaryFile,
+          },
+        }),
+      );
+
+      expect(argv).to.include(negatedOptionFromFlag(Flags.deployMinio));
+    } finally {
+      if (fs.existsSync(temporaryFile)) {
+        fs.unlinkSync(temporaryFile);
+      }
+    }
   });
 
   it('does not add --no-minio when block node one-shot uses BOTH stream mode', (): void => {

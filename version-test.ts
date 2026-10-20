@@ -11,4 +11,4 @@ export const TEST_UPGRADE_TO_VERSION: string = 'v0.77.2';
 export const PREV_BLOCK_NODE_VERSION: string = 'v0.40.0';
 export const PREV_MIRROR_NODE_VERSION: string = 'v0.163.0';
 export const PREV_EXPLORER_VERSION: string = '26.0.0';
-export const PREV_RELAY_VERSION: string = '0.78.0';
+export const PREV_RELAY_VERSION: string = '0.78.1';

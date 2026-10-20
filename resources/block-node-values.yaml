@@ -37,6 +37,7 @@ blockNode:
     BACKFILL_BLOCK_NODE_SOURCES_PATH: "/opt/hiero/block-node/backfill/block-node-sources.json"
     ROSTER_BOOTSTRAP_TSS_BLOCK_NODE_SOURCES_PATH: "/opt/hiero/block-node/backfill/block-node-sources.json"
     SERVER_SOCKET_RECEIVE_BUFFER_SIZE_BYTES: "131072"
+    SERVER_SOCKET_SEND_BUFFER_SIZE_BYTES: "131072"
   persistence:
     archive:
       size: 1Gi

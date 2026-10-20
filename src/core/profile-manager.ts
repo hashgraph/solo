@@ -38,6 +38,7 @@ import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import {type Container} from '../integration/kube/resources/container/container.js';
+import {NetworkNodeLifecycle} from './network-node-lifecycle.js';
 
 @injectable()
 export class ProfileManager {
@@ -459,6 +460,14 @@ export class ProfileManager {
         this._setChartItems('defaults.root', soloValuesYaml.defaults.root, yamlRoot);
       }
 
+      // Use the released consensus node image as the root container image when requested (and tell the chart its
+      // jar files are baked in). Set after the JFR block above so it is merged into defaults rather than overwritten.
+      this._setChartItems(
+        'defaults',
+        NetworkNodeLifecycle.buildDefaultsValues(this.resolveStagingOptions(stagingOptions).releaseTag),
+        yamlRoot,
+      );
+
       // Override defaults.root.extraEnv with values from the staged application.env file.
       // This must run AFTER the JFR block above, which overwrites defaults.root from solo-values.yaml.
       const stagingDirectory: string = Templates.renderStagingDir(
@@ -668,7 +677,7 @@ export class ProfileManager {
       }
 
       if (
-        this.remoteConfig.configuration.state.wrapsEnabled &&
+        Helpers.shouldProvisionWraps(this.remoteConfig.configuration.state.wrapsEnabled, releaseTag) &&
         !ProfileManager.hasApplicationProperty(lines, 'tss.wrapsEnabled')
       ) {
         Helpers.upsertApplicationProperty(lines, 'tss.wrapsEnabled', 'true');

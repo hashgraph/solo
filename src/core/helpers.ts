@@ -113,6 +113,23 @@ export class Helpers {
     return Helpers.getBlockStreamModeForConsensusVersion(consensusNodeVersion, blockNodeIntegrationEnabled, tssEnabled);
   }
 
+  /**
+   * Returns true when Solo has to provision WRAPS for the consensus node itself: download and copy the proving
+   * key, and point the node at it with tss.wrapsEnabled and TSS_LIB_WRAPS_ARTIFACTS_PATH. That is only the case
+   * when WRAPS is enabled and the node predates the release that embeds the proving parameters in its TSS library.
+   */
+  public static shouldProvisionWraps(
+    wrapsEnabled: boolean,
+    consensusNodeVersion: SemanticVersion<string> | string,
+  ): boolean {
+    return (
+      wrapsEnabled &&
+      new SemanticVersion<string>(consensusNodeVersion.toString()).lessThan(
+        versions.MINIMUM_CN_VERSION_FOR_EMBEDDED_WRAPS_PARAMETERS,
+      )
+    );
+  }
+
   public static parseBlockStreamMode(applicationPropertiesText: string): string | undefined {
     const match: RegExpMatchArray | null = applicationPropertiesText.match(
       /^\s*blockStream\.streamMode\s*=\s*(\S+)\s*$/m,

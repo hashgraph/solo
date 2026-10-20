@@ -175,7 +175,56 @@ function collectDeprecations(): RegisteredDeprecation[] {
   return registry.list();
 }
 
-function renderDeprecatedFeaturesSection(): string {
+/**
+ * Lists the command paths that accept a deprecated flag with the deprecation applying. A flag deprecated only for
+ * certain commands lists that scope; a flag deprecated outright is discovered from the generated help output, where
+ * every command that accepts it renders the `[deprecated]` marker next to it.
+ */
+function findCommandsDeprecatingFlag(soloCommand: SoloCommand, entry: RegisteredDeprecation): string[] {
+  const scope: string[] | undefined = Deprecations.commandScope(entry.deprecation);
+  if (scope) {
+    return scope;
+  }
+  const flagPattern: RegExp = new RegExp(String.raw`${entry.feature}(?![\w-])`);
+  const commands: string[] = [];
+  for (const topLevelCommand of soloCommand.topLevelCommands) {
+    for (const secondLevelCommand of topLevelCommand.secondLevelCommands) {
+      for (const thirdLevelCommand of secondLevelCommand.thirdLevelCommands) {
+        const deprecatedFlagShown: boolean = thirdLevelCommand.output
+          .split('\n')
+          .some((line: string): boolean => flagPattern.test(line) && line.includes('[deprecated'));
+        if (deprecatedFlagShown) {
+          commands.push(
+            `${topLevelCommand.topCommand} ${secondLevelCommand.secondCommand} ${thirdLevelCommand.thirdCommand}`,
+          );
+        }
+      }
+    }
+  }
+  return commands;
+}
+
+/**
+ * Renders the commands a flag is deprecated for as one line per command group (e.g. `consensus node`: `add`,
+ * `update`), joined with `<br>` so they fit inside a Markdown table cell.
+ */
+function renderDeprecatedFlagCommands(commands: string[]): string {
+  const operationsByGroup: Map<string, string[]> = new Map();
+  for (const command of commands) {
+    const words: string[] = command.split(' ');
+    const operation: string = words.pop();
+    const group: string = words.join(' ');
+    operationsByGroup.set(group, [...(operationsByGroup.get(group) ?? []), operation]);
+  }
+  return [...operationsByGroup.entries()]
+    .map(
+      ([group, operations]: [string, string[]]): string =>
+        `• \`${group}\`: ${operations.map((operation: string): string => `\`${operation}\``).join(', ')}`,
+    )
+    .join('<br>');
+}
+
+function renderDeprecatedFeaturesSection(soloCommand: SoloCommand): string {
   let deprecations: RegisteredDeprecation[];
   try {
     deprecations = collectDeprecations();
@@ -197,12 +246,10 @@ function renderDeprecatedFeaturesSection(): string {
     .map((entry: RegisteredDeprecation): string => {
       const removeBy: string = Deprecations.resolveRemoveBy(entry.deprecation);
       const replacement: string = entry.deprecation.replacement ? `\`${entry.deprecation.replacement}\`` : '—';
-      const scope: string[] | undefined = Deprecations.commandScope(entry.deprecation);
-      // A flag deprecated only for certain commands stays supported everywhere else — say so in the table.
-      const feature: string = scope
-        ? `\`${entry.feature}\` (only for ${scope.map((command: string): string => `\`${command}\``).join(', ')})`
-        : `\`${entry.feature}\``;
-      return `| ${feature} | ${entry.kind} | v${entry.deprecation.since} | v${removeBy} | ${replacement} |`;
+      // A flag stays supported on every command that does not show it as deprecated, so list where it applies.
+      const commands: string[] = entry.kind === 'flag' ? findCommandsDeprecatingFlag(soloCommand, entry) : [];
+      const commandsCell: string = commands.length === 0 ? '' : renderDeprecatedFlagCommands(commands);
+      return `| \`${entry.feature}\` | ${entry.kind} | ${commandsCell} | v${entry.deprecation.since} | v${removeBy} | ${replacement} |`;
     })
     .join('\n');
 
@@ -210,8 +257,8 @@ function renderDeprecatedFeaturesSection(): string {
 
 Deprecated flags are also marked inline in the help output below as \`[deprecated]\`, and deprecated commands as \`[DEPRECATED: ...]\`. The version window and replacement for each are listed in the table.
 
-| Feature | Type | Deprecated since | Planned removal | Replacement |
-| ------- | ---- | ---------------- | --------------- | ----------- |
+| Feature | Type | Deprecated for commands | Deprecated since | Planned removal | Replacement |
+| ------- | ---- | ----------------------- | ---------------- | --------------- | ----------- |
 ${rows}
 
 `;
@@ -250,7 +297,7 @@ Global flags shown in root help:
 - \`--force-port-forward\`: force port forwarding for network services.
 - \`-v\`, \`--version\`: print Solo version.
 
-${renderDeprecatedFeaturesSection()}## Command and Flag Reference
+${renderDeprecatedFeaturesSection(soloCommand)}## Command and Flag Reference
 
 The sections below are generated from Solo CLI help output using the implementation on \`hiero-ledger/solo\`.
 

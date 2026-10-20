@@ -24,16 +24,16 @@ export const NETAVARK_VERSION: string = 'v2.0.0';
 export const AARDVARK_DNS_VERSION: string = 'v2.0.0';
 export const KUBECTL_VERSION: string = 'v1.32.2';
 
-export const SOLO_CHART_VERSION: string = constants.getEnvironmentVariable('SOLO_CHART_VERSION') || '0.66.2';
+export const SOLO_CHART_VERSION: string = constants.getEnvironmentVariable('SOLO_CHART_VERSION') || '0.67.0';
 export const HEDERA_PLATFORM_VERSION: string = constants.getEnvironmentVariable('CONSENSUS_NODE_VERSION') || 'v0.77.2';
 export const MIRROR_NODE_VERSION: string = constants.getEnvironmentVariable('MIRROR_NODE_VERSION') || 'v0.163.0';
 export const EXPLORER_VERSION: string = constants.getEnvironmentVariable('EXPLORER_VERSION') || '26.2.0';
-export const HEDERA_JSON_RPC_RELAY_VERSION: string = constants.getEnvironmentVariable('RELAY_VERSION') || '0.78.1';
+export const HEDERA_JSON_RPC_RELAY_VERSION: string = constants.getEnvironmentVariable('RELAY_VERSION') || '0.80.1';
 export const INGRESS_CONTROLLER_VERSION: string =
   constants.getEnvironmentVariable('INGRESS_CONTROLLER_VERSION') || '0.14.5';
 // If this version changes, regenerate test/data/proto.zip (see test/data/get-block.sh for steps) —
 // a stale vendored schema causes intermittent grpcurl unmarshal failures (see issue #5848).
-export const BLOCK_NODE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_VERSION') || '0.43.0';
+export const BLOCK_NODE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_VERSION') || '0.44.2';
 
 export const METALLB_CHART_VERSION: string = constants.getEnvironmentVariable('METALLB_CHART_VERSION') || '0.15.3';
 export const MINIO_OPERATOR_VERSION: string = constants.getEnvironmentVariable('MINIO_OPERATOR_VERSION') || '7.1.1';
@@ -79,8 +79,8 @@ export const MIRROR_NODE_EDGE_VERSION: string =
 export const EXPLORER_EDGE_VERSION: string =
   constants.getEnvironmentVariable('EXPLORER_EDGE_VERSION') || EXPLORER_VERSION;
 export const HEDERA_JSON_RPC_RELAY_EDGE_VERSION: string =
-  constants.getEnvironmentVariable('RELAY_EDGE_VERSION') || '0.79.0';
-export const BLOCK_NODE_EDGE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_EDGE_VERSION') || '0.44.0';
+  constants.getEnvironmentVariable('RELAY_EDGE_VERSION') || '0.80.1';
+export const BLOCK_NODE_EDGE_VERSION: string = constants.getEnvironmentVariable('BLOCK_NODE_EDGE_VERSION') || '0.44.2';
 
 // -------------------------------------------------------------------- //
 
@@ -126,6 +126,11 @@ export const MINIMUM_MIRROR_NODE_VERSION_FOR_SHA256_HASHING: string = 'v0.165.0-
 // Consensus node v0.79 changes the TSS library, which does not convert existing keys or proofs, so a
 // network on an older version cannot be upgraded across this boundary; it has to be redeployed.
 export const CN_VERSION_REQUIRING_REDEPLOY: string = 'v0.79.0-0';
+
+// hiero-consensus-node#27506 adopts a TSS library that embeds the WRAPS proving parameters, so from this
+// version the consensus node needs no proving key: Solo no longer downloads it, copies it into the pods,
+// or sets tss.wrapsEnabled and TSS_LIB_WRAPS_ARTIFACTS_PATH, which the node no longer reads.
+export const MINIMUM_CN_VERSION_FOR_EMBEDDED_WRAPS_PARAMETERS: string = 'v0.79.0-0';
 
 export function getSoloVersion(): Version {
   // In SEA mode the bootstrap (sea/sea-main.template.cjs) sets SOLO_SEA_VERSION before any

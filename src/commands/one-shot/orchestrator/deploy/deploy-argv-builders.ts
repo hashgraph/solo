@@ -31,6 +31,7 @@ import path from 'node:path';
 import yaml from 'yaml';
 import {Templates} from '../../../../core/templates.js';
 import {SemanticVersion} from '../../../../business/utils/semantic-version.js';
+import {helmValuesHelper} from '../../../../core/helm-values-helper.js';
 import {type ComponentVersionTuple} from '../../../../business/compatibility/component-version-tuple.js';
 import {ComponentTypes} from '../../../../core/config/remote/enumerations/component-types.js';
 
@@ -89,6 +90,14 @@ export class DeployArgvBuilders {
   private static shouldSkipMinioSetup(config: OneShotSingleDeployConfigClass): boolean {
     if (!this.shouldDeployBlockNode(config)) {
       return false;
+    }
+
+    const networkValuesFileInput: unknown = config.networkConfiguration?.[Flags.getFormattedFlagKey(Flags.valuesFile)];
+    if (typeof networkValuesFileInput === 'string' && networkValuesFileInput.trim().length > 0) {
+      const filePaths: string[] = Object.values(Flags.parseValuesFilesInput(networkValuesFileInput)).flat();
+      if (helmValuesHelper.hasExplicitMinioEnabled(filePaths)) {
+        return false;
+      }
     }
 
     const consensusNodeVersion: string = config.versions.consensus || version.HEDERA_PLATFORM_VERSION;
@@ -151,12 +160,7 @@ export class DeployArgvBuilders {
     // Build a local copy with the dev image values file appended, without mutating
     // config.blockNodeConfiguration — it may be an alias for another section's object
     // (e.g. via YAML anchors), causing the values file to leak into other commands.
-    // When ONE_SHOT_BLOCK_NODE_PERF=true, also inject the messaging workaround values
-    // (larger Disruptor ring buffer + memory, no JFR) before the solo-dev image override
-    // so the settings apply but the image is still the solo-dev image.
     const blockExistingValuesFile: string = blockNodeConfiguration?.[Flags.getFormattedFlagKey(Flags.valuesFile)];
-    const isPerfMode: boolean = constants.ONE_SHOT_BLOCK_NODE_PERF.toLowerCase() === 'true';
-    const perfValuesFile: string | undefined = isPerfMode ? constants.BLOCK_NODE_MESSAGING_WORKAROUND_FILE : undefined;
     // WRB/RSA blocks require the block node's RSA address book before block 0 is verified.
     // Mirror can provide it later, but block-node startup must be seeded to avoid BAD_BLOCK_PROOF
     // on the first block.
@@ -168,7 +172,6 @@ export class DeployArgvBuilders {
       ...blockNodeConfiguration,
       [Flags.getFormattedFlagKey(Flags.valuesFile)]: [
         blockExistingValuesFile,
-        perfValuesFile,
         rsaBootstrapValuesFile,
         constants.BLOCK_NODE_SOLO_DEV_FILE,
       ]
