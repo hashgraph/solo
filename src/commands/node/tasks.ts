@@ -4444,7 +4444,11 @@ export class NodeCommandTasks {
   public addWrapsLib(): SoloListrTask<{config: NodeCommonConfigClass}> {
     return {
       title: 'Copy wraps lib over',
-      skip: (): boolean => !this.remoteConfig.configuration.state.wrapsEnabled,
+      skip: (): boolean =>
+        !Helpers.shouldProvisionWraps(
+          this.remoteConfig.configuration.state.wrapsEnabled,
+          this.remoteConfig.configuration.versions.consensusNode,
+        ),
       task: async ({config}): Promise<void> => {
         const wraps: Wraps = this.soloConfig.tss.wraps;
         const extractedDirectory: string = PathEx.join(constants.SOLO_CACHE_DIR, wraps.directoryName);
@@ -4661,8 +4665,11 @@ export class NodeCommandTasks {
 
         // Generate extraEnv values file for wraps, debug, and custom environment variables
         // This replaces the old --set extraEnv approach to prevent Helm replacement issues
-        const needsExtraEnvironment: boolean =
-          this.remoteConfig.configuration.state.wrapsEnabled || !!config.debugNodeAlias;
+        const provisionWraps: boolean = Helpers.shouldProvisionWraps(
+          this.remoteConfig.configuration.state.wrapsEnabled,
+          this.remoteConfig.configuration.versions.consensusNode,
+        );
+        const needsExtraEnvironment: boolean = provisionWraps || !!config.debugNodeAlias;
 
         if (needsExtraEnvironment) {
           for (const [clusterReference] of clusterReferences) {
@@ -4698,7 +4705,7 @@ export class NodeCommandTasks {
               userValueFilePaths,
               clusterConsensusNodes,
               {
-                wrapsEnabled: this.remoteConfig.configuration.state.wrapsEnabled,
+                wrapsEnabled: provisionWraps,
                 tss: this.soloConfig.tss,
                 debugNodeAlias: config.debugNodeAlias,
                 useJavaMainClass: false,
@@ -4711,7 +4718,7 @@ export class NodeCommandTasks {
             const extraEnvironmentValuesFile: string = helmValuesHelper.generateExtraEnvironmentValuesFile(
               clusterConsensusNodes,
               {
-                wrapsEnabled: this.remoteConfig.configuration.state.wrapsEnabled,
+                wrapsEnabled: provisionWraps,
                 tss: this.soloConfig.tss,
                 debugNodeAlias: config.debugNodeAlias,
                 useJavaMainClass: false,
