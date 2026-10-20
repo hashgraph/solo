@@ -48,14 +48,55 @@ const duration: number = Duration.ofMinutes(
 ).seconds;
 const clients: number = 5;
 const accounts: number = 1000;
-const tokens: number = 50;
+// FungibleTransferJob (network-load-generator) draws a RECEIVER for each transfer from a
+// permutation of all `accounts`, and a token (treasury) from `tokens` possible values. Confirmed
+// via the WorkingQueue debug log (run 37253956703) that submissions reach the network fine at
+// ~100 TPS; the loss happens between submission and receipt. The actual culprit is
+// BenchAccount.createAccountTxn() -> setMaxAutomaticTokenAssociations(BenchConfig.associations),
+// where BenchConfig.associations (the real per-account auto-association cap) defaults to 2 and is
+// set only by the separate `-rel` flag -- NOT by `-A`/associations below, which maps to
+// BenchConfig.nBalances (a distribution parameter, not an association limit). With no `-rel`
+// passed, every account can auto-associate with only 2 distinct tokens; any transfer attempting a
+// 3rd+ distinct token to the same receiver fails every time with NO_REMAINING_AUTOMATIC_
+// ASSOCIATIONS and retries forever without ever counting as a transfer -- hence ~11-12 TPS
+// regardless of treasury pool size.
+const tokens: number = 500;
 const associations: number = 50;
+// `-rel` raises BenchConfig.associations (see above) past the default of 2. Setting it to the
+// full `tokens` count (run 37257376069) fixed TokenTransferLoadTest (11 -> 97 TPS) but dragged
+// SmartContractLoadTest down (97 -> 60 TPS), almost certainly from the much larger live
+// TokenRelationship state that unlocks (up to accounts x tokenAssociationCap associations) adding
+// per-round hashing/compaction overhead on the CPU-constrained small-memory consensus node. A
+// receiver only needs enough headroom to cover how many distinct tokens it's realistically drawn
+// for within one ~255s run, not the full token pool, so this is 10x the broken default rather than
+// matching `tokens`.
+const tokenAssociationCap: number = 20;
 const nfts: number = 50;
 const percent: number = 50;
-const stableTransactionPerSecondTarget: number = 100;
+// The global RateLimitedQueue (network-load-generator) precisely targets this rate on
+// submission -- confirmed via debug logging that Crypto/HCS/Nft/Token submit cleanly at
+// 99-103 TPS with zero precheck errors. The reported "Finished" TPS still lands at 96-98
+// because of tail-loss (in-flight transactions not yet confirmed when the measurement window
+// closes) plus integer-rounding in NLG's own TPS calculation, not an actual shortfall at the
+// target rate. 105 compensates for that gap for those four tests.
+const stableTransactionPerSecondTarget: number = 105;
+// SmartContractLoadTest is CPU-bound on the consensus node's EVM execution rather than
+// submission-paced like the other four tests, so it does NOT get the +5 TPS target bump above:
+// CI run 37357536412 confirmed raising its target from 100 to 105 collapsed its achieved TPS
+// from 97 to 58 (real StatusRuntimeException gRPC errors under contention, not a measurement
+// artifact). See the SmartContractLoadTest `it(...)` block below for where this is applied.
+const smartContractMaxTpsReduction: number = 5;
 // SmartContract tests require EVM execution on the consensus node plus mirror processing,
-// which makes them heavier than simple transfers; 600 ms provides adequate headroom at 97 TPS.
-const maxEndToEndRtt: number = 600;
+// which makes them heavier than simple transfers; 500 ms provides adequate headroom at 97 TPS
+// now that blockStream.blockPeriod is tuned down in the small-memory consensus-node profile
+// (see resources/templates/small-memory/). event.creation.maxCreationRate was tried alongside
+// it but halved SmartContractLoadTest's achieved TPS (97 -> 51), so it was left at its default.
+const maxEndToEndRtt: number = 500;
+// All five load tests consistently measure 96-98 TPS against the 100 TPS target (see
+// soloRapidFire's --max-tps); 90 gives comfortable margin below that observed range while still
+// catching a genuine throughput regression (e.g. the TokenTransferLoadTest auto-association bug
+// that silently collapsed it to ~11 TPS for several runs before being fixed).
+const minimumTransactionsPerSecond: number = 90;
 const nftTransferLoadTestTimeoutMultiplier: number = 6;
 const mirrorImporterWarmupSeconds: number = 60;
 const performanceTestConciseModeEnabled: boolean = process.env.PERFORMANCE_TEST_CONCISE_MODE === 'true';
@@ -278,7 +319,7 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
             logEvent('Starting TokenTransferLoadTest');
             await runLoadTest(
               'TokenTransferLoadTest',
-              `-c ${clients} -a ${accounts} -T ${tokens} -A ${associations} -R -t ${duration}`,
+              `-c ${clients} -a ${accounts} -T ${tokens} -A ${associations} -rel ${tokenAssociationCap} -R -t ${duration}`,
             );
           }).timeout(Duration.ofSeconds(duration * 2 + mirrorImporterWarmupSeconds).toMillis());
 
@@ -308,20 +349,36 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
 
           it('SmartContractLoadTest', async (): Promise<void> => {
             logEvent('Starting SmartContractLoadTest');
-            await runLoadTest('SmartContractLoadTest', `-c ${clients} -a ${accounts} -R -t ${duration}`);
+            await runLoadTest(
+              'SmartContractLoadTest',
+              `-c ${clients} -a ${accounts} -R -t ${duration}`,
+              stableTransactionPerSecondTarget - smartContractMaxTpsReduction,
+            );
           }).timeout(Duration.ofSeconds(duration * 6 + mirrorImporterWarmupSeconds).toMillis());
         }
 
-        async function runLoadTest(performanceTest: string, argumentsString: string): Promise<void> {
+        async function runLoadTest(
+          performanceTest: string,
+          argumentsString: string,
+          maxTps: number = stableTransactionPerSecondTarget,
+        ): Promise<void> {
           // Wait for the mirror importer to drain the block backlog created during the deploy
           // stage. The block node takes ~46 s to reach PUBLISHER_CONNECTED, accumulating ~200
           // blocks (at ~4 blocks/sec). This sleep lets the importer catch up to near-real-time
           // so the RTT probe does not spend its entire readiness window on stale blocks.
           await sleep(Duration.ofSeconds(mirrorImporterWarmupSeconds));
           // rapid-fire enforces the TPS!=0 + "Finished" check internally and throws
-          // on degraded runs (proxy backpressure, NFT-vs-fungible token mismatch, etc.).
+          // on degraded runs (proxy backpressure, NFT-vs-fungible token mismatch, etc.); it now
+          // also throws if the achieved TPS falls below minimumTransactionsPerSecond.
           await main(
-            soloRapidFire(testName, performanceTest, argumentsString, stableTransactionPerSecondTarget, maxEndToEndRtt),
+            soloRapidFire(
+              testName,
+              performanceTest,
+              argumentsString,
+              maxTps,
+              maxEndToEndRtt,
+              minimumTransactionsPerSecond,
+            ),
           );
           // Cool-down lets haproxy drain tunnel sockets before the next test.
           await sleep(Duration.ofSeconds(30));
@@ -485,6 +542,7 @@ export function soloRapidFire(
   argumentsString: string,
   maxTps: number,
   maxRtt: number,
+  minTps: number,
 ): string[] {
   const {newArgv, argvPushGlobalFlags, optionFromFlag} = BaseCommandTest;
 
@@ -501,6 +559,8 @@ export function soloRapidFire(
     maxTps.toString(),
     optionFromFlag(Flags.maxRtt),
     maxRtt.toString(),
+    optionFromFlag(Flags.minTps),
+    minTps.toString(),
     optionFromFlag(Flags.nlgArguments),
     `'"${argumentsString}"'`,
   );

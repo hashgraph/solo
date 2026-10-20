@@ -107,6 +107,17 @@ export const HEDERA_CHAIN_ID: string = getEnvironmentVariable('SOLO_CHAIN_ID') |
 export const HEDERA_HGCAPP_DIR: string = '/opt/hgcapp';
 export const HEDERA_SERVICES_PATH: string = `${HEDERA_HGCAPP_DIR}/services-hedera`;
 export const HEDERA_HAPI_PATH: string = `${HEDERA_SERVICES_PATH}/HapiApp2.0`;
+
+// How Solo starts/stops the consensus node process inside the root container:
+//  - 'solo-container' (default): the solo-containers debian-s6-java25 image and its /command/network-node-lifecycle helper
+//  - 'consensus-node-image': opt-in; the hiero-consensus-node deterministic image and its single s6 'consensus' service
+export const NETWORK_NODE_LIFECYCLE_MODE: string =
+  getEnvironmentVariable('NETWORK_NODE_LIFECYCLE_MODE') || 'solo-container';
+
+// Public release location of the hiero-consensus-node deterministic image, used as the root container image
+// when NETWORK_NODE_LIFECYCLE_MODE is 'consensus-node-image'. Tags are the release version without a 'v' prefix.
+export const CONSENSUS_NODE_IMAGE_REGISTRY: string = 'gcr.io';
+export const CONSENSUS_NODE_IMAGE_REPOSITORY: string = 'hedera-registry/consensus-node';
 export const HEDERA_DATA_APPS_DIR: string = 'data/apps';
 export const HEDERA_DATA_LIB_DIR: string = 'data/lib';
 export const HEDERA_USER_HOME_DIR: string = '/home/hedera';
@@ -190,6 +201,19 @@ export const MINIO_OPERATOR_RELEASE_NAME: string = 'operator';
  * `policybindings` is therefore still detected by its `tenants` CRD.
  */
 export const MINIO_OPERATOR_CRDS: string[] = ['tenants.minio.min.io', 'policybindings.sts.min.io'];
+
+export const PROMETHEUS_OPERATOR_CRDS: string[] = [
+  'alertmanagerconfigs.monitoring.coreos.com',
+  'alertmanagers.monitoring.coreos.com',
+  'podmonitors.monitoring.coreos.com',
+  'probes.monitoring.coreos.com',
+  'prometheusagents.monitoring.coreos.com',
+  'prometheuses.monitoring.coreos.com',
+  'prometheusrules.monitoring.coreos.com',
+  'scrapeconfigs.monitoring.coreos.com',
+  'servicemonitors.monitoring.coreos.com',
+  'thanosrulers.monitoring.coreos.com',
+];
 
 export const METRICS_SERVER_CHART_URL: string =
   getEnvironmentVariable('METRICS_SERVER_CHART_URL') ?? 'https://kubernetes-sigs.github.io/metrics-server/';
@@ -380,10 +404,6 @@ export const ONE_SHOT_CONSENSUS_GRPC_NODE_PORT: number = 30_007;
 export const ONE_SHOT_CONSENSUS_GRPC_HOST_PORT: number = 35_211;
 export const BLOCK_NODE_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'block-node-values.yaml');
 export const BLOCK_NODE_SOLO_DEV_FILE: string = BLOCK_NODE_VALUES_FILE;
-export const BLOCK_NODE_MESSAGING_WORKAROUND_FILE: string = PathEx.joinWithRealPath(
-  RESOURCES_DIR,
-  'block-node-messaging-workaround.yaml',
-);
 export const MIRROR_POSTGRES_TRUNCATE_SQL_FILE: string = PathEx.joinWithRealPath(
   RESOURCES_DIR,
   'mirror-postgres-truncate.sql',
@@ -399,7 +419,6 @@ export const BLOCK_NODE_TSS_VALUES_FILE: string = PathEx.joinWithRealPath(RESOUR
 export const RENAME_STATE_NODE_ID_SCRIPT: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'rename-state-node-id.sh');
 export const NODE_LOG_FAILURE_MSG: string = 'failed to download logs from pod';
 export const ONE_SHOT_WITH_BLOCK_NODE: string = getEnvironmentVariable('ONE_SHOT_WITH_BLOCK_NODE') || 'false';
-export const ONE_SHOT_BLOCK_NODE_PERF: string = getEnvironmentVariable('ONE_SHOT_BLOCK_NODE_PERF') || 'false';
 export const ONE_SHOT_DEPLOYMENT_NAME: string = 'one-shot';
 export const RAPID_FIRE_VALUES_FILE: string = PathEx.joinWithRealPath(RESOURCES_DIR, 'rapid-fire', 'nlg-values.yaml');
 

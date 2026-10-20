@@ -92,6 +92,30 @@ describe('ChartManager cached-chart consumption', (): void => {
     expect(chart.repoName).to.equal(repositoryUrl);
     expect(options.version).to.equal(chartVersion);
   });
+
+  it('passes --skip-crds only when requested', async (): Promise<void> => {
+    const manager: ChartManager = buildManager(inspectorReturning(false));
+    await manager.install(
+      undefined as unknown as NamespaceName,
+      'release-name',
+      chartName,
+      repositoryUrl,
+      chartVersion,
+      chartValues,
+      'kube-context',
+      false,
+      false,
+      false,
+      true,
+    );
+    expect((installChartStub.firstCall.args[2] as InstallChartOptions).skipCrds).to.be.true;
+
+    const defaultOptions: InstallChartOptions = await (async (): Promise<InstallChartOptions> => {
+      installChartStub.resetHistory();
+      return runInstall(manager);
+    })();
+    expect(defaultOptions.skipCrds).to.be.false;
+  });
 });
 
 describe('ChartManager installed-release lookup', (): void => {

@@ -9,6 +9,7 @@ export interface NlgResult {
   transactionCount?: number;
   durationSeconds?: number;
   tps?: number;
+  minTps?: number;
   rttMilliseconds?: number;
   hint?: string;
 }

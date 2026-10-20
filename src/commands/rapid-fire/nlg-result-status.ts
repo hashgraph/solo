@@ -4,4 +4,5 @@ export enum NlgResultStatus {
   SUCCESS = 'success',
   ZERO_TPS = 'zero-tps',
   NO_RESULT = 'no-result',
+  BELOW_MIN_TPS = 'below-min-tps',
 }
