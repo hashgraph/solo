@@ -29,7 +29,7 @@ export const HEDERA_PLATFORM_VERSION: string =
   constants.getEnvironmentVariable('CONSENSUS_NODE_VERSION') || 'v0.79.0-alpha.2';
 export const MIRROR_NODE_VERSION: string = constants.getEnvironmentVariable('MIRROR_NODE_VERSION') || 'v0.165.0-alpha2';
 export const EXPLORER_VERSION: string = constants.getEnvironmentVariable('EXPLORER_VERSION') || '26.2.0';
-export const HEDERA_JSON_RPC_RELAY_VERSION: string = constants.getEnvironmentVariable('RELAY_VERSION') || '0.78.1';
+export const HEDERA_JSON_RPC_RELAY_VERSION: string = constants.getEnvironmentVariable('RELAY_VERSION') || '0.80.1';
 export const INGRESS_CONTROLLER_VERSION: string =
   constants.getEnvironmentVariable('INGRESS_CONTROLLER_VERSION') || '0.14.5';
 // If this version changes, regenerate test/data/proto.zip (see test/data/get-block.sh for steps) —
@@ -80,7 +80,7 @@ export const MIRROR_NODE_EDGE_VERSION: string =
 export const EXPLORER_EDGE_VERSION: string =
   constants.getEnvironmentVariable('EXPLORER_EDGE_VERSION') || EXPLORER_VERSION;
 export const HEDERA_JSON_RPC_RELAY_EDGE_VERSION: string =
-  constants.getEnvironmentVariable('RELAY_EDGE_VERSION') || '0.79.0';
+  constants.getEnvironmentVariable('RELAY_EDGE_VERSION') || '0.80.1';
 export const BLOCK_NODE_EDGE_VERSION: string =
   constants.getEnvironmentVariable('BLOCK_NODE_EDGE_VERSION') || '0.45.0-rc1';
 
