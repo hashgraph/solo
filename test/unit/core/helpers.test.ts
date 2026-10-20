@@ -34,6 +34,7 @@ import {ConsensusNode} from '../../../src/core/model/consensus-node.js';
 import {type NodeAlias} from '../../../src/types/aliases.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {SoloErrors} from '../../../src/core/errors/solo-errors.js';
+import {NetworkNodeLifecycle} from '../../../src/core/network-node-lifecycle.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
 
 /** Builds a K8Factory whose default kubeconfig resolves a context to the given cluster entry names. */
@@ -221,6 +222,22 @@ describe('Helpers', (): void => {
     });
   });
 
+  describe('shouldProvisionWraps', (): void => {
+    it('provisions WRAPS for a consensus node that predates the embedded proving parameters', (): void => {
+      expect(Helpers.shouldProvisionWraps(true, 'v0.78.2')).to.be.true;
+    });
+
+    it('does not provision WRAPS from the release that embeds the proving parameters', (): void => {
+      expect(Helpers.shouldProvisionWraps(true, 'v0.79.0')).to.be.false;
+      expect(Helpers.shouldProvisionWraps(true, 'v0.79.0-rc.1')).to.be.false;
+      expect(Helpers.shouldProvisionWraps(true, 'v0.80.0')).to.be.false;
+    });
+
+    it('does not provision WRAPS when it is disabled', (): void => {
+      expect(Helpers.shouldProvisionWraps(false, 'v0.78.2')).to.be.false;
+    });
+  });
+
   describe('updateBlockStreamPropertiesForMode', (): void => {
     it('sets wrappedRecordBlocks=false in BLOCKS mode when not explicitly enabled', (): void => {
       const lines: string[] = [
@@ -312,6 +329,9 @@ describe('Helpers', (): void => {
         );
         expect(result.hedera.nodes[0].root?.extraEnv).to.deep.equal([
           {name: 'USER_ENV', value: 'user-value'},
+          ...(NetworkNodeLifecycle.isConsensusNodeImage()
+            ? [{name: 'AUTO_START_CONSENSUS_SERVICE', value: 'false'}]
+            : []),
           {
             name: 'TSS_LIB_WRAPS_ARTIFACTS_PATH',
             value: `${constants.HEDERA_HAPI_PATH}/data/keys/wraps-v1.0.0`,

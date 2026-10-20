@@ -103,6 +103,67 @@ for asset in solo-linux-x64 solo-linux-arm64 solo-linux-x64-musl solo-linux-arm6
 done
 (cd "${broken_release}" && sha256sum solo-linux-* >SHA256SUMS)
 
+# A stand-in cosign whose bundle "signs" a file by holding its sha256; FAKE_COSIGN_VERSION sets what it reports.
+fake_cosign_directory="${test_root}/cosign-bin"
+mkdir -p "${fake_cosign_directory}"
+cat >"${fake_cosign_directory}/cosign" <<'EOF'
+#!/bin/sh
+case "${1:-}" in
+  version) printf 'GitVersion:    %s\n' "${FAKE_COSIGN_VERSION}" ;;
+  verify-blob)
+    shift
+    echo "verify-blob $*" >>"${FAKE_COSIGN_CALLS}"
+    bundle=''
+    new_bundle_format='false'
+    while [ "$#" -gt 1 ]; do
+      case "$1" in
+        --new-bundle-format) new_bundle_format='true' ;;
+        --bundle) bundle="$2" && shift ;;
+        --certificate-identity-regexp | --certificate-oidc-issuer) shift ;;
+        *) echo "Error: unknown flag: $1" >&2 && exit 1 ;;
+      esac
+      shift
+    done
+    # Like the real releases: before 2.4.1 none can read the bundle, and 2.4.1 reads it only with the flag.
+    case "${FAKE_COSIGN_VERSION}" in
+      v1.* | v2.[0-3].* | v2.4.0) can_read_bundle='false' ;;
+      v2.4.1) can_read_bundle="${new_bundle_format}" ;;
+      *) can_read_bundle='true' ;;
+    esac
+    if [ "${can_read_bundle}" = 'false' ]; then
+      echo 'Error: bundle does not contain cert for verification, please provide public key' >&2
+      exit 1
+    fi
+    if [ "$(sha256sum "$1" | cut -d ' ' -f 1)" != "$(cat "${bundle}")" ]; then
+      echo 'Error: invalid signature when validating ASN.1 encoded signature' >&2
+      exit 1
+    fi
+    echo 'Verified OK' >&2
+    ;;
+  *) exit 1 ;;
+esac
+EOF
+chmod 755 "${fake_cosign_directory}/cosign"
+
+use_fake_cosign() {
+  export FAKE_COSIGN_VERSION="$1"
+  export FAKE_COSIGN_CALLS="${HOME}/cosign-calls.log"
+  export PATH="${fake_cosign_directory}:${PATH}"
+}
+
+signed_release="${release_directory}/download/v5.5.5"
+write_release "${signed_release}" valid
+(cd "${signed_release}" && sha256sum SHA256SUMS | cut -d ' ' -f 1 >SHA256SUMS.sigstore.json)
+
+# Signed, then given an extra line, so only the signature check can catch it.
+tampered_release="${release_directory}/download/v6.6.6"
+write_release "${tampered_release}" valid
+(
+  cd "${tampered_release}"
+  sha256sum SHA256SUMS | cut -d ' ' -f 1 >SHA256SUMS.sigstore.json
+  printf '%064d  solo-linux-riscv64\n' 0 >>SHA256SUMS
+)
+
 begin_case 'installs to ~/.solo/bin and edits .bashrc'
 run_installer
 check 'binary is executable' test -x "${HOME}/.solo/bin/solo"
@@ -140,6 +201,44 @@ check 'nothing is installed' test ! -e "${HOME}/.solo/bin/solo"
 begin_case 'rejects a release without a binary for this machine'
 check 'installer fails' test "$(run_installer --version v8.8.8 && echo passed || echo failed)" = 'failed'
 check 'error points to npm' contains "${HOME}/install.log" 'npm install -g @hiero-ledger/solo'
+
+begin_case 'verifies the signature with cosign 2.4.2 or later'
+use_fake_cosign v2.4.2
+run_installer --version 5.5.5 --skip-image-cache
+check 'signature is verified' contains "${HOME}/install.log" 'verified the signature of SHA256SUMS'
+check 'cosign is not given --new-bundle-format' is_equal "$(count_of "${FAKE_COSIGN_CALLS}" '--new-bundle-format')" '0'
+check 'binary is installed' test -x "${HOME}/.solo/bin/solo"
+
+begin_case 'verifies the signature with cosign 2.4.1 through --new-bundle-format'
+use_fake_cosign v2.4.1
+run_installer --version 5.5.5 --skip-image-cache
+check 'signature is verified' contains "${HOME}/install.log" 'verified the signature of SHA256SUMS'
+check 'cosign is given --new-bundle-format' contains "${FAKE_COSIGN_CALLS}" '--new-bundle-format'
+check 'binary is installed' test -x "${HOME}/.solo/bin/solo"
+
+begin_case 'skips the signature check with cosign older than 2.4.1'
+use_fake_cosign v2.4.0
+run_installer --version 5.5.5 --skip-image-cache
+check 'warning names the cosign version' contains "${HOME}/install.log" 'cosign 2.4.0 cannot verify the release signature'
+check 'cosign verify-blob is not run' test ! -e "${FAKE_COSIGN_CALLS}"
+check 'binary is installed' test -x "${HOME}/.solo/bin/solo"
+
+begin_case 'verifies the signature when cosign reports no version number'
+use_fake_cosign devel
+run_installer --version 5.5.5 --skip-image-cache
+check 'signature is verified' contains "${HOME}/install.log" 'verified the signature of SHA256SUMS'
+
+begin_case 'rejects a tampered SHA256SUMS'
+use_fake_cosign v3.0.6
+check 'installer fails' test "$(run_installer --version v6.6.6 && echo passed || echo failed)" = 'failed'
+check 'error names the signature' contains "${HOME}/install.log" 'signature verification of SHA256SUMS failed'
+check 'nothing is installed' test ! -e "${HOME}/.solo/bin/solo"
+
+begin_case 'rejects a tampered SHA256SUMS with cosign 2.4.1'
+use_fake_cosign v2.4.1
+check 'installer fails' test "$(run_installer --version v6.6.6 && echo passed || echo failed)" = 'failed'
+check 'error names the signature' contains "${HOME}/install.log" 'signature verification of SHA256SUMS failed'
+check 'nothing is installed' test ! -e "${HOME}/.solo/bin/solo"
 
 begin_case 'keeps the existing install when the new binary cannot run'
 run_installer --skip-image-cache

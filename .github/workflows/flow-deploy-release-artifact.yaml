@@ -577,13 +577,13 @@ jobs:
     with:
       version: ${{ needs.prepare-release.outputs.version }}
 
-  # Attaches the Linux SEA binary, install.sh and SHA256SUMS to the GitHub Release.
+  # Attaches the Linux SEA binaries, install.sh and SHA256SUMS to the GitHub Release.
   publish-linux-installer:
     name: Publish Linux Installer Assets
     runs-on: hiero-solo-linux-medium
     permissions:
       contents: read # the release upload authenticates with GH_ACCESS_TOKEN, not GITHUB_TOKEN
-    # A failed non-Linux SEA leg must not block the Linux assets; a missing Linux binary fails below.
+    # A failed non-Linux SEA leg must not block the Linux assets; a missing linux-x64 binary fails below.
     if: ${{ needs.prepare-release.outputs.need-hl-release == 'true' && !cancelled() && needs.create-github-release.result == 'success' }}
     needs:
       - prepare-release
@@ -601,22 +601,32 @@ jobs:
           persist-credentials: false
           sparse-checkout: installers/linux
 
-      - name: Download Linux SEA Binary
+      - name: Download Linux SEA Binaries
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          pattern: solo-linux-x64-*
+          pattern: solo-linux-*
           path: sea-artifacts
           merge-multiple: true
 
       - name: Stage Release Assets
         run: |
           set -euo pipefail
-          # The SEA artifact also holds build intermediates (.blob, .cjs, .json); publish only the binary.
+          # The SEA artifacts also hold build intermediates (.blob, .cjs, .json); publish only the binaries.
           [[ -f sea-artifacts/solo-linux-x64 ]] || { echo "::error::the solo-linux-x64 SEA binary was not built"; exit 1; }
+          binaries=(solo-linux-x64)
+          # A failed arm64 leg must not block the x64 assets; install.sh then points arm64 users to npm.
+          if [[ -f sea-artifacts/solo-linux-arm64 ]]; then
+            binaries+=(solo-linux-arm64)
+          else
+            echo "::warning::the solo-linux-arm64 SEA binary was not built; publishing solo-linux-x64 only"
+          fi
           mkdir -p release-assets
-          cp sea-artifacts/solo-linux-x64 installers/linux/install.sh release-assets/
-          chmod 755 release-assets/solo-linux-x64 release-assets/install.sh
-          (cd release-assets && sha256sum solo-linux-x64 install.sh > SHA256SUMS)
+          for binary in "${binaries[@]}"; do
+            cp "sea-artifacts/${binary}" release-assets/
+          done
+          cp installers/linux/install.sh release-assets/
+          chmod 755 release-assets/*
+          (cd release-assets && sha256sum "${binaries[@]}" install.sh > SHA256SUMS)
           cat release-assets/SHA256SUMS
 
       - name: Upload Release Assets
@@ -626,9 +636,7 @@ jobs:
           RELEASE_VERSION: ${{ needs.prepare-release.outputs.version }}
         run: |
           set -euo pipefail
-          gh release upload --clobber "v${RELEASE_VERSION}" \
-            release-assets/solo-linux-x64 release-assets/install.sh release-assets/SHA256SUMS \
-            --repo "${GITHUB_REPOSITORY}"
+          gh release upload --clobber "v${RELEASE_VERSION}" release-assets/* --repo "${GITHUB_REPOSITORY}"
 
   docs-automation:
     name: Docs Automation
