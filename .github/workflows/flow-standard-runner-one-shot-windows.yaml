@@ -243,7 +243,7 @@ jobs:
         # what Docker Desktop does for Windows users, exposing a Linux daemon via TCP.
         # The verified restore above creates setup-wsl's .complete marker so find()
         # returns the installer before the action reaches its cache or download path.
-        uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
+        uses: Vampire/setup-wsl@614202866847d986a4f737ae6020b760283d3f5a # v7.1.1
         # A healthy setup completes in well under a minute. Bound a stalled action so a
         # distribution problem is reported promptly instead of consuming ten minutes.
         # Keep this step off the network: `additional-packages` would run `apt-get update`
