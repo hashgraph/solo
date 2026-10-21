@@ -539,10 +539,14 @@ jobs:
         run: |
           echo "::group::Set Publish Args"
             FLAGS="--access=public --tag ${NPM_DIST_TAG}"
+            if [[ "${DRY_RUN_ENABLED_INPUT}" == "true" ]]; then
+              FLAGS="${FLAGS} --dry-run"
+            fi
             echo "flags=${FLAGS}"
           echo "::endgroup::"
 
           echo "::group::Set tarball output"
+            # A dry run builds no tarball (npm pack --dry-run), so validate the checked-out package directory instead.
             TARBALL="./output/hl/${HL_PACKAGE_NAME}"
             if [[ "${DRY_RUN_ENABLED_INPUT}" == "true" ]]; then
               TARBALL=""
@@ -551,9 +555,7 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Publish Hiero-Ledger NPM Package"
-            if [[ "${DRY_RUN_ENABLED_INPUT}" != "true" ]]; then
-              npm publish ${TARBALL} ${FLAGS}
-            fi
+            npm publish ${TARBALL} ${FLAGS}
           echo "::endgroup::"
 
   # Builds the triggering commit with the release version; the release commit only bumps version files, so this matches the tag.
