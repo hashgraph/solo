@@ -67,3 +67,5 @@ Browse the source code and configuration files for this example in the [GitHub r
 * All commands in the Taskfile are named for clarity in logs and troubleshooting.
 * This example is self-contained and does not require files from outside this directory except for the Solo CLI npm package.
 * You can extend the Taskfile to add more custom resources or steps as needed.
+* `scripts/init.sh` is the only manual database step. After the importer runs its migrations, `mirror node add --use-external-database` starts a short-lived `psql` pod in the mirror node namespace and grants the `readonly` role to `mirror_rest` with the owner credentials. Set `MIRROR_EXTERNAL_DATABASE_CLIENT_IMAGE` to use a different `psql` image (for example from a private registry).
+* On PostgreSQL 16+ a non-superuser owner needs `ADMIN OPTION` on `readonly` for that grant. `scripts/init.sh` sets it; for an existing database run `GRANT readonly TO <owner> WITH ADMIN OPTION;` as an administrator. If the grant fails, Solo warns and continues, and you can run `GRANT readonly TO mirror_rest;` yourself.

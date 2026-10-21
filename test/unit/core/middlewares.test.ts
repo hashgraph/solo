@@ -163,6 +163,39 @@ describe('Middlewares.warnDeprecatedFlags', (): void => {
 
     expect(consoleOutput.join('\n')).to.contain("'temporary group' is deprecated");
   });
+
+  describe('warnDeprecatedEnvironmentVariables', (): void => {
+    const deprecatedVariable: string = 'EXPERIMENTAL_COPY_WRAPS_LIB_IN_PARALLEL';
+    let originalValue: string | undefined;
+
+    beforeEach((): void => {
+      originalValue = process.env[deprecatedVariable];
+    });
+
+    afterEach((): void => {
+      if (originalValue === undefined) {
+        delete process.env[deprecatedVariable];
+      } else {
+        process.env[deprecatedVariable] = originalValue;
+      }
+    });
+
+    it('warns when a deprecated environment variable is set', (): void => {
+      process.env[deprecatedVariable] = 'true';
+
+      middlewares.warnDeprecatedEnvironmentVariables()({_: []} as unknown as ArgvStruct);
+
+      expect(consoleOutput.join('\n')).to.contain(`'${deprecatedVariable}' is deprecated`);
+    });
+
+    it('does not warn when the deprecated environment variable is unset', (): void => {
+      delete process.env[deprecatedVariable];
+
+      middlewares.warnDeprecatedEnvironmentVariables()({_: []} as unknown as ArgvStruct);
+
+      expect(consoleOutput.join('\n')).to.not.contain(deprecatedVariable);
+    });
+  });
 });
 
 describe('Middlewares.initSystemFiles', (): void => {
@@ -200,7 +233,7 @@ describe('Middlewares.initSystemFiles', (): void => {
     const localConfig: LocalConfigRuntimeState = container.resolve<LocalConfigRuntimeState>(
       InjectTokens.LocalConfigRuntimeState,
     );
-    sandbox.stub(localConfig, 'configFileExists').returns(true);
+    sandbox.stub(localConfig, 'createIfMissing').resolves(false);
 
     await middlewares.initSystemFiles()({_: []} as unknown as ArgvStruct);
 
@@ -216,7 +249,7 @@ describe('Middlewares.initSystemFiles', (): void => {
     const localConfig: LocalConfigRuntimeState = container.resolve<LocalConfigRuntimeState>(
       InjectTokens.LocalConfigRuntimeState,
     );
-    sandbox.stub(localConfig, 'configFileExists').returns(true);
+    sandbox.stub(localConfig, 'createIfMissing').resolves(false);
 
     await middlewares.initSystemFiles()({_: []} as unknown as ArgvStruct);
 
@@ -229,13 +262,11 @@ describe('Middlewares.initSystemFiles', (): void => {
     const localConfig: LocalConfigRuntimeState = container.resolve<LocalConfigRuntimeState>(
       InjectTokens.LocalConfigRuntimeState,
     );
-    const configFileExistsStub: SinonStub = sandbox.stub(localConfig, 'configFileExists').returns(true);
-    const loadStub: SinonStub = sandbox.stub(localConfig, 'load').resolves();
+    const createIfMissingStub: SinonStub = sandbox.stub(localConfig, 'createIfMissing').resolves(false);
 
     await middlewares.initSystemFiles()({_: []} as unknown as ArgvStruct);
 
-    expect(configFileExistsStub.called).to.be.true;
-    expect(loadStub.called).to.be.false;
+    expect(createIfMissingStub.calledOnce).to.be.true;
   });
 
   it('copies templates when the source directory exists', async (): Promise<void> => {
@@ -249,7 +280,7 @@ describe('Middlewares.initSystemFiles', (): void => {
     const localConfig: LocalConfigRuntimeState = container.resolve<LocalConfigRuntimeState>(
       InjectTokens.LocalConfigRuntimeState,
     );
-    sandbox.stub(localConfig, 'configFileExists').returns(true);
+    sandbox.stub(localConfig, 'createIfMissing').resolves(false);
 
     await middlewares.initSystemFiles()({_: []} as unknown as ArgvStruct);
 
@@ -267,7 +298,7 @@ describe('Middlewares.initSystemFiles', (): void => {
     const localConfig: LocalConfigRuntimeState = container.resolve<LocalConfigRuntimeState>(
       InjectTokens.LocalConfigRuntimeState,
     );
-    sandbox.stub(localConfig, 'configFileExists').returns(true);
+    sandbox.stub(localConfig, 'createIfMissing').resolves(false);
 
     await middlewares.initSystemFiles()({_: []} as unknown as ArgvStruct);
 
@@ -284,7 +315,7 @@ describe('Middlewares.initSystemFiles', (): void => {
     const localConfig: LocalConfigRuntimeState = container.resolve<LocalConfigRuntimeState>(
       InjectTokens.LocalConfigRuntimeState,
     );
-    sandbox.stub(localConfig, 'configFileExists').returns(true);
+    sandbox.stub(localConfig, 'createIfMissing').resolves(false);
 
     await middlewares.initSystemFiles()({_: [], debug: true} as unknown as ArgvStruct);
 
@@ -298,7 +329,7 @@ describe('Middlewares.initSystemFiles', (): void => {
     const localConfig: LocalConfigRuntimeState = container.resolve<LocalConfigRuntimeState>(
       InjectTokens.LocalConfigRuntimeState,
     );
-    sandbox.stub(localConfig, 'configFileExists').returns(true);
+    sandbox.stub(localConfig, 'createIfMissing').resolves(false);
 
     await middlewares.initSystemFiles()({_: [], debug: true} as unknown as ArgvStruct);
     const firstCount: number = consoleOutput.filter((line: string): boolean =>

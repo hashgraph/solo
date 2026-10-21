@@ -146,7 +146,11 @@ export class SemanticVersion<T extends string | number> {
         }
       }
 
-      const preReleaseMatch: RegExpMatchArray = this.originalValue.match(/-(.+?)(?:\+|$)/);
+      // The ^ anchor is intentional (fix for #5932): it ensures the hyphen matched here is the
+      // semver pre-release separator immediately after the version core, not a hyphen that happens
+      // to appear later in the string (e.g. inside build-metadata). Removing the anchor would
+      // silently reintroduce the phantom pre-release bug.
+      const preReleaseMatch: RegExpMatchArray = this.originalValue.match(/^v?\d+(?:\.\d+)*-([^+]+)/);
       if (preReleaseMatch) {
         this.preRelease = preReleaseMatch[1];
       }

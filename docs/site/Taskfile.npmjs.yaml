@@ -10,8 +10,8 @@ tasks:
         mkdir -p build
         echo -n "v$LATEST_VERSION" > build/npmjs-latest-version.txt
 
-  npmjs:list:solo:versions: # TODO: update before dual publish ends
-    desc: Fetch and display all versions of @hashgraph/solo from NPM (with 'v' prefix)
+  npmjs:list:solo:versions:
+    desc: Fetch and display all versions of Solo (@hashgraph/solo and @hiero-ledger/solo) from NPM (with 'v' prefix)
     silent: true
     cmds:
       - |
@@ -28,20 +28,27 @@ tasks:
           echo "Tip: On macOS, run 'brew install coreutils' and replace 'sort' with 'gsort' in this task." >&2
           exit 1
         fi
-        echo "Fetching versions of @hashgraph/solo from NPM..."
-        response=$(curl -s https://registry.npmjs.org/@hashgraph/solo)
-        if [ $? -ne 0 ]; then
-          echo "Error: Failed to fetch data from NPM registry." >&2
-          exit 1
-        fi
-        versions=$(echo "$response" | jq -r '.versions | keys[] | "v\(.)"' 2> /dev/null)
-        if [ $? -ne 0 ]; then
-          echo "Error: Failed to parse JSON response." >&2
-          exit 1
-        fi
+        # Releases before 0.57.0 exist only under @hashgraph/solo and releases after the
+        # dual-publish window only under @hiero-ledger/solo, so list the union of both.
+        versions=""
+        for pkg in @hashgraph/solo @hiero-ledger/solo; do
+          echo "Fetching versions of ${pkg} from NPM..."
+          response=$(curl -s "https://registry.npmjs.org/${pkg}")
+          if [ $? -ne 0 ]; then
+            echo "Error: Failed to fetch data from NPM registry." >&2
+            exit 1
+          fi
+          pkg_versions=$(echo "$response" | jq -r '.versions | keys[] | "v\(.)"' 2> /dev/null)
+          if [ $? -ne 0 ]; then
+            echo "Error: Failed to parse JSON response." >&2
+            exit 1
+          fi
+          versions=$(printf '%s\n%s' "$versions" "$pkg_versions")
+        done
+        versions=$(echo "$versions" | sed '/^$/d' | sort -Vru)
         if [ -z "$versions" ]; then
-          echo "No versions found for @hashgraph/solo." >&2
+          echo "No versions found for Solo." >&2
           exit 1
         fi
-        echo "Available versions of @hashgraph/solo:"
-        echo "$versions" | sort -Vr | tee build/npmjs-versions.txt
+        echo "Available versions of Solo:"
+        echo "$versions" | tee build/npmjs-versions.txt

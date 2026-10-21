@@ -205,7 +205,7 @@ export class PlatformInstaller {
       '  fi',
       'done',
       "if [[ ${foundJarFile} != 'true' ]]; then",
-      "  echo 'No jar files found after extraction' >&2",
+      `  echo 'No jar files found in ${hapiPath}' >&2`,
       '  exit 1',
       'fi',
     ];
@@ -352,7 +352,7 @@ export class PlatformInstaller {
           sharedTlsSecretData = await this.readSecretData(
             contexts[0],
             this._getNamespace(),
-            'network-node-hapi-app-secrets',
+            constants.NODE_TLS_KEYS_SECRET_NAME,
           );
         }
         return sharedTlsSecretData;
@@ -373,7 +373,7 @@ export class PlatformInstaller {
         const secretCreated: boolean = await this.k8Factory
           .getK8(context)
           .secrets()
-          .createOrReplace(this._getNamespace(), 'network-node-hapi-app-secrets', SecretType.OPAQUE, data);
+          .createOrReplace(this._getNamespace(), constants.NODE_TLS_KEYS_SECRET_NAME, SecretType.OPAQUE, data);
 
         if (!secretCreated) {
           throw new SoloErrors.component.tlsKeySecretCreationFailed();

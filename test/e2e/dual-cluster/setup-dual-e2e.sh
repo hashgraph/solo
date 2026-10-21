@@ -43,6 +43,17 @@ echo "Using Node version: ${NODE_VERSION}"
 NPM_VERSION=$(npm --version)
 echo "Using NPM version: ${NPM_VERSION}"
 
+# run_with_timeout_diag relies on this to actually bound hanging docker/kind commands, so treat it
+# as a hard prerequisite. macOS ships BSD userland without GNU `timeout`.
+if command -v timeout &>/dev/null; then
+  readonly TIMEOUT_BIN="timeout"
+elif command -v gtimeout &>/dev/null; then
+  readonly TIMEOUT_BIN="gtimeout"
+else
+  echo "ERROR: neither 'timeout' nor 'gtimeout' found. Install GNU coreutils (e.g. 'brew install coreutils' on macOS) to get 'gtimeout'." >&2
+  exit 1
+fi
+
 ##### Docker / Kind Hang Diagnostics Helpers #####
 
 # Collects system and Docker-daemon state using non-Docker tools so the function
@@ -82,7 +93,7 @@ run_with_timeout_diag() {
   local timeout_seconds=$1
   local label=$2
   shift 2
-  timeout "${timeout_seconds}" "$@"
+  "${TIMEOUT_BIN}" "${timeout_seconds}" "$@"
   local status=$?
   if [[ $status -eq 124 ]]; then
     echo "WARNING: '${label}' timed out after ${timeout_seconds}s" >&2
@@ -107,7 +118,12 @@ done
 # plugin registry. Kind manages its own Docker network automatically on Windows, so
 # manual network creation is not needed and will fail. Skip it on Windows (msys/Git Bash).
 if [[ "$OSTYPE" != msys* ]]; then
-  run_with_timeout_diag 30 "docker network rm kind" docker network rm -f kind || true
+  if ! run_with_timeout_diag 30 "docker network rm kind" docker network rm -f kind; then
+    echo "ERROR: could not remove the 'kind' Docker network. Clean the environment then re-run this script, e.g.:" >&2
+    echo "  kind get clusters" >&2
+    echo "  kind delete cluster -n <cluster-name>" >&2
+    exit 1
+  fi
   run_with_timeout_diag 60 "docker network create kind" docker network create kind --scope local --subnet 172.19.0.0/16 --driver bridge
 fi
 run_with_timeout_diag 30 "docker info" docker info | grep -i cgroup || true

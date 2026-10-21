@@ -28,11 +28,35 @@ tolerations:
     effect: "NoSchedule"
 #global:
 #  namespaceOverride: "{{ .Values.global.namespaceOverride }}"
-# The hedera explorer UI /api url will proxy  all request to mirror node
+
+# The explorer UI makes relative requests to its own url, so nginx inside the explorer pod proxies
+# them to the mirror node services. Without this we would need to expose the mirror node
+# API publicly and specify its public url in the network config below.
 #
-# Without this we would need to expose the mirror node rest API publicly and specify its public url in the network config below
+# The mirror node splits its API across three services (rest, restjava, web3), so the routing below
+# mirrors hiero-mirror-node/docker-compose.yml. Each proxyPass key is emitted verbatim as an nginx
+# location spec by the explorer chart, which is why regex locations keep their ~ modifier and quotes.
+#
+# The service URLs depend on the mirror node release name and namespace, which are only known at
+# deploy time: Solo injects them with --set-literal mirrorNodeServices.<service>.
+mirrorNodeServices:
+  rest: ""
+  restjava: ""
+  web3: ""
+
 proxyPass:
-  /api: "http://{{ .Release.Name }}-rest"
+  # web3 host
+  /api/v1/contracts/call: "{{ .Values.mirrorNodeServices.web3 }}"
+  '~ "^/api/v1/contracts/results/((0x)?[A-Fa-f0-9]{64}|\d+\.\d+\.\d+-\d+-\d+)/opcodes"': "{{ .Values.mirrorNodeServices.web3 }}"
+
+  # restjava host
+  '~ "^/api/v1/accounts/(\d+\.){0,2}(\d+|(0x)?[A-Fa-f0-9]{40}|(?:[A-Z2-7]{8})*(?:[A-Z2-7]{2}|[A-Z2-7]{4,5}|[A-Z2-7]{7,8}))/(allowances/nfts|airdrops|hooks)"': "{{ .Values.mirrorNodeServices.restjava }}"
+  '~ "^/api/v1/accounts/(\d+\.){0,2}(\d+|(0x)?[A-Fa-f0-9]{40}|(?:[A-Z2-7]{8})*(?:[A-Z2-7]{2}|[A-Z2-7]{4,5}|[A-Z2-7]{7,8}))/hooks/(0|[1-9]\d*)/storage$"': "{{ .Values.mirrorNodeServices.restjava }}"
+  /api/v1/network/: "{{ .Values.mirrorNodeServices.restjava }}"
+  '~ "^/api/v1/topics/(\d+\.){0,2}\d+$"': "{{ .Values.mirrorNodeServices.restjava }}"
+
+  # rest host (catch-all for everything else under /api)
+  /api: "{{ .Values.mirrorNodeServices.rest }}"
 
 # In the json config below we are using the url as "/", instead of a regular http://mainnet.url
 # This makes the explorer UI make a relative request to its own url

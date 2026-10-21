@@ -231,10 +231,32 @@ export class NetworkNodes {
 
       const commonSignedRounds: Set<string> = this.intersectRoundSets(roundSets);
       const commonFreezeRounds: Set<string> = this.intersectRoundSets(freezeRoundSets);
-      const preferFreezeRound: boolean = deploymentPhase === DeploymentPhase.FROZEN;
-      const selectedRound: string | undefined = this.selectHighestRound(
-        preferFreezeRound && commonFreezeRounds.size > 0 ? commonFreezeRounds : commonSignedRounds,
-      );
+
+      let candidateRounds: Set<string>;
+      if (trimPreconsensusEventsToSelectedRound) {
+        // A freeze round's own state already reflects the completed freeze, so trimming trailing
+        // PCES events (birthRound > selectedRound) can never exclude the freeze transaction that
+        // produced that round — replay would just re-commit the same freeze and land the restored
+        // node back in FREEZE_COMPLETE instead of resuming live processing. Baseline on the latest
+        // non-freeze round instead, so the freeze transaction's birth round falls after the
+        // boundary and gets trimmed away.
+        const commonNonFreezeRounds: Set<string> = new Set<string>(
+          [...commonSignedRounds].filter((round: string): boolean => !commonFreezeRounds.has(round)),
+        );
+        if (commonNonFreezeRounds.size > 0) {
+          candidateRounds = commonNonFreezeRounds;
+        } else {
+          this.logger.warn(
+            'No common non-freeze signed round found while normalizing state for live resumption; ' +
+              'falling back to the freeze round, so the restored node(s) may land back in FREEZE_COMPLETE.',
+          );
+          candidateRounds = commonSignedRounds;
+        }
+      } else {
+        const preferFreezeRound: boolean = deploymentPhase === DeploymentPhase.FROZEN;
+        candidateRounds = preferFreezeRound && commonFreezeRounds.size > 0 ? commonFreezeRounds : commonSignedRounds;
+      }
+      const selectedRound: string | undefined = this.selectHighestRound(candidateRounds);
 
       if (!selectedRound) {
         throw new SoloErrors.validation.illegalArgument(
@@ -261,19 +283,12 @@ export class NetworkNodes {
         if (trimPreconsensusEventsToSelectedRound) {
           // The top-level preconsensus-events stream is what the platform replays on the next
           // restart, and it is not naturally bounded to the selected round: it can contain later
-          // events (e.g. a freeze transaction ordered moments after this snapshot was taken) that
-          // the selected round's own state does not yet reflect. Trim those out so replay cannot
+          // events (e.g. one ordered moments after this snapshot was taken) that the selected
+          // round's own state does not yet reflect. Trim those out by birth round so replay cannot
           // cross back into that later boundary, while keeping every event up to the selected
-          // round so the restored node still has other-parent candidates to build new events on
-          // (removing the whole stream instead would leave every node with no known events at
-          // all, which the platform only permits at true genesis). Only opted into by callers
-          // that want the restored network to resume live processing (e.g. `config ops backup`);
-          // callers that intentionally restore a frozen snapshot rely on that same trailing
-          // freeze event still being present so the restored node lands back in FREEZE_COMPLETE.
-          PcesTrimmer.trimDirectoryToBirthRound(
-            PathEx.join(extractedDirectory, 'preconsensus-events'),
-            Number(selectedRound),
-          );
+          // round so the restored node still has other-parent candidates to build new events on.
+          const preconsensusEventsDirectory: string = PathEx.join(extractedDirectory, 'preconsensus-events');
+          PcesTrimmer.trimDirectoryToBirthRound(preconsensusEventsDirectory, Number(selectedRound));
         }
         await this.zippy.zip(extractedDirectory, archivePaths[index]);
       }

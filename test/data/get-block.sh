@@ -6,14 +6,15 @@
 # BLOCK_NODE_VERSION (see version.ts) — grpcurl decodes the live response against this schema,
 # and a stale block/stream/*.proto silently mis-decodes wire-compatible-but-reshaped fields
 # instead of failing to compile (see issue #5848). To regenerate for a new BLOCK_NODE_VERSION:
-#   1. Check out the matching tag in hiero-block-node, e.g. `git checkout v0.39.0`.
-#   2. Copy protobuf-sources/block-node-protobuf/block/ and
-#      protobuf-sources/src/main/proto/block-node/api/block_access_service.proto verbatim.
-#   3. Copy services/, streams/, platform/, sdk/, mirror/ from that same tag's bundled
-#      protobuf-sources/hiero-consensus-node/hapi/hedera-protobuf-java-api/src/main/proto/
-#      (BN's own vendored HAPI snapshot) so the whole graph is internally consistent.
-#   4. Leave google/ as-is (standard protobuf well-known types, not Hedera-specific).
-#   5. Re-tar: `tar -czf proto.zip -C <assembled-root> .`
+#   1. Check out the matching tag in hiero-block-node, e.g. `git checkout v0.43.0`, and read
+#      the `cnVersion` it pins in protobuf-sources/build.gradle.kts.
+#   2. Copy block/, services/, streams/, platform/, sdk/, mirror/ from hiero-consensus-node tag
+#      v<cnVersion> under hapi/hedera-protobuf-java-api/src/main/proto/.
+#   3. Copy the block-node overrides over them: protobuf-sources/src/main/proto-overrides/*.
+#   4. Copy protobuf-sources/src/main/proto/block-node/api/block_access_service.proto to the root.
+#   5. Leave google/ as-is (standard protobuf well-known types, not Hedera-specific).
+#   6. Re-tar: `tar -czf proto.zip -C <assembled-root> .` (on macOS, prefix with
+#      `COPYFILE_DISABLE=1` and add `--no-mac-metadata --no-xattrs` to keep xattrs out).
 PROTO_DIR=$(dirname "$(realpath $0)")/proto
 
 # Use --warning=no-unknown-keyword (GNU tar) on Linux and Windows (Git Bash/MINGW/MSYS).

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {describe, it} from 'mocha';
+import {afterEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 import sinon from 'sinon';
 import fs from 'node:fs';
@@ -15,6 +15,7 @@ import {ConsensusNode} from '../../../../src/core/model/consensus-node.js';
 import {PlatformInstaller} from '../../../../src/core/platform-installer.js';
 import {PodReference} from '../../../../src/integration/kube/resources/pod/pod-reference.js';
 import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.js';
+import {NetworkNodeLifecycle} from '../../../../src/core/network-node-lifecycle.js';
 
 type FakeContainer = {
   execContainer: sinon.SinonStub;
@@ -134,8 +135,13 @@ function createNodeCommandTasksWithPlatformInstaller(): NodeCommandTasks {
   (nodeCommandTasks as unknown as {platformInstaller: PlatformInstaller}).platformInstaller = Object.create(
     PlatformInstaller.prototype,
   ) as PlatformInstaller;
+  (nodeCommandTasks as unknown as {logger: {warn: sinon.SinonStub}}).logger = {warn: sinon.stub()};
 
   return nodeCommandTasks;
+}
+
+function isJarIntegrityVerification(command: string[] | string): boolean {
+  return Array.isArray(command) && (command[2] ?? '').includes('unzip -t');
 }
 
 function findJarIntegrityVerificationCallIndex(
@@ -217,6 +223,121 @@ describe('NodeCommandTasks platform software fetch routing', (): void => {
       sinon.restore();
     }
   });
+
+  describe('consensus node image mode', (): void => {
+    const buildFetchConfig = (overrides: Record<string, unknown> = {}): {config: Record<string, unknown>} => ({
+      config: {
+        consensusNodes: [{name: 'node1', context: 'kind-solo'}],
+        namespace: NamespaceName.of('solo'),
+        nodeAliases: ['node1'],
+        podRefs: {},
+        releaseTag: 'v0.77.2',
+        stagingDir: '/tmp/staging',
+        ...overrides,
+      },
+    });
+
+    afterEach((): void => {
+      sinon.restore();
+    });
+
+    it('skips fetching platform software because the jars are baked into the image', async (): Promise<void> => {
+      const nodeCommandTasks: NodeCommandTasks = Object.create(NodeCommandTasks.prototype) as NodeCommandTasks;
+      sinon.stub(NetworkNodeLifecycle, 'isConsensusNodeImage').returns(true);
+      const fetchStub: sinon.SinonStub = sinon
+        .stub(nodeCommandTasks as unknown as Record<string, unknown>, '_fetchPlatformSoftware')
+        .resolves();
+      const skipStub: sinon.SinonStub = sinon.stub();
+
+      const result: unknown = await nodeCommandTasks.fetchPlatformSoftware('nodeAliases').task(
+        buildFetchConfig() as never,
+        {
+          title: 'Fetch platform software',
+          skip: skipStub,
+        } as never,
+      );
+
+      expect(result).to.equal(undefined);
+      expect(skipStub.calledOnce).to.equal(true);
+      expect(fetchStub.called).to.equal(false);
+    });
+
+    it('still fetches platform software for a version upgrade', async (): Promise<void> => {
+      const nodeCommandTasks: NodeCommandTasks = Object.create(NodeCommandTasks.prototype) as NodeCommandTasks;
+      sinon.stub(NetworkNodeLifecycle, 'isConsensusNodeImage').returns(true);
+      const fetchResult: object = {};
+      const fetchStub: sinon.SinonStub = sinon
+        .stub(nodeCommandTasks as unknown as Record<string, unknown>, '_fetchPlatformSoftware')
+        .returns(fetchResult);
+      const skipStub: sinon.SinonStub = sinon.stub();
+
+      const result: unknown = await nodeCommandTasks
+        .fetchPlatformSoftware('nodeAliases')
+        .task(buildFetchConfig({upgradeVersion: 'v0.78.0'}) as never, {skip: skipStub} as never);
+
+      expect(result).to.equal(fetchResult);
+      expect(skipStub.called).to.equal(false);
+      expect(fetchStub.calledOnce).to.equal(true);
+    });
+
+    it('fetches platform software in the default solo-container mode', async (): Promise<void> => {
+      const nodeCommandTasks: NodeCommandTasks = Object.create(NodeCommandTasks.prototype) as NodeCommandTasks;
+      sinon.stub(NetworkNodeLifecycle, 'isConsensusNodeImage').returns(false);
+      const fetchStub: sinon.SinonStub = sinon
+        .stub(nodeCommandTasks as unknown as Record<string, unknown>, '_fetchPlatformSoftware')
+        .resolves();
+      const skipStub: sinon.SinonStub = sinon.stub();
+
+      await nodeCommandTasks
+        .fetchPlatformSoftware('nodeAliases')
+        .task(buildFetchConfig() as never, {skip: skipStub} as never);
+
+      expect(skipStub.called).to.equal(false);
+      expect(fetchStub.calledOnce).to.equal(true);
+    });
+
+    it('installs the root container tools on every node only in the consensus node image mode', async (): Promise<void> => {
+      const nodeCommandTasks: NodeCommandTasks = Object.create(NodeCommandTasks.prototype) as NodeCommandTasks;
+      const installStub: sinon.SinonStub = sinon.stub(NetworkNodeLifecycle, 'installRootContainerTools').resolves();
+      const isImageStub: sinon.SinonStub = sinon.stub(NetworkNodeLifecycle, 'isConsensusNodeImage');
+
+      const installTask: ReturnType<NodeCommandTasks['installRootContainerTools']> =
+        nodeCommandTasks.installRootContainerTools();
+
+      isImageStub.returns(false);
+      expect((installTask.skip as () => boolean)()).to.equal(true);
+      isImageStub.returns(true);
+      expect((installTask.skip as () => boolean)()).to.equal(false);
+
+      let subTasks: {task: () => Promise<void>}[] = [];
+      const namespace: NamespaceName = NamespaceName.of('solo');
+      await installTask.task(
+        {
+          config: {
+            allNodeAliases: ['node1', 'node2'],
+            consensusNodes: [
+              {name: 'node1', context: 'kind-alpha'},
+              {name: 'node2', context: 'kind-beta'},
+            ],
+            namespace,
+          },
+        } as never,
+        {
+          newListr: (tasks: {task: () => Promise<void>}[]): string => {
+            subTasks = tasks;
+            return 'listr';
+          },
+        } as never,
+      );
+
+      expect(subTasks).to.have.length(2);
+      for (const subTask of subTasks) {
+        await subTask.task();
+      }
+      expect(installStub.getCall(0).args).to.deep.equal(['kind-alpha', namespace, 'node1']);
+      expect(installStub.getCall(1).args).to.deep.equal(['kind-beta', namespace, 'node2']);
+    });
+  });
 });
 
 describe('NodeCommandTasks local build path copy', (): void => {
@@ -241,9 +362,11 @@ describe('NodeCommandTasks local build path copy', (): void => {
     expect(command).to.include(`chmod -R u+rwX,g+rX,o+rX "${applicationDirectory}" "${libraryDirectory}"`);
     expect(command).to.include(`test -f "${applicationJar}"`);
     expect(command).to.include(
-      `/command/s6-setuidgid hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class" | ` +
+      `run_as_hedera unzip -l "${applicationJar}" "com/hedera/node/app/ServicesMain.class" | ` +
         'grep -q "com/hedera/node/app/ServicesMain.class"',
     );
+    // s6-setuidgid needs root, which the consensus node image does not run as
+    expect(command).to.include('if [ "$(id -u)" = "0" ]; then /command/s6-setuidgid hedera "$@"; else "$@"; fi');
   });
 
   it('stops the network node and disables autostart before replacing jars', async (): Promise<void> => {
@@ -266,11 +389,8 @@ describe('NodeCommandTasks local build path copy', (): void => {
       .eventually.be.fulfilled;
 
     expect(execContainerStub.callCount).to.equal(5);
-    const expectedStopCommand: string = [
-      'test -x "/command/network-node-lifecycle" || { ' +
-        'echo "missing /command/network-node-lifecycle; update solo-container image" >&2; exit 1; }',
-      '"/command/network-node-lifecycle" stop-and-disable-autostart',
-    ].join('\n');
+    // the command content per lifecycle mode is covered by network-node-lifecycle.test.ts
+    const expectedStopCommand: string = NetworkNodeLifecycle.buildStopCommand();
     expect(execContainerStub.firstCall.args[0]).to.deep.equal(['bash', '-c', expectedStopCommand]);
     const expectedJarRemovalCommand: string =
       `rm -rf ${constants.HEDERA_HAPI_PATH}/${constants.HEDERA_DATA_LIB_DIR}/*.jar ` +
@@ -366,6 +486,77 @@ describe('NodeCommandTasks local build path copy', (): void => {
     // the integrity check must run after the copy it validates, otherwise a truncated jar goes unnoticed
     expect(execContainerStub.getCall(hapiVerificationIndex).calledAfter(copyToStub.firstCall)).to.equal(true);
     expect(execContainerStub.getCall(upgradeVerificationIndex).calledAfter(copyToStub.secondCall)).to.equal(true);
+  });
+
+  it('copies the local build again when the jar integrity check fails', async (): Promise<void> => {
+    const nodeCommandTasks: NodeCommandTasks = createNodeCommandTasksWithPlatformInstaller();
+    let verificationCount: number = 0;
+    const execContainerStub: sinon.SinonStub = sinon
+      .stub()
+      .callsFake(async (command: string[] | string): Promise<string> => {
+        if (isJarIntegrityVerification(command) && ++verificationCount === 1) {
+          throw new Error('unzip: cannot find zipfile directory');
+        }
+        return '';
+      });
+    const copyToStub: sinon.SinonStub = sinon.stub().resolves();
+    const k8: FakeK8 = {
+      containers: (): {readByRef: () => FakeContainer} => ({
+        readByRef: (): FakeContainer => ({
+          execContainer: execContainerStub,
+          copyTo: copyToStub,
+          hasDir: sinon.stub().resolves(false),
+        }),
+      }),
+    };
+    const configManager: {getFlag: sinon.SinonStub} = {getFlag: sinon.stub().returns('')};
+
+    await expect(invokeCopyLocalBuildPathToNode(nodeCommandTasks, k8, configManager, '/tmp/local-build/data')).to
+      .eventually.be.fulfilled;
+
+    // the first copy produced a corrupt jar, the second copy passed the check
+    expect(verificationCount).to.equal(2);
+    expect(copyToStub.callCount).to.equal(2);
+    expect(copyToStub.alwaysCalledWith('/tmp/local-build/data', constants.HEDERA_HAPI_PATH)).to.equal(true);
+    const secondVerificationIndex: number = findJarIntegrityVerificationCallIndex(
+      execContainerStub,
+      findJarIntegrityVerificationCallIndex(execContainerStub) + 1,
+    );
+    expect(execContainerStub.getCall(secondVerificationIndex).calledAfter(copyToStub.secondCall)).to.equal(true);
+  });
+
+  it('fails when every local build copy has a corrupt jar', async (): Promise<void> => {
+    const nodeCommandTasks: NodeCommandTasks = createNodeCommandTasksWithPlatformInstaller();
+    const execContainerStub: sinon.SinonStub = sinon
+      .stub()
+      .callsFake(async (command: string[] | string): Promise<string> => {
+        if (isJarIntegrityVerification(command)) {
+          throw new Error('unzip: cannot find zipfile directory');
+        }
+        return '';
+      });
+    const copyToStub: sinon.SinonStub = sinon.stub().resolves();
+    const k8: FakeK8 = {
+      containers: (): {readByRef: () => FakeContainer} => ({
+        readByRef: (): FakeContainer => ({
+          execContainer: execContainerStub,
+          copyTo: copyToStub,
+          hasDir: sinon.stub().resolves(false),
+        }),
+      }),
+    };
+    const configManager: {getFlag: sinon.SinonStub} = {getFlag: sinon.stub().returns('')};
+
+    await expect(
+      invokeCopyLocalBuildPathToNode(nodeCommandTasks, k8, configManager, '/tmp/local-build/data'),
+    ).to.eventually.be.rejectedWith('cannot find zipfile directory');
+
+    expect(copyToStub.callCount).to.equal(constants.CONTAINER_COPY_MAX_ATTEMPTS);
+    expect(
+      execContainerStub
+        .getCalls()
+        .filter((call: sinon.SinonSpyCall): boolean => isJarIntegrityVerification(call.args[0])),
+    ).to.have.length(constants.CONTAINER_COPY_MAX_ATTEMPTS);
   });
 });
 

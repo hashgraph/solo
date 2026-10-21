@@ -140,6 +140,22 @@ describe('ComponentUpgradeMigrationRules.planUpgradeMigrationPath', (): void => 
     });
   });
 
+  describe('upgrade crossing the block-proof boundary', (): void => {
+    it('uses recreate when upgrading from pre-0.41.0 to 0.41.0+', (): void => {
+      const steps: ComponentUpgradeMigrationStep[] = ComponentUpgradeMigrationRules.planUpgradeMigrationPath(
+        'block-node',
+        '0.40.0',
+        '0.42.0',
+      );
+
+      expect(steps).to.have.length(1);
+      expect(steps[0].strategy).to.equal('recreate');
+      expect(steps[0].fromVersion).to.equal('0.40.0');
+      expect(steps[0].toVersion).to.equal('0.42.0');
+      expect(steps[0].reason).to.include('fixed 16-slot block root hash');
+    });
+  });
+
   describe('upgrade crossing the 0.37.0 boundary', (): void => {
     it('returns a recreate step when upgrading from below to 0.37.0', (): void => {
       const steps: ComponentUpgradeMigrationStep[] = ComponentUpgradeMigrationRules.planUpgradeMigrationPath(
