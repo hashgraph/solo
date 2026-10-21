@@ -511,8 +511,9 @@ export class NetworkCommand extends BaseCommand {
     // Each file carries only the nodes that belong to the target cluster, preventing Helm's
     // array-replacement semantics from inserting nodes from other clusters.
     const perClusterExtraEnvironmentValuesFiles: Record<ClusterReferenceName, string> = {};
+    const provisionWraps: boolean = Helpers.shouldProvisionWraps(config.wrapsEnabled, config.releaseTag);
     const needsExtraEnvironment: boolean =
-      config.wrapsEnabled ||
+      provisionWraps ||
       !!config.debugNodeAlias ||
       config.app !== constants.HEDERA_APP_NAME || // JAVA_MAIN_CLASS for tools/local builds
       NetworkNodeLifecycle.isConsensusNodeImage(); // AUTO_START_CONSENSUS_SERVICE=false
@@ -574,7 +575,7 @@ export class NetworkCommand extends BaseCommand {
           userValueFilePaths,
           clusterConsensusNodes,
           {
-            wrapsEnabled: config.wrapsEnabled,
+            wrapsEnabled: provisionWraps,
             tss: this.soloConfig.tss,
             debugNodeAlias: config.debugNodeAlias,
             useJavaMainClass: config.app !== constants.HEDERA_APP_NAME,
@@ -587,7 +588,7 @@ export class NetworkCommand extends BaseCommand {
         const clusterExtraEnvironmentValuesFile: string = helmValuesHelper.generateExtraEnvironmentValuesFile(
           clusterConsensusNodes,
           {
-            wrapsEnabled: config.wrapsEnabled,
+            wrapsEnabled: provisionWraps,
             tss: this.soloConfig.tss,
             debugNodeAlias: config.debugNodeAlias,
             useJavaMainClass: config.app !== constants.HEDERA_APP_NAME,
@@ -2211,7 +2212,11 @@ export class NetworkCommand extends BaseCommand {
         this.addNodesAndProxies(),
         {
           title: 'Copy wraps lib into consensus node',
-          skip: (): boolean => !this.remoteConfig.configuration.state.wrapsEnabled,
+          skip: (): boolean =>
+            !Helpers.shouldProvisionWraps(
+              this.remoteConfig.configuration.state.wrapsEnabled,
+              this.remoteConfig.configuration.versions.consensusNode,
+            ),
           task: async ({config}, task): Promise<void> => {
             const wraps: Wraps = this.soloConfig.tss.wraps;
             const extractedDirectory: string = PathEx.join(constants.SOLO_CACHE_DIR, wraps.directoryName);

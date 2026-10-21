@@ -32,6 +32,10 @@ describe('NodeCommandTasks.addWrapsLib', (): void => {
   let extractedDirectory: string;
   let downloaderStub: {fetchPackage: sinon.SinonStub};
   let zippyStub: {untar: sinon.SinonStub};
+  let remoteConfigStub: {
+    configuration: {state: {wrapsEnabled: boolean}; versions: {consensusNode: string}};
+    isLoaded: sinon.SinonStub;
+  };
 
   const allowedFiles: string[] = ['decider_pp.bin', 'decider_vp.bin', 'nova_pp.bin', 'nova_vp.bin'];
 
@@ -52,8 +56,8 @@ describe('NodeCommandTasks.addWrapsLib', (): void => {
     downloaderStub = {fetchPackage: sinon.stub().resolves()};
     zippyStub = {untar: sinon.stub()};
 
-    const remoteConfigStub: {configuration: {state: {wrapsEnabled: boolean}}; isLoaded: sinon.SinonStub} = {
-      configuration: {state: {wrapsEnabled: true}},
+    remoteConfigStub = {
+      configuration: {state: {wrapsEnabled: true}, versions: {consensusNode: 'v0.78.2'}},
       isLoaded: sinon.stub().returns(true),
     };
 
@@ -168,6 +172,20 @@ describe('NodeCommandTasks.addWrapsLib', (): void => {
 
     expect(downloaderStub.fetchPackage.calledOnce).to.be.true;
     expect(zippyStub.untar.calledOnce).to.be.true;
+  });
+
+  it('runs for a consensus node that predates the embedded proving parameters', (): void => {
+    const listrTask: SoloListrTask<{config: NodeCommonConfigClass}> = nodeCommandTasks.addWrapsLib();
+
+    expect((listrTask.skip as () => boolean)()).to.be.false;
+  });
+
+  it('is skipped from the consensus node release that embeds the proving parameters', (): void => {
+    remoteConfigStub.configuration.versions.consensusNode = 'v0.79.0';
+
+    const listrTask: SoloListrTask<{config: NodeCommonConfigClass}> = nodeCommandTasks.addWrapsLib();
+
+    expect((listrTask.skip as () => boolean)()).to.be.true;
   });
 });
 
