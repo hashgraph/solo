@@ -350,6 +350,8 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.installRootContainerTools(),
       this.tasks.populateServiceMap(),
+      // the new pod boots with autostart enabled; stop it before its software, state and config are staged
+      this.tasks.stopNodes('newNodeAliases'),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
       this.tasks.downloadLastState(),
       this.tasks.uploadStateToNewNode(),
