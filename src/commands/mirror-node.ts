@@ -131,6 +131,7 @@ interface MirrorNodeDeployConfigClass {
   soloChartVersion: string;
   deployment: DeploymentName;
   forceBlockNodeIntegration: boolean; // Used to bypass version requirements for block node integration
+  mirrorNodeSource: string;
   installSharedResources: boolean;
   parallelDeploy: boolean;
 }
@@ -186,6 +187,7 @@ interface MirrorNodeUpgradeConfigClass {
   soloChartVersion: string;
   installSharedResources: boolean;
   forceBlockNodeIntegration: boolean; // Used to bypass version requirements for block node integration
+  mirrorNodeSource: string;
   deployment: DeploymentName;
 }
 
@@ -327,6 +329,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.externalAddress,
       flags.soloChartVersion,
       flags.forceBlockNodeIntegration, // Used to bypass version requirements for block node integration
+      flags.mirrorNodeSource,
       flags.parallelDeploy,
       flags.force,
     ],
@@ -371,6 +374,7 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.id,
       flags.soloChartVersion,
       flags.forceBlockNodeIntegration, // Used to bypass version requirements for block node integration
+      flags.mirrorNodeSource,
       flags.force,
     ],
   };
@@ -393,7 +397,29 @@ export class MirrorNodeCommand extends BaseCommand {
     optional: [flags.clusterRef, flags.debugMode, flags.quiet, flags.id],
   };
 
+  /**
+   * Chart values that make the mirror node import from a block node, or none when it imports from the bucket.
+   * `--mirror-node-source` overrides the automatic choice, so that mirror nodes of one deployment can import
+   * from different sources.
+   */
   private prepareBlockNodeIntegrationValues(
+    config: MirrorNodeUpgradeConfigClass | MirrorNodeDeployConfigClass,
+  ): HelmChartValues {
+    if (config.mirrorNodeSource === 'bucket') {
+      this.logger.info(
+        `Mirror node will pull from the consensus node record files; ${optionFromFlag(flags.mirrorNodeSource)} is bucket`,
+      );
+      return new HelmChartValues();
+    }
+
+    const chartValues: HelmChartValues = this.resolveBlockNodeIntegrationValues(config);
+    if (config.mirrorNodeSource === 'block-node' && chartValues.isEmpty()) {
+      throw new SoloErrors.validation.mirrorNodeBlockNodeSourceUnavailable(config.clusterReference);
+    }
+    return chartValues;
+  }
+
+  private resolveBlockNodeIntegrationValues(
     config: MirrorNodeUpgradeConfigClass | MirrorNodeDeployConfigClass,
   ): HelmChartValues {
     const configuration: RemoteConfig = this.remoteConfig.configuration;

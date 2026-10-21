@@ -74,6 +74,7 @@ interface MirrorNodeCommandInternal {
     cacheDir: string;
     clusterReference: string;
     forceBlockNodeIntegration?: boolean;
+    mirrorNodeSource?: string;
     mirrorNodeVersion: string;
   }) => HelmChartValues;
   shouldReuseValuesOnUpgrade: (
@@ -247,6 +248,35 @@ function withMirrorNodes(
     isLoaded: (): boolean => isLoaded,
     configuration: {components: {state: {mirrorNodes}}},
   };
+}
+
+function withBlockNodes(
+  mirrorNodeCommandInternal: MirrorNodeCommandInternal,
+  blockNodes: {metadata: {cluster: string; id: number; namespace: string}}[],
+): void {
+  mirrorNodeCommandInternal.remoteConfig = {
+    configuration: {
+      components: {state: {blockNodes}},
+      clusters: [{name: 'cluster-a', dnsBaseDomain: 'cluster.local'}],
+      versions: {
+        consensusNode: {greaterThanOrEqual: (): boolean => true},
+        blockNodeChart: {greaterThanOrEqual: (): boolean => true},
+      },
+    },
+  };
+}
+
+function integrationValues(
+  mirrorNodeCommandInternal: MirrorNodeCommandInternal,
+  mirrorNodeSource?: string,
+): HelmChartValues {
+  return mirrorNodeCommandInternal.prepareBlockNodeIntegrationValues({
+    cacheDir: os.tmpdir(),
+    clusterReference: 'cluster-a',
+    forceBlockNodeIntegration: true,
+    mirrorNodeSource,
+    mirrorNodeVersion: '0.163.0',
+  });
 }
 
 describe('MirrorNodeCommand unit tests', (): void => {
@@ -616,6 +646,57 @@ describe('MirrorNodeCommand unit tests', (): void => {
 
       withMirrorNodes(mirrorNodeCommandInternal, [{metadata: {id: 1, cluster: 'cluster-a', namespace: 'solo'}}]);
       expect(skip({config: {id: 1, clusterReference: 'cluster-a', namespace}})).to.be.false;
+    });
+  });
+
+  describe('--mirror-node-source', (): void => {
+    const blockNode: {metadata: {cluster: string; id: number; namespace: string}} = {
+      metadata: {cluster: 'cluster-a', id: 1, namespace: 'solo'},
+    };
+
+    it('imports from the block node with auto and with block-node when a block node is deployed', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withBlockNodes(mirrorNodeCommandInternal, [blockNode]);
+
+      expect(integrationValues(mirrorNodeCommandInternal, 'auto').isEmpty()).to.be.false;
+      expect(integrationValues(mirrorNodeCommandInternal, 'block-node').isEmpty()).to.be.false;
+      expect(integrationValues(mirrorNodeCommandInternal).isEmpty()).to.be.false;
+    });
+
+    it('keeps importing from the bucket with bucket even though a block node is deployed', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withBlockNodes(mirrorNodeCommandInternal, [blockNode]);
+
+      expect(integrationValues(mirrorNodeCommandInternal, 'bucket').isEmpty()).to.be.true;
+    });
+
+    it('falls back to the bucket with auto when no block node is deployed', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withBlockNodes(mirrorNodeCommandInternal, []);
+
+      expect(integrationValues(mirrorNodeCommandInternal, 'auto').isEmpty()).to.be.true;
+    });
+
+    it('fails with block-node instead of silently falling back to the bucket', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withBlockNodes(mirrorNodeCommandInternal, []);
+
+      expect((): HelmChartValues => integrationValues(mirrorNodeCommandInternal, 'block-node')).to.throw(
+        'block node integration does not apply in cluster cluster-a',
+      );
+    });
+
+    it('rejects values other than auto, bucket and block-node', (): void => {
+      expect(FlagValidation.violationOf(Flags.mirrorNodeSource, 'bucket')).to.be.undefined;
+      expect(FlagValidation.violationOf(Flags.mirrorNodeSource, 'block-node')).to.be.undefined;
+      expect(FlagValidation.violationOf(Flags.mirrorNodeSource, 'auto')).to.be.undefined;
+      expect(FlagValidation.violationOf(Flags.mirrorNodeSource, 'minio')).to.equal(
+        'must be one of: auto, bucket, block-node',
+      );
     });
   });
 
