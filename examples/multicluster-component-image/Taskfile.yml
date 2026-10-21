@@ -1,0 +1,232 @@
+version: 3
+
+env:
+  SOLO_COMMAND:
+    sh: |
+      if [ "${USE_RELEASED_VERSION}" = "true" ]; then
+        echo "npx @hashgraph/solo"
+      else
+        echo "npm run solo --"
+      fi
+
+vars:
+  SOLO_NAMESPACE: "mc-component-image-ns"
+  SOLO_DEPLOYMENT: "mc-component-image-deployment"
+  CLUSTER_NAME_1: "mc-component-image-c1"
+  CLUSTER_NAME_2: "mc-component-image-c2"
+  CLUSTER_REF_1: "mc-component-image-c1-ref"
+  CLUSTER_REF_2: "mc-component-image-c2-ref"
+  KIND_NODE_IMAGE: "kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30"
+
+  # Static LoadBalancer IPs (served by MetalLB, see metallb-cluster-*.yaml) so the two consensus
+  # nodes in different Kind clusters can reach each other.
+  HAPROXY_IPS: "node1=172.19.1.0,node2=172.19.2.1"
+  ENVOY_IPS: "node1=172.19.1.2,node2=172.19.2.2"
+  NETWORK_NODE_IPS: "node1=172.19.1.1,node2=172.19.2.0"
+
+  CN_VERSION:
+    sh: echo "${CONSENSUS_NODE_VERSION:-$(awk -F"'" '/^export const HEDERA_PLATFORM_VERSION/ {print $(NF-1); exit}' ../../version.ts)}"
+  BLOCK_NODE_VERSION:
+    sh: awk -F"'" '/^export const BLOCK_NODE_VERSION/ {print $(NF-1); exit}' ../../version.ts
+
+  MIRROR_NODE_VERSION:
+    sh: awk -F"'" '/^export const MIRROR_NODE_VERSION/ {print $(NF-1); exit}' ../../version.ts
+  EXPLORER_VERSION:
+    sh: awk -F"'" '/^export const EXPLORER_VERSION/ {print $(NF-1); exit}' ../../version.ts
+  RELAY_VERSION:
+    sh: awk -F"'" '/^export const HEDERA_JSON_RPC_RELAY_VERSION/ {print $(NF-1); exit}' ../../version.ts
+
+  # Published images are rebuilt locally under this prefix so they exist only in the local Docker
+  # daemon. The prefix must not look like a registry host (no dot, no colon, not "localhost"),
+  # otherwise Solo treats the image as published and never loads it into Kind.
+  IMAGE_PREFIX: "solo-local-test"
+  BLOCK_NODE_PUBLISHED_IMAGE: "ghcr.io/hiero-ledger/hiero-block-node-solo-dev:{{.BLOCK_NODE_VERSION}}"
+  BLOCK_NODE_IMAGE: "{{.IMAGE_PREFIX}}/block-node-server:{{.BLOCK_NODE_VERSION}}"
+  RELAY_PUBLISHED_IMAGE: "ghcr.io/hiero-ledger/hiero-json-rpc-relay:{{.RELAY_VERSION}}"
+  RELAY_IMAGE: "{{.IMAGE_PREFIX}}/hiero-json-rpc-relay:{{.RELAY_VERSION}}"
+  EXPLORER_PUBLISHED_IMAGE: "ghcr.io/hiero-ledger/hiero-mirror-node-explorer/hiero-explorer:{{.EXPLORER_VERSION}}"
+  EXPLORER_IMAGE: "{{.IMAGE_PREFIX}}/hiero-explorer:{{.EXPLORER_VERSION}}"
+  # Mirror Node's --component-image is a repository prefix that Solo expands into the per-module
+  # images <prefix>-<module>:<tag>; the monitor module is not deployed by default so it is not built.
+  MIRROR_NODE_IMAGE: "{{.IMAGE_PREFIX}}/hedera-mirror:{{.MIRROR_NODE_VERSION}}"
+  MIRROR_MODULES: "importer grpc rest rest-java web3"
+
+tasks:
+  prepare-image:
+    desc: Pull the published component images and rebuild them under a local name so they only exist locally
+    cmds:
+      # Rebuilt (not just re-tagged) as single-platform images: `kind load` imports with
+      # --all-platforms and fails with "content digest ... not found" when the local image is a
+      # multi-platform index whose other platforms were never pulled. Provenance/SBOM attestations
+      # are disabled because BuildKit would otherwise add an attestation manifest, which fails the
+      # import with "mismatched image rootfs and manifest layers".
+      - cmd: |
+          rebuild() {
+            docker pull "$1"
+            printf 'FROM %s\n' "$1" | docker build --provenance=false --sbom=false -t "$2" -
+          }
+          rebuild {{.BLOCK_NODE_PUBLISHED_IMAGE}} {{.BLOCK_NODE_IMAGE}}
+          rebuild {{.RELAY_PUBLISHED_IMAGE}} {{.RELAY_IMAGE}}
+          rebuild {{.EXPLORER_PUBLISHED_IMAGE}} {{.EXPLORER_IMAGE}}
+          MIRROR_TAG="{{.MIRROR_NODE_VERSION}}"; MIRROR_TAG="${MIRROR_TAG#v}"
+          for module in {{.MIRROR_MODULES}}; do
+            if [ "${module}" = "rest" ]; then
+              source="gcr.io/mirrornode/hedera-mirror-rest:${MIRROR_TAG}"
+            else
+              source="ghcr.io/hiero-ledger/hiero-mirror-node/${module}:${MIRROR_TAG}"
+            fi
+            rebuild "${source}" "{{.IMAGE_PREFIX}}/hedera-mirror-${module}:${MIRROR_TAG}"
+          done
+
+  deploy:
+    desc: Create two Kind clusters and a two-node network, then add block node, mirror node, explorer and relay with local --component-image
+    cmds:
+      - task: prepare-image
+
+      - cmd: |
+          if [ "${USE_RELEASED_VERSION}" = "true" ]; then
+            npm i @hashgraph/solo@latest
+          fi
+
+      - cmd: |
+          kind delete cluster -n {{.CLUSTER_NAME_1}} 2>/dev/null || true
+          kind delete cluster -n {{.CLUSTER_NAME_2}} 2>/dev/null || true
+          docker network rm -f kind 2>/dev/null || true
+          docker network create kind --scope local --subnet 172.19.0.0/16 --driver bridge
+          helm repo add metallb https://metallb.github.io/metallb
+
+      - cmd: |
+          kind create cluster -n {{.CLUSTER_NAME_1}} --image {{.KIND_NODE_IMAGE}} --config {{.TASKFILE_DIR}}/kind-cluster-1.yaml &
+          kind create cluster -n {{.CLUSTER_NAME_2}} --image {{.KIND_NODE_IMAGE}} --config {{.TASKFILE_DIR}}/kind-cluster-2.yaml &
+          wait
+
+      - cmd: |
+          (helm upgrade --install metallb metallb/metallb \
+            --kube-context kind-{{.CLUSTER_NAME_1}} \
+            --namespace metallb-system --create-namespace --atomic --wait \
+            --version 0.15.3 --set speaker.frr.enabled=true && \
+           kubectl apply -f {{.TASKFILE_DIR}}/metallb-cluster-1.yaml --context kind-{{.CLUSTER_NAME_1}}) &
+          (helm upgrade --install metallb metallb/metallb \
+            --kube-context kind-{{.CLUSTER_NAME_2}} \
+            --namespace metallb-system --create-namespace --atomic --wait \
+            --version 0.15.3 --set speaker.frr.enabled=true && \
+           kubectl apply -f {{.TASKFILE_DIR}}/metallb-cluster-2.yaml --context kind-{{.CLUSTER_NAME_2}}) &
+          wait
+
+      # cluster-ref config setup acts on the current kubectl context, so select each cluster first.
+      - cmd: |
+          kubectl config use-context kind-{{.CLUSTER_NAME_1}}
+          $SOLO_COMMAND cluster-ref config setup -s solo-setup --quiet-mode --dev
+          $SOLO_COMMAND cluster-ref config connect --cluster-ref {{.CLUSTER_REF_1}} --context kind-{{.CLUSTER_NAME_1}} --dev
+          kubectl config use-context kind-{{.CLUSTER_NAME_2}}
+          $SOLO_COMMAND cluster-ref config setup -s solo-setup --quiet-mode --dev
+          $SOLO_COMMAND cluster-ref config connect --cluster-ref {{.CLUSTER_REF_2}} --context kind-{{.CLUSTER_NAME_2}} --dev
+          kubectl config use-context kind-{{.CLUSTER_NAME_1}}
+
+      - cmd: |
+          $SOLO_COMMAND deployment config create -n {{.SOLO_NAMESPACE}} --deployment {{.SOLO_DEPLOYMENT}} --dev
+
+      # One consensus node per cluster: Solo preloads a component image into the component's own
+      # cluster plus every cluster that hosts a consensus node, so cluster 2 must have one.
+      - cmd: |
+          $SOLO_COMMAND deployment cluster attach --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} --num-consensus-nodes 1 --dev
+          $SOLO_COMMAND deployment cluster attach --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_2}} --num-consensus-nodes 1 --dev
+
+      - cmd: |
+          $SOLO_COMMAND keys consensus generate --gossip-keys --tls-keys --node-aliases node1,node2 --deployment {{.SOLO_DEPLOYMENT}} --quiet-mode --dev
+
+      # One block node per cluster, each serving the consensus node in its own cluster (a single
+      # shared block node would be unreachable from the other cluster and stall that node's block
+      # stream, and with two nodes that stalls consensus). Both use the same locally built image,
+      # so cluster 2's block node can only start if the image was preloaded into cluster 2.
+      # Sequential: both commands take the Solo distributed lock.
+      - cmd: |
+          $SOLO_COMMAND block node add --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} \
+            --priority-mapping node1=1 --component-image {{.BLOCK_NODE_IMAGE}} --quiet-mode --dev
+          $SOLO_COMMAND block node add --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_2}} \
+            --priority-mapping node2=1 --component-image {{.BLOCK_NODE_IMAGE}} --quiet-mode --dev
+
+      - cmd: |
+          $SOLO_COMMAND consensus network deploy --deployment {{.SOLO_DEPLOYMENT}} --release-tag {{.CN_VERSION}} --quiet-mode --dev \
+            --load-balancer --pvcs --haproxy-ips {{.HAPROXY_IPS}} --envoy-ips {{.ENVOY_IPS}} --network-node-ips {{.NETWORK_NODE_IPS}}
+          $SOLO_COMMAND consensus node setup --deployment {{.SOLO_DEPLOYMENT}} --release-tag {{.CN_VERSION}} --quiet-mode --dev
+          $SOLO_COMMAND consensus node start --deployment {{.SOLO_DEPLOYMENT}} --dev
+
+      # --enable-ingress on Mirror Node is required by the Relay, which reaches the mirror node through the
+      # mirror ingress controller service.
+      # Mirror Node, Explorer and Relay run on cluster 1 next to node1; like the block node, their
+      # locally built images must also end up in cluster 2. Run sequentially: each command takes
+      # the Solo distributed lock when it writes remote config.
+      - cmd: |
+          MIRROR_TAG="{{.MIRROR_NODE_VERSION}}"
+          $SOLO_COMMAND mirror node add --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} \
+            --mirror-node-version {{.MIRROR_NODE_VERSION}} --component-image {{.IMAGE_PREFIX}}/hedera-mirror:${MIRROR_TAG#v} \
+            --enable-ingress --values-file {{.TASKFILE_DIR}}/mirror-memory-values.yaml --quiet-mode --dev
+
+      - cmd: |
+          $SOLO_COMMAND explorer node add --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} \
+            --component-image {{.EXPLORER_IMAGE}} --quiet-mode --dev
+
+      - cmd: |
+          $SOLO_COMMAND relay node add --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} --node-aliases node1 \
+            --component-image {{.RELAY_IMAGE}} \
+            --values-file {{.TASKFILE_DIR}}/relay-memory-values.yaml --quiet-mode --dev
+
+      - task: verify
+
+  verify:
+    desc: Verify every local component image was loaded into every Kind cluster and the component pods are Ready
+    cmds:
+      - cmd: |
+          MIRROR_TAG="{{.MIRROR_NODE_VERSION}}"; MIRROR_TAG="${MIRROR_TAG#v}"
+          IMAGES="{{.BLOCK_NODE_IMAGE}} {{.RELAY_IMAGE}} {{.EXPLORER_IMAGE}}"
+          for module in {{.MIRROR_MODULES}}; do
+            IMAGES="${IMAGES} {{.IMAGE_PREFIX}}/hedera-mirror-${module}:${MIRROR_TAG}"
+          done
+          for cluster in {{.CLUSTER_NAME_1}} {{.CLUSTER_NAME_2}}; do
+            LOADED="$(docker exec "${cluster}-control-plane" crictl images)"
+            for image in ${IMAGES}; do
+              name="${image%:*}"; tag="${image##*:}"
+              if ! printf '%s\n' "${LOADED}" | awk -v n="${name}" -v t="${tag}" '$1 ~ n"$" && $2 == t {found=1} END {exit !found}'; then
+                echo "ERROR: ${image} was not loaded into Kind cluster ${cluster}" >&2
+                exit 1
+              fi
+              echo "OK: ${image} present in ${cluster}"
+            done
+          done
+
+      - cmd: |
+          # Cluster 1 runs block-node-1, mirror-1, hiero-explorer-1 and relay-1; cluster 2 runs block-node-2
+          # from the same local image, so it only starts if the image was preloaded there.
+          check_ready() {
+            if ! kubectl --context "kind-$1" wait --for=condition=Ready pods --all -n {{.SOLO_NAMESPACE}} \
+              -l "app.kubernetes.io/instance=$2" --timeout=15m; then
+              echo "ERROR: pods of $2 in cluster $1 did not become Ready" >&2
+              kubectl --context "kind-$1" get pods -n {{.SOLO_NAMESPACE}} -o wide
+              exit 1
+            fi
+          }
+          for instance in block-node-1 mirror-1 hiero-explorer-1 relay-1; do
+            check_ready {{.CLUSTER_NAME_1}} ${instance}
+          done
+          check_ready {{.CLUSTER_NAME_2}} block-node-2
+
+  destroy:
+    desc: Destroy the Solo network and both Kind clusters
+    cmds:
+      - cmd: |
+          $SOLO_COMMAND relay node destroy --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} --quiet-mode --dev
+          $SOLO_COMMAND explorer node destroy --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} --force --dev
+          $SOLO_COMMAND mirror node destroy --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} --force --dev
+          $SOLO_COMMAND block node destroy --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_1}} --force --dev
+          $SOLO_COMMAND block node destroy --deployment {{.SOLO_DEPLOYMENT}} --cluster-ref {{.CLUSTER_REF_2}} --force --dev
+          $SOLO_COMMAND consensus network destroy --deployment {{.SOLO_DEPLOYMENT}} --force --dev --delete-pvcs --delete-secrets -q
+      - cmd: |
+          kind delete cluster -n {{.CLUSTER_NAME_1}}
+          kind delete cluster -n {{.CLUSTER_NAME_2}}
+          docker network rm -f kind 2>/dev/null || true
+
+  default:
+    desc: Run the complete deploy + verify workflow
+    cmds:
+      - task: deploy

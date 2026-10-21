@@ -4,6 +4,7 @@ import {injectable} from 'tsyringe-neo';
 import {type Deprecation} from '../types/deprecation.js';
 import {type RegisteredDeprecation} from '../types/registered-deprecation.js';
 import {Flags} from '../commands/flags.js';
+import {DeprecatedEnvironmentVariables} from './deprecated-environment-variables.js';
 
 /**
  * Central collection of every deprecated feature in Solo, used by non-runtime consumers that need the full
@@ -12,7 +13,8 @@ import {Flags} from '../commands/flags.js';
  *
  * Flag deprecations are derived on demand from {@link Flags.allFlags}, so they never need explicit
  * registration; a flag deprecated only for certain commands is listed once, with its scope carried on the
- * {@link FlagDeprecation.commands} metadata. Command and subcommand deprecations are registered by
+ * {@link FlagDeprecation.commands} metadata. Environment variable deprecations are read from
+ * {@link DeprecatedEnvironmentVariables.ALL}. Command and subcommand deprecations are registered by
  * {@link CommandBuilder.build} as the command tree is assembled.
  */
 @injectable()
@@ -27,9 +29,13 @@ export class DeprecationRegistry {
     this.commandDeprecations.set(feature, {feature, kind, deprecation});
   }
 
-  /** Returns every known deprecation: flags (derived from the flag registry) plus registered commands. */
+  /** Returns every known deprecation: flags (derived from the flag registry), environment variables, and commands. */
   public list(): RegisteredDeprecation[] {
-    return [...DeprecationRegistry.collectFlagDeprecations(), ...this.commandDeprecations.values()];
+    return [
+      ...DeprecationRegistry.collectFlagDeprecations(),
+      ...DeprecationRegistry.collectEnvironmentVariableDeprecations(),
+      ...this.commandDeprecations.values(),
+    ];
   }
 
   private static collectFlagDeprecations(): RegisteredDeprecation[] {
@@ -40,5 +46,15 @@ export class DeprecationRegistry {
       }
     }
     return deprecations;
+  }
+
+  private static collectEnvironmentVariableDeprecations(): RegisteredDeprecation[] {
+    return [...DeprecatedEnvironmentVariables.ALL].map(
+      ([name, deprecation]: [string, Deprecation]): RegisteredDeprecation => ({
+        feature: name,
+        kind: 'environment-variable',
+        deprecation,
+      }),
+    );
   }
 }

@@ -274,6 +274,25 @@ export class Middlewares {
     };
   }
 
+  /**
+   * Warns the user, once per invocation, for every deprecated environment variable that is set. The variables
+   * come from the {@link DeprecationRegistry}, which collects them from `DeprecatedEnvironmentVariables`.
+   */
+  public warnDeprecatedEnvironmentVariables(): (argv: ArgvStruct) => AnyObject {
+    const logger: SoloLogger = this.logger;
+    const deprecationRegistry: DeprecationRegistry = this.deprecationRegistry;
+
+    return (argv: ArgvStruct): AnyObject => {
+      for (const entry of deprecationRegistry.list()) {
+        if (entry.kind === 'environment-variable' && constants.getEnvironmentVariable(entry.feature) !== undefined) {
+          logger.showUser(chalk.yellow(`⚠ ${Deprecations.formatDeprecationMessage(entry.feature, entry.deprecation)}`));
+        }
+      }
+
+      return argv;
+    };
+  }
+
   /** Returns true when the given flag (by its name or any alias) was supplied on the command line. */
   private static isFlagSupplied(flag: CommandFlag): boolean {
     const tokens: string[] = [`--${flag.name}`];

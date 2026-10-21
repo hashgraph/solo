@@ -67,6 +67,10 @@ jobs:
           - os: hiero-solo-linux-medium
             platform: linux
             arch: x64
+          # GitHub-hosted arm64 Linux runner
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
           # Apple Silicon (arm64) runner
           - os: macos-latest
             platform: darwin
