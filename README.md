@@ -61,7 +61,7 @@ sh install.sh
 
 > **Security Note:** Piping `curl | sh` executes the downloaded installer script before you can inspect it; the script itself verifies the integrity of the binary it downloads, but cannot verify itself before execution. Downloading `install.sh`, inspecting it, and then running it allows you to review the script first.
 
-For detailed installer options, environment variables, PATH configuration, platform support, and advanced setup, see the [Solo Quickstart documentation](https://solo.hiero.org/docs/simple-solo-setup/quickstart/#step-1-install-solo-cli).
+For detailed installer options, environment variables, PATH configuration, platform support, and advanced setup, see the [Linux installer documentation](https://solo.hiero.org/docs/simple-solo-setup/linux-install-script/).
 
 ## Releases
 
