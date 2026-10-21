@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {MirrorNodeResourceNames} from './mirror-node-resource-names.js';
 import {SoloErrors} from './errors/solo-errors.js';
 import * as x509 from '@peculiar/x509';
 import * as constants from './constants.js';
@@ -71,7 +72,7 @@ export class Templates {
 
   public static renderMirrorNodeIngressControllerUrl(
     mirrorNamespace: NamespaceNameAsString,
-    ingressControllerName: string = `${constants.MIRROR_INGRESS_CONTROLLER}-${mirrorNamespace}`,
+    ingressControllerName: string = MirrorNodeResourceNames.primary().ingressControllerName(mirrorNamespace),
   ): string {
     return `http://${ingressControllerName}.${mirrorNamespace}.svc.cluster.local`;
   }

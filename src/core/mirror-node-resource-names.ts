@@ -14,6 +14,9 @@ import {type NamespaceName} from '../types/namespace/namespace-name.js';
  * database users and ingress controller.
  */
 export class MirrorNodeResourceNames {
+  /** Kubernetes limits the names of services and of most other resources to a DNS label of 63 characters. */
+  private static readonly MAX_NAME_LENGTH: number = 63;
+
   /** The passwords secret the mirror chart renders for the primary mirror node; its name is hardcoded in the chart. */
   public static readonly CHART_PASSWORDS_SECRET_NAME: string = 'mirror-passwords';
 
@@ -117,9 +120,15 @@ export class MirrorNodeResourceNames {
     return this.dashed(constants.MIRROR_INGRESS_CONTROLLER);
   }
 
-  /** Name of the ingress controller's resources (service, deployment and cluster-scoped RBAC). */
+  /**
+   * Name of the ingress controller's resources (service, deployment and cluster-scoped RBAC). It embeds the namespace,
+   * so it is shortened to the 63 characters Kubernetes allows, keeping the id suffix: the chart would otherwise
+   * truncate the names of two mirror nodes in a long namespace to the same value.
+   */
   public ingressControllerName(namespace: string): string {
-    return this.dashed(`${constants.MIRROR_INGRESS_CONTROLLER}-${namespace}`);
+    const suffix: string = this.isPrimary ? '' : `-${this.id}`;
+    const base: string = `${constants.MIRROR_INGRESS_CONTROLLER}-${namespace}`;
+    return `${base.slice(0, MirrorNodeResourceNames.MAX_NAME_LENGTH - suffix.length).replace(/-+$/, '')}${suffix}`;
   }
 
   /** Name of the ConfigMap haproxy creates for leader election of the ingress class. */

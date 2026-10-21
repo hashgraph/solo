@@ -52,6 +52,28 @@ describe('MirrorNodeResourceNames', (): void => {
       expect(names.tlsSecretName).to.equal('ca-secret-mirror-node-2');
     });
 
+    it('keeps the ingress controller names of two mirror nodes in a long namespace apart and within 63 characters', (): void => {
+      const namespace: string = 'multiple-mirror-nodes-example-namespace';
+      const primary: string = MirrorNodeResourceNames.primary().ingressControllerName(namespace);
+      const second: string = names.ingressControllerName(namespace);
+      const third: string = MirrorNodeResourceNames.forId(10).ingressControllerName(namespace);
+
+      expect(primary).to.have.length.of.at.most(63);
+      expect(second).to.have.length.of.at.most(63);
+      expect(second.endsWith('-2')).to.be.true;
+      expect(third.endsWith('-10')).to.be.true;
+      expect(new Set([primary, second, third]).size).to.equal(3);
+    });
+
+    it('never ends the shortened ingress controller name with a dash before the suffix', (): void => {
+      // 26 characters of prefix plus a 36 character namespace puts a dash at the cut for id 2
+      const namespace: string = `${'a'.repeat(34)}-b-c`;
+      const name: string = names.ingressControllerName(namespace);
+
+      expect(name).to.not.include('--');
+      expect(name).to.have.length.of.at.most(63);
+    });
+
     it('never shares a database user with the primary mirror node', (): void => {
       const primaryUsers: string[] = Object.values(MirrorNodeResourceNames.primary().databaseUsernames);
       const users: string[] = Object.values(names.databaseUsernames);

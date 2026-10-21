@@ -27,6 +27,13 @@
       "path": ".github/workflows/script/test-solo-containers-image.sh",
       "description": "Build the solo-containers root image, load it into Kind and deploy a consensus node on it",
       "timeout_minutes": 45
+    },
+    {
+      "name": "multiple-mirror-nodes",
+      "type": "script",
+      "path": ".github/workflows/script/test-multiple-mirror-nodes.sh",
+      "description": "Deploy two mirror nodes in one namespace, one importing from the bucket and one from a block node, and verify their separate resources, sources and identical user transactions",
+      "timeout_minutes": 60
     }
   ]
 }
