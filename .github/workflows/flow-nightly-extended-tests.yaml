@@ -309,3 +309,57 @@ jobs:
       run-twice: true
     # The called workflow only uses the automatically provided GITHUB_TOKEN;
     # forwarding every repository secret is unnecessary and unsafe.
+
+  # Single place that alerts Slack when any job fails, including jobs that call reusable workflows
+  # (those cannot reach a Slack step inside this file and are not given the webhook). The per-test
+  # alert in matrix-tests already covers that job, so it is not reported again here.
+  # Every new top-level job must be added to `needs` so its failures are reported.
+  notify-failure:
+    name: Notify Slack on Failure
+    runs-on: hiero-solo-linux-medium
+    timeout-minutes: 10
+    if: ${{ github.ref == 'refs/heads/main' && !cancelled() && contains(needs.*.result, 'failure') }}
+    needs:
+      - build-sea
+      - prepare-setup
+      - generate_matrix
+      - one-shot-timing
+      - ledger-reset-warm-start-timing
+      - flow-performance-test
+      - windows-one-shot-redeployment
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          egress-policy: audit
+
+      - name: List Failed Jobs
+        id: failed-jobs
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          FAILED_JOBS=$(echo "${NEEDS_JSON}" | jq -r 'to_entries | map(select(.value.result == "failure") | "• " + .key) | join("\n")')
+          {
+            echo "list<<EOF"
+            echo "${FAILED_JOBS}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Send Slack Notification on Failure
+        uses: rtCamp/action-slack-notify@33ca3be66c6f378fe1610fd1d5258632dbed5e58 # v2.4.0
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_TEST_WEBHOOK }}
+          SLACK_COLOR: danger
+          SLACK_TITLE: Nightly Extended Test Failed
+          SLACK_MESSAGE: |
+            *Failed jobs:*
+            ${{ steps.failed-jobs.outputs.list }}
+
+            *Branch:* `${{ github.ref_name }}`
+            *Commit:* ${{ github.sha }}
+
+            :link: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>
+          SLACK_FOOTER: ${{ github.workflow }}
