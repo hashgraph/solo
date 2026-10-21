@@ -5,13 +5,16 @@
 #
 # Strategy:
 #   1. Create a Kind cluster and deploy a block node and a consensus node that streams both record files and blocks
-#   2. Deploy mirror node 1 importing from the bucket (with the pinger, which generates user transactions)
-#      and mirror node 2 importing from the block node, both in the same namespace
+#   2. Deploy a previous mirror node version: mirror node 1 importing from the bucket (with the pinger, which
+#      generates user transactions) and mirror node 2 importing from the block node, both in the same namespace
 #   3. Verify every resource of the two mirror nodes is separate (releases, secrets, databases, ingresses)
 #   4. Verify the sources really differ: only the block node mirror node holds the hinTS partial signature
 #      transactions, which the record stream leaves out
 #   5. Verify the user transactions of both mirror nodes are identical over a common window
-#   6. Destroy mirror node 2 and verify mirror node 1 keeps serving, then destroy mirror node 1
+#   6. Upgrade both mirror nodes to the current mirror node version and verify the releases moved, the database
+#      passwords, databases, sources and ingresses are unchanged, ingestion continues and the transactions
+#      of both mirror nodes are still identical
+#   7. Destroy mirror node 2 and verify mirror node 1 keeps serving, then destroy mirror node 1
 #      and verify the shared resources are removed
 #
 # Requirements:
@@ -37,6 +40,10 @@ DEPLOYMENT="${DEPLOYMENT:-multi-mirror-deployment}"
 
 BUCKET_PORT="${BUCKET_PORT:-19081}"
 BLOCK_NODE_PORT="${BLOCK_NODE_PORT:-19082}"
+
+# The mirror node version deployed first, and the one the mirror nodes are upgraded to (the default of this checkout)
+PREVIOUS_MIRROR_NODE_VERSION="${PREVIOUS_MIRROR_NODE_VERSION:-v0.162.0}"
+CURRENT_MIRROR_NODE_VERSION="${CURRENT_MIRROR_NODE_VERSION:-$(sed -n "s/^export const MIRROR_NODE_VERSION: string = .*|| '\(v[0-9.]*\)'.*/\1/p" version.ts 2>/dev/null)}"
 
 # Timeouts
 TRAFFIC_TIMEOUT_SECONDS="${TRAFFIC_TIMEOUT_SECONDS:-300}"
@@ -109,6 +116,25 @@ assert_release() {
   assert_eq "helm release $1" "deployed" "$status"
 }
 
+# Asserts the chart of a mirror node release is the given mirror node version (v0.163.0 -> hedera-mirror-0.163.0)
+assert_chart_version() {
+  local release=$1 version=$2
+  assert_eq "chart of helm release $release" "hedera-mirror-${version#v}" \
+    "$(helm list -n "$NAMESPACE" --filter "^${release}\$" -o json | jq -r '.[0].chart // empty')"
+}
+
+secret_data() {
+  kubectl get secret -n "$NAMESPACE" "$1" -o json | jq -S -c '.data'
+}
+
+# Asserts every key of a secret as captured earlier still has the same value; keys a newer chart adds are fine
+assert_secret_values_kept() {
+  local secret=$1 before=$2 changed
+  changed=$(jq -n --argjson before "$before" --argjson after "$(secret_data "$secret")" \
+    '[$before | to_entries[] | select($after[.key] != .value) | .key] | length')
+  assert_eq "changed values in secret $secret" "0" "$changed"
+}
+
 psql_postgres() {
   kubectl exec -n "$NAMESPACE" solo-shared-resources-postgres-0 -c postgresql -- bash -c \
     "PGPASSWORD=\$(cat \$POSTGRES_PASSWORD_FILE) psql -U postgres -h 127.0.0.1 -Atc \"$1\""
@@ -131,6 +157,36 @@ wait_for_rest() {
     (( SECONDS < deadline )) || fail "mirror node REST on port $port did not become ready"
     sleep 3
   done
+}
+
+start_port_forwards() {
+  forward_ingress "mirror-ingress-controller-${NAMESPACE}" "$BUCKET_PORT"
+  forward_ingress "mirror-ingress-controller-${NAMESPACE}-2" "$BLOCK_NODE_PORT"
+  wait_for_rest "$BUCKET_PORT"
+  wait_for_rest "$BLOCK_NODE_PORT"
+}
+
+# A port-forward is bound to the pod it started with, and an upgrade may replace the ingress controller pods
+restart_port_forwards() {
+  pkill -f "kubectl.*port-forward.*mirror-ingress-controller" 2>/dev/null || true
+  sleep 2
+  start_port_forwards
+}
+
+latest_user_timestamp() {
+  curl -sf --max-time 20 "http://localhost:$1/api/v1/transactions?limit=1&order=desc" | jq -r '.transactions[0].consensus_timestamp'
+}
+
+# Waits until the mirror node on port $1 has seen at least $3 pinger transfers after timestamp $2
+wait_for_new_traffic() {
+  local port=$1 after=$2 wanted=$3 deadline=$((SECONDS + TRAFFIC_TIMEOUT_SECONDS)) transfers=0
+  while (( SECONDS < deadline )); do
+    transfers=$(curl -sf --max-time 20 "http://localhost:${port}/api/v1/transactions?limit=100&order=desc&timestamp=gt:${after}" |
+      jq '[.transactions[] | select(.name == "CRYPTOTRANSFER")] | length' || echo 0)
+    (( transfers >= wanted )) && return 0
+    sleep 5
+  done
+  fail "mirror node on port $port saw only $transfers CRYPTOTRANSFER transactions after $after, expected at least $wanted"
 }
 
 # Prints a JSON array with up to $3 pages (default 3) of transactions, newest first, up to timestamp $2
@@ -220,11 +276,11 @@ deploy() {
   solo_cmd consensus node setup --deployment "$DEPLOYMENT"
   solo_cmd consensus node start --deployment "$DEPLOYMENT"
 
-  info "Deploying mirror node 1 (bucket, with pinger) and mirror node 2 (block node)"
+  info "Deploying mirror node 1 (bucket, with pinger) and mirror node 2 (block node) on ${PREVIOUS_MIRROR_NODE_VERSION}"
   solo_cmd mirror node add --deployment "$DEPLOYMENT" --cluster-ref "$CLUSTER_REF" --enable-ingress \
-    --mirror-node-source bucket --pinger --quiet-mode
+    --mirror-node-version "$PREVIOUS_MIRROR_NODE_VERSION" --mirror-node-source bucket --pinger --quiet-mode
   solo_cmd mirror node add --deployment "$DEPLOYMENT" --cluster-ref "$CLUSTER_REF" --enable-ingress \
-    --mirror-node-source block-node --quiet-mode
+    --mirror-node-version "$PREVIOUS_MIRROR_NODE_VERSION" --mirror-node-source block-node --quiet-mode
 }
 
 verify_separate_resources() {
@@ -258,10 +314,7 @@ verify_sources() {
   [[ "$(importer_env mirror-2)" == *blocknode* ]] || fail "the block node importer does not have the blocknode profile"
   success "the block node importer has the blocknode profile"
 
-  forward_ingress "mirror-ingress-controller-${NAMESPACE}" "$BUCKET_PORT"
-  forward_ingress "mirror-ingress-controller-${NAMESPACE}-2" "$BLOCK_NODE_PORT"
-  wait_for_rest "$BUCKET_PORT"
-  wait_for_rest "$BLOCK_NODE_PORT"
+  start_port_forwards
 
   info "Waiting for the pinger traffic to reach both mirror nodes"
   wait_for_traffic "$BUCKET_PORT" 20
@@ -277,6 +330,54 @@ verify_sources() {
   hints=$(count_named "$block_node" HINTSPARTIALSIGNATURE)
   (( hints > 0 )) || fail "the block node mirror node has no HINTSPARTIALSIGNATURE transactions"
   success "the block node mirror node has $hints HINTSPARTIALSIGNATURE transactions the bucket mirror node lacks"
+}
+
+# Values captured before the upgrade, to compare against afterwards
+BEFORE_PASSWORDS_1=''
+BEFORE_PASSWORDS_2=''
+BEFORE_LATEST_TIMESTAMP=''
+
+snapshot_before_upgrade() {
+  info "Capturing the state of the mirror nodes before the upgrade"
+  assert_chart_version mirror-1 "$PREVIOUS_MIRROR_NODE_VERSION"
+  assert_chart_version mirror-2 "$PREVIOUS_MIRROR_NODE_VERSION"
+  BEFORE_PASSWORDS_1=$(secret_data mirror-passwords)
+  BEFORE_PASSWORDS_2=$(secret_data mirror-passwords-2)
+  BEFORE_LATEST_TIMESTAMP=$(latest_user_timestamp "$BUCKET_PORT")
+  info "Latest transaction before the upgrade: $BEFORE_LATEST_TIMESTAMP"
+}
+
+upgrade_mirror_nodes() {
+  [[ -n "$CURRENT_MIRROR_NODE_VERSION" ]] || fail "could not determine the current mirror node version from version.ts"
+  [[ "$CURRENT_MIRROR_NODE_VERSION" != "$PREVIOUS_MIRROR_NODE_VERSION" ]] ||
+    fail "the previous and the current mirror node version are both $CURRENT_MIRROR_NODE_VERSION"
+
+  # the source, the pinger and the ingress are passed again: none of them is remembered by an upgrade
+  info "Upgrading mirror node 1 and mirror node 2 to ${CURRENT_MIRROR_NODE_VERSION}"
+  solo_cmd mirror node upgrade --deployment "$DEPLOYMENT" --cluster-ref "$CLUSTER_REF" --id 1 --enable-ingress \
+    --mirror-node-version "$CURRENT_MIRROR_NODE_VERSION" --mirror-node-source bucket --pinger --quiet-mode
+  solo_cmd mirror node upgrade --deployment "$DEPLOYMENT" --cluster-ref "$CLUSTER_REF" --id 2 --enable-ingress \
+    --mirror-node-version "$CURRENT_MIRROR_NODE_VERSION" --mirror-node-source block-node --quiet-mode
+}
+
+verify_after_upgrade() {
+  info "Verifying the upgrade moved the mirror nodes and changed nothing else"
+  assert_chart_version mirror-1 "$CURRENT_MIRROR_NODE_VERSION"
+  assert_chart_version mirror-2 "$CURRENT_MIRROR_NODE_VERSION"
+  assert_secret_values_kept mirror-passwords "$BEFORE_PASSWORDS_1"
+  assert_secret_values_kept mirror-passwords-2 "$BEFORE_PASSWORDS_2"
+
+  # the same checks as before the upgrade: separate resources, same sources, same ingresses and databases
+  verify_separate_resources
+  assert_eq "SPRING_PROFILES_ACTIVE of the bucket importer" "" "$(importer_env mirror-1)"
+  [[ "$(importer_env mirror-2)" == *blocknode* ]] || fail "the block node importer lost the blocknode profile in the upgrade"
+  success "the block node importer still has the blocknode profile"
+
+  restart_port_forwards
+  info "Waiting for new pinger traffic to reach both upgraded mirror nodes"
+  wait_for_new_traffic "$BUCKET_PORT" "$BEFORE_LATEST_TIMESTAMP" 20
+  wait_for_new_traffic "$BLOCK_NODE_PORT" "$BEFORE_LATEST_TIMESTAMP" 20
+  compare_user_transactions "$BUCKET_PORT" "$BLOCK_NODE_PORT"
 }
 
 verify_destroy() {
@@ -314,6 +415,9 @@ main() {
   verify_separate_resources
   verify_sources
   compare_user_transactions "$BUCKET_PORT" "$BLOCK_NODE_PORT"
+  snapshot_before_upgrade
+  upgrade_mirror_nodes
+  verify_after_upgrade
   verify_destroy
   success "multiple mirror nodes test passed"
 }
