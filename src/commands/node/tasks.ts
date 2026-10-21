@@ -3240,7 +3240,14 @@ export class NodeCommandTasks {
 
         const valuesFiles: Record<ClusterReferenceName, HelmChartValues> = this.prepareHelmChartValuesFilesMap(
           this.remoteConfig.getClusterRefs(),
-          config.chartDirectory,
+          // Deliberately not config.chartDirectory, matching the node add/update/destroy path below.
+          // Passing it prepends the chart's own values.yaml to the --values list, which re-applies
+          // chart defaults over a release upgraded with --reuse-values. A network deployed with
+          // --pvcs then has defaults.volumeClaims.enabled flipped back to the chart default of
+          // false, dropping volumeClaimTemplates from the StatefulSet — an immutable field, so Helm
+          // rejects the upgrade outright. The chart itself is still rendered from the local
+          // directory; that comes from the orchestrator target's chartDirectory, not from here.
+          undefined,
           profileValuesFile,
           config.valuesFile,
         ).chartValuesMap;
