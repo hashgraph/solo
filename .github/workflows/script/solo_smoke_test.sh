@@ -49,6 +49,34 @@ function setup_smart_contract_test ()
 }
 
 
+# Dump local socket state for the port-forwarded endpoints so a hung client connection (e.g. a stalled
+# kubectl port-forward stream) can be told apart from a client-side hang when a test times out.
+function dump_socket_state ()
+{
+  local reason="${1:-requested}"
+  printf "\r::group::Socket state (ss -tn) at %s: %s\n" "$(date -u +%H:%M:%S)" "${reason}"
+  if command -v ss > /dev/null 2>&1; then
+    # unfiltered with owning process, timers and last send/receive ages: the loopback side of a port-forward
+    # alone looks identical for a stuck request and an idle connection
+    ss -tnpio || true
+  else
+    echo "ss is not available on this runner"
+  fi
+  ps -ef | grep "[p]ort-forward" || true
+  printf "\r::endgroup::\n"
+}
+
+# Mocha prints "  N) <test title>" (possibly wrapped in ANSI color codes) the moment a test fails (including 'Timeout of ...ms exceeded'), so watch the
+# test output and capture the socket state once, right when the first failure shows up.
+function watch_contract_test_timeout ()
+{
+  local output_file="$1"
+  until grep -Eq $'^[[:space:]]*(\e\\[[0-9;]*m)*[[:space:]]*[0-9]+\\) ' "${output_file}" 2> /dev/null; do
+    sleep 2
+  done
+  dump_socket_state "first smart contract test failure detected"
+}
+
 function start_contract_test ()
 {
   cd hedera-smart-contracts
@@ -56,7 +84,20 @@ function start_contract_test ()
   ps -ef | grep port-forward
   echo "Run smart contract test"
   result=0
-  npm run hh:test || result=$?
+  local test_output
+  test_output=$(mktemp)
+  if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v ss > /dev/null 2>&1; then
+    { sudo apt-get update -qq && sudo apt-get install -y -qq iproute2; } > /dev/null 2>&1 || true
+  fi
+  watch_contract_test_timeout "${test_output}" &
+  local watcher_pid=$!
+  npm run hh:test 2>&1 | tee "${test_output}" || result=$?
+  kill "${watcher_pid}" 2> /dev/null || true
+  wait "${watcher_pid}" 2> /dev/null || true
+  if [[ $result -ne 0 ]] && grep -q 'Timeout of' "${test_output}"; then
+    dump_socket_state "smart contract test timed out (final state)"
+  fi
+  rm -f "${test_output}"
   cd -
 
   if [[ "$OSTYPE" == "linux-gnu"* ]]; then
