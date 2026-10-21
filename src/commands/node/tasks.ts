@@ -5035,58 +5035,23 @@ export class NodeCommandTasks {
     };
   }
 
-  public killNodes(transactionType?: NodeSubcommandType): SoloListrTask<NodeDestroyContext | NodeAddContext> {
+  public removeNodeFromRemoteConfig(): SoloListrTask<NodeDestroyContext> {
     return {
-      title: 'Kill nodes',
+      title: 'Remove node from remote config',
       task: async (context_): Promise<void> => {
-        const config: any = context_.config;
-        for (const service of config.serviceMap.values()) {
-          // skip pod if it's not in the list of config.allNodeAliases
-          if (!config.allNodeAliases.includes(service.nodeAlias)) {
-            continue;
-          }
+        const config: NodeDestroyConfigClass = context_.config;
+        const nodeId: NodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
 
-          // Remove the autostart flag file BEFORE killing the pod so that when the
-          // pod restarts the network-node-autostart oneshot does NOT fire prematurely
-          // (i.e. before new config files are staged by later tasks).  startNodes()
-          // will re-create the flag file when it is safe to start the platform.
-          try {
-            const podReference: PodReference = PodReference.of(config.namespace, service.nodePodName);
-            const containerReference: ContainerReference = ContainerReference.of(
-              podReference,
-              constants.ROOT_CONTAINER,
-            );
-            await this.k8Factory
-              .getK8(service.context)
-              .containers()
-              .readByRef(containerReference)
-              .execContainer(['bash', '-c', NetworkNodeLifecycle.buildDisableAutostartCommand()]);
-          } catch {
-            // Best-effort: container may already be restarting; the kill below will follow
-          }
+        const componentId: ComponentId = Templates.renderComponentIdFromNodeId(nodeId);
+        this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.ConsensusNode);
+        this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.EnvoyProxy);
+        this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.HaProxy);
 
-          await this.k8Factory
-            .getK8(service.context)
-            .pods()
-            .readByReference(PodReference.of(config.namespace, service.nodePodName))
-            .killPod();
-        }
+        await this.remoteConfig.persist();
 
-        // remove from remote config
-        if (transactionType === NodeSubcommandType.DESTROY) {
-          const nodeId: NodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
-
-          const componentId: ComponentId = Templates.renderComponentIdFromNodeId(nodeId);
-          this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.ConsensusNode);
-          this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.EnvoyProxy);
-          this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.HaProxy);
-
-          await this.remoteConfig.persist();
-
-          context_.config.nodeAliases = config.allNodeAliases.filter(
-            (nodeAlias: NodeAlias): boolean => nodeAlias !== config.nodeAlias,
-          );
-        }
+        context_.config.nodeAliases = config.allNodeAliases.filter(
+          (nodeAlias: NodeAlias): boolean => nodeAlias !== config.nodeAlias,
+        );
       },
     };
   }
