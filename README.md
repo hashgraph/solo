@@ -61,39 +61,7 @@ sh install.sh
 
 > **Security Note:** Piping `curl | sh` executes the downloaded installer script before you can inspect it; the script itself verifies the integrity of the binary it downloads, but cannot verify itself before execution. Downloading `install.sh`, inspecting it, and then running it allows you to review the script first.
 
-#### Platform Support and Limitations
-
-The installer automatically detects your operating system, CPU architecture, and C library (`glibc` vs `musl`):
-
-- **Supported Standalone Binaries**: **Linux x86_64 / amd64** (`solo-linux-x64`) and **Linux ARM64 / aarch64** (`solo-linux-arm64`), both with glibc.
-- **Platform Limitations and Upcoming Support**:
-  - Standalone binaries for **musl-based distributions (e.g., Alpine Linux)** are not yet available (tracked in [#6211](https://github.com/hiero-ledger/solo/issues/6211)).
-  - Standalone installers for macOS and Windows are tracked in epic [#5714](https://github.com/hiero-ledger/solo/issues/5714).
-- On platforms without standalone binary releases (including Alpine Linux, macOS, and Windows), install Solo using npm.
-
-#### Integrity and Signature Verification
-
-- **Checksum Verification**: The installer unconditionally downloads the `SHA256SUMS` manifest from the GitHub release and computes the SHA-256 hash of the downloaded binary. If the checksum does not match, or if no binary is published for the detected architecture and C library, the installer halts and deletes temporary files.
-- **Keyless Signature Verification (`cosign`)**: If [cosign](https://github.com/sigstore/cosign) 2.4.1 or later is installed, the script downloads the signature bundle (`SHA256SUMS.sigstore.json`) and verifies the signature of the checksum manifest against Solo's GitHub Actions workflow OIDC identity (`https://token.actions.githubusercontent.com`). If `cosign` is not found, signature verification is skipped with an informational message. If it is older than 2.4.1, or the release has no signature bundle, it is skipped with a warning. In each of these cases the checksum is still verified.
-
-#### Manual Uninstallation
-
-Automated uninstallation via `solo uninstall` is planned (tracked in [#5721](https://github.com/hiero-ledger/solo/issues/5721)). To manually uninstall Solo:
-
-1. Remove the installed binary:
-   ```bash
-   rm -f ~/.solo/bin/solo
-   ```
-   (or `<prefix>/solo` if installed to a custom directory).
-2. Remove the PATH entry from your shell startup file:
-   - **Bash** (`~/.bashrc`) or **Zsh** (`~/.zshrc`): Delete the block between `# >>> solo installer >>>` and `# <<< solo installer <<<`.
-   - **Fish**: Delete `~/.config/fish/conf.d/solo.fish`:
-     ```bash
-     rm -f ~/.config/fish/conf.d/solo.fish
-     ```
-   - For custom prefixes, remove any `export PATH=...` entries you manually added.
-
-For detailed installer options, environment variables, and advanced configuration, see the [Solo Quickstart documentation](https://solo.hiero.org/docs/simple-solo-setup/quickstart/).
+For detailed installer options, environment variables, PATH configuration, platform support, and advanced setup, see the [Solo Quickstart documentation](https://solo.hiero.org/docs/simple-solo-setup/quickstart/#step-1-install-solo-cli).
 
 ## Releases
 
