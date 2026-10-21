@@ -170,17 +170,6 @@ describe('ConsensusNodeValuesTranslator', (): void => {
     });
   });
 
-  describe('nodeNames', (): void => {
-    it('returns names in declaration order', (): void => {
-      expect(ConsensusNodeValuesTranslator.nodeNames(umbrellaValues())).to.deep.equal(['node1', 'node2']);
-    });
-
-    it('returns an empty list when there are no nodes', (): void => {
-      expect(ConsensusNodeValuesTranslator.nodeNames({})).to.deep.equal([]);
-      expect(ConsensusNodeValuesTranslator.nodeNames({hedera: {nodes: []}})).to.deep.equal([]);
-    });
-  });
-
   describe('mergeValuesFiles', (): void => {
     it('skips paths that do not exist rather than throwing', (): void => {
       expect(ConsensusNodeValuesTranslator.mergeValuesFiles(['/nonexistent/a.yaml'])).to.deep.equal({});

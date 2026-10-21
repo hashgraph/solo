@@ -101,24 +101,6 @@ export interface HelmClient {
   listReleases(allNamespaces: boolean, namespace?: string, kubeContext?: string): Promise<ReleaseItem[]>;
 
   /**
-   * Executes the Helm CLI `get values` sub-command and returns the values the release was last
-   * rendered with.
-   *
-   * @param releaseName the release to read.
-   * @param namespace the namespace holding the release.
-   * @param kubeContext the kube context to read through.
-   * @param allValues when true (the default) returns the coalesced values — the chart's own defaults
-   *   merged with the caller's overrides — rather than only the overrides.
-   * @returns the values as a plain object; an empty object when the release has none.
-   */
-  getValues(
-    releaseName: string,
-    namespace?: string,
-    kubeContext?: string,
-    allValues?: boolean,
-  ): Promise<Record<string, unknown>>;
-
-  /**
    * Executes the Helm CLI dependency update sub-command and updates the dependencies of the specified Helm
    * chart.
    *

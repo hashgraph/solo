@@ -131,8 +131,12 @@ describe('consensus-node chart renders the same objects as the umbrella chart', 
       helmTemplate(constants.SOLO_DEPLOYMENT_CHART, umbrellaChart, umbrellaValuesFile),
     );
 
+    const nodeNames: string[] = ((umbrella.hedera as AnyObject)?.nodes as AnyObject[]).map(
+      (node: AnyObject): string => node.name as string,
+    );
+
     let splitManifest: string = helmTemplate(constants.SOLO_DEPLOYMENT_CHART, umbrellaChart, sharedValuesFile);
-    for (const nodeName of ConsensusNodeValuesTranslator.nodeNames(umbrella)) {
+    for (const nodeName of nodeNames) {
       const nodeValuesFile: string = ConsensusNodeValuesTranslator.writeValuesFile(
         caseDirectory,
         `${nodeName}.yaml`,

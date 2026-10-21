@@ -5,19 +5,17 @@ import * as yaml from 'yaml';
 
 import {PathEx} from '../business/utils/path-ex.js';
 import {SoloErrors} from './errors/solo-errors.js';
+import {UserInput} from './user-input.js';
+import {ValuesFileParser} from './util/values-file-parser.js';
 import {type AnyObject} from '../types/aliases.js';
 
 /**
  * Translates the umbrella `solo-deployment` values shape into the two shapes the split charts need:
+ * the **shared** release keeps the umbrella shape with the node list emptied, so it renders only the
+ * network-scoped objects; each **per-node** release gets a flat shape, because a single-node chart
+ * has no `hedera.nodes` array to index and no `defaults:` section to merge against.
  *
- * - the **shared** release keeps the umbrella shape with the node list emptied, so it renders only the
- *   network-scoped objects (MinIO, the shared secrets, `dns-validation-script`, `haproxy-ofac-cm`, and
- *   the `network-node-*-cm` ConfigMaps);
- * - each **per-node** release gets a flat shape, because a single-node chart has no `hedera.nodes`
- *   array to index and no `defaults:` section to merge against.
- *
- * The translation is deliberately a pure data transform over already-merged values so it can be tested
- * without a cluster or a Helm invocation.
+ * A pure data transform over already-merged values, so it is testable without a cluster or Helm.
  */
 export class ConsensusNodeValuesTranslator {
   /** Umbrella `defaults.*` keys that become top-level keys on a per-node release. */
@@ -43,7 +41,8 @@ export class ConsensusNodeValuesTranslator {
 
   /**
    * Deep-merges an ordered list of values files, later files winning, mirroring how Helm layers
-   * `--values` arguments. Missing files are skipped so the caller can pass an optimistic list.
+   * `--values` arguments. Missing files are skipped so the caller can pass an optimistic list; an
+   * unparseable one fails the command, per {@link ValuesFileParser}.
    */
   public static mergeValuesFiles(paths: string[]): AnyObject {
     let merged: AnyObject = {};
@@ -53,7 +52,7 @@ export class ConsensusNodeValuesTranslator {
         continue;
       }
 
-      const parsed: unknown = yaml.parse(fs.readFileSync(path, 'utf8'));
+      const parsed: unknown = ValuesFileParser.parse(path, fs.readFileSync(path, 'utf8'));
       if (parsed && typeof parsed === 'object') {
         merged = ConsensusNodeValuesTranslator.deepMerge(merged, parsed as AnyObject);
       }
@@ -63,17 +62,13 @@ export class ConsensusNodeValuesTranslator {
   }
 
   /**
-   * Reconstructs the effective umbrella values from the exact Helm arguments Solo assembled, applying
-   * `--values` files in order and then folding every `--set*` override on top.
+   * Reconstructs the effective umbrella values from the Helm arguments Solo assembled: `--values`
+   * files in order, then every `--set*` override folded on top. The overrides carry values Solo
+   * computes at runtime (storage backend, `crds.*` toggles, static IPs, per-node names) that appear
+   * in no values file, so translating the files alone silently drops them.
    *
-   * This is the only faithful input for the split translation: the `--set` overrides carry values Solo
-   * computes at runtime (storage backend, `crds.*` toggles, static IPs, per-node names) that appear in
-   * no values file, and Helm applies them over every file. Translating the files alone silently drops
-   * them.
-   *
-   * Known limitation: an unescaped comma in a `--set` value is treated as part of the value rather than
-   * as Helm's list separator. Solo does not currently emit such values, and `--set-literal` /
-   * `--set-string` have no comma semantics at all.
+   * Known limitation: an unescaped comma in a `--set` value is treated as part of the value rather
+   * than as Helm's list separator. Solo does not currently emit such values.
    *
    * @param arguments_ - `HelmChartValues.toArguments()` output
    */
@@ -123,8 +118,7 @@ export class ConsensusNodeValuesTranslator {
   }
 
   /**
-   * Values for the shared release: the umbrella shape with an empty node list, which renders every
-   * network-scoped object and nothing per-node.
+   * Values for the shared release: the umbrella shape with an empty node list.
    *
    * The roster is preserved under `hedera.rosterNodes` because `dns-validation-script` has to probe
    * every node's FQDN — emptying the list alone would render that script with no checks at all.
@@ -137,12 +131,7 @@ export class ConsensusNodeValuesTranslator {
     return shared;
   }
 
-  /**
-   * Flat values for one node's release.
-   *
-   * @param umbrella - merged umbrella values
-   * @param nodeName - `hedera.nodes[].name` of the node to extract
-   */
+  /** Flat values for one node's release, extracted by its `hedera.nodes[].name`. */
   public static toNodeValues(umbrella: AnyObject, nodeName: string): AnyObject {
     const node: AnyObject = ConsensusNodeValuesTranslator.findNode(umbrella, nodeName);
     const defaults: AnyObject = (umbrella.defaults as AnyObject) ?? {};
@@ -187,30 +176,15 @@ export class ConsensusNodeValuesTranslator {
       }
     }
 
-    // Network-scoped keys (`minio-server`, `tenant`, `crs`, `hedera`) cannot appear here: `flat` is
-    // built only from the two allow-lists above plus the node's own entry.
     return flat;
   }
 
-  /**
-   * Writes `values` as YAML under `directory` and returns the path. The caller owns cleanup; these
-   * files live in the Solo cache alongside the generated profile values.
-   */
+  /** Writes `values` as YAML under `directory` and returns the path; the caller owns cleanup. */
   public static writeValuesFile(directory: string, fileName: string, values: AnyObject): string {
     fs.mkdirSync(directory, {recursive: true});
     const filePath: string = PathEx.join(directory, fileName);
     fs.writeFileSync(filePath, yaml.stringify(values));
     return filePath;
-  }
-
-  /** Node names present in the merged umbrella values, in declaration order. */
-  public static nodeNames(umbrella: AnyObject): string[] {
-    const nodes: unknown = (umbrella.hedera as AnyObject)?.nodes;
-    if (!Array.isArray(nodes)) {
-      return [];
-    }
-
-    return nodes.map((node: unknown): string => (node as AnyObject)?.name as string).filter(Boolean);
   }
 
   private static findNode(umbrella: AnyObject, nodeName: string): AnyObject {
@@ -253,10 +227,14 @@ export class ConsensusNodeValuesTranslator {
       }
     }
 
-    if (segments.some((segment: string | number): boolean => ConsensusNodeValuesTranslator.isUnsafeKey(segment))) {
-      // A Helm `--set` path is assembled from Solo's own arguments, so this should be unreachable —
-      // but walking an attacker-chosen chain onto Object.prototype would corrupt every object in
-      // the process, which is too sharp an edge to leave on a generic path-assignment helper.
+    // A Helm `--set` path is assembled from Solo's own arguments, so this should be unreachable — but
+    // walking an attacker-chosen chain onto Object.prototype would corrupt every object in the
+    // process, which is too sharp an edge to leave on a generic path-assignment helper.
+    if (
+      segments.some(
+        (segment: string | number): boolean => typeof segment === 'string' && !UserInput.safeJsonKey(segment),
+      )
+    ) {
       throw new SoloErrors.validation.illegalArgument(`refusing to assign the unsafe values path '${path}'`);
     }
 
@@ -276,17 +254,6 @@ export class ConsensusNodeValuesTranslator {
     (cursor as AnyObject)[segments.at(-1)] = value;
   }
 
-  /** Keys that would let a values path reach the prototype chain instead of the values object. */
-  private static readonly UNSAFE_PATH_SEGMENTS: ReadonlySet<string> = new Set([
-    '__proto__',
-    'constructor',
-    'prototype',
-  ]);
-
-  private static isUnsafeKey(segment: string | number): boolean {
-    return typeof segment === 'string' && ConsensusNodeValuesTranslator.UNSAFE_PATH_SEGMENTS.has(segment);
-  }
-
   /** Mirrors Helm's `--set` scalar coercion; `--set-literal` and `--set-string` bypass this. */
   private static coerceScalar(raw: string): unknown {
     if (raw === 'true' || raw === 'false') {
@@ -300,6 +267,10 @@ export class ConsensusNodeValuesTranslator {
     return raw !== '' && /^-?\d+(\.\d+)?$/.test(raw) ? Number(raw) : raw;
   }
 
+  /**
+   * Deliberately not `ReflectAssist.merge`: that skips `null`/`undefined` source values, and under
+   * Helm `--reuse-values` an explicit `null` deletes a key, so dropping it changes what renders.
+   */
   private static deepMerge(target: AnyObject, source: AnyObject): AnyObject {
     const result: AnyObject = {...target};
 

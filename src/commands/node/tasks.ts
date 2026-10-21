@@ -3925,9 +3925,6 @@ export class NodeCommandTasks {
     const layout: ConsensusChartLayout = await this.consensusCharts.discover({
       namespace: config.namespace,
       kubeContext: context,
-      clusterReference: context,
-      soloChartVersion: '',
-      cacheDirectory: config.cacheDir || constants.SOLO_CACHE_DIR,
     });
 
     const manifest: AnyObject = NodeCommandTasks.buildNetworkNodeServiceManifest(

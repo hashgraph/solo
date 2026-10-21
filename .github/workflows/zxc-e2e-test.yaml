@@ -309,10 +309,11 @@ jobs:
         with:
           version: 'v${{ inputs.helm-version }}'
 
-      # The consensus chart layout suite passes `--chart-dir`, so it needs the charts themselves
-      # rather than the published release. Only that suite does, so only it pays for the checkout.
+      # Two suites need the charts from source rather than the published release: the consensus
+      # chart layout suite passes `--chart-dir`, and the integration suite's helm-template parity
+      # cases render both charts side by side. Only those two pay for the checkout.
       - name: Checkout solo-charts
-        if: ${{ inputs.custom-job-label == 'Consensus Chart Layout' && !cancelled() && !failure() }}
+        if: ${{ contains(fromJSON('["Consensus Chart Layout", "Integration"]'), inputs.custom-job-label) && !cancelled() && !failure() }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: hiero-ledger/solo-charts
@@ -325,7 +326,7 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Resolve solo-charts dependencies
-        if: ${{ inputs.custom-job-label == 'Consensus Chart Layout' && !cancelled() && !failure() }}
+        if: ${{ contains(fromJSON('["Consensus Chart Layout", "Integration"]'), inputs.custom-job-label) && !cancelled() && !failure() }}
         run: |
           # *.tgz is gitignored in solo-charts, so a fresh checkout has no subcharts and Helm cannot
           # render solo-deployment from the working tree without resolving them first.
@@ -519,11 +520,12 @@ jobs:
             echo "ENABLE_IMAGE_CACHE=true" >> .env
           fi
 
-          if [[ "${CUSTOM_JOB_LABEL_INPUT}" == "Consensus Chart Layout" ]]; then
-            # The suite needs the charts themselves because it passes `--chart-dir`. It does NOT get
-            # EXPERIMENTAL_PER_CONSENSUS_NODE_CHART here: it sets the flag itself per phase, and a
-            # process-wide value would defeat the phase that proves an existing deployment is left
-            # on the single chart.
+          if [[ "${CUSTOM_JOB_LABEL_INPUT}" == "Consensus Chart Layout" || "${CUSTOM_JOB_LABEL_INPUT}" == "Integration" ]]; then
+            # Both suites read the charts from source: the layout suite passes `--chart-dir`, and the
+            # integration suite's parity cases skip themselves without this. Neither gets
+            # EXPERIMENTAL_PER_CONSENSUS_NODE_CHART here: the layout suite sets the flag itself per
+            # phase, and a process-wide value would defeat the phase that proves an existing
+            # deployment is left on the single chart.
             echo "SOLO_CHARTS_DIR=${GITHUB_WORKSPACE}/solo-charts/charts" >> .env
           fi
 

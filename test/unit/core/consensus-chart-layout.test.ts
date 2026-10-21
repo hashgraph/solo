@@ -49,8 +49,7 @@ describe('ConsensusChartLayout', (): void => {
       );
 
       expect(layout.kind).to.equal(ConsensusChartLayoutKind.SPLIT);
-      expect([...layout.nodeReleases.keys()]).to.have.members(['node1', 'node2']);
-      expect(layout.nodeReleases.get('node1' as NodeAlias)).to.equal('consensus-node-node1');
+      expect(layout.allNodeReleaseNames()).to.have.members(['consensus-node-node1', 'consensus-node-node2']);
     });
 
     it('still reports SPLIT when the shared release is missing', (): void => {
@@ -75,7 +74,7 @@ describe('ConsensusChartLayout', (): void => {
       );
 
       expect(layout.kind).to.equal(ConsensusChartLayoutKind.UMBRELLA);
-      expect(layout.nodeReleases.size).to.equal(0);
+      expect(layout.allNodeReleaseNames()).to.deep.equal([]);
     });
 
     it('honours a renamed shared release', (): void => {
@@ -89,24 +88,6 @@ describe('ConsensusChartLayout', (): void => {
   });
 
   describe('release naming', (): void => {
-    it('resolves a node to its own release under the split layout', (): void => {
-      const layout: ConsensusChartLayout = ConsensusChartLayout.classify(
-        [release(SHARED, 'solo-deployment-0.67.0'), release('consensus-node-node1', 'consensus-node-0.67.0')],
-        SHARED,
-      );
-
-      expect(layout.releaseNameFor('node1' as NodeAlias, SHARED)).to.equal('consensus-node-node1');
-    });
-
-    it('resolves a node to the shared release under the umbrella layout', (): void => {
-      const layout: ConsensusChartLayout = ConsensusChartLayout.classify(
-        [release(SHARED, 'solo-deployment-0.67.0')],
-        SHARED,
-      );
-
-      expect(layout.releaseNameFor('node1' as NodeAlias, SHARED)).to.equal(SHARED);
-    });
-
     it('names a node release that does not exist yet', (): void => {
       expect(ConsensusChartLayout.perNodeReleaseName('node9' as NodeAlias)).to.equal('consensus-node-node9');
     });
@@ -121,19 +102,6 @@ describe('ConsensusChartLayout', (): void => {
       ],
       SHARED,
     );
-
-    it('names the expected nodes that own no release', (): void => {
-      expect(layout.missingFor(['node1', 'node2', 'node3'] as NodeAlias[])).to.deep.equal(['node2', 'node3']);
-    });
-
-    it('reports nothing missing when every expected node has a release', (): void => {
-      expect(layout.missingFor(['node1'] as NodeAlias[])).to.deep.equal([]);
-    });
-
-    it('names releases for nodes the deployment no longer knows about', (): void => {
-      // node4 was removed from the deployment but its release survived a failed teardown.
-      expect(layout.orphansAgainst(['node1', 'node2'] as NodeAlias[])).to.deep.equal(['consensus-node-node4']);
-    });
 
     it('lists every per-node release for a teardown to sweep', (): void => {
       expect(layout.allNodeReleaseNames()).to.have.members(['consensus-node-node1', 'consensus-node-node4']);

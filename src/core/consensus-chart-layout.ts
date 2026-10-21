@@ -13,36 +13,28 @@ export enum ConsensusChartLayoutKind {
   SPLIT = 'split',
 }
 
-/** Release-name prefix every per-node release carries, e.g. `consensus-node-node1`. */
 const PER_NODE_RELEASE_PREFIX: string = `${constants.CONSENSUS_NODE_CHART}-`;
 
 /**
  * Which layout a namespace is in, discovered from the releases Helm reports rather than from a flag
  * or a stored marker.
  *
- * Discovery rather than persistence is deliberate: the releases are the thing every later command
- * has to act on, so reading them cannot disagree with reality. A marker could — it would be written
- * by one machine and read by another, and a deployment converted or torn down out of band would
- * leave it lying. The cost is a Helm round-trip per command, which {@link ConsensusChartOrchestrator}
- * caches.
+ * Discovery is deliberate: the releases are what every later command has to act on, so reading them
+ * cannot disagree with reality. A marker could — written by one machine and read by another, and
+ * left lying by a deployment converted or torn down out of band.
  */
 export class ConsensusChartLayout {
   private constructor(
     public readonly kind: ConsensusChartLayoutKind,
     public readonly sharedReleaseInstalled: boolean,
-    /** Alias to release name, for the nodes that currently own a release. */
-    public readonly nodeReleases: ReadonlyMap<NodeAlias, string>,
+    private readonly nodeReleases: ReadonlyMap<NodeAlias, string>,
   ) {}
 
   /**
    * Classifies a namespace from its installed releases.
    *
-   * A release counts as a per-node release only when its name *and* its chart carry the
-   * `consensus-node` prefix. Matching on the name alone would misread an unrelated user release that
-   * happens to be called `consensus-node-something`, and the chart column costs nothing to check.
-   *
-   * @param releases - every release in the namespace, as `{name, chart}` pairs
-   * @param sharedReleaseName - the configured name of the shared/umbrella release
+   * A release counts as per-node only when its name *and* its chart carry the `consensus-node`
+   * prefix, so an unrelated user release named `consensus-node-something` is not misread.
    */
   public static classify(
     releases: readonly {name: string; chart?: string}[],
@@ -72,11 +64,6 @@ export class ConsensusChartLayout {
     return new ConsensusChartLayout(kind, sharedReleaseInstalled, nodeReleases);
   }
 
-  /** The release name a node's objects belong to under this layout. */
-  public releaseNameFor(nodeAlias: NodeAlias, sharedReleaseName: string): string {
-    return this.isSplit() ? ConsensusChartLayout.perNodeReleaseName(nodeAlias) : sharedReleaseName;
-  }
-
   /** The release name a node owns under the split layout, whether or not it is installed yet. */
   public static perNodeReleaseName(nodeAlias: NodeAlias): string {
     return `${PER_NODE_RELEASE_PREFIX}${nodeAlias}`;
@@ -88,22 +75,6 @@ export class ConsensusChartLayout {
 
   public isDeployed(): boolean {
     return this.kind !== ConsensusChartLayoutKind.NONE;
-  }
-
-  /**
-   * Expected nodes that own no release. Non-empty means a half-finished install or a failed
-   * `node add`; what to do about it is the caller's decision, not this type's.
-   */
-  public missingFor(expected: readonly NodeAlias[]): NodeAlias[] {
-    return expected.filter((nodeAlias: NodeAlias): boolean => !this.nodeReleases.has(nodeAlias));
-  }
-
-  /** Per-node releases for nodes the deployment no longer knows about, left by a failed teardown. */
-  public orphansAgainst(expected: readonly NodeAlias[]): string[] {
-    const known: Set<NodeAlias> = new Set(expected);
-    return [...this.nodeReleases.entries()]
-      .filter(([nodeAlias]): boolean => !known.has(nodeAlias))
-      .map(([, releaseName]): string => releaseName);
   }
 
   /** Every per-node release present, for a teardown that has to sweep them all. */

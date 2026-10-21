@@ -12,10 +12,6 @@ import {type NodeAlias} from '../../../src/types/aliases.js';
 import * as constants from '../../../src/core/constants.js';
 import {SoloConfigSchema} from '../../../src/data/schema/model/solo/solo-config-schema.js';
 import {Duration} from '../../../src/core/time/duration.js';
-import {PathEx} from '../../../src/business/utils/path-ex.js';
-import fs from 'node:fs';
-import {dirname} from 'node:path';
-import {fileURLToPath} from 'node:url';
 
 /**
  * The orchestrator is the only thing that decides which Helm releases exist and in what order they
@@ -30,7 +26,6 @@ describe('ConsensusChartOrchestrator', (): void => {
 
   let chartManager: {
     getInstalledReleases: SinonStub;
-    getReleaseValues: SinonStub;
     upgrade: SinonStub;
     uninstall: SinonStub;
   };
@@ -73,7 +68,6 @@ describe('ConsensusChartOrchestrator', (): void => {
 
     chartManager = {
       getInstalledReleases: sinon.stub().resolves([]),
-      getReleaseValues: sinon.stub().resolves({}),
       upgrade: sinon.stub().resolves(true),
       uninstall: sinon.stub().resolves(true),
     };
@@ -98,9 +92,9 @@ describe('ConsensusChartOrchestrator', (): void => {
       expect(chartManager.getInstalledReleases.callCount).to.equal(1);
     });
 
-    it('re-reads after invalidate', async (): Promise<void> => {
+    it('re-reads after invalidateAll', async (): Promise<void> => {
       await orchestrator.discover(target);
-      orchestrator.invalidate(namespace, 'context1');
+      orchestrator.invalidateAll();
       await orchestrator.discover(target);
 
       expect(chartManager.getInstalledReleases.callCount).to.equal(2);
@@ -175,37 +169,6 @@ describe('ConsensusChartOrchestrator', (): void => {
       expect(logger.showUser.called).to.be.false;
     });
 
-    it('has no production caller anywhere in src/', (): void => {
-      // The real invariant behind this policy: no command may convert a deployment. Asserting it on
-      // the orchestrator alone would not catch somebody re-wiring `convertToSplit` into a lifecycle
-      // task, which is exactly how the conversion got there the first time.
-      const here: string = dirname(fileURLToPath(import.meta.url));
-      const sourceRoot: string = PathEx.join(here, '..', '..', '..', 'src');
-      const definition: string = PathEx.join(sourceRoot, 'core', 'consensus-chart-orchestrator.ts');
-
-      const callers: string[] = [];
-      const walk = (directory: string): void => {
-        for (const entry of fs.readdirSync(directory, {withFileTypes: true})) {
-          const entryPath: string = PathEx.join(directory, entry.name);
-          if (entry.isDirectory()) {
-            walk(entryPath);
-          } else if (
-            entry.name.endsWith('.ts') &&
-            entryPath !== definition &&
-            fs.readFileSync(entryPath, 'utf8').includes('.convertToSplit(')
-          ) {
-            callers.push(entryPath.slice(sourceRoot.length + 1));
-          }
-        }
-      };
-      walk(sourceRoot);
-
-      expect(
-        callers,
-        'convertToSplit is deliberately unwired until the single solo-deployment chart is deprecated',
-      ).to.deep.equal([]);
-    });
-
     it('says nothing when the flag is unset', async (): Promise<void> => {
       constants.CONFIG.EXPERIMENTAL_PER_CONSENSUS_NODE_CHART = false;
 
@@ -223,13 +186,13 @@ describe('ConsensusChartOrchestrator', (): void => {
     };
 
     it('installs one umbrella release when not splitting', async (): Promise<void> => {
-      await orchestrator.renderNetwork(target, umbrella, aliases, false);
+      await orchestrator.renderNetwork(target, umbrella, aliases, false, RetryPolicy.CLEAN_RETRY);
 
       expect(upgradeCalls()).to.deep.equal([[SHARED, SHARED, false]]);
     });
 
     it('installs the shared release before any node release when splitting', async (): Promise<void> => {
-      await orchestrator.renderNetwork(target, umbrella, aliases, true);
+      await orchestrator.renderNetwork(target, umbrella, aliases, true, RetryPolicy.CLEAN_RETRY);
 
       // The per-node chart mounts ConfigMaps and Secrets the shared release renders, so the order
       // is a dependency, not a preference.
@@ -320,79 +283,6 @@ describe('ConsensusChartOrchestrator', (): void => {
     });
   });
 
-  describe('convertToSplit', (): void => {
-    const aliases: NodeAlias[] = ['node1', 'node2'] as NodeAlias[];
-
-    beforeEach((): void => {
-      chartManager.getInstalledReleases.resolves([{name: SHARED, chart: 'solo-deployment-0.67.0'}]);
-      chartManager.getReleaseValues.resolves({
-        cloud: {generateNewSecrets: true, minio: {enabled: true}},
-        defaults: {root: {image: {tag: '0.46.2'}}},
-        hedera: {
-          nodes: [
-            {name: 'node1', nodeId: 0},
-            {name: 'node2', nodeId: 1},
-          ],
-        },
-      });
-    });
-
-    it('reads the live release rather than any values file', async (): Promise<void> => {
-      await orchestrator.convertToSplit(target, aliases);
-
-      // The deploy-time `--set` values (cloud.generateNewSecrets and friends) exist nowhere else, and
-      // losing them makes Helm delete the MinIO secrets.
-      expect(chartManager.getReleaseValues.calledOnceWith(namespace, SHARED, 'context1')).to.be.true;
-    });
-
-    it('empties the roster on the shared release first, with values reused', async (): Promise<void> => {
-      await orchestrator.convertToSplit(target, aliases);
-
-      expect(upgradeCalls()).to.deep.equal([
-        [SHARED, SHARED, true],
-        ['consensus-node-node1', constants.CONSENSUS_NODE_CHART, false],
-        ['consensus-node-node2', constants.CONSENSUS_NODE_CHART, false],
-      ]);
-    });
-
-    it('never uninstalls the shared release', async (): Promise<void> => {
-      await orchestrator.convertToSplit(target, aliases);
-
-      // An uninstall here would take the MinIO tenant's credentials with it, unrecoverably.
-      expect(chartManager.uninstall.called).to.be.false;
-    });
-
-    it('is a no-op on a deployment that is already split', async (): Promise<void> => {
-      chartManager.getInstalledReleases.resolves([
-        {name: SHARED, chart: 'solo-deployment-0.67.0'},
-        {name: 'consensus-node-node1', chart: 'consensus-node-0.67.0'},
-      ]);
-
-      expect(await orchestrator.convertToSplit(target, aliases)).to.deep.equal([]);
-      expect(chartManager.upgrade.called).to.be.false;
-    });
-
-    it('refuses before touching the cluster when the release does not describe a node', async (): Promise<void> => {
-      chartManager.getReleaseValues.resolves({hedera: {nodes: [{name: 'node1'}]}});
-
-      await expect(orchestrator.convertToSplit(target, aliases)).to.be.rejectedWith(/node2/);
-      expect(chartManager.upgrade.called).to.be.false;
-    });
-
-    it('refuses when there is no shared release to convert', async (): Promise<void> => {
-      chartManager.getInstalledReleases.resolves([]);
-
-      await expect(orchestrator.convertToSplit(target, aliases)).to.be.rejectedWith(/not installed/);
-    });
-
-    it('reports how far it got when a node release fails', async (): Promise<void> => {
-      // Every attempt must fail: a single rejection is absorbed by the bounded retry, by design.
-      chartManager.upgrade.withArgs(sinon.match.any, 'consensus-node-node2').rejects(new Error('boom'));
-
-      await expect(orchestrator.convertToSplit(target, aliases)).to.be.rejectedWith(/1 of 2/);
-    });
-  });
-
   describe('retry policy', (): void => {
     it('uninstalls between attempts only under CLEAN_RETRY', async (): Promise<void> => {
       chartManager.upgrade.onFirstCall().rejects(new Error('transient'));
@@ -411,6 +301,18 @@ describe('ConsensusChartOrchestrator', (): void => {
       // the MinIO credentials the running tenant depends on.
       expect(chartManager.uninstall.called).to.be.false;
       expect(chartManager.upgrade.callCount).to.equal(2);
+    });
+
+    it('refuses CLEAN_RETRY against a namespace that already has releases', async (): Promise<void> => {
+      // The load-balancer redeploy runs after the install and once asked for CLEAN_RETRY, which would
+      // have uninstalled the live shared release on any transient error. Enforced here rather than
+      // left to each call site to remember.
+      chartManager.getInstalledReleases.resolves([{name: SHARED, chart: 'solo-deployment-0.67.0'}]);
+
+      await expect(
+        orchestrator.renderNetwork(target, {hedera: {nodes: []}}, [], false, RetryPolicy.CLEAN_RETRY),
+      ).to.be.rejectedWith(/RETRY_ONLY/);
+      expect(chartManager.upgrade.called).to.be.false;
     });
   });
 

@@ -1210,26 +1210,17 @@ export class NetworkCommand extends BaseCommand {
     deleteSecrets: boolean,
     contexts: Context[],
   ): Promise<void> {
-    // One sweep for both layouts. The orchestrator removes the per-node releases and the shared one,
-    // discovering them rather than deriving them from the current node list, so a network deployed
-    // as one release per node is still destroyable by an invocation that was never told about the
-    // split, and a node the deployment has since forgotten is still collected. Going through it
-    // also keeps its layout cache honest — uninstalling the shared release here directly would
-    // leave the cache claiming a release that no longer exists.
+    // One sweep for both layouts. The orchestrator discovers the releases rather than deriving them
+    // from the current node list, so a network deployed as one release per node is still destroyable
+    // by an invocation that was never told about the split, and a node the deployment has since
+    // forgotten is still collected.
     task.title = `Uninstalling chart ${this.consensusChartName} and ${constants.CONSENSUS_NODE_CHART} releases in namespace ${namespace}`;
     await this.logDestroyResults(
       'Uninstall consensus network releases',
       await Promise.allSettled(
         contexts.map(async (context): Promise<void> => {
           const kubeContext: Context = this.k8Factory.getK8(context).contexts().readCurrent();
-
-          await this.consensusCharts.uninstallAll({
-            namespace,
-            kubeContext,
-            clusterReference: kubeContext,
-            soloChartVersion: '',
-            cacheDirectory: constants.SOLO_CACHE_DIR,
-          });
+          await this.consensusCharts.uninstallAll({namespace, kubeContext});
         }),
       ),
     );
@@ -1403,11 +1394,14 @@ export class NetworkCommand extends BaseCommand {
    * The umbrella values are rebuilt from the exact Helm arguments the install would have used, so the
    * runtime `--set` overrides (storage backend, `crds.*` toggles, static IPs, per-node names) survive
    * the split translation. Translating the values files alone would silently drop them.
+   *
+   * @param retryPolicy - only the first deploy may pass `CLEAN_RETRY`; see {@link RetryPolicy}.
    */
   private async renderNetwork(
     config: NetworkDeployConfigClass,
     clusterReference: ClusterReferenceName,
     splitLayout: boolean,
+    retryPolicy: RetryPolicy,
   ): Promise<void> {
     const umbrella: AnyObject = ConsensusNodeValuesTranslator.fromHelmArguments(
       config.chartValuesMap[clusterReference].toArguments(),
@@ -1418,7 +1412,7 @@ export class NetworkCommand extends BaseCommand {
       umbrella,
       this.nodeAliasesForCluster(config, clusterReference),
       splitLayout,
-      RetryPolicy.CLEAN_RETRY,
+      retryPolicy,
     );
   }
 
@@ -1926,10 +1920,6 @@ export class NetworkCommand extends BaseCommand {
               const layout: ConsensusChartLayout = await this.consensusCharts.discover({
                 namespace: config.namespace,
                 kubeContext: context,
-                clusterReference,
-                chartDirectory: config.chartDirectory,
-                soloChartVersion: config.soloChartVersion,
-                cacheDirectory: config.cacheDir,
               });
               if (layout.isDeployed()) {
                 throw new SoloErrors.deployment.networkAlreadyDeployed(
@@ -2014,11 +2004,13 @@ export class NetworkCommand extends BaseCommand {
               );
 
               // A first deploy is the one moment the layout is a free choice; every later command
-              // discovers it from the installed releases instead.
+              // discovers it from the installed releases instead. It is also the only moment
+              // CLEAN_RETRY is safe, because a failed attempt has nothing of value to uninstall.
               await this.renderNetwork(
                 config,
                 clusterReference,
                 constants.CONFIG.EXPERIMENTAL_PER_CONSENSUS_NODE_CHART,
+                RetryPolicy.CLEAN_RETRY,
               );
               showVersionBanner(this.logger, this.consensusChartName, config.soloChartVersion);
             }
@@ -2091,10 +2083,14 @@ export class NetworkCommand extends BaseCommand {
                   // directly: this runs right after the install, so under the split layout the
                   // per-node objects belong to their own releases and a single umbrella upgrade
                   // would be rejected for taking ownership of them.
+                  //
+                  // RETRY_ONLY, not CLEAN_RETRY: MinIO and the generated secrets already exist by
+                  // now, and uninstalling the shared release to retry would take the tenant's
+                  // credentials with it.
                   const layout: ConsensusChartLayout = await this.consensusCharts.discover(
                     this.chartTarget(config, clusterReference),
                   );
-                  await this.renderNetwork(config, clusterReference, layout.isSplit());
+                  await this.renderNetwork(config, clusterReference, layout.isSplit(), RetryPolicy.RETRY_ONLY);
                   showVersionBanner(this.logger, this.consensusChartName, soloChartVersion, 'Upgraded');
 
                   // TODO: Remove this code now that we have made the config dynamic and can update it without redeploying

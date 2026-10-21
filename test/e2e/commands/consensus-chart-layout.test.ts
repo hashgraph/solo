@@ -37,22 +37,11 @@ import {TEST_UPGRADE_FROM_VERSION} from '../../../version-test.js';
 import {NetworkNodeLifecycle} from '../../../src/core/network-node-lifecycle.js';
 
 /**
- * Proves the chart-layout policy end to end, both halves of it.
- *
- * A network can be installed as one umbrella `solo-deployment` release or as a shared release plus
- * one `consensus-node-<alias>` release per node. `EXPERIMENTAL_PER_CONSENSUS_NODE_CHART` chooses
- * between them — but **only when a deployment is first created**. An existing deployment is never
- * converted, because the single chart cannot be deprecated yet and the networks already running on
- * it have to keep behaving exactly as they did.
- *
- * So this suite asserts two things that pull in opposite directions:
- *
- *  1. an existing umbrella deployment survives a `consensus network upgrade` with the flag **set** and
- *     is still umbrella afterwards — the guarantee the policy exists for;
- *  2. a brand-new deployment created with the flag set really is split, and the whole node
- *     lifecycle works against it.
- *
- * Point the chart directory at a solo-charts checkout:
+ * Proves both halves of the chart-layout policy: an existing umbrella deployment survives a
+ * `consensus network upgrade` with `EXPERIMENTAL_PER_CONSENSUS_NODE_CHART` **set** and is still
+ * umbrella afterwards, while a brand-new deployment created with the flag set really is split and
+ * the whole node lifecycle works against it. The flag applies only at first creation, because the
+ * single chart cannot be deprecated yet.
  *
  *     SOLO_CHARTS_DIR=<solo-charts>/charts task test-e2e-consensus-chart-layout
  */
@@ -88,6 +77,24 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
         async function installedReleaseNames(): Promise<string[]> {
           const chartManager: ChartManager = container.resolve<ChartManager>(InjectTokens.ChartManager);
           return releaseNames(await chartManager.getInstalledCharts(namespace, contexts[0]));
+        }
+
+        /** Asserts which of the two kinds of release the namespace currently holds. */
+        async function expectReleases(expected: {shared: boolean; perNode: boolean}, why: string): Promise<void> {
+          const releases: string[] = await installedReleaseNames();
+
+          const expectRelease: (releaseName: string, present: boolean) => void = (
+            releaseName: string,
+            present: boolean,
+          ): void => {
+            const assertion: Chai.Assertion = expect(releases, `${why}: ${releaseName}`);
+            (present ? assertion.to : assertion.to.not).include(releaseName);
+          };
+
+          expectRelease(constants.SOLO_DEPLOYMENT_CHART, expected.shared);
+          for (const releaseName of perNodeReleaseNames) {
+            expectRelease(releaseName, expected.perNode);
+          }
         }
 
         /**
@@ -163,21 +170,13 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
         DeploymentTest.addCluster(options);
         ConsensusNodeTest.keys(options);
 
-        // -------------------------------------------------------------------------------------
-        // Phase 1 — a deployment created the way every existing network was created
-        // -------------------------------------------------------------------------------------
         describe('a deployment created on the single chart', (): void => {
           // Deploy the version the upgrade in phase 2 upgrades *from*, matching node-upgrade.test.ts;
           // upgrading onto the version already installed would exercise nothing.
           NetworkTest.deploy(options, TEST_UPGRADE_FROM_VERSION);
 
           it(`${testName}: the single chart owns every consensus node`, async (): Promise<void> => {
-            const releases: string[] = await installedReleaseNames();
-
-            expect(releases, 'the shared release is the single chart').to.include(constants.SOLO_DEPLOYMENT_CHART);
-            for (const releaseName of perNodeReleaseNames) {
-              expect(releases, 'no per-node release is created without the flag').to.not.include(releaseName);
-            }
+            await expectReleases({shared: true, perNode: false}, 'no per-node release without the flag');
           }).timeout(Duration.ofMinutes(2).toMillis());
 
           ConsensusNodeTest.setup(options, TEST_UPGRADE_FROM_VERSION);
@@ -185,9 +184,6 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           AccountTest.accountCreationShouldSucceed(options);
         });
 
-        // -------------------------------------------------------------------------------------
-        // Phase 2 — the guarantee: the flag must not touch a deployment that already exists
-        // -------------------------------------------------------------------------------------
         describe('turning the flag on does not convert it', (): void => {
           it(`${testName}: enable the per-consensus-node chart`, (): void => {
             constants.CONFIG.EXPERIMENTAL_PER_CONSENSUS_NODE_CHART = true;
@@ -212,14 +208,7 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           }
 
           it(`${testName}: the deployment is still on the single chart`, async (): Promise<void> => {
-            const releases: string[] = await installedReleaseNames();
-
-            expect(releases, 'the shared release survives untouched').to.include(constants.SOLO_DEPLOYMENT_CHART);
-            for (const releaseName of perNodeReleaseNames) {
-              expect(releases, `${releaseName} must not be created for an existing deployment`).to.not.include(
-                releaseName,
-              );
-            }
+            await expectReleases({shared: true, perNode: false}, 'an existing deployment is never converted');
           }).timeout(Duration.ofMinutes(2).toMillis());
 
           it(`${testName}: every consensus node pod is still running`, async (): Promise<void> => {
@@ -235,9 +224,6 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           AccountTest.accountCreationShouldSucceed(options);
         });
 
-        // -------------------------------------------------------------------------------------
-        // Phase 3 — tear it down so the next phase is a genuinely new deployment
-        // -------------------------------------------------------------------------------------
         describe('teardown of the single-chart deployment', (): void => {
           it(`${testName}: consensus network destroy`, async (): Promise<void> => {
             await main(networkDestroyArgv());
@@ -255,21 +241,11 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           DeploymentTest.addCluster(options);
         });
 
-        // -------------------------------------------------------------------------------------
-        // Phase 4 — a new deployment, which is the only kind the flag applies to
-        // -------------------------------------------------------------------------------------
         describe('a new deployment created with the flag set', (): void => {
           NetworkTest.deploy(options);
 
           it(`${testName}: each consensus node is its own release`, async (): Promise<void> => {
-            const releases: string[] = await installedReleaseNames();
-
-            expect(releases, 'the shared release holds the network-scoped objects').to.include(
-              constants.SOLO_DEPLOYMENT_CHART,
-            );
-            for (const releaseName of perNodeReleaseNames) {
-              expect(releases, `${releaseName} should own its consensus node`).to.include(releaseName);
-            }
+            await expectReleases({shared: true, perNode: true}, 'a new deployment is split');
           }).timeout(Duration.ofMinutes(2).toMillis());
 
           it(`${testName}: every per-node object is rendered under the new layout`, async (): Promise<void> => {
@@ -297,9 +273,6 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           AccountTest.accountCreationShouldSucceed(options);
         });
 
-        // -------------------------------------------------------------------------------------
-        // Phase 5 — teardown has to sweep the per-node releases, or they are orphaned
-        // -------------------------------------------------------------------------------------
         describe('teardown of the new deployment', (): void => {
           it(`${testName}: consensus network destroy`, async (): Promise<void> => {
             await main(networkDestroyArgv());
@@ -307,12 +280,7 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           }).timeout(Duration.ofMinutes(10).toMillis());
 
           it(`${testName}: destroy leaves no release behind`, async (): Promise<void> => {
-            const releases: string[] = await installedReleaseNames();
-
-            expect(releases, 'the shared release is gone').to.not.include(constants.SOLO_DEPLOYMENT_CHART);
-            for (const releaseName of perNodeReleaseNames) {
-              expect(releases, `${releaseName} should be swept by destroy`).to.not.include(releaseName);
-            }
+            await expectReleases({shared: false, perNode: false}, 'destroy sweeps both layouts');
           }).timeout(Duration.ofMinutes(3).toMillis());
         });
       });

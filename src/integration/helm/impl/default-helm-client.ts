@@ -21,7 +21,6 @@ import {ChartUninstallRequest} from '../request/chart/chart-uninstall-request.js
 import {ChartUpgradeRequest} from '../request/chart/chart-upgrade-request.js';
 import {VersionRequest} from '../request/common/version-request.js';
 import {ReleaseListRequest} from '../request/release/release-list-request.js';
-import {ReleaseGetValuesRequest} from '../request/release/release-get-values-request.js';
 import {RepositoryAddRequest} from '../request/repository/repository-add-request.js';
 import {RepositoryListRequest} from '../request/repository/repository-list-request.js';
 import {RepositoryRemoveRequest} from '../request/repository/repository-remove-request.js';
@@ -116,23 +115,6 @@ export class DefaultHelmClient implements HelmClient {
 
   public async listReleases(allNamespaces: boolean, namespace?: string, kubeContext?: string): Promise<ReleaseItem[]> {
     return this.executeAsList(new ReleaseListRequest(allNamespaces, namespace, kubeContext), ReleaseItem);
-  }
-
-  public async getValues(
-    releaseName: string,
-    namespace?: string,
-    kubeContext?: string,
-    allValues: boolean = true,
-  ): Promise<Record<string, unknown>> {
-    // `Object` as the response class makes `responseAs` hand back the parsed JSON unchanged, which is
-    // what this is: an arbitrary values tree with no fixed shape to deserialize into.
-    const values: Record<string, unknown> = (await this.executeAsync(
-      new ReleaseGetValuesRequest(releaseName, namespace, kubeContext, allValues),
-      Object,
-    )) as Record<string, unknown>;
-
-    // `helm get values` prints `null` for a release with no values, which parses to null, not {}.
-    return values ?? {};
   }
 
   public async dependencyUpdate(chartName: string): Promise<void> {
