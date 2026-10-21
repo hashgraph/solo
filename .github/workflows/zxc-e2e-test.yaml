@@ -247,32 +247,6 @@ jobs:
           persist-credentials: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
-      # The consensus chart layout suite passes `--chart-dir`, so it needs the charts themselves
-      # rather than the published release. Only that suite does, so only it pays for the checkout.
-      - name: Checkout solo-charts
-        if: ${{ inputs.custom-job-label == 'Consensus Chart Layout' && !cancelled() && !failure() }}
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: hiero-ledger/solo-charts
-          # TODO(5172): revert to the default branch once the consensus-node chart is released.
-          # Pinned as a literal rather than a workflow input on purpose: an input that feeds a
-          # checkout ref is a cache-poisoning vector in a privileged context.
-          ref: "5172-migrate-from-the-solo-chartssolo-deployment-helm-chart-to-a-new-chart-that-represents-a-single-consensus-node-solo-chartsconsensus-node"
-          path: solo-charts
-          persist-credentials: false
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-
-      - name: Resolve solo-charts dependencies
-        if: ${{ inputs.custom-job-label == 'Consensus Chart Layout' && !cancelled() && !failure() }}
-        run: |
-          # *.tgz is gitignored in solo-charts, so a fresh checkout has no subcharts and Helm cannot
-          # render solo-deployment from the working tree without resolving them first.
-          for chart in solo-charts/charts/*/; do
-            if grep -q '^dependencies:' "${chart}Chart.yaml"; then
-              helm dependency update "${chart}"
-            fi
-          done
-
       - name: Setup Posix Dependencies
         id: set-posix-dependencies
         if: ${{ inputs.runner != 'windows-latest' && !cancelled() && !failure() }}
@@ -334,6 +308,32 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           version: 'v${{ inputs.helm-version }}'
+
+      # The consensus chart layout suite passes `--chart-dir`, so it needs the charts themselves
+      # rather than the published release. Only that suite does, so only it pays for the checkout.
+      - name: Checkout solo-charts
+        if: ${{ inputs.custom-job-label == 'Consensus Chart Layout' && !cancelled() && !failure() }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: hiero-ledger/solo-charts
+          # TODO(5172): revert to the default branch once the consensus-node chart is released.
+          # Pinned as a literal rather than a workflow input on purpose: an input that feeds a
+          # checkout ref is a cache-poisoning vector in a privileged context.
+          ref: "5172-migrate-from-the-solo-chartssolo-deployment-helm-chart-to-a-new-chart-that-represents-a-single-consensus-node-solo-chartsconsensus-node"
+          path: solo-charts
+          persist-credentials: false
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+
+      - name: Resolve solo-charts dependencies
+        if: ${{ inputs.custom-job-label == 'Consensus Chart Layout' && !cancelled() && !failure() }}
+        run: |
+          # *.tgz is gitignored in solo-charts, so a fresh checkout has no subcharts and Helm cannot
+          # render solo-deployment from the working tree without resolving them first.
+          for chart in solo-charts/charts/*/; do
+            if grep -q '^dependencies:' "${chart}Chart.yaml"; then
+              helm dependency update "${chart}"
+            fi
+          done
 
       - name: Install Dependencies
         id: npm-deps
