@@ -8,7 +8,7 @@ import * as yaml from 'yaml';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {ProfileManager} from '../../../src/core/profile-manager.js';
-import {getTemporaryDirectory, getTestCacheDirectory} from '../../test-utility.js';
+import {getTemporaryDirectory, getTestCacheDirectory} from '../../e2e/test-utility.js';
 import * as version from '../../../version.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test-container.js';

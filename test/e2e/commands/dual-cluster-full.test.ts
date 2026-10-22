@@ -27,7 +27,7 @@ import * as constants from '../../../src/core/constants.js';
 import {BlockNodeTest} from './tests/block-node-test.js';
 import {KeysAndPermissionsTest} from './tests/keys-and-permissions-test.js';
 import {type NodeAlias, type NodeAliases} from '../../../src/types/aliases.js';
-import {destroyEnabled} from '../../test-utility.js';
+import {destroyEnabled} from '../test-utility.js';
 
 const testName: string = 'dual-cluster-full';
 

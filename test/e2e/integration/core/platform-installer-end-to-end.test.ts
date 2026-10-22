@@ -6,7 +6,7 @@ import {expect} from 'chai';
 import * as constants from '../../../../src/core/constants.js';
 import * as fs from 'node:fs';
 
-import {endToEndTestSuite, getTestCacheDirectory, getTestCluster, getTestLogger} from '../../../test-utility.js';
+import {endToEndTestSuite, getTestCacheDirectory, getTestCluster, getTestLogger} from '../../test-utility.js';
 import {Flags as flags} from '../../../../src/commands/flags.js';
 import * as version from '../../../../version.js';
 import {Duration} from '../../../../src/core/time/duration.js';

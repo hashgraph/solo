@@ -18,7 +18,8 @@ name: 'Windows One-Shot Deploy and Destroy'
 # Compatibility gate: verifies that Solo one-shot deploy continues to work on native Windows.
 # Solo runs natively in PowerShell on a standard GitHub-hosted Windows runner.
 # Docker runs inside WSL2 (replicating how Docker Desktop works for Windows users) and is
-# exposed to Windows via DOCKER_HOST=tcp://localhost:2375.
+# exposed to Windows via DOCKER_HOST=tcp://<wsl2 ip>:2375, set at runtime once the VM has an
+# address (see "Point the Docker Client at the WSL2 Daemon").
 # Any PR that breaks Solo on Windows will cause this workflow to fail.
 #
 # The run covers a full install -> remove -> reinstall cycle, because failures that only appear on a
@@ -56,7 +57,8 @@ concurrency:
 
 env:
   STEP_TIMEOUT_MINUTES: '5'
-  DOCKER_HOST: tcp://localhost:2375
+  # DOCKER_HOST is deliberately absent here: it names the WSL2 VM's address, which only exists
+  # once the VM is up, and a value set here would shadow the one the job exports at runtime.
   ACTIONS_STEP_DEBUG: 'true'
   ACTIONS_RUNNER_DEBUG: 'true'
   WSL_UBUNTU_VERSION: '24.4.4'
@@ -243,7 +245,7 @@ jobs:
         # what Docker Desktop does for Windows users, exposing a Linux daemon via TCP.
         # The verified restore above creates setup-wsl's .complete marker so find()
         # returns the installer before the action reaches its cache or download path.
-        uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
+        uses: Vampire/setup-wsl@614202866847d986a4f737ae6020b760283d3f5a # v7.1.1
         # A healthy setup completes in well under a minute. Bound a stalled action so a
         # distribution problem is reported promptly instead of consuming ten minutes.
         # Keep this step off the network: `additional-packages` would run `apt-get update`
@@ -340,6 +342,12 @@ jobs:
         run: |
           set -euo pipefail
           WORKSPACE="$PWD"
+          # The daemon is the other half of the `docker exec` transport the pinned Windows client
+          # talks to (see the WINDOWS_DOCKER_CLI_* note at the top of this workflow), so an
+          # unpinned `apt-get install docker-ce` leaves half of that pair rolling silently under
+          # the job. download.docker.com keeps every published version in the noble index, so this
+          # pin is safe to hold and deliberate to bump. Expanded into the heredoc below.
+          DOCKER_CE_VERSION='5:29.9.2-1~ubuntu.24.04~noble'
           cat > /tmp/install-docker.sh << EOF
             #!/usr/bin/env bash
             set -euo pipefail
@@ -375,7 +383,7 @@ jobs:
             update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
             echo "::endgroup::"
             echo "::group::Installing Docker Engine"
-            apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin
+            apt-get -y install docker-ce=$DOCKER_CE_VERSION docker-ce-cli=$DOCKER_CE_VERSION containerd.io docker-compose-plugin docker-buildx-plugin
             echo "::endgroup::"
             echo "::group::Configuring Docker registry mirrors"
             # Docker Hub rate-limits anonymous pulls from shared runner IPs, which failed the probe's
@@ -425,17 +433,30 @@ jobs:
           $env:PATH = "$clientDirectory$([System.IO.Path]::PathSeparator)$env:PATH"
           docker --version
 
-      - name: Forward Docker TCP Port from WSL2 to Windows
+      - name: Point the Docker Client at the WSL2 Daemon
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
-          # WSL2 on Windows Server 2022 uses NAT mode — localhost does not automatically
-          # forward to services inside WSL2. Explicitly proxy port 2375 to the WSL2 VM IP.
+          # WSL2 uses NAT mode, so localhost does not reach the daemon and this job used to bridge
+          # the gap with `netsh interface portproxy`. That proxy closes both halves of a connection
+          # when either half closes, and `docker exec` with no stdin half-closes its write side as
+          # soon as the request is sent — so the proxy tore down the response direction before the
+          # container's stdout crossed it. The exec itself still ran and still reported exit 0,
+          # because the exit code travels over a separate request, which is exactly the shape of
+          # issue #5975: an empty stream, no error, and kind failing later on "file should only be
+          # one line, got 0 lines".
+          #
+          # Windows routes to the WSL2 VM over the vEthernet (WSL) adapter without help, so address
+          # the daemon there and keep every relay out of the Docker API path. Solo's own port
+          # forwards are untouched: they stay on localhost, where WSL's forwarding already carries
+          # them.
           $wslIp = (wsl hostname -I).Trim().Split()[0]
+          if ([string]::IsNullOrWhiteSpace($wslIp)) {
+            throw "Could not resolve a WSL IPv4 address to point DOCKER_HOST at."
+          }
           Write-Host "WSL2 IP: $wslIp"
-          netsh interface portproxy add v4tov4 listenport=2375 listenaddress=127.0.0.1 connectport=2375 connectaddress=$wslIp
-          netsh interface portproxy show all
-          Start-Sleep -Seconds 5
+          $env:DOCKER_HOST = "tcp://${wslIp}:2375"
+          "DOCKER_HOST=$env:DOCKER_HOST" | Out-File -FilePath $env:GITHUB_ENV -Append
           docker info
 
       - name: Verify Docker Exec Round-Trip From Windows
@@ -471,18 +492,48 @@ jobs:
             throw "Unable to start the docker exec probe container from $probeImage."
           }
 
+          # Report the exit code next to the line count on every attempt. That pairing is what
+          # identified the portproxy: `exit code 0, 0 line(s)` means the command ran in the
+          # container and reported success over one request while its stdout was lost on another,
+          # which is a broken stream rather than a broken daemon, and no other symptom says so.
+          # Retries only cover a daemon still settling: the transport failure this probe exists for
+          # survived every attempt thrown at it, so a few are enough.
+          $probeStandardError = Join-Path $env:RUNNER_TEMP 'docker-exec-probe-stderr.txt'
+          $probeOutput = @()
+          $attemptsTaken = 0
           try {
-            $probeOutput = @(docker exec $probeContainer cat /etc/hostname)
+            foreach ($attempt in 1..3) {
+              $attemptsTaken = $attempt
+              $attemptOutput = @(docker exec $probeContainer cat /etc/hostname 2>$probeStandardError)
+              $attemptExitCode = $LASTEXITCODE
+              Write-Host "attempt ${attempt}: exit code $attemptExitCode, $($attemptOutput.Count) line(s): $($attemptOutput -join '|')"
+              if ($attemptExitCode -eq 0 -and $attemptOutput.Count -eq 1 -and -not [string]::IsNullOrWhiteSpace($attemptOutput[0])) {
+                $probeOutput = $attemptOutput
+                break
+              }
+              Start-Sleep -Seconds (2 * $attempt)
+            }
           } finally {
             docker rm --force $probeContainer 2>$null | Out-Null
             # The probe's verdict is $probeOutput, not whether the throwaway container cleaned up.
             $global:LASTEXITCODE = 0
           }
 
-          Write-Host "docker exec returned $($probeOutput.Count) line(s): $($probeOutput -join '|')"
-          if ($probeOutput.Count -ne 1 -or [string]::IsNullOrWhiteSpace($probeOutput[0])) {
-            throw "docker exec returned an empty stdout stream over $env:DOCKER_HOST. Kind cannot create a cluster through this transport."
+          if ($probeOutput.Count -eq 1) {
+            Write-Host "docker exec round-trip succeeded on attempt ${attemptsTaken}: $($probeOutput[0])"
+            exit 0
           }
+
+          # Nothing else captures the daemon's own view of the dropped stream: the job dies here,
+          # before a deployment exists, so the Solo diagnostics step that runs on failure has
+          # nothing to report. This is the only server-side evidence the run will ever carry.
+          Write-Host '::group::docker exec stderr'
+          Get-Content -LiteralPath $probeStandardError -ErrorAction SilentlyContinue
+          Write-Host '::endgroup::'
+          Write-Host '::group::dockerd log (tail)'
+          wsl -u root bash -lc "tail -n 100 /tmp/dockerd.log"
+          Write-Host '::endgroup::'
+          throw "docker exec returned an empty stdout stream over $env:DOCKER_HOST on all $attemptsTaken attempts. Kind cannot create a cluster through this transport."
 
       - name: Render Kind Config for WSL Docker Daemon
         shell: pwsh
@@ -768,12 +819,14 @@ jobs:
           Write-Host "Started dockerd session wsl.exe [pid=$($dockerdSession.Id)]"
           Start-Sleep -Seconds 5
           Write-WslState "after dockerd start (session exited: $($dockerdSession.HasExited))"
-          netsh interface portproxy delete v4tov4 listenport=2375 listenaddress=127.0.0.1 | Out-Null
-          netsh interface portproxy add v4tov4 listenport=2375 listenaddress=127.0.0.1 connectport=2375 connectaddress=$wslIp
+          # Restarting the daemon does not restart the VM, but re-export DOCKER_HOST anyway so a
+          # reassigned address cannot leave the rest of the job pointing at the old one.
+          $env:DOCKER_HOST = "tcp://${wslIp}:2375"
+          "DOCKER_HOST=$env:DOCKER_HOST" | Out-File -FilePath $env:GITHUB_ENV -Append
           $ready = $false
           for ($attempt = 1; $attempt -le 60; $attempt++) {
             try {
-              $dockerPingResponse = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:2375/_ping' -TimeoutSec 3
+              $dockerPingResponse = Invoke-WebRequest -UseBasicParsing -Uri "http://${wslIp}:2375/_ping" -TimeoutSec 3
               if ($dockerPingResponse.Content -match 'OK') {
                 $ready = $true
                 Write-Host "Docker daemon reachable after restart [attempt=$attempt]"
@@ -793,7 +846,6 @@ jobs:
             Write-Host "dockerd session exited: $($dockerdSession.HasExited)"
             wsl --list --verbose
             wsl -u root bash -lc "uptime; pgrep -a dockerd || echo 'dockerd is not running'; ss -tlnp | grep 2375 || echo 'nothing listening on 2375'; echo '--- /tmp/dockerd.log (tail) ---'; tail -n 100 /tmp/dockerd.log"
-            netsh interface portproxy show all
             Write-Host "::endgroup::"
             throw "Docker daemon did not become reachable after restart."
           }
