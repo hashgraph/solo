@@ -31,7 +31,7 @@ import {
   type KubectlDependencyManager,
 } from '../../../../../src/core/dependency-managers/index.js';
 import {resetForTest} from '../../../../test-container.js';
-import {getTemporaryDirectory} from '../../../../test-utility.js';
+import {getTemporaryDirectory} from '../../../test-utility.js';
 import {SemanticVersion} from '../../../../../src/business/utils/semantic-version.js';
 
 const exec: (command: string, options: unknown) => Promise<{stdout: string; stderr: string} | ExecException> =
