@@ -750,10 +750,15 @@ export class MirrorNodeCommand extends BaseCommand {
       return;
     }
 
-    const isCreated: boolean = await this.k8Factory
-      .getK8(config.clusterContext)
+    const k8: K8 = this.k8Factory.getK8(config.clusterContext);
+    const secretName: string = constants.MIRROR_NODE_SECRETS_BACKUP_NAME;
+    const existingData: Record<string, string> = (await k8.secrets().exists(config.namespace, secretName))
+      ? (await k8.secrets().read(config.namespace, secretName)).data
+      : {};
+
+    const isCreated: boolean = await k8
       .secrets()
-      .createOrReplace(config.namespace, constants.MIRROR_NODE_SECRETS_BACKUP_NAME, SecretType.OPAQUE, secretData);
+      .createOrReplace(config.namespace, secretName, SecretType.OPAQUE, {...existingData, ...secretData});
 
     if (!isCreated) {
       throw new SoloErrors.system.k8sSecretCreateFailed(
