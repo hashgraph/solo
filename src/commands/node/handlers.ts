@@ -353,6 +353,7 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.installRootContainerTools(),
       this.tasks.populateServiceMap(),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
+      this.tasks.copyNewNodeGossipPublicKeys(),
       this.tasks.downloadLastState(),
       this.tasks.uploadStateToNewNode(),
       this.tasks.setupNetworkNodes('allNodeAliases', false),

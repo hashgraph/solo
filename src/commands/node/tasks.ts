@@ -5072,6 +5072,39 @@ export class NodeCommandTasks {
     };
   }
 
+  /**
+   * Existing nodes only receive other nodes' gossip public keys from the key secrets through the pod's init
+   * container, so without a pod restart the new node's public key is copied into their data/keys directory.
+   */
+  public copyNewNodeGossipPublicKeys(): SoloListrTask<NodeAddContext> {
+    return {
+      title: 'Copy new node gossip public key to existing nodes',
+      task: async (context_, task): Promise<SoloListr<NodeAddContext>> => {
+        const config: NodeAddConfigClass = context_.config;
+        const publicKeyFiles: string[] = config.newNodeAliases.map((nodeAlias: NodeAlias): string =>
+          PathEx.joinWithRealPath(config.keysDir, Templates.renderGossipPemPublicKeyFile(nodeAlias)),
+        );
+
+        const subTasks: SoloListrTask<NodeAddContext>[] = config.existingNodeAliases.map(
+          (nodeAlias: NodeAlias): SoloListrTask<NodeAddContext> => ({
+            title: `Node: ${chalk.yellow(nodeAlias)}`,
+            task: async (): Promise<void> => {
+              await this.platformInstaller.copyFiles(
+                config.podRefs[nodeAlias],
+                publicKeyFiles,
+                `${constants.HEDERA_HAPI_PATH}/data/keys`,
+                undefined,
+                extractContextFromConsensusNodes(nodeAlias, config.consensusNodes),
+              );
+            },
+          }),
+        );
+
+        return task.newListr(subTasks, constants.LISTR_DEFAULT_OPTIONS.WITH_CONCURRENCY);
+      },
+    };
+  }
+
   public removeNodeFromRemoteConfig(): SoloListrTask<NodeDestroyContext> {
     return {
       title: 'Remove node from remote config',
