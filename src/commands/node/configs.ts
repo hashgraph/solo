@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {GenesisKeyResolver} from '../../core/genesis-key-resolver.js';
 import {Templates} from '../../core/templates.js';
-import * as constants from '../../core/constants.js';
 import {AccountId, PrivateKey} from '@hiero-ledger/sdk';
 import {SoloErrors} from '../../core/errors/solo-errors.js';
 import {checkNamespace, parseNodeAliases} from '../../core/helpers.js';
@@ -405,11 +405,11 @@ export class NodeCommandConfigs {
 
     this.assertConsensusNodeCompatibility(config.releaseTag, config.force);
 
+    config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+
     context_.adminKey = argv[flags.adminKey?.name]
       ? PrivateKey.fromStringED25519(argv[flags.adminKey?.name])
-      : PrivateKey.fromStringED25519(constants.GENESIS_KEY);
-
-    config.namespace = await resolveNamespaceFromDeployment(this.localConfig, this.configManager, task);
+      : await GenesisKeyResolver.resolve(this.k8Factory, this.remoteConfig.getContexts(), config.namespace);
     config.curDate = new Date();
     config.existingNodeAliases = [];
 

@@ -3,7 +3,7 @@
 import sinon, {type SinonSandbox, type SinonStub, type SinonStubbedInstance} from 'sinon';
 import {before, beforeEach, describe} from 'mocha';
 import {expect} from 'chai';
-import {getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
+import {getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../e2e/test-utility.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';

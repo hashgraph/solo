@@ -16,7 +16,7 @@ import {PodReference} from '../../../../src/integration/kube/resources/pod/pod-r
 import {ContainerReference} from '../../../../src/integration/kube/resources/container/container-reference.js';
 import {Templates} from '../../../../src/core/templates.js';
 import {PathEx} from '../../../../src/business/utils/path-ex.js';
-import {getTemporaryDirectory} from '../../../test-utility.js';
+import {getTemporaryDirectory} from '../../test-utility.js';
 import * as constants from '../../../../src/core/constants.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {type NodeAlias} from '../../../../src/types/aliases.js';
