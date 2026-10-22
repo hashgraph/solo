@@ -255,7 +255,7 @@ jobs:
         id: seed_ubuntu_wsl_installer
         if: ${{ success() && steps.validate_ubuntu_wsl_installer.outputs.valid != 'true' }}
         shell: pwsh
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
           $cacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE "Ubuntu\$env:WSL_UBUNTU_VERSION\x64"
           $installerPath = Join-Path $cacheDirectory $env:WSL_UBUNTU_INSTALLER_FILE
@@ -263,11 +263,45 @@ jobs:
           New-Item -ItemType Directory -Path $cacheDirectory -Force | Out-Null
           Remove-Item -LiteralPath $installerPath,$completeMarkerPath -Force -ErrorAction SilentlyContinue
 
-          Invoke-WebRequest -Uri $env:WSL_UBUNTU_INSTALLER_URL -OutFile $installerPath
-          $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actualHash -ne $env:WSL_UBUNTU_INSTALLER_SHA256) {
+          # releases.ubuntu.com serves this ~390 MB file at a few hundred KB/s at times, which alone
+          # exceeded the step budget. Try the public Ubuntu mirrors first, abandoning any source that
+          # stays under 1 MB/s for 15 seconds, and fall back to the canonical URL with no speed floor.
+          # The mirror path mirrors the canonical one; the pinned SHA-256 below is the trust anchor,
+          # so a mirror can only supply the exact bytes that were pinned.
+          $relativePath = ([System.Uri]$env:WSL_UBUNTU_INSTALLER_URL).AbsolutePath
+          $sources = @(
+            @{Url = "https://mirror.us.leaseweb.net/ubuntu-releases$relativePath"; SpeedFloor = $true},
+            @{Url = "https://mirrors.edge.kernel.org/ubuntu-releases$relativePath"; SpeedFloor = $true},
+            @{Url = $env:WSL_UBUNTU_INSTALLER_URL; SpeedFloor = $false}
+          )
+
+          $seeded = $false
+          foreach ($source in $sources) {
             Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
-            throw "Seeded Ubuntu WSL installer failed SHA-256 validation: $actualHash"
+            Write-Host "Downloading Ubuntu WSL installer from $($source.Url)"
+            $curlArguments = @('--fail', '--location', '--silent', '--show-error', '--retry', '2', '--output', $installerPath)
+            if ($source.SpeedFloor) {
+              $curlArguments += @('--speed-limit', '1000000', '--speed-time', '15')
+            }
+            & curl.exe @curlArguments $source.Url
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning "Download from $($source.Url) failed with curl exit code $LASTEXITCODE"
+              continue
+            }
+
+            $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualHash -ne $env:WSL_UBUNTU_INSTALLER_SHA256) {
+              Write-Warning "Installer from $($source.Url) failed SHA-256 validation: $actualHash"
+              continue
+            }
+
+            $seeded = $true
+            break
+          }
+
+          if (-not $seeded) {
+            Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
+            throw "Could not download a Ubuntu WSL installer matching SHA-256 $env:WSL_UBUNTU_INSTALLER_SHA256 from any source"
           }
 
           New-Item -ItemType File -Path $completeMarkerPath -Force | Out-Null
