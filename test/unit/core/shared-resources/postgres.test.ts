@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import * as Base64 from 'js-base64';
 
 import {PostgresSharedResource} from '../../../../src/core/shared-resources/postgres.js';
+import {MirrorNodeResourceNames} from '../../../../src/core/mirror-node-resource-names.js';
 import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
 import {type HelmClient} from '../../../../src/integration/helm/helm-client.js';
@@ -45,6 +46,7 @@ describe('PostgresSharedResource', (): void => {
     loggerStub = sinon.stub() as any;
     loggerStub.info = sinon.stub();
     loggerStub.error = sinon.stub();
+    loggerStub.warn = sinon.stub();
 
     k8ContainerStub = {
       copyTo: sinon.stub().resolves(),
@@ -136,6 +138,7 @@ describe('PostgresSharedResource', (): void => {
     let existsSyncStub: sinon.SinonStub;
     let mkdirSyncStub: sinon.SinonStub;
     let writeFileSyncStub: sinon.SinonStub;
+    let readFileSyncStub: sinon.SinonStub;
 
     beforeEach((): void => {
       secretsStub.list.resolves([postgresPasswordsSecret]);
@@ -145,7 +148,51 @@ describe('PostgresSharedResource', (): void => {
       existsSyncStub = sinon.stub(fs, 'existsSync').returns(true);
       mkdirSyncStub = sinon.stub(fs, 'mkdirSync');
       writeFileSyncStub = sinon.stub(fs, 'writeFileSync');
+      readFileSyncStub = sinon
+        .stub(fs, 'readFileSync')
+        .returns(
+          'create role readonly;\ncreate role readwrite in role readonly;\ncreate role temporary_admin in role readwrite;\n',
+        );
       sinon.stub(fs, 'rmSync');
+    });
+
+    it('makes the creation of the shared roles idempotent in the init script it copies', async (): Promise<void> => {
+      await postgres.initializeMirrorNode(namespace, context);
+
+      expect(readFileSyncStub).to.have.been.calledWith(sinon.match(/init-postgres\.sh$/), 'utf8');
+      const patchedScript: string = writeFileSyncStub
+        .getCalls()
+        .find((call: SinonSpyCall<string[], string>): boolean => (call.args[0] as string).includes('reusable'))!
+        .args[1] as string;
+      expect(patchedScript).to.include(
+        String.raw`do \$\$ begin if not exists (select from pg_roles where rolname = 'readwrite') then create role readwrite in role readonly; end if; end \$\$;`,
+      );
+      expect(patchedScript).to.not.match(/^create role/m);
+    });
+
+    it('initializes the database, users and secret of a mirror node with suffixed names', async (): Promise<void> => {
+      const names: MirrorNodeResourceNames = MirrorNodeResourceNames.forId(2);
+      secretsStub.read.resolves({
+        data: {
+          ...mirrorPasswordsSecret.data,
+          HIERO_MIRROR_IMPORTER_DB_NAME: encode(names.databaseName),
+          HIERO_MIRROR_IMPORTER_DB_USERNAME: encode(names.databaseUsername('importer')),
+          HIERO_MIRROR_GRPC_DB_USERNAME: encode(names.databaseUsername('grpc')),
+        },
+      });
+
+      await postgres.initializeMirrorNode(namespace, context, 'HIERO', names);
+
+      expect(secretsStub.read).to.have.been.calledWith(namespace, 'mirror-passwords-2');
+      const writtenContent: string = writeFileSyncStub
+        .getCalls()
+        .find((call: SinonSpyCall<string[], string>): boolean => (call.args[0] as string).includes('run-init'))!
+        .args[1] as string;
+      expect(writtenContent).to.include('export DB_NAME=mirror_node_2');
+      expect(writtenContent).to.include('export IMPORTER_USERNAME=mirror_importer_2');
+      expect(writtenContent).to.include('export GRPC_USERNAME=mirror_grpc_2');
+      expect(writtenContent).to.include('export WEB3_USERNAME=mirror_web3');
+      expect(writtenContent).to.not.include('DROP ROLE IF EXISTS temporary_admin');
     });
 
     it('reads secrets from correct labels and secret names', async (): Promise<void> => {
@@ -297,7 +344,7 @@ describe('PostgresSharedResource', (): void => {
 
       await postgres.initializeMirrorNode(namespace, context);
 
-      expect(mkdirSyncStub).to.have.been.calledOnce;
+      expect(mkdirSyncStub).to.have.been.calledWith(sinon.match(/mirror-node/), {recursive: true});
       expect(downloaderStub.fetchFile).to.have.been.calledOnce;
       const [downloadUrl, destinationPath]: string[] = downloaderStub.fetchFile.firstCall.args;
       expect(downloadUrl).to.include('hiero-mirror-node');
@@ -316,6 +363,30 @@ describe('PostgresSharedResource', (): void => {
 
       await expect(postgres.initializeMirrorNode(namespace, context)).to.be.rejectedWith(downloadFailure);
       expect(k8ContainerStub.copyTo).to.not.have.been.called;
+    });
+  });
+
+  describe('dropMirrorNode()', (): void => {
+    it('drops the database and every login role of the mirror node', async (): Promise<void> => {
+      await postgres.dropMirrorNode(namespace, context, MirrorNodeResourceNames.forId(2));
+
+      const commands: string[] = k8ContainerStub.execContainer.args.map((a: AnyObject[]): string =>
+        (a[0] as string[]).join(' '),
+      );
+      expect(commands.some((c: string): boolean => c.includes('DROP DATABASE IF EXISTS "mirror_node_2" WITH (FORCE);')))
+        .to.be.true;
+      expect(commands.some((c: string): boolean => c.includes('DROP ROLE IF EXISTS "mirror_importer_2";'))).to.be.true;
+      expect(commands.some((c: string): boolean => c.includes('DROP ROLE IF EXISTS "mirror_node_2";'))).to.be.true;
+      expect(commands.some((c: string): boolean => c.includes('temporary_admin'))).to.be.false;
+    });
+
+    it('keeps going and only warns when a statement fails', async (): Promise<void> => {
+      k8ContainerStub.execContainer.rejects(new Error('boom'));
+
+      await postgres.dropMirrorNode(namespace, context, MirrorNodeResourceNames.forId(2));
+
+      expect(k8ContainerStub.execContainer.callCount).to.equal(9);
+      expect(loggerStub.warn).to.have.callCount(9);
     });
   });
 

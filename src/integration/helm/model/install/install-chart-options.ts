@@ -126,10 +126,19 @@ export class InstallChartOptions implements Options {
      * The namespace to install the chart in.
      */
     public readonly namespace: string | null,
+
+    /**
+     * Environment variables to set on the Helm process.
+     */
+    public readonly environmentVariables: Record<string, string> = {},
   ) {}
 
   public apply(builder: HelmExecutionBuilder): void {
     this.applyFlags(builder);
+
+    for (const [name, value] of Object.entries(this.environmentVariables)) {
+      builder.environmentVariable(name, value);
+    }
 
     builder.argument('output', 'json');
 
