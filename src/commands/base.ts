@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {MirrorNodeResourceNames} from '../core/mirror-node-resource-names.js';
 import {SoloErrors} from '../core/errors/solo-errors.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {ShellRunner} from '../core/shell-runner.js';
@@ -598,12 +599,41 @@ export abstract class BaseCommand extends ShellRunner {
     mirrorNodeId: ComponentId;
     mirrorNamespace: NamespaceNameAsString;
     mirrorNodeReleaseName: string;
+    mirrorNodeIngressControllerName: string;
   }> {
     const {mirrorNodeId, mirrorNamespace} = this.inferMirrorNodeDataFromRemoteConfig(namespace);
 
     const mirrorNodeReleaseName: string = await this.inferMirrorNodeReleaseName(mirrorNodeId, mirrorNamespace, context);
 
-    return {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName};
+    const mirrorNodeResourceNames: MirrorNodeResourceNames = await MirrorNodeResourceNames.resolveExisting(
+      this.k8Factory.getK8(this.resolveMirrorNodeContext(mirrorNodeId, context)),
+      NamespaceName.of(mirrorNamespace),
+      mirrorNodeId,
+    );
+
+    return {
+      mirrorNodeId,
+      mirrorNamespace,
+      mirrorNodeReleaseName,
+      mirrorNodeIngressControllerName: mirrorNodeResourceNames.ingressControllerName(mirrorNamespace),
+    };
+  }
+
+  /** The kube context of the cluster the mirror node runs in, falling back to the given context. */
+  private resolveMirrorNodeContext(mirrorNodeId: ComponentId, context: Context): Context {
+    try {
+      const mirrorNodeComponent: BaseStateSchema = this.remoteConfig.configuration.components.getComponentById(
+        ComponentTypes.MirrorNode,
+        mirrorNodeId,
+      );
+
+      if (mirrorNodeComponent) {
+        return this.getClusterContext(mirrorNodeComponent.metadata.cluster);
+      }
+    } catch {
+      // best-effort: the mirror node may not be in remote config, so keep the given context
+    }
+    return context;
   }
 
   private async inferMirrorNodeReleaseName(
@@ -615,19 +645,7 @@ export abstract class BaseCommand extends ShellRunner {
       return Templates.renderMirrorNodeName(mirrorNodeId);
     }
 
-    // Try to get the component and use the precise cluster context
-    try {
-      const mirrorNodeComponent: BaseStateSchema = this.remoteConfig.configuration.components.getComponentById(
-        ComponentTypes.MirrorNode,
-        mirrorNodeId,
-      );
-
-      if (mirrorNodeComponent) {
-        context = this.getClusterContext(mirrorNodeComponent.metadata.cluster);
-      }
-    } catch {
-      // Guard
-    }
+    context = this.resolveMirrorNodeContext(mirrorNodeId, context);
 
     const isLegacyChartInstalled: boolean = await this.chartManager.isChartInstalled(
       NamespaceName.of(mirrorNodeNamespace),
