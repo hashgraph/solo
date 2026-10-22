@@ -4,7 +4,8 @@ import {spawnSync} from 'node:child_process';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-const soloNoCache = process.env.SOLO_NO_CACHE?.toLowerCase() === 'true';
+// Downloading the images is opt-in; SOLO_NO_CACHE is ignored, so installs that still set it keep working.
+const withImageCache = process.env.SOLO_WITH_IMAGE_CACHE?.toLowerCase() === 'true';
 
 // npm runs postinstall for both local development installs and global package installs.
 // Only populate the image cache for global installs, so local `npm install`, `npm ci`,
@@ -17,8 +18,11 @@ if (!isGlobalInstall) {
   process.exit(0);
 }
 
-if (soloNoCache) {
-  console.log('Skipping Solo image cache population because SOLO_NO_CACHE is enabled.');
+if (!withImageCache) {
+  console.log(
+    'Skipping Solo image cache population. Run `solo cache image pull` before your first deployment to speed it up, ' +
+      'or install with SOLO_WITH_IMAGE_CACHE=true.',
+  );
   process.exit(0);
 }
 
