@@ -28,6 +28,7 @@ import {
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
 } from '../../core/constants.js';
 import {Templates} from '../../core/templates.js';
+import {GenesisKeyResolver} from '../../core/genesis-key-resolver.js';
 import {
   AccountId,
   type AccountInfo,
@@ -1330,10 +1331,18 @@ export class NodeCommandTasks {
             config.adminKey = PrivateKey.fromStringED25519(privateKey);
           } catch (error) {
             this.logger.debug(`Error in loading node admin key: ${error.message}, use default key`);
-            config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+            config.adminKey = await GenesisKeyResolver.resolve(
+              this.k8Factory,
+              this.remoteConfig.getContexts(),
+              config.namespace,
+            );
           }
         } else {
-          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+          config.adminKey = await GenesisKeyResolver.resolve(
+            this.k8Factory,
+            this.remoteConfig.getContexts(),
+            config.namespace,
+          );
         }
       },
     };
@@ -2382,12 +2391,16 @@ export class NodeCommandTasks {
       deploymentName,
     );
 
+    const genesisKey: PrivateKey = await GenesisKeyResolver.resolve(
+      this.k8Factory,
+      this.remoteConfig.getContexts(),
+      namespace,
+    );
+    const genesisPublicKey: string = genesisKey.publicKey.toString();
     let adminPublicKeys: string[] = [];
     adminPublicKeys = this.configManager.getFlag(flags.adminPublicKeys)
       ? splitFlagInput(this.configManager.getFlag(flags.adminPublicKeys))
-      : (Array.from({length: consensusNodes.length}, (): string =>
-          constants.GENESIS_PUBLIC_KEY.toString(),
-        ) as string[]);
+      : (Array.from({length: consensusNodes.length}, (): string => genesisPublicKey) as string[]);
     const genesisNetworkData: GenesisNetworkDataConstructor = await GenesisNetworkDataConstructor.initialize(
       consensusNodes,
       this.keyManager,

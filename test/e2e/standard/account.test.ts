@@ -28,7 +28,7 @@ import {
   getTestCluster,
   getTestLogger,
   HEDERA_PLATFORM_VERSION_TAG,
-} from '../../test-utility.js';
+} from '../test-utility.js';
 import {AccountCommand} from '../../../src/commands/account.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {Duration} from '../../../src/core/time/duration.js';

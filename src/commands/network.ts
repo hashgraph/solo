@@ -18,6 +18,7 @@ import {DEFAULT_SOLO_NAMESPACE_LABELS, getEnvironmentVariable} from '../core/con
 import {NetworkNodeLifecycle} from '../core/network-node-lifecycle.js';
 import {SharedClusterResourceReport} from '../core/shared-cluster-resource-report.js';
 import {ClusterCrdProbe} from '../core/cluster-crd-probe.js';
+import {GenesisKeyResolver} from '../core/genesis-key-resolver.js';
 import {Templates} from '../core/templates.js';
 import {
   Helpers,
@@ -1176,6 +1177,9 @@ export class NetworkCommand extends BaseCommand {
 
     this.logger.debug('Preparing storage secrets');
     await this.prepareStorageSecrets(config);
+
+    this.logger.debug('Storing genesis key secret');
+    await GenesisKeyResolver.store(this.k8Factory, config.contexts, namespace);
 
     return config;
   }

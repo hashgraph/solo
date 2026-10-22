@@ -1460,11 +1460,7 @@ export class BackupRestoreCommand extends BaseCommand {
       .containers()
       .readByRef(ContainerReference.of(pods[0].podReference, constants.BLOCK_NODE_CONTAINER_NAME));
 
-    const firstAvailableAbove: number = await this.findLowestAvailableBlockAbove(blockNodeContainer, importerMax);
-    if (firstAvailableAbove < 0) {
-      // No future blocks available yet; nothing to bridge.
-      return false;
-    }
+    const firstAvailableAbove: number = await this.waitForLowestAvailableBlockAbove(blockNodeContainer, importerMax);
 
     const boundaryHash: string | undefined = await this.extractPreviousBlockRootHash(
       blockNodeContainer,
@@ -1592,6 +1588,25 @@ export class BackupRestoreCommand extends BaseCommand {
       this.logger.info(`Failed to read importer record_file MAX: ${BackupRestoreCommand.getErrorMessage(error)}`);
       return -1;
     }
+  }
+
+  /**
+   * Wait for the block node to expose a block strictly above `floor`. A restored block node restarts
+   * shortly before this runs, so the first post-restore block may not be on disk yet; checking once
+   * would silently skip the boundary patch and leave the importer stuck on a previous-hash mismatch.
+   */
+  private async waitForLowestAvailableBlockAbove(blockNodeContainer: Container, floor: number): Promise<number> {
+    const maxAttempts: number = 60;
+    const intervalSeconds: number = 5;
+    for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
+      const available: number = await this.findLowestAvailableBlockAbove(blockNodeContainer, floor);
+      if (available >= 0) {
+        return available;
+      }
+      this.logger.info(`Waiting for a block above ${floor} on block node (attempt ${attempt}/${maxAttempts})`);
+      await sleep(Duration.ofSeconds(intervalSeconds));
+    }
+    throw new SoloErrors.system.blockNodeBlocksUnavailable(floor, maxAttempts * intervalSeconds);
   }
 
   /**
