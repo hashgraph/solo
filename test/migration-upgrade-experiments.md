@@ -90,17 +90,18 @@ CN v0.75.1 first tried to connect → permanent blacklist.
 ## Attempt 4: Freeze + BN Upgrade + Restart v0.74 + Network Upgrade + Restart v0.75
 
 **Sequence**:
+
 1. `network freeze` (stops CN JVM, drains block stream)
 2. BN upgrade with cleanup init container
 3. Wait 60s for BN to stabilize
-4. `node restart` (restart CN v0.74 JVM — needed so PREPARE_UPGRADE/FREEZE_UPGRADE can be submitted)
-5. `network upgrade` (atomic: PREPARE_UPGRADE + FREEZE_UPGRADE + execute → CN v0.75.1)
+4. `node restart` (restart CN v0.74 JVM — needed so PREPARE\_UPGRADE/FREEZE\_UPGRADE can be submitted)
+5. `network upgrade` (atomic: PREPARE\_UPGRADE + FREEZE\_UPGRADE + execute → CN v0.75.1)
 6. `node restart` (restart CN v0.75.1 JVM — clears any in-memory BN blacklist from startup)
 
 **Failure (run 29868390295)**: Mirror stuck at block 72, never advancing to 73. Root cause:
 
 When CN v0.74 restarts from FROZEN state (step 4), the first 2 consensus-recovery blocks (73 and
-74) have incomplete Merkle state proofs — **1 path instead of the expected 3** — because the
+74\) have incomplete Merkle state proofs — **1 path instead of the expected 3** — because the
 consensus round reconvergence is incomplete at that moment. BN v0.38.1 rejects them with
 `BAD_BLOCK_PROOF`. Those blocks **never land on disk**. Block 75 onward pass verification fine.
 
@@ -110,7 +111,7 @@ BN for block 73: BN returns `NOT_AVAILABLE`. Mirror is stuck forever.
 Step 6 (CN v0.75.1 restart) is also counterproductive: it resets CN v0.75.1's `wantedBlock` to
 the stale on-disk value while BN has already advanced further, widening the gap.
 
-**Root cause**: FREEZE_ONLY + CN v0.74 restart fundamentally cannot work — the recovery blocks
+**Root cause**: FREEZE\_ONLY + CN v0.74 restart fundamentally cannot work — the recovery blocks
 always have bad proofs, and BN correctly rejects them.
 
 ***
@@ -118,18 +119,20 @@ always have bad proofs, and BN correctly rejects them.
 ## Attempt 5: BN Upgrade While CN Runs + Long Stability Wait + Network Upgrade
 
 **Sequence**:
+
 1. BN upgrade with cleanup init container — CN v0.74 **stays running** throughout
 2. Poll until mirror receives 3 new blocks via BN v0.38.1 (proves CN→BN→mirror pipeline healthy),
    then wait 120 s more (BN stable for 2+ minutes before CN v0.75 starts)
-3. `network upgrade` (PREPARE_UPGRADE + FREEZE_UPGRADE + execute → CN v0.75.1)
+3. `network upgrade` (PREPARE\_UPGRADE + FREEZE\_UPGRADE + execute → CN v0.75.1)
 
 **Why this avoids previous failure modes**:
-* No FREEZE_ONLY → no CN v0.74 restart from FROZEN → no BAD_BLOCK_PROOF recovery blocks
+
+* No FREEZE\_ONLY → no CN v0.74 restart from FROZEN → no BAD\_BLOCK\_PROOF recovery blocks
 * CN v0.74 does NOT permanently blacklist BN (only v0.75 does), so CN v0.74 reconnects
   automatically after BN v0.38.1 comes up
 * 3 confirmed mirror blocks + 120 s additional wait ensures BN is demonstrably stable before
   CN v0.75 makes its first connection attempt
-* FREEZE_UPGRADE manages the block boundary cleanly, so CN v0.75.1 `wantedBlock` = BN `nextExpected`
+* FREEZE\_UPGRADE manages the block boundary cleanly, so CN v0.75.1 `wantedBlock` = BN `nextExpected`
 
 **Key difference from Attempt 2**: Attempt 2 waited for only 2 mirror blocks — not enough. This
 attempt waits for 3 blocks AND 120 s extra, giving BN 2+ minutes of proven stability.
@@ -137,7 +140,7 @@ attempt waits for 3 blocks AND 120 s extra, giving BN 2+ minutes of proven stabi
 **Failure (run 29872566219)**: Mirror stuck at block 161 (waiting for 162). CN v0.75.1 correctly
 started and BN was stable, but a second race existed at the CN upgrade boundary:
 
-When FREEZE_UPGRADE kills CN v0.74, one CN node (node1) sent `EndStream(RESET, latestAcked=-1)`
+When FREEZE\_UPGRADE kills CN v0.74, one CN node (node1) sent `EndStream(RESET, latestAcked=-1)`
 at 22:18:05 while block 162 was mid-stream. CN node2 remained alive briefly. BN completed
 block 162 (or possibly 163) before CN node2 was killed. Result: BN's live window advanced to
 163, but CN v0.75.1 started with `wantedBlock=162`. CN v0.75.1 saw `blocksAvailable: 163-163`,
@@ -148,9 +151,10 @@ block 162 (or possibly 163) before CN node2 was killed. Result: BN's live window
 ## Attempt 6: BN Upgrade + Long Wait + CN Upgrade + 120s Wait + CN v0.75 Restart
 
 **Sequence**:
+
 1. BN upgrade with cleanup init container — CN v0.74 stays running
 2. Poll until mirror receives 3 new blocks via BN v0.38.1, then wait 120 s (BN stable for 2+min)
-3. `network upgrade` (PREPARE_UPGRADE + FREEZE_UPGRADE + execute → CN v0.75.1)
+3. `network upgrade` (PREPARE\_UPGRADE + FREEZE\_UPGRADE + execute → CN v0.75.1)
 4. Wait 120 s (CN v0.75.1 commits ~60 blocks locally while blacklisted)
 5. `node restart` — clears the in-memory blacklist
 6. Poll until mirror receives 3 new blocks (confirms CN→BN→mirror pipeline healthy)
@@ -210,6 +214,7 @@ its persistent buffer (`isBufferPersistenceEnabled=true`). BN verifies and write
 Mirror receives it via live subscription.
 
 **Why it still failed — open questions**:
+
 1. Did the RESEND exchange happen at all? (no post-restart CN or BN logs available)
 2. If RESEND happened, did CN's buffer have block 162? (buffer persists across version upgrades
    only if the on-disk format is compatible between CN v0.74 and CN v0.75.1)
@@ -259,21 +264,22 @@ state.
 ## Attempt 8: Restart BN after freeze to clear partial session, then restart CN v0.75
 
 **Sequence**:
+
 1. BN upgrade with cleanup init container — CN v0.74 stays running
 2. Poll until mirror receives 3 new blocks via BN v0.38.1, then wait 120 s
-3. `network upgrade` (PREPARE_UPGRADE + FREEZE_UPGRADE + execute → CN v0.75.1)
+3. `network upgrade` (PREPARE\_UPGRADE + FREEZE\_UPGRADE + execute → CN v0.75.1)
 4. Wait 30 s — CN v0.75 settles; any partial BN session writes complete or are abandoned
 5. `kubectl rollout restart statefulset/block-node-1` — clears BN's in-memory partial
    session state (CN v0.75 is already blacklisted so BN downtime adds no NEW blacklist)
 6. `kubectl rollout status` — wait for BN pod fully ready (~60 s)
 7. Wait 60 s — BN fully initializes from PVC; CN v0.75 builds persistent block buffer
 8. `consensus node restart` — clears the permanent BN blacklist
-9. CN connects to clean BN; wantedBlock = gap_block (lastAcked+1 from streaming state) OR
-   gap_block+~85 (from committed state); either way BN's nextExpected matches or RESEND
+9. CN connects to clean BN; wantedBlock = gap\_block (lastAcked+1 from streaming state) OR
+   gap\_block+~85 (from committed state); either way BN's nextExpected matches or RESEND
    triggers (|gap| ≤ staleResendPruneBuffer=100); gap block delivered; mirror advances
 
 **Timing**: 30 + ~60 (BN restart) + 60 = 150 s before CN restart. At 2 s/block that is
-~75 blocks committed → wantedBlock after CN restart = gap_block+75. |75| ≤ 100 ✓
+\~75 blocks committed → wantedBlock after CN restart = gap\_block+75. |75| ≤ 100 ✓
 
 **Why BN restart is safe**: BN's PVC is preserved across pod restart (Kubernetes StatefulSet
 semantics). BN reinitializes from PVC: fully verified blocks 0→N-1 remain in `live/` and
@@ -309,9 +315,10 @@ post-gap blocks before CN reconnects from the missing gap block.
 ## Attempt 9: Stop CN, restart BN, then start CN v0.75
 
 **Sequence**:
+
 1. BN upgrade with cleanup init container — CN v0.74 stays running
 2. Poll until mirror receives 3 new blocks via BN v0.38.1, then wait 120 s
-3. `network upgrade` (PREPARE_UPGRADE + FREEZE_UPGRADE + execute → CN v0.75.1)
+3. `network upgrade` (PREPARE\_UPGRADE + FREEZE\_UPGRADE + execute → CN v0.75.1)
 4. Wait 30 s — CN v0.75 settles; any partial BN session writes complete or are abandoned
 5. `consensus node stop -i node1,node2` — prevents CN from feeding post-gap blocks into BN
    while BN is being reset
@@ -357,7 +364,7 @@ must not start before BN has been reset.
 
 1. BN upgrade with cleanup init container — CN v0.74 stays running
 2. Poll until mirror receives 3 new blocks via BN v0.38.1, then wait 120 s
-3. `network upgrade --skip-node-start` — runs PREPARE_UPGRADE + FREEZE_UPGRADE, drains the
+3. `network upgrade --skip-node-start` — runs PREPARE\_UPGRADE + FREEZE\_UPGRADE, drains the
    block stream, stops CN v0.74, stages v0.75.1 software/config, and leaves CN stopped
 4. `kubectl rollout restart statefulset/block-node-1` — clears BN's in-memory partial
    session state before any v0.75 process can connect

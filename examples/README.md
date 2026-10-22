@@ -12,6 +12,7 @@
 | [hardhat-with-solo](./hardhat-with-solo/)                           | Example of using Hardhat to test a smart contract with a local Solo deployment                                      |
 | [local-build-with-custom-config](./local-build-with-custom-config/) | Example of how to create and manage a custom Hiero Hashgraph Solo deployment using locally built consensus nodes    |
 | [mirror-node-component-image](./mirror-node-component-image/)       | Deploy Mirror Node using six locally built module images via `--component-image`                                    |
+| [multiple-mirror-nodes](./multiple-mirror-nodes/)                   | Deploy two mirror nodes in one namespace, one importing from the bucket and one from a block node                   |
 | [network-with-domain-names](./network-with-domain-names/)           | Setup a network using custom domain names for all components                                                        |
 | [node-create-transaction](./node-create-transaction/)               | Manually write a NodeCreateTransaction and use the add-prepare/prepare-upgrade/freeze-upgrade/add-execute commands. |
 | [node-delete-transaction](./node-delete-transaction/)               | Manually write a NodeDeleteTransaction and use the add-prepare/prepare-upgrade/freeze-upgrade/add-execute commands. |

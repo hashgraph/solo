@@ -36,7 +36,10 @@ describe('ChartManager cached-chart consumption', (): void => {
     error: (): void => undefined,
   } as unknown as SoloLogger;
 
-  const chartValues: HelmChartValues = {toArguments: (): string[] => []} as unknown as HelmChartValues;
+  const chartValues: HelmChartValues = {
+    toArguments: (): string[] => [],
+    toEnvironment: (): Record<string, string> => ({}),
+  } as unknown as HelmChartValues;
 
   let installChartStub: SinonStub;
   let helm: HelmClient;
