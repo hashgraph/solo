@@ -61,10 +61,10 @@ env:
   # once the VM is up, and a value set here would shadow the one the job exports at runtime.
   ACTIONS_STEP_DEBUG: 'true'
   ACTIONS_RUNNER_DEBUG: 'true'
-  WSL_UBUNTU_VERSION: '24.4.4'
-  WSL_UBUNTU_INSTALLER_FILE: 'ubuntu-24.04.4-wsl-amd64.wsl'
-  WSL_UBUNTU_INSTALLER_URL: 'https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-wsl-amd64.wsl'
-  WSL_UBUNTU_INSTALLER_SHA256: '9b2f7730dc68227dd04a9f3e5eab86ad85caf556b8606ad94f1f29ff5c4fd3f5'
+  WSL_UBUNTU_VERSION: '24.4.5'
+  WSL_UBUNTU_INSTALLER_FILE: 'ubuntu-24.04.5-wsl-amd64.wsl'
+  WSL_UBUNTU_INSTALLER_URL: 'https://releases.ubuntu.com/24.04.5/ubuntu-24.04.5-wsl-amd64.wsl'
+  WSL_UBUNTU_INSTALLER_SHA256: 'bb415d824822c4b878125729af451a5d18fb13d1cf5cbed9a7393ad64ac6039e'
   # Windows-side Docker CLI. Kind shells out to whichever `docker` is on PATH to talk to the WSL2
   # daemon over DOCKER_HOST, so the runner image's bundled client is a silent, unpinned input to
   # this job. Image 20260907.229 rolled it 29.1.5 -> 29.7.2 and `docker exec` started returning an
@@ -281,8 +281,8 @@ jobs:
           Write-Host '::endgroup::'
 
           Write-Host '::group::Ubuntu installer cache'
-          $installerCacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE 'Ubuntu\24.4.4\x64'
-          $installerPath = Join-Path $installerCacheDirectory 'ubuntu-24.04.4-wsl-amd64.wsl'
+          $installerCacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE "Ubuntu\$env:WSL_UBUNTU_VERSION\x64"
+          $installerPath = Join-Path $installerCacheDirectory $env:WSL_UBUNTU_INSTALLER_FILE
           if (Test-Path -LiteralPath $installerPath) {
             Get-Item -LiteralPath $installerPath |
               Select-Object FullName,Length,LastWriteTime |
