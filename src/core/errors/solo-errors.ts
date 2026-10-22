@@ -152,6 +152,7 @@ import {BlockNodeLocalImageNotFoundSoloError} from './classes/validation/block-n
 import {ExplorerInvalidComponentIdSoloError} from './classes/validation/explorer-invalid-component-id-solo-error.js';
 import {RelayInvalidComponentIdSoloError} from './classes/validation/relay-invalid-component-id-solo-error.js';
 import {MirrorNodeInvalidComponentIdSoloError} from './classes/validation/mirror-node-invalid-component-id-solo-error.js';
+import {MirrorNodeBlockNodeSourceUnavailableSoloError} from './classes/validation/mirror-node-block-node-source-unavailable-solo-error.js';
 import {ClusterSetupFailedSoloError} from './classes/deployment/cluster-setup-failed-solo-error.js';
 import {ClusterResetFailedSoloError} from './classes/deployment/cluster-reset-failed-solo-error.js';
 import {MinioInstallFailedSoloError} from './classes/deployment/minio-install-failed-solo-error.js';
@@ -654,6 +655,7 @@ export class SoloErrors {
     readonly explorerInvalidComponentId: typeof ExplorerInvalidComponentIdSoloError;
     readonly relayInvalidComponentId: typeof RelayInvalidComponentIdSoloError;
     readonly mirrorNodeInvalidComponentId: typeof MirrorNodeInvalidComponentIdSoloError;
+    readonly mirrorNodeBlockNodeSourceUnavailable: typeof MirrorNodeBlockNodeSourceUnavailableSoloError;
     readonly invalidHbarAmount: typeof InvalidHbarAmountSoloError;
     readonly invalidFileIdFormat: typeof InvalidFileIdFormatSoloError;
     readonly invalidEndpointFormat: typeof InvalidEndpointFormatSoloError;
@@ -742,6 +744,7 @@ export class SoloErrors {
     explorerInvalidComponentId: ExplorerInvalidComponentIdSoloError,
     relayInvalidComponentId: RelayInvalidComponentIdSoloError,
     mirrorNodeInvalidComponentId: MirrorNodeInvalidComponentIdSoloError,
+    mirrorNodeBlockNodeSourceUnavailable: MirrorNodeBlockNodeSourceUnavailableSoloError,
     invalidHbarAmount: InvalidHbarAmountSoloError,
     invalidFileIdFormat: InvalidFileIdFormatSoloError,
     invalidEndpointFormat: InvalidEndpointFormatSoloError,

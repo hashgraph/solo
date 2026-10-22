@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {MirrorNodeResourceNames} from './mirror-node-resource-names.js';
 import {SoloErrors} from './errors/solo-errors.js';
 import * as x509 from '@peculiar/x509';
 import * as constants from './constants.js';
@@ -69,8 +70,11 @@ export class Templates {
     return `https://raw.githubusercontent.com/hiero-ledger/hiero-mirror-node/refs/tags/${release}/importer/src/main/resources/db/scripts/init.sh`;
   }
 
-  public static renderMirrorNodeIngressControllerUrl(mirrorNamespace: NamespaceNameAsString): string {
-    return `http://${constants.MIRROR_INGRESS_CONTROLLER}-${mirrorNamespace}.${mirrorNamespace}.svc.cluster.local`;
+  public static renderMirrorNodeIngressControllerUrl(
+    mirrorNamespace: NamespaceNameAsString,
+    ingressControllerName: string = MirrorNodeResourceNames.primary().ingressControllerName(mirrorNamespace),
+  ): string {
+    return `http://${ingressControllerName}.${mirrorNamespace}.svc.cluster.local`;
   }
 
   public static renderMirrorNodeRestServiceUrl(
