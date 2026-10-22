@@ -11,6 +11,14 @@ export class HelmChartValues {
   // User-supplied values files; always appended last so they take precedence over Solo defaults.
   private readonly _userArguments: string[] = [];
 
+  // Environment variables the Helm process needs alongside the arguments (e.g. the plugin directory of a post-renderer).
+  private readonly _environment: Record<string, string> = {};
+
+  public environmentVariable(name: string, value: string): this {
+    this._environment[name] = value;
+    return this;
+  }
+
   public set(name: string, value: HelmChartValue): this {
     this._arguments.push('--set', `${name}=${value}`);
     return this;
@@ -46,6 +54,7 @@ export class HelmChartValues {
   public add(values: HelmChartValues): this {
     this._arguments.push(...values._arguments);
     this._userArguments.push(...values._userArguments);
+    Object.assign(this._environment, values._environment);
     return this;
   }
 
@@ -59,13 +68,20 @@ export class HelmChartValues {
     return [...this._arguments, ...this._userArguments];
   }
 
+  /** Returns the environment variables the Helm process needs alongside the arguments. */
+  public toEnvironment(): Record<string, string> {
+    return {...this._environment};
+  }
+
   /** Returns only the user-supplied values file paths, in the order they were added. */
   public userValueFilePaths(): string[] {
     return this.extractValueFilePaths(this._userArguments);
   }
 
   public isEmpty(): boolean {
-    return this._arguments.length === 0 && this._userArguments.length === 0;
+    return (
+      this._arguments.length === 0 && this._userArguments.length === 0 && Object.keys(this._environment).length === 0
+    );
   }
 
   public setMany(values: Record<string, HelmChartValue>): this {
@@ -80,6 +96,7 @@ export class HelmChartValues {
     const cloned: HelmChartValues = new HelmChartValues();
     cloned._arguments.push(...this._arguments);
     cloned._userArguments.push(...this._userArguments);
+    Object.assign(cloned._environment, this._environment);
     return cloned;
   }
 
