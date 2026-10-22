@@ -92,6 +92,7 @@ interface ExplorerDeployConfigClass {
   mirrorNodeId: ComponentId;
   mirrorNamespace: NamespaceNameAsString;
   mirrorNodeReleaseName: string;
+  mirrorNodeIngressControllerName: string;
   isMirrorNodeLegacyChartInstalled: boolean;
 }
 
@@ -133,6 +134,7 @@ interface ExplorerUpgradeConfigClass {
   mirrorNodeId: ComponentId;
   mirrorNamespace: NamespaceNameAsString;
   mirrorNodeReleaseName: string;
+  mirrorNodeIngressControllerName: string;
   isMirrorNodeLegacyChartInstalled: boolean;
 
   // Populated right before the post-upgrade Deployment restart annotation is patched, so the
@@ -310,7 +312,10 @@ export class ExplorerCommand extends BaseCommand {
     config: ExplorerDeployConfigClass | ExplorerUpgradeConfigClass,
   ): Promise<MirrorNodeServiceUrls> {
     if (await this.mirrorIngressControllerServiceExists(config)) {
-      const ingressControllerUrl: string = Templates.renderMirrorNodeIngressControllerUrl(config.mirrorNamespace);
+      const ingressControllerUrl: string = Templates.renderMirrorNodeIngressControllerUrl(
+        config.mirrorNamespace,
+        config.mirrorNodeIngressControllerName,
+      );
       return {rest: ingressControllerUrl, restjava: ingressControllerUrl, web3: ingressControllerUrl};
     }
 
@@ -324,7 +329,7 @@ export class ExplorerCommand extends BaseCommand {
   private async mirrorIngressControllerServiceExists(
     config: ExplorerDeployConfigClass | ExplorerUpgradeConfigClass,
   ): Promise<boolean> {
-    const ingressControllerServiceName: string = `${constants.MIRROR_INGRESS_CONTROLLER}-${config.mirrorNamespace}`;
+    const ingressControllerServiceName: string = config.mirrorNodeIngressControllerName;
     const mirrorServices: Service[] = await this.k8Factory
       .getK8(config.clusterContext)
       .services()
@@ -837,14 +842,13 @@ export class ExplorerCommand extends BaseCommand {
             config.releaseName = this.getReleaseName();
             config.ingressReleaseName = this.getIngressReleaseName(config.namespace);
 
-            const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName} = await this.inferMirrorNodeData(
-              config.namespace,
-              config.clusterContext,
-            );
+            const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName, mirrorNodeIngressControllerName} =
+              await this.inferMirrorNodeData(config.namespace, config.clusterContext);
 
             config.mirrorNodeId = mirrorNodeId;
             config.mirrorNamespace = mirrorNamespace;
             config.mirrorNodeReleaseName = mirrorNodeReleaseName;
+            config.mirrorNodeIngressControllerName = mirrorNodeIngressControllerName;
 
             config.newExplorerComponent = this.componentFactory.createNewExplorerComponent(
               config.clusterRef,
@@ -954,14 +958,13 @@ export class ExplorerCommand extends BaseCommand {
             config.isChartInstalled = isChartInstalled;
             config.isLegacyChartInstalled = isLegacyChartInstalled;
 
-            const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName} = await this.inferMirrorNodeData(
-              config.namespace,
-              config.clusterContext,
-            );
+            const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName, mirrorNodeIngressControllerName} =
+              await this.inferMirrorNodeData(config.namespace, config.clusterContext);
 
             config.mirrorNodeId = mirrorNodeId;
             config.mirrorNamespace = mirrorNamespace;
             config.mirrorNodeReleaseName = mirrorNodeReleaseName;
+            config.mirrorNodeIngressControllerName = mirrorNodeIngressControllerName;
 
             const currentExplorerVersion: SemanticVersion<string> = this.remoteConfig.getComponentVersion(
               ComponentTypes.Explorer,
