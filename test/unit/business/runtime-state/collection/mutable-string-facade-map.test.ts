@@ -24,7 +24,7 @@ describe('MutableStringFacadeMap', (): void => {
   it('addNew should add a new element and return it, and allow subsequent update', (): void => {
     const initialFacade: StringFacade = myMap.addNew(key1);
     expect(initialFacade).to.be.instanceOf(StringFacade);
-    expect(initialFacade.encapsulatedObject.toString()).to.equal('');
+    expect(initialFacade.encapsulatedObject).to.equal('');
     expect(myMap.size).to.equal(1);
     expect(myMap.get(key1)).to.equal(initialFacade);
 
