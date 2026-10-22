@@ -134,6 +134,7 @@ import {OneShotDestroyFailedSoloError} from './classes/component/one-shot-destro
 import {OneShotDeploymentInfoRetrievalFailedSoloError} from './classes/component/one-shot-deployment-info-retrieval-failed-solo-error.js';
 import {FalconValuesPreparationFailedSoloError} from './classes/component/falcon-values-preparation-failed-solo-error.js';
 import {BlockNodeNotInRemoteConfigSoloError} from './classes/system/block-node-not-in-remote-config-solo-error.js';
+import {BlockNodeBlocksUnavailableSoloError} from './classes/system/block-node-blocks-unavailable-solo-error.js';
 import {BlockNodeNotReadySoloError} from './classes/system/block-node-not-ready-solo-error.js';
 import {BlockNodePodNotFoundSoloError} from './classes/system/block-node-pod-not-found-solo-error.js';
 import {BlockNodesJsonEmptySoloError} from './classes/system/block-nodes-json-empty-solo-error.js';
@@ -151,6 +152,7 @@ import {BlockNodeLocalImageNotFoundSoloError} from './classes/validation/block-n
 import {ExplorerInvalidComponentIdSoloError} from './classes/validation/explorer-invalid-component-id-solo-error.js';
 import {RelayInvalidComponentIdSoloError} from './classes/validation/relay-invalid-component-id-solo-error.js';
 import {MirrorNodeInvalidComponentIdSoloError} from './classes/validation/mirror-node-invalid-component-id-solo-error.js';
+import {MirrorNodeBlockNodeSourceUnavailableSoloError} from './classes/validation/mirror-node-block-node-source-unavailable-solo-error.js';
 import {ClusterSetupFailedSoloError} from './classes/deployment/cluster-setup-failed-solo-error.js';
 import {ClusterResetFailedSoloError} from './classes/deployment/cluster-reset-failed-solo-error.js';
 import {MinioInstallFailedSoloError} from './classes/deployment/minio-install-failed-solo-error.js';
@@ -653,6 +655,7 @@ export class SoloErrors {
     readonly explorerInvalidComponentId: typeof ExplorerInvalidComponentIdSoloError;
     readonly relayInvalidComponentId: typeof RelayInvalidComponentIdSoloError;
     readonly mirrorNodeInvalidComponentId: typeof MirrorNodeInvalidComponentIdSoloError;
+    readonly mirrorNodeBlockNodeSourceUnavailable: typeof MirrorNodeBlockNodeSourceUnavailableSoloError;
     readonly invalidHbarAmount: typeof InvalidHbarAmountSoloError;
     readonly invalidFileIdFormat: typeof InvalidFileIdFormatSoloError;
     readonly invalidEndpointFormat: typeof InvalidEndpointFormatSoloError;
@@ -741,6 +744,7 @@ export class SoloErrors {
     explorerInvalidComponentId: ExplorerInvalidComponentIdSoloError,
     relayInvalidComponentId: RelayInvalidComponentIdSoloError,
     mirrorNodeInvalidComponentId: MirrorNodeInvalidComponentIdSoloError,
+    mirrorNodeBlockNodeSourceUnavailable: MirrorNodeBlockNodeSourceUnavailableSoloError,
     invalidHbarAmount: InvalidHbarAmountSoloError,
     invalidFileIdFormat: InvalidFileIdFormatSoloError,
     invalidEndpointFormat: InvalidEndpointFormatSoloError,
@@ -803,6 +807,7 @@ export class SoloErrors {
   // 5xxx — System / Environment: kubectl, DNS, permissions, timeouts
   public static readonly system: {
     readonly blockNodePodNotFound: typeof BlockNodePodNotFoundSoloError;
+    readonly blockNodeBlocksUnavailable: typeof BlockNodeBlocksUnavailableSoloError;
     readonly blockNodeNotReady: typeof BlockNodeNotReadySoloError;
     readonly blockNodeNotInRemoteConfig: typeof BlockNodeNotInRemoteConfigSoloError;
     readonly blockNodesJsonEmpty: typeof BlockNodesJsonEmptySoloError;
@@ -896,6 +901,7 @@ export class SoloErrors {
   } = Object.freeze({
     minioOperatorCrdsOrphaned: MinioOperatorCrdsOrphanedSoloError,
     blockNodePodNotFound: BlockNodePodNotFoundSoloError,
+    blockNodeBlocksUnavailable: BlockNodeBlocksUnavailableSoloError,
     blockNodeNotReady: BlockNodeNotReadySoloError,
     blockNodeNotInRemoteConfig: BlockNodeNotInRemoteConfigSoloError,
     blockNodesJsonEmpty: BlockNodesJsonEmptySoloError,

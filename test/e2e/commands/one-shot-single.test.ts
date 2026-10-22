@@ -14,7 +14,7 @@ import {Duration} from '../../../src/core/time/duration.js';
 import {type Pod} from '../../../src/integration/kube/resources/pod/pod.js';
 import {PodReference} from '../../../src/integration/kube/resources/pod/pod-reference.js';
 import {ContainerReference} from '../../../src/integration/kube/resources/container/container-reference.js';
-import {getTemporaryDirectory} from '../../test-utility.js';
+import {getTemporaryDirectory} from '../test-utility.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {
   Client,

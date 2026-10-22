@@ -19,7 +19,7 @@ PATH_BLOCK_END='# <<< solo installer <<<'
 version='latest'
 install_directory="${SOLO_INSTALL_DIR:-${DEFAULT_INSTALL_DIRECTORY}}"
 base_url="${SOLO_REPOSITORY_URL}/releases"
-skip_image_cache='false'
+with_image_cache='false'
 work_directory=''
 staged_binary=''
 
@@ -32,7 +32,7 @@ Usage: install.sh [options]
 Options:
   --version <tag>      Release to install, for example v0.92.0 (default: latest)
   --prefix <dir>       Directory for the solo binary (default: ~/.solo/bin, or SOLO_INSTALL_DIR)
-  --skip-image-cache   Do not run 'solo cache image pull' after installing
+  --with-image-cache   Run 'solo cache image pull' after installing to download the images Solo deploys
   --base-url <url>     Release download base URL (default: ${SOLO_REPOSITORY_URL}/releases)
   -h, --help           Show this help
 EOF
@@ -81,8 +81,12 @@ parse_arguments() {
         base_url="${2%/}"
         shift 2
         ;;
+      --with-image-cache)
+        with_image_cache='true'
+        shift
+        ;;
       --skip-image-cache)
-        skip_image_cache='true'
+        # The image download is opt-in now; still accepted so install commands that pass it keep working.
         shift
         ;;
       -h | --help)
@@ -304,8 +308,8 @@ warn_if_shadowed() {
 }
 
 warm_image_cache() {
-  if [ "${skip_image_cache}" = 'true' ]; then
-    info "skipped the image cache; run 'solo cache image pull' before your first deployment to speed it up"
+  if [ "${with_image_cache}" != 'true' ]; then
+    info "run 'solo cache image pull' before your first deployment to speed it up"
     return 0
   fi
 
@@ -315,7 +319,7 @@ warm_image_cache() {
     return 0
   fi
 
-  info 'pre-pulling the container images Solo deploys (skip with --skip-image-cache)'
+  info 'pre-pulling the container images Solo deploys'
   # stdin is redirected so solo cannot read the rest of this script when it is piped into sh.
   if ! (unset SOLO_INSTALL_DIR && "${install_directory}/solo" cache image pull --quiet-mode </dev/null); then
     warn "the image cache was not fully populated; run 'solo cache image pull' to retry"

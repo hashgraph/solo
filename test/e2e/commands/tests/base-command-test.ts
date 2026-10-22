@@ -2,7 +2,7 @@
 
 import {type CommandFlag} from '../../../../src/types/flag-types.js';
 import {Flags} from '../../../../src/commands/flags.js';
-import {getTestCacheDirectory} from '../../../test-utility.js';
+import {getTestCacheDirectory} from '../../test-utility.js';
 import {type BaseTestOptions} from './base-test-options.js';
 import {container} from 'tsyringe-neo';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
