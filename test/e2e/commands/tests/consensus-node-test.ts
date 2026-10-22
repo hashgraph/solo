@@ -55,7 +55,7 @@ import {
   getTemporaryDirectory,
   getTestCacheDirectory,
   HEDERA_PLATFORM_VERSION_TAG,
-} from '../../../test-utility.js';
+} from '../../test-utility.js';
 import {type RemoteConfigRuntimeState} from '../../../../src/business/runtime-state/config/remote/remote-config-runtime-state.js';
 import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 import {TEST_UPGRADE_FROM_VERSION, TEST_UPGRADE_TO_VERSION} from '../../../../version-test.js';

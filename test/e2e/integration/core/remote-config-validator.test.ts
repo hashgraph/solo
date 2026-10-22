@@ -14,7 +14,7 @@ import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.j
 import {ContainerName} from '../../../../src/integration/kube/resources/container/container-name.js';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import {type K8Factory} from '../../../../src/integration/kube/k8-factory.js';
-import {getTestCacheDirectory} from '../../../test-utility.js';
+import {getTestCacheDirectory} from '../../test-utility.js';
 import {Duration} from '../../../../src/core/time/duration.js';
 import {type ClusterReferenceName, type ComponentId} from '../../../../src/types/index.js';
 import {DeploymentPhase} from '../../../../src/data/schema/model/remote/deployment-phase.js';

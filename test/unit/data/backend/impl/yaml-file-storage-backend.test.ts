@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-import {getTemporaryDirectory} from '../../../../test-utility.js';
+import {getTemporaryDirectory} from '../../../../e2e/test-utility.js';
 import {YamlFileStorageBackend} from '../../../../../src/data/backend/impl/yaml-file-storage-backend.js';
 import {expect} from 'chai';
 import fs from 'node:fs';

@@ -4,7 +4,7 @@ import {BaseCommandTest} from './base-command-test.js';
 import {InjectTokens} from '../../../../src/core/dependency-injection/inject-tokens.js';
 import {container} from 'tsyringe-neo';
 import {type BaseTestOptions} from './base-test-options.js';
-import {accountCreationShouldSucceed} from '../../../test-utility.js';
+import {accountCreationShouldSucceed} from '../../test-utility.js';
 import {it} from 'mocha';
 import {type AccountManager} from '../../../../src/core/account-manager.js';
 import {type RemoteConfigRuntimeState} from '../../../../src/business/runtime-state/config/remote/remote-config-runtime-state.js';

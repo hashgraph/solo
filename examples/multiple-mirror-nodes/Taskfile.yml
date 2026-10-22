@@ -1,0 +1,121 @@
+version: 3
+
+env:
+  SOLO_COMMAND:
+    sh: |
+      if [ "${USE_RELEASED_VERSION}" = "true" ]; then
+        echo "npx @hashgraph/solo"
+      else
+        echo "npm run solo --"
+      fi
+  # the consensus node writes both record files (read from the bucket) and blocks (read from the block node)
+  BLOCK_STREAM_STREAM_MODE: BOTH
+
+vars:
+  CLUSTER_NAME: "multiple-mirror-nodes-example-cluster"
+  CONTEXT: "kind-multiple-mirror-nodes-example-cluster"
+  CLUSTER_REF: "kind-multiple-mirror-nodes-example-cluster"
+  DEPLOYMENT: "multiple-mirror-nodes-example-deployment"
+  NAMESPACE: "multiple-mirror-nodes-example-namespace"
+  # pinned because the default node image of a newer kind ships a containerd that rejects the registry mirrors in
+  # resources/kind-config.yaml, which leaves the cluster stuck at creation
+  KIND_NODE_IMAGE: "kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30"
+  NETWORK_SIZE: "1"
+  NODE_ALIASES: "node1"
+  # Solo forwards the first mirror node to 38081 and the next free port, 38082, to the second one
+  BUCKET_MIRROR_NODE_PORT: "38081"
+  BLOCK_NODE_MIRROR_NODE_PORT: "38082"
+
+tasks:
+  default:
+    desc: create the cluster and a deployment with two mirror nodes, one importing from the bucket and one from a block node
+    cmds:
+      # Install Solo CLI
+      - cmd: |
+          if [ "${USE_RELEASED_VERSION}" = "true" ]; then
+            npm i @hashgraph/solo@latest
+          else
+            echo "Skipping npm install - using development version"
+          fi
+
+      # Create Kind cluster
+      - cmd: |
+          SHARED_KIND_CONFIG="{{ .TASKFILE_DIR }}/../../resources/kind-config.yaml"
+          if [ -f "${SHARED_KIND_CONFIG}" ]; then
+            kind create cluster -n "{{ .CLUSTER_NAME }}" --image "{{ .KIND_NODE_IMAGE }}" --config "${SHARED_KIND_CONFIG}"
+          else
+            kind create cluster -n "{{ .CLUSTER_NAME }}" --image "{{ .KIND_NODE_IMAGE }}"
+          fi
+
+      # Wait for control plane
+      - cmd: sleep 10 # wait for control plane to come up
+
+      # Set kubectl context
+      - cmd: kubectl config set-context {{ .CONTEXT }}
+
+      # Solo cluster-ref config connect
+      - cmd: $SOLO_COMMAND cluster-ref config connect --cluster-ref {{ .CLUSTER_REF }} --context {{ .CONTEXT }}
+
+      # Solo deployment config create
+      - cmd: $SOLO_COMMAND deployment config create --namespace {{ .NAMESPACE }} --deployment {{ .DEPLOYMENT }} --realm 0 --shard 0
+
+      # Solo deployment cluster attach
+      - cmd: $SOLO_COMMAND deployment cluster attach --cluster-ref {{ .CLUSTER_REF }} --deployment {{ .DEPLOYMENT }} --num-consensus-nodes {{ .NETWORK_SIZE }}
+
+      # Solo cluster-ref config setup
+      - cmd: $SOLO_COMMAND cluster-ref config setup --cluster-ref {{ .CLUSTER_REF }}
+
+      # Solo block node add, before the consensus network so that the network is configured to stream to it
+      - cmd: $SOLO_COMMAND block node add --deployment {{ .DEPLOYMENT }} --cluster-ref {{ .CLUSTER_REF }} --quiet-mode
+
+      # Solo node keys
+      - cmd: $SOLO_COMMAND keys consensus generate --gossip-keys --tls-keys --node-aliases {{ .NODE_ALIASES }} --deployment {{ .DEPLOYMENT }}
+
+      # Solo network deploy
+      - cmd: $SOLO_COMMAND consensus network deploy --deployment {{ .DEPLOYMENT }} --node-aliases {{ .NODE_ALIASES }}
+
+      # Solo node setup
+      - cmd: $SOLO_COMMAND consensus node setup --deployment {{ .DEPLOYMENT }} --node-aliases {{ .NODE_ALIASES }}
+
+      # Solo node start
+      - cmd: $SOLO_COMMAND consensus node start --deployment {{ .DEPLOYMENT }} --node-aliases {{ .NODE_ALIASES }}
+
+      # Mirror node 1 imports the record files from the bucket; the pinger sends the user transactions that make the
+      # consensus node write record files
+      - cmd: |
+          $SOLO_COMMAND mirror node add --deployment {{ .DEPLOYMENT }} --cluster-ref {{ .CLUSTER_REF }} \
+          --enable-ingress --mirror-node-source bucket --pinger --quiet-mode
+
+      # Mirror node 2 imports the block stream from the block node, in the same namespace
+      - cmd: |
+          $SOLO_COMMAND mirror node add --deployment {{ .DEPLOYMENT }} --cluster-ref {{ .CLUSTER_REF }} \
+          --enable-ingress --mirror-node-source block-node --quiet-mode
+
+  verify:
+    desc: show that the two mirror nodes have separate resources and sources and serve the same user transactions
+    cmds:
+      # Releases, pods and databases of both mirror nodes
+      - cmd: helm list -n {{ .NAMESPACE }}
+      - cmd: kubectl get pods -n {{ .NAMESPACE }} | grep -E "NAME|mirror"
+      - cmd: kubectl get secrets -n {{ .NAMESPACE }} | grep -E "NAME|mirror-passwords"
+      - cmd: kubectl get ingressclass
+
+      # Only the block node importer has the blocknode profile
+      - cmd: |
+          for importer in mirror-1-importer mirror-2-importer; do
+            echo "${importer} SPRING_PROFILES_ACTIVE: $(kubectl get deploy -n {{ .NAMESPACE }} ${importer} -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="SPRING_PROFILES_ACTIVE")].value}')"
+          done
+
+      # Transaction names seen by each mirror node: HINTSPARTIALSIGNATURE is only in the block stream
+      - cmd: |
+          for port in {{ .BUCKET_MIRROR_NODE_PORT }} {{ .BLOCK_NODE_MIRROR_NODE_PORT }}; do
+            echo "last 100 transactions of the mirror node on port ${port}:"
+            curl -s "http://localhost:${port}/api/v1/transactions?limit=100&order=desc" \
+              | jq -r '.transactions | group_by(.name) | map("  \(.[0].name): \(length)") | .[]'
+          done
+
+  destroy:
+    desc: destroy example cluster
+    cmds:
+      # Delete Kind cluster
+      - cmd: kind delete cluster --name "{{ .CLUSTER_NAME }}"
