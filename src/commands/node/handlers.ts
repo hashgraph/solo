@@ -347,11 +347,11 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.copyNodeKeysToSecrets(undefined, false),
       this.tasks.updateChartWithConfigMap('Deploy new network node', NodeSubcommandType.ADD),
       this.tasks.stopNodes('existingNodeAliases'),
+      // only the new pod is restarted (with autostart disabled); existing nodes are stopped in place
+      this.tasks.killNodes('newNodeAliases'),
       this.tasks.checkNodePodsAreRunning(),
       this.tasks.installRootContainerTools(),
       this.tasks.populateServiceMap(),
-      // the new pod boots with autostart enabled; stop it before its software, state and config are staged
-      this.tasks.stopNodes('newNodeAliases'),
       this.tasks.fetchPlatformSoftware('allNodeAliases'),
       this.tasks.downloadLastState(),
       this.tasks.uploadStateToNewNode(),

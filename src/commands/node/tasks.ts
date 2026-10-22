@@ -5035,6 +5035,43 @@ export class NodeCommandTasks {
     };
   }
 
+  public killNodes(nodeAliasesProperty: string): SoloListrTask<NodeAddContext> {
+    return {
+      title: 'Restart nodes',
+      task: async (context_): Promise<void> => {
+        const config: NodeAddConfigClass = context_.config;
+        for (const service of config.serviceMap.values()) {
+          if (!config[nodeAliasesProperty].includes(service.nodeAlias)) {
+            continue;
+          }
+
+          // Disable autostart BEFORE killing the pod so that the restarted pod does not launch the JVM
+          // before the platform software, state and config are staged. startNodes() re-enables it.
+          try {
+            const podReference: PodReference = PodReference.of(config.namespace, service.nodePodName);
+            const containerReference: ContainerReference = ContainerReference.of(
+              podReference,
+              constants.ROOT_CONTAINER,
+            );
+            await this.k8Factory
+              .getK8(service.context)
+              .containers()
+              .readByRef(containerReference)
+              .execContainer(['bash', '-c', NetworkNodeLifecycle.buildDisableAutostartCommand()]);
+          } catch {
+            // Best-effort: container may already be restarting; the kill below will follow
+          }
+
+          await this.k8Factory
+            .getK8(service.context)
+            .pods()
+            .readByReference(PodReference.of(config.namespace, service.nodePodName))
+            .killPod();
+        }
+      },
+    };
+  }
+
   public removeNodeFromRemoteConfig(): SoloListrTask<NodeDestroyContext> {
     return {
       title: 'Remove node from remote config',
