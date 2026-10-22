@@ -15,6 +15,7 @@ import {UpgradeChartOptionsBuilder} from '../integration/helm/model/upgrade/upgr
 import {Chart} from '../integration/helm/model/chart.js';
 import {type InstallChartOptions} from '../integration/helm/model/install/install-chart-options.js';
 import {InstallChartOptionsBuilder} from '../integration/helm/model/install/install-chart-options-builder.js';
+import {type SemanticVersion} from '../business/utils/semantic-version.js';
 import {type HelmClient} from '../integration/helm/helm-client.js';
 import {UnInstallChartOptionsBuilder} from '../integration/helm/model/install/un-install-chart-options-builder.js';
 import {AddRepoOptionsBuilder} from '../integration/helm/model/add/add-repo-options-builder.js';
@@ -193,6 +194,7 @@ export class ChartManager {
           .atomic(atomic)
           .waitFor(waitFor)
           .valueArguments(chartValues.toArguments())
+          .environmentVariables(chartValues.toEnvironment())
           .dependencyUpdate(dependencyUpdate)
           .skipCrds(skipCrds);
 
@@ -223,6 +225,12 @@ export class ChartManager {
     }
 
     return true;
+  }
+
+  /** The major version of the Helm CLI in use; Helm 3 and Helm 4 take different kinds of post-renderers. */
+  public async getHelmMajorVersion(): Promise<number> {
+    const version: SemanticVersion<string> = await this.helm.version();
+    return version.major;
   }
 
   public async isChartInstalled(
@@ -314,6 +322,7 @@ export class ChartManager {
         .namespace(namespaceName.name)
         .kubeContext(kubeContext)
         .valueArguments(chartValues.toArguments())
+        .environmentVariables(chartValues.toEnvironment())
         .dependencyUpdate(dependencyUpdate);
 
       // A local chart tarball is self-describing; `helm upgrade` rejects `--version` for a local chart.

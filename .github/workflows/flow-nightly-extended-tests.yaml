@@ -237,24 +237,6 @@ jobs:
           done
           rm -rf ~/.solo
 
-      - name: Send Slack Notification on Failure
-        if: ${{ github.ref == 'refs/heads/main' && !cancelled() && failure() }}
-        uses: rtCamp/action-slack-notify@33ca3be66c6f378fe1610fd1d5258632dbed5e58 # v2.4.0
-        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_TEST_WEBHOOK }}
-          SLACK_COLOR: danger
-          SLACK_TITLE: Nightly Extended Test Failed - ${{ matrix.test.name }}
-          SLACK_MESSAGE: |
-            *Test:* ${{ matrix.test.name }}
-            *Description:* ${{ matrix.test.description }}
-            *Type:* ${{ matrix.test.type }}
-            *Branch:* `${{ github.ref_name }}`
-            *Commit:* ${{ github.sha }}
-
-            :link: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Job Logs>
-          SLACK_FOOTER: ${{ github.workflow }}
-
       - name: Upload Logs to GitHub
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -309,3 +291,62 @@ jobs:
       run-twice: true
     # The called workflow only uses the automatically provided GITHUB_TOKEN;
     # forwarding every repository secret is unnecessary and unsafe.
+
+  # Single place that alerts Slack when any job fails, including matrix tests and jobs that call
+  # reusable workflows (those cannot reach a Slack step inside this file and are not given the
+  # webhook). Every new top-level job must be added to `needs` so its failures are reported.
+  notify-failure:
+    name: Notify Slack on Failure
+    runs-on: hiero-solo-linux-medium
+    timeout-minutes: 10
+    if: ${{ github.ref == 'refs/heads/main' && !cancelled() && contains(needs.*.result, 'failure') }}
+    permissions:
+      contents: read
+      actions: read # lists the jobs of the current workflow run
+    needs:
+      - build-sea
+      - prepare-setup
+      - generate_matrix
+      - matrix-tests
+      - one-shot-timing
+      - ledger-reset-warm-start-timing
+      - flow-performance-test
+      - windows-one-shot-redeployment
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          egress-policy: audit
+
+      - name: List Failed Jobs
+        id: failed-jobs
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Job-level names (matrix tests and reusable-workflow jobs) are only available from the API.
+          FAILED_JOBS=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/jobs?per_page=100" \
+            --jq '.jobs[] | select(.conclusion == "failure") | "• <" + .html_url + "|" + .name + ">"')
+          {
+            echo "list<<EOF"
+            echo "${FAILED_JOBS}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Send Slack Notification on Failure
+        uses: rtCamp/action-slack-notify@33ca3be66c6f378fe1610fd1d5258632dbed5e58 # v2.4.0
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_TEST_WEBHOOK }}
+          SLACK_COLOR: danger
+          SLACK_TITLE: Nightly Extended Test Failed
+          SLACK_MESSAGE: |
+            *Failed jobs:*
+            ${{ steps.failed-jobs.outputs.list }}
+
+            *Branch:* `${{ github.ref_name }}`
+            *Commit:* ${{ github.sha }}
+
+            :link: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>
+          SLACK_FOOTER: ${{ github.workflow }}
