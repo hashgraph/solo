@@ -882,6 +882,7 @@ export class NodeCommandTasks {
     }
 
     if (!success) {
+      await this.showNodeNotReadyDiagnostics(podReference, nodeAlias, context);
       throw new SoloErrors.component.nodeNotReady(nodeAlias, NodeStatusEnums[status], attempt, maxAttempts);
     }
 
@@ -890,6 +891,33 @@ export class NodeCommandTasks {
     }
 
     return podReference;
+  }
+
+  /**
+   * Best-effort: print the tail of the node's platform log and its key directory so a node that never reaches the
+   * expected status can be diagnosed from the CI log alone.
+   */
+  private async showNodeNotReadyDiagnostics(
+    podReference: PodReference,
+    nodeAlias: NodeAlias,
+    context?: string,
+  ): Promise<void> {
+    try {
+      const output: string = await this.k8Factory
+        .getK8(context)
+        .containers()
+        .readByRef(ContainerReference.of(podReference, constants.ROOT_CONTAINER))
+        .execContainer([
+          'bash',
+          '-c',
+          `ls -la ${constants.HEDERA_HAPI_PATH}/data/keys; ` +
+            `grep -hE 'ERROR|WARN|Exception' ${constants.HEDERA_HAPI_PATH}/output/swirlds.log | tail -n 60; ` +
+            `tail -n 60 ${constants.HEDERA_HAPI_PATH}/output/swirlds.log`,
+        ]);
+      this.logger.showUser(`Diagnostics for node '${nodeAlias}' that is not ready:\n${output}`);
+    } catch {
+      // best-effort diagnostic only: the node-not-ready error below is what the caller needs to see
+    }
   }
 
   /**
