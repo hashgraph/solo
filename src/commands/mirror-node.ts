@@ -752,9 +752,11 @@ export class MirrorNodeCommand extends BaseCommand {
 
     const k8: K8 = this.k8Factory.getK8(config.clusterContext);
     const secretName: string = constants.MIRROR_NODE_SECRETS_BACKUP_NAME;
-    const existingData: Record<string, string> = (await k8.secrets().exists(config.namespace, secretName))
-      ? (await k8.secrets().read(config.namespace, secretName)).data
-      : {};
+    let existingData: Record<string, string> = {};
+    if (await k8.secrets().exists(config.namespace, secretName)) {
+      const existingSecret: Secret = await k8.secrets().read(config.namespace, secretName);
+      existingData = existingSecret.data;
+    }
 
     const isCreated: boolean = await k8
       .secrets()
@@ -2515,6 +2517,12 @@ export class MirrorNodeCommand extends BaseCommand {
               .getK8(context_.config.clusterContext)
               .secrets()
               .delete(context_.config.namespace, constants.MIRROR_INGRESS_TLS_SECRET_NAME);
+
+            // Delete the secrets backup created on add/upgrade so stale credentials don't outlive the mirror node
+            await this.k8Factory
+              .getK8(context_.config.clusterContext)
+              .secrets()
+              .delete(context_.config.namespace, constants.MIRROR_NODE_SECRETS_BACKUP_NAME);
           },
         },
         this.disableMirrorNodeComponents(),
