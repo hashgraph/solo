@@ -328,6 +328,7 @@ export const ErrorCodeRegistry: Record<string, string> = {
   CACHE_ARCHIVE_HASH_MISMATCH: 'SOLO-5088',
   CACHED_FILE_INACCESSIBLE: 'SOLO-5089',
   POD_LOGS_CRD_INVALID: 'SOLO-5090',
+  BLOCK_NODE_BLOCKS_UNAVAILABLE: 'SOLO-5091',
 
   // 9xxx - Internal: Unexpected bugs, unimplemented paths
   TIMEOUT: 'SOLO-9001',
