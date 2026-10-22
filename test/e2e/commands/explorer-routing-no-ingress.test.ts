@@ -21,7 +21,7 @@ import {ConsensusNodeTest} from './tests/consensus-node-test.js';
 import {NetworkTest} from './tests/network-test.js';
 import {MirrorNodeTest} from './tests/mirror-node-test.js';
 import {ExplorerTest} from './tests/explorer-test.js';
-import {destroyEnabled} from '../../test-utility.js';
+import {destroyEnabled} from '../test-utility.js';
 
 /**
  * Minimal, fast, single-cluster/single-node suite covering that the explorer's nginx proxy

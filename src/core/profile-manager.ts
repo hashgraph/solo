@@ -191,6 +191,7 @@ export class ProfileManager {
 
     await this.updateApplicationPropertiesForBlockNode(applicationPropertiesPath);
     await this.updateApplicationPropertiesWithChainId(applicationPropertiesPath, resolvedStagingOptions.chainId);
+    await this.updateApplicationPropertiesWithGenesisPublicKey(applicationPropertiesPath);
 
     for (const flag of flags.nodeConfigFileFlags.values()) {
       const sourceFilePath: string = this.configManager.getFlagFile(flag);
@@ -238,6 +239,7 @@ export class ProfileManager {
           );
           await this.updateApplicationPropertiesForBlockNode(destinationPath);
           await this.updateApplicationPropertiesWithChainId(destinationPath, resolvedStagingOptions.chainId);
+          await this.updateApplicationPropertiesWithGenesisPublicKey(destinationPath);
         }
       } else {
         fs.cpSync(sourceAbsoluteFilePath, destinationPath, {force: true});
@@ -625,6 +627,23 @@ export class ProfileManager {
     await writeFile(applicationPropertiesPath, lines.join('\n') + '\n');
   }
 
+  /**
+   * Configure the consensus node's genesis public key (raw ed25519 key as hex) so that system accounts and files are
+   * created with the key matching the genesis private key Solo stores for the network.
+   */
+  private async updateApplicationPropertiesWithGenesisPublicKey(applicationPropertiesPath: string): Promise<void> {
+    const fileText: string = await readFile(applicationPropertiesPath, 'utf8');
+    const lines: string[] = fileText.split('\n');
+
+    Helpers.upsertApplicationProperty(
+      lines,
+      'bootstrap.genesisPublicKey',
+      Buffer.from(constants.GENESIS_PUBLIC_KEY.toBytesRaw()).toString('hex'),
+    );
+
+    await writeFile(applicationPropertiesPath, lines.join('\n') + '\n');
+  }
+
   private async updateBoostrapPropertiesWithChainId(bootstrapPropertiesPath: string, chainId: string): Promise<void> {
     const fileText: string = await readFile(bootstrapPropertiesPath, 'utf8');
     const lines: string[] = fileText.split('\n');
@@ -677,7 +696,7 @@ export class ProfileManager {
       }
 
       if (
-        this.remoteConfig.configuration.state.wrapsEnabled &&
+        Helpers.shouldProvisionWraps(this.remoteConfig.configuration.state.wrapsEnabled, releaseTag) &&
         !ProfileManager.hasApplicationProperty(lines, 'tss.wrapsEnabled')
       ) {
         Helpers.upsertApplicationProperty(lines, 'tss.wrapsEnabled', 'true');

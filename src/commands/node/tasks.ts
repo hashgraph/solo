@@ -24,6 +24,7 @@ import {
   HEDERA_NODE_DEFAULT_STAKE_AMOUNT,
 } from '../../core/constants.js';
 import {Templates} from '../../core/templates.js';
+import {GenesisKeyResolver} from '../../core/genesis-key-resolver.js';
 import {
   AccountId,
   type AccountInfo,
@@ -1315,10 +1316,18 @@ export class NodeCommandTasks {
             config.adminKey = PrivateKey.fromStringED25519(privateKey);
           } catch (error) {
             this.logger.debug(`Error in loading node admin key: ${error.message}, use default key`);
-            config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+            config.adminKey = await GenesisKeyResolver.resolve(
+              this.k8Factory,
+              this.remoteConfig.getContexts(),
+              config.namespace,
+            );
           }
         } else {
-          config.adminKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+          config.adminKey = await GenesisKeyResolver.resolve(
+            this.k8Factory,
+            this.remoteConfig.getContexts(),
+            config.namespace,
+          );
         }
       },
     };
@@ -2367,12 +2376,16 @@ export class NodeCommandTasks {
       deploymentName,
     );
 
+    const genesisKey: PrivateKey = await GenesisKeyResolver.resolve(
+      this.k8Factory,
+      this.remoteConfig.getContexts(),
+      namespace,
+    );
+    const genesisPublicKey: string = genesisKey.publicKey.toString();
     let adminPublicKeys: string[] = [];
     adminPublicKeys = this.configManager.getFlag(flags.adminPublicKeys)
       ? splitFlagInput(this.configManager.getFlag(flags.adminPublicKeys))
-      : (Array.from({length: consensusNodes.length}, (): string =>
-          constants.GENESIS_PUBLIC_KEY.toString(),
-        ) as string[]);
+      : (Array.from({length: consensusNodes.length}, (): string => genesisPublicKey) as string[]);
     const genesisNetworkData: GenesisNetworkDataConstructor = await GenesisNetworkDataConstructor.initialize(
       consensusNodes,
       this.keyManager,
@@ -4444,7 +4457,11 @@ export class NodeCommandTasks {
   public addWrapsLib(): SoloListrTask<{config: NodeCommonConfigClass}> {
     return {
       title: 'Copy wraps lib over',
-      skip: (): boolean => !this.remoteConfig.configuration.state.wrapsEnabled,
+      skip: (): boolean =>
+        !Helpers.shouldProvisionWraps(
+          this.remoteConfig.configuration.state.wrapsEnabled,
+          this.remoteConfig.configuration.versions.consensusNode,
+        ),
       task: async ({config}): Promise<void> => {
         const wraps: Wraps = this.soloConfig.tss.wraps;
         const extractedDirectory: string = PathEx.join(constants.SOLO_CACHE_DIR, wraps.directoryName);
@@ -4661,8 +4678,11 @@ export class NodeCommandTasks {
 
         // Generate extraEnv values file for wraps, debug, and custom environment variables
         // This replaces the old --set extraEnv approach to prevent Helm replacement issues
-        const needsExtraEnvironment: boolean =
-          this.remoteConfig.configuration.state.wrapsEnabled || !!config.debugNodeAlias;
+        const provisionWraps: boolean = Helpers.shouldProvisionWraps(
+          this.remoteConfig.configuration.state.wrapsEnabled,
+          this.remoteConfig.configuration.versions.consensusNode,
+        );
+        const needsExtraEnvironment: boolean = provisionWraps || !!config.debugNodeAlias;
 
         if (needsExtraEnvironment) {
           for (const [clusterReference] of clusterReferences) {
@@ -4698,7 +4718,7 @@ export class NodeCommandTasks {
               userValueFilePaths,
               clusterConsensusNodes,
               {
-                wrapsEnabled: this.remoteConfig.configuration.state.wrapsEnabled,
+                wrapsEnabled: provisionWraps,
                 tss: this.soloConfig.tss,
                 debugNodeAlias: config.debugNodeAlias,
                 useJavaMainClass: false,
@@ -4711,7 +4731,7 @@ export class NodeCommandTasks {
             const extraEnvironmentValuesFile: string = helmValuesHelper.generateExtraEnvironmentValuesFile(
               clusterConsensusNodes,
               {
-                wrapsEnabled: this.remoteConfig.configuration.state.wrapsEnabled,
+                wrapsEnabled: provisionWraps,
                 tss: this.soloConfig.tss,
                 debugNodeAlias: config.debugNodeAlias,
                 useJavaMainClass: false,

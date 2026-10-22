@@ -8,7 +8,7 @@ import * as yaml from 'yaml';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {ProfileManager} from '../../../src/core/profile-manager.js';
-import {getTemporaryDirectory, getTestCacheDirectory} from '../../test-utility.js';
+import {getTemporaryDirectory, getTestCacheDirectory} from '../../e2e/test-utility.js';
 import * as version from '../../../version.js';
 import {container} from 'tsyringe-neo';
 import {resetForTest} from '../../test-container.js';
@@ -488,6 +488,50 @@ describe('ProfileManager', (): void => {
       expect(updatedApplicationProperties).to.contain('tss.historyEnabled=false');
       expect(updatedApplicationProperties).to.contain('tss.forceMockSignatures=false');
       expect(updatedApplicationProperties).to.contain('tss.wrapsEnabled=false');
+    });
+    it('updateApplicationPropertiesWithRealmAndShard should not set tss.wrapsEnabled from consensus node v0.79.0', async (): Promise<void> => {
+      const applicationPropertiesPath: string = PathEx.join(temporaryDirectory, constants.APPLICATION_PROPERTIES);
+      fs.writeFileSync(applicationPropertiesPath, ['hedera.realm=0', 'hedera.shard=0', ''].join('\n'), 'utf8');
+
+      const profileManagerPrivate: {
+        remoteConfig: RemoteConfigRuntimeStateApi;
+        updateApplicationPropertiesWithRealmAndShard: (
+          applicationPropertiesPath: string,
+          realm: number,
+          shard: number,
+        ) => Promise<void>;
+      } = profileManager as unknown as {
+        remoteConfig: RemoteConfigRuntimeStateApi;
+        updateApplicationPropertiesWithRealmAndShard: (
+          applicationPropertiesPath: string,
+          realm: number,
+          shard: number,
+        ) => Promise<void>;
+      };
+
+      const configurationStub: sinon.SinonStub = sinon.stub(profileManagerPrivate.remoteConfig, 'configuration').get(
+        (): RemoteConfig =>
+          ({
+            state: {tssEnabled: true, wrapsEnabled: true},
+            versions: {consensusNode: new SemanticVersion<string>('v0.79.0')},
+          }) as unknown as RemoteConfig,
+      );
+
+      try {
+        await profileManagerPrivate.updateApplicationPropertiesWithRealmAndShard.call(
+          profileManager,
+          applicationPropertiesPath,
+          1,
+          2,
+        );
+      } finally {
+        configurationStub.restore();
+      }
+
+      const updatedApplicationProperties: string = fs.readFileSync(applicationPropertiesPath, 'utf8');
+
+      expect(updatedApplicationProperties).to.contain('tss.hintsEnabled=true');
+      expect(updatedApplicationProperties).to.not.contain('tss.wrapsEnabled');
     });
   });
 
