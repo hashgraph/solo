@@ -10,6 +10,7 @@ export class UpgradeChartOptionsBuilder {
   private _kubeContext?: string;
   private _reuseValues: boolean = false;
   private _valueArguments: string[] = [];
+  private _environmentVariables: Record<string, string> = {};
   private _version?: string;
   private _install: boolean = false;
   private _createNamespace: boolean = false;
@@ -99,6 +100,16 @@ export class UpgradeChartOptionsBuilder {
     return this;
   }
 
+  /**
+   * Sets the environment variables of the Helm process.
+   * @param environmentVariables The environment variables.
+   * @returns This builder instance.
+   */
+  public environmentVariables(environmentVariables: Record<string, string>): UpgradeChartOptionsBuilder {
+    this._environmentVariables = {...environmentVariables};
+    return this;
+  }
+
   public build(): UpgradeChartOptions {
     return new UpgradeChartOptions(
       this._namespace,
@@ -109,6 +120,7 @@ export class UpgradeChartOptionsBuilder {
       this._install,
       this._createNamespace,
       this._dependencyUpdate,
+      {...this._environmentVariables},
     );
   }
 }

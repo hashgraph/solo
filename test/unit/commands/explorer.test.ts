@@ -120,6 +120,7 @@ const createDeployConfig: (namespaceName: string) => Record<string, unknown> = (
   mirrorNodeId: 1,
   mirrorNamespace: 'mirror-ns',
   mirrorNodeReleaseName: 'mirror-1',
+  mirrorNodeIngressControllerName: 'mirror-ingress-controller-mirror-ns',
   isMirrorNodeLegacyChartInstalled: false,
 });
 
@@ -154,6 +155,7 @@ const createUpgradeConfig: (namespaceName: string) => Record<string, unknown> = 
   mirrorNodeId: 1,
   mirrorNamespace: 'mirror-ns',
   mirrorNodeReleaseName: 'mirror-1',
+  mirrorNodeIngressControllerName: 'mirror-ingress-controller-mirror-ns',
   isMirrorNodeLegacyChartInstalled: false,
 });
 
@@ -372,6 +374,7 @@ const createHarness: (sandbox: SinonSandbox) => Promise<ExplorerHarness> = async
     mirrorNodeId: 1,
     mirrorNamespace: 'mirror-ns',
     mirrorNodeReleaseName: 'mirror-1',
+    mirrorNodeIngressControllerName: 'mirror-ingress-controller-mirror-ns',
   });
   // @ts-expect-error: Sinon stub typing requires unsafe cast for mocking private methods
   sandbox.stub(command, 'throwIfNamespaceIsMissing').resolves();
@@ -470,6 +473,29 @@ describe('ExplorerCommand unit tests', (): void => {
     expect(helmArguments).to.include(`mirrorNodeServices.restjava=${ingressControllerUrl}`);
     expect(helmArguments).to.include(`mirrorNodeServices.web3=${ingressControllerUrl}`);
     expect(helmArguments).to.not.include('proxyPass.');
+  });
+
+  it('should point the explorer at the ingress controller of the selected mirror node', async (): Promise<void> => {
+    const harness: ExplorerHarness = await createHarness(sandbox);
+    const command: ExplorerCommandInternal = harness.command as unknown as ExplorerCommandInternal;
+
+    // @ts-expect-error: Type '{}' has no call signatures (Kubernetes client methods are stubbed)
+    const kubernetesClient: Record<string, unknown> = harness.k8Factory.getK8('cluster-context-1') as Record<
+      string,
+      unknown
+    >;
+    const servicesClient: Record<string, unknown> = (kubernetesClient.services as () => Record<string, unknown>)();
+    (servicesClient.list as SinonStub).resolves([{metadata: {name: 'mirror-ingress-controller-mirror-ns-2'}}]);
+
+    const chartValues: HelmChartValues = await command.prepareHederaExplorerChartValues({
+      ...createDeployConfig('explorer'),
+      mirrorNodeIngressControllerName: 'mirror-ingress-controller-mirror-ns-2',
+    });
+
+    expect(chartValues.toArguments().join(' ')).to.include(
+      // eslint-disable-next-line unicorn/prefer-https
+      'mirrorNodeServices.rest=http://mirror-ingress-controller-mirror-ns-2.mirror-ns.svc.cluster.local',
+    );
   });
 
   it('should set explorer service type to LoadBalancer only when load balancer is enabled', async (): Promise<void> => {
