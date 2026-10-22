@@ -2,7 +2,7 @@
 // using a different version than the one in version.ts to test backwards compatibility
 
 export const TEST_UPGRADE_FROM_VERSION: string = 'v0.75.1';
-export const TEST_UPGRADE_TO_VERSION: string = 'v0.77.2';
+export const TEST_UPGRADE_TO_VERSION: string = 'v0.78.1';
 
 // Do not delete, used by test script or Taskfile
 // PREV_BLOCK_NODE_VERSION must stay below MINIMUM_BLOCK_NODE_VERSION_FOR_16_SLOT_BLOCK_PROOF
