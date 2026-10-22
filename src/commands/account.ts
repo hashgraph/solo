@@ -36,6 +36,7 @@ import {
   type SoloListrTaskWrapper,
 } from '../types/index.js';
 import {Templates} from '../core/templates.js';
+import {GenesisKeyResolver} from '../core/genesis-key-resolver.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Base64} from 'js-base64';
 import {inject, injectable} from 'tsyringe-neo';
@@ -421,7 +422,11 @@ export class AccountCommand extends BaseCommand {
                 {
                   title: 'Update node admin key',
                   task: async ({config}: Context): Promise<void> => {
-                    const adminKey: PrivateKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+                    const adminKey: PrivateKey = await GenesisKeyResolver.resolve(
+                      this.k8Factory,
+                      this.remoteConfig.getContexts(),
+                      config.namespace,
+                    );
 
                     for (const nodeAlias of config.nodeAliases) {
                       const nodeId: NodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
