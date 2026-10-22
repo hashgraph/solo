@@ -57,6 +57,7 @@ concurrency:
 
 env:
   STEP_TIMEOUT_MINUTES: '5'
+  WSL_DISTRIBUTION: 'Ubuntu-24.04'
   # DOCKER_HOST is deliberately absent here: it names the WSL2 VM's address, which only exists
   # once the VM is up, and a value set here would shadow the one the job exports at runtime.
   ACTIONS_STEP_DEBUG: 'true'
@@ -151,6 +152,44 @@ jobs:
         timeout-minutes: 10
         run: |
           task build:compile
+
+      - name: Verify pinned Ubuntu WSL installer matches setup-wsl
+        shell: pwsh
+        timeout-minutes: 2
+        run: |
+          # setup-wsl hard-codes the installer version and URL per distribution. When they differ from
+          # the WSL_UBUNTU_* pins, the verified cache below is keyed on a version the action never
+          # looks up, so it silently falls back to downloading its own installer inside a 3-minute
+          # step and times out with no hint why. Fail here instead, naming the values to change.
+          $workflowFile = Join-Path $env:GITHUB_WORKSPACE '.github/workflows/flow-standard-runner-one-shot-windows.yaml'
+          $usesMatch = Select-String -Path $workflowFile -Pattern 'uses:\s*Vampire/setup-wsl@([0-9a-f]{40})' | Select-Object -First 1
+          if (-not $usesMatch) {
+            throw "Could not find the pinned Vampire/setup-wsl commit in $workflowFile"
+          }
+          $actionSha = $usesMatch.Matches[0].Groups[1].Value
+
+          $bundleUrl = "https://raw.githubusercontent.com/Vampire/setup-wsl/$actionSha/build/distributions/index.mjs"
+          $bundle = (Invoke-WebRequest -Uri $bundleUrl -UseBasicParsing -TimeoutSec 60).Content
+          $pattern = "'" + [regex]::Escape($env:WSL_DISTRIBUTION) + "',\s*'Ubuntu',\s*new [\w.]*SemVer\('([^']+)'\),\s*new URL\('([^']+)'\)"
+          $distributionMatch = [regex]::Match($bundle, $pattern)
+          if (-not $distributionMatch.Success) {
+            throw "Could not find $env:WSL_DISTRIBUTION in Vampire/setup-wsl@$actionSha ($bundleUrl); its distribution table layout may have changed"
+          }
+          $actionVersion = $distributionMatch.Groups[1].Value
+          $actionUrl = $distributionMatch.Groups[2].Value
+
+          Write-Host "setup-wsl@$actionSha resolves $env:WSL_DISTRIBUTION to version $actionVersion ($actionUrl)"
+          Write-Host "Workflow pins version $env:WSL_UBUNTU_VERSION ($env:WSL_UBUNTU_INSTALLER_URL)"
+
+          if ($actionVersion -ne $env:WSL_UBUNTU_VERSION -or $actionUrl -ne $env:WSL_UBUNTU_INSTALLER_URL) {
+            $message = "Pinned Ubuntu WSL installer does not match setup-wsl. " +
+              "Vampire/setup-wsl@$actionSha resolves $env:WSL_DISTRIBUTION to $actionVersion ($actionUrl), " +
+              "but WSL_UBUNTU_VERSION/WSL_UBUNTU_INSTALLER_URL pin $env:WSL_UBUNTU_VERSION ($env:WSL_UBUNTU_INSTALLER_URL). " +
+              "Update WSL_UBUNTU_VERSION, WSL_UBUNTU_INSTALLER_FILE, WSL_UBUNTU_INSTALLER_URL and WSL_UBUNTU_INSTALLER_SHA256 " +
+              "to the installer setup-wsl expects; otherwise the Setup WSL2 step ignores the cache and times out downloading it."
+            Write-Host "::error title=WSL Ubuntu installer pin out of sync with setup-wsl::$message"
+            throw $message
+          }
 
       - name: Restore verified Ubuntu WSL installer cache
         id: restore_ubuntu_wsl_installer
@@ -254,7 +293,7 @@ jobs:
         # apt call this job needs lives in "Install Docker in WSL2" with its own timeout.
         timeout-minutes: 3
         with:
-          distribution: Ubuntu-24.04
+          distribution: ${{ env.WSL_DISTRIBUTION }}
           wsl-version: 2
           use-cache: false
           set-as-default: true
