@@ -2,7 +2,7 @@
 
 import {Flags as flags} from '../../src/commands/flags.js';
 import {Helpers} from '../../src/core/helpers.js';
-import {getTestCacheDirectory, getTestCluster} from '../test-utility.js';
+import {getTestCacheDirectory, getTestCluster} from '../e2e/test-utility.js';
 import {type NamespaceName} from '../../src/types/namespace/namespace-name.js';
 import {type CommandFlag} from '../../src/types/flag-types.js';
 import {type ArgvStruct, type NodeAliases} from '../../src/types/aliases.js';
