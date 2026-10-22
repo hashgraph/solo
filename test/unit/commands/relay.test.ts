@@ -57,6 +57,7 @@ const createRelayConfig: (overrides?: Record<string, unknown>) => Record<string,
   [flags.deployment.constName]: 'deployment',
   [flags.mirrorNamespace.constName]: 'solo-e2e',
   mirrorNodeReleaseName: 'mirror-1',
+  mirrorNodeIngressControllerName: 'mirror-ingress-controller-solo-e2e',
   ...overrides,
 });
 
@@ -99,6 +100,7 @@ describe('RelayCommand unit tests', (): void => {
       createRelayConfig({
         [flags.mirrorNamespace.constName]: 'mirror-ns',
         mirrorNodeReleaseName: 'mirror-1',
+        mirrorNodeIngressControllerName: 'mirror-ingress-controller-mirror-ns',
       }),
     );
 

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {MirrorNodeResourceNames} from '../core/mirror-node-resource-names.js';
 import {SoloErrors} from '../core/errors/solo-errors.js';
 import chalk from 'chalk';
 import * as fs from 'node:fs';
@@ -708,7 +709,14 @@ export class AccountCommand extends BaseCommand {
                 ContainerName.of('postgresql'),
               );
 
-              const mirrorPasswordsSecret: Secret = await k8.secrets().read(namespace, 'mirror-passwords');
+              const mirrorNodeNames: MirrorNodeResourceNames = await MirrorNodeResourceNames.resolveExisting(
+                k8,
+                namespace,
+                mirrorNode.metadata.id,
+              );
+              const mirrorPasswordsSecret: Secret = await k8
+                .secrets()
+                .read(namespace, mirrorNodeNames.passwordsSecretName);
               const ownerKey: string | undefined = Object.keys(mirrorPasswordsSecret.data).find(
                 (key: string): boolean => key.endsWith('_MIRROR_IMPORTER_DB_OWNER'),
               );
