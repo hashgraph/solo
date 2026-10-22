@@ -6,7 +6,7 @@ import {describe, it} from 'mocha';
 import {ConfigManager} from '../../../src/core/config-manager.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {container} from 'tsyringe-neo';
-import {BASE_TEST_DIR, getTestLogger} from '../../test-utility.js';
+import {BASE_TEST_DIR, getTestLogger} from '../../e2e/test-utility.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {Argv} from '../../helpers/argv-wrapper.js';
 import {SoloPinoLogger} from '../../../src/core/logging/solo-pino-logger.js';

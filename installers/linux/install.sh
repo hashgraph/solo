@@ -19,7 +19,7 @@ PATH_BLOCK_END='# <<< solo installer <<<'
 version='latest'
 install_directory="${SOLO_INSTALL_DIR:-${DEFAULT_INSTALL_DIRECTORY}}"
 base_url="${SOLO_REPOSITORY_URL}/releases"
-skip_image_cache='false'
+with_image_cache='false'
 work_directory=''
 staged_binary=''
 
@@ -32,7 +32,7 @@ Usage: install.sh [options]
 Options:
   --version <tag>      Release to install, for example v0.92.0 (default: latest)
   --prefix <dir>       Directory for the solo binary (default: ~/.solo/bin, or SOLO_INSTALL_DIR)
-  --skip-image-cache   Do not run 'solo cache image pull' after installing
+  --with-image-cache   Run 'solo cache image pull' after installing to download the images Solo deploys
   --base-url <url>     Release download base URL (default: ${SOLO_REPOSITORY_URL}/releases)
   -h, --help           Show this help
 EOF
@@ -81,8 +81,12 @@ parse_arguments() {
         base_url="${2%/}"
         shift 2
         ;;
+      --with-image-cache)
+        with_image_cache='true'
+        shift
+        ;;
       --skip-image-cache)
-        skip_image_cache='true'
+        # The image download is opt-in now; still accepted so install commands that pass it keep working.
         shift
         ;;
       -h | --help)
@@ -152,11 +156,34 @@ compute_sha256() {
   fi
 }
 
+# Prints the local cosign version as "major minor patch", or nothing when cosign does not report one.
+cosign_version() {
+  cosign version 2>&1 |
+    sed -n 's/^GitVersion:[[:space:]]*v\{0,1\}\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\).*/\1 \2 \3/p' |
+    head -n 1
+}
+
 # Verifies the SHA256SUMS signature when cosign is installed; the checksum check itself always runs.
 verify_checksums_signature() {
   if ! command -v cosign >/dev/null 2>&1; then
     info "cosign not found; skipping signature verification of ${CHECKSUMS_ASSET} (checksum is still verified)"
     return 0
+  fi
+
+  read -r cosign_major cosign_minor cosign_patch <<EOF
+$(cosign_version)
+EOF
+  # The release bundles use the Sigstore bundle format: cosign 2.4.2 reads it, 2.4.1 needs a flag, older releases cannot.
+  bundle_format_option=''
+  if [ -n "${cosign_patch}" ]; then
+    cosign_release=$((cosign_major * 1000000 + cosign_minor * 1000 + cosign_patch))
+    if [ "${cosign_release}" -lt 2004001 ]; then
+      warn "cosign ${cosign_major}.${cosign_minor}.${cosign_patch} cannot verify the release signature (needs 2.4.1 or later); skipping signature verification of ${CHECKSUMS_ASSET} (checksum is still verified)"
+      return 0
+    fi
+    if [ "${cosign_release}" -lt 2004002 ]; then
+      bundle_format_option='--new-bundle-format'
+    fi
   fi
 
   bundle="${work_directory}/${CHECKSUMS_ASSET}.sigstore.json"
@@ -166,6 +193,7 @@ verify_checksums_signature() {
   fi
 
   if ! cosign_output="$(cosign verify-blob \
+    ${bundle_format_option:+"${bundle_format_option}"} \
     --bundle "${bundle}" \
     --certificate-identity-regexp "^${SOLO_REPOSITORY_URL}/\\.github/workflows/" \
     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
@@ -280,8 +308,8 @@ warn_if_shadowed() {
 }
 
 warm_image_cache() {
-  if [ "${skip_image_cache}" = 'true' ]; then
-    info "skipped the image cache; run 'solo cache image pull' before your first deployment to speed it up"
+  if [ "${with_image_cache}" != 'true' ]; then
+    info "run 'solo cache image pull' before your first deployment to speed it up"
     return 0
   fi
 
@@ -291,7 +319,7 @@ warm_image_cache() {
     return 0
   fi
 
-  info 'pre-pulling the container images Solo deploys (skip with --skip-image-cache)'
+  info 'pre-pulling the container images Solo deploys'
   # stdin is redirected so solo cannot read the rest of this script when it is piped into sh.
   if ! (unset SOLO_INSTALL_DIR && "${install_directory}/solo" cache image pull --quiet-mode </dev/null); then
     warn "the image cache was not fully populated; run 'solo cache image pull' to retry"

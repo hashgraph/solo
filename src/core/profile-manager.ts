@@ -38,6 +38,7 @@ import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {type PodReference} from '../integration/kube/resources/pod/pod-reference.js';
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import {type Container} from '../integration/kube/resources/container/container.js';
+import {NetworkNodeLifecycle} from './network-node-lifecycle.js';
 
 @injectable()
 export class ProfileManager {
@@ -81,6 +82,11 @@ export class ProfileManager {
     let current: AnyObject = parent;
     let previousItemPath: string | number = '';
     for (const itemPathPart of itemPathParts) {
+      // a profile file must not be able to reach Object.prototype through the path
+      if (['__proto__', 'constructor', 'prototype'].includes(itemPathPart)) {
+        throw new SoloErrors.validation.illegalArgument(`Unsafe item path: ${itemPath}`, itemPath);
+      }
+
       if (Numbers.isNumeric(itemPathPart)) {
         const itemPathIndex: number = Number.parseInt(itemPathPart, 10); // numeric path part can only be array index
         if (!Array.isArray(parent[previousItemPath])) {
@@ -185,6 +191,7 @@ export class ProfileManager {
 
     await this.updateApplicationPropertiesForBlockNode(applicationPropertiesPath);
     await this.updateApplicationPropertiesWithChainId(applicationPropertiesPath, resolvedStagingOptions.chainId);
+    await this.updateApplicationPropertiesWithGenesisPublicKey(applicationPropertiesPath);
 
     for (const flag of flags.nodeConfigFileFlags.values()) {
       const sourceFilePath: string = this.configManager.getFlagFile(flag);
@@ -232,6 +239,7 @@ export class ProfileManager {
           );
           await this.updateApplicationPropertiesForBlockNode(destinationPath);
           await this.updateApplicationPropertiesWithChainId(destinationPath, resolvedStagingOptions.chainId);
+          await this.updateApplicationPropertiesWithGenesisPublicKey(destinationPath);
         }
       } else {
         fs.cpSync(sourceAbsoluteFilePath, destinationPath, {force: true});
@@ -454,6 +462,14 @@ export class ProfileManager {
         this._setChartItems('defaults.root', soloValuesYaml.defaults.root, yamlRoot);
       }
 
+      // Use the released consensus node image as the root container image when requested (and tell the chart its
+      // jar files are baked in). Set after the JFR block above so it is merged into defaults rather than overwritten.
+      this._setChartItems(
+        'defaults',
+        NetworkNodeLifecycle.buildDefaultsValues(this.resolveStagingOptions(stagingOptions).releaseTag),
+        yamlRoot,
+      );
+
       // Override defaults.root.extraEnv with values from the staged application.env file.
       // This must run AFTER the JFR block above, which overwrites defaults.root from solo-values.yaml.
       const stagingDirectory: string = Templates.renderStagingDir(
@@ -611,6 +627,23 @@ export class ProfileManager {
     await writeFile(applicationPropertiesPath, lines.join('\n') + '\n');
   }
 
+  /**
+   * Configure the consensus node's genesis public key (raw ed25519 key as hex) so that system accounts and files are
+   * created with the key matching the genesis private key Solo stores for the network.
+   */
+  private async updateApplicationPropertiesWithGenesisPublicKey(applicationPropertiesPath: string): Promise<void> {
+    const fileText: string = await readFile(applicationPropertiesPath, 'utf8');
+    const lines: string[] = fileText.split('\n');
+
+    Helpers.upsertApplicationProperty(
+      lines,
+      'bootstrap.genesisPublicKey',
+      Buffer.from(constants.GENESIS_PUBLIC_KEY.toBytesRaw()).toString('hex'),
+    );
+
+    await writeFile(applicationPropertiesPath, lines.join('\n') + '\n');
+  }
+
   private async updateBoostrapPropertiesWithChainId(bootstrapPropertiesPath: string, chainId: string): Promise<void> {
     const fileText: string = await readFile(bootstrapPropertiesPath, 'utf8');
     const lines: string[] = fileText.split('\n');
@@ -663,7 +696,7 @@ export class ProfileManager {
       }
 
       if (
-        this.remoteConfig.configuration.state.wrapsEnabled &&
+        Helpers.shouldProvisionWraps(this.remoteConfig.configuration.state.wrapsEnabled, releaseTag) &&
         !ProfileManager.hasApplicationProperty(lines, 'tss.wrapsEnabled')
       ) {
         Helpers.upsertApplicationProperty(lines, 'tss.wrapsEnabled', 'true');
@@ -862,9 +895,7 @@ export class ProfileManager {
     }
 
     const configFilePath: string = PathEx.join(destinationPath, 'config.txt');
-    if (fs.existsSync(configFilePath)) {
-      fs.unlinkSync(configFilePath);
-    }
+    fs.rmSync(configFilePath, {force: true});
 
     // init variables
     const internalPort: number = +constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT;

@@ -20,9 +20,12 @@ import {type SoloListrTask} from '../../../src/types/index.js';
 import {type ArgvStruct} from '../../../src/types/aliases.js';
 import path from 'node:path';
 import yaml from 'yaml';
+import * as Base64 from 'js-base64';
 import {SemanticVersion} from '../../../src/business/utils/semantic-version.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {Flags} from '../../../src/commands/flags.js';
+import {MirrorNodeResourceNames} from '../../../src/core/mirror-node-resource-names.js';
+import {HelmPostRenderer} from '../../../src/integration/helm/helm-post-renderer.js';
 import {FlagValidation} from '../../../src/commands/validation/flag-validation.js';
 
 interface MirrorNodeMemoryOverrideConfig {
@@ -65,11 +68,13 @@ interface MirrorNodeCommandInternal {
   primePostgresSecretTask: () => SoloListrTask<MirrorNodeDatabaseTaskContext>;
   waitForMirrorNodeSchemaTask: () => SoloListrTask<MirrorNodeSchemaWaitTaskContext>;
   enableDebuggerPortForwardingTask: () => SoloListrTask<MirrorNodeDebuggerTaskContext>;
-  k8Factory: {getK8: (context: string) => {pods: () => MirrorNodeSchemaWaitPodsStub}};
+  k8Factory: {getK8: (context: string) => Record<string, unknown>};
+  chartManager: {getHelmMajorVersion: sinon.SinonStub};
   prepareBlockNodeIntegrationValues: (config: {
     cacheDir: string;
     clusterReference: string;
     forceBlockNodeIntegration?: boolean;
+    mirrorNodeSource?: string;
     mirrorNodeVersion: string;
   }) => HelmChartValues;
   shouldReuseValuesOnUpgrade: (
@@ -78,6 +83,9 @@ interface MirrorNodeCommandInternal {
     commandType: string,
   ) => boolean;
   prepareHelmChartValues: (config: Record<string, unknown>) => Promise<HelmChartValues>;
+  prepareResourceNameChartValues: (config: Record<string, unknown>) => Promise<HelmChartValues>;
+  hasOtherMirrorNodes: (id: number, clusterReference: string, namespace: NamespaceName) => boolean;
+  disableSharedResourceComponents: () => SoloListrTask<MirrorNodeDestroyTaskContext>;
   validateComponentImageArchive: (componentImage: string | string[], componentImageArchive: string) => void;
   isLocalImageAvailableInDocker: (componentImage: string) => boolean;
   kindLoadComponentImage: (
@@ -101,6 +109,14 @@ interface MirrorNodeDatabaseTaskContext {
   config: {
     useExternalDatabase: boolean;
     installSharedResources: boolean;
+  };
+}
+
+interface MirrorNodeDestroyTaskContext {
+  config: {
+    id: number;
+    clusterReference: string;
+    namespace: NamespaceName;
   };
 }
 
@@ -221,6 +237,46 @@ interface MirrorNodeIntegrationValues {
       };
     };
   };
+}
+
+function withMirrorNodes(
+  mirrorNodeCommandInternal: MirrorNodeCommandInternal,
+  mirrorNodes: {metadata: {id: number; cluster: string; namespace: string}}[],
+  isLoaded: boolean = true,
+): void {
+  (mirrorNodeCommandInternal as unknown as Record<string, unknown>).remoteConfig = {
+    isLoaded: (): boolean => isLoaded,
+    configuration: {components: {state: {mirrorNodes}}},
+  };
+}
+
+function withBlockNodes(
+  mirrorNodeCommandInternal: MirrorNodeCommandInternal,
+  blockNodes: {metadata: {cluster: string; id: number; namespace: string}}[],
+): void {
+  mirrorNodeCommandInternal.remoteConfig = {
+    configuration: {
+      components: {state: {blockNodes}},
+      clusters: [{name: 'cluster-a', dnsBaseDomain: 'cluster.local'}],
+      versions: {
+        consensusNode: {greaterThanOrEqual: (): boolean => true},
+        blockNodeChart: {greaterThanOrEqual: (): boolean => true},
+      },
+    },
+  };
+}
+
+function integrationValues(
+  mirrorNodeCommandInternal: MirrorNodeCommandInternal,
+  mirrorNodeSource?: string,
+): HelmChartValues {
+  return mirrorNodeCommandInternal.prepareBlockNodeIntegrationValues({
+    cacheDir: os.tmpdir(),
+    clusterReference: 'cluster-a',
+    forceBlockNodeIntegration: true,
+    mirrorNodeSource,
+    mirrorNodeVersion: '0.163.0',
+  });
 }
 
 describe('MirrorNodeCommand unit tests', (): void => {
@@ -361,6 +417,7 @@ describe('MirrorNodeCommand unit tests', (): void => {
     sinon.stub(mirrorNodeCommandInternal, 'validateComponentImageArchive');
 
     const chartValues: HelmChartValues = await mirrorNodeCommandInternal.prepareHelmChartValues({
+      resourceNames: MirrorNodeResourceNames.primary(),
       valuesFile: '',
       mirrorNodeVersion: '0.157.0',
       componentImage: 'ghcr.io/hiero-ledger/hiero-mirror:0.157.0',
@@ -399,6 +456,7 @@ describe('MirrorNodeCommand unit tests', (): void => {
       .callsFake((componentImage: string): boolean => componentImage.includes('-importer:'));
 
     const chartValues: HelmChartValues = await mirrorNodeCommandInternal.prepareHelmChartValues({
+      resourceNames: MirrorNodeResourceNames.primary(),
       valuesFile: '',
       mirrorNodeVersion: '0.157.0',
       componentImage: 'hedera-mirror:0.157.0',
@@ -438,6 +496,7 @@ describe('MirrorNodeCommand unit tests', (): void => {
       debugMirrorNodeComponent: string,
     ): Promise<string[]> => {
       const chartValues: HelmChartValues = await mirrorNodeCommandInternal.prepareHelmChartValues({
+        resourceNames: MirrorNodeResourceNames.primary(),
         debugMirrorNodeComponent,
         valuesFile: userValuesFile,
         mirrorNodeVersion: '0.163.0',
@@ -455,6 +514,190 @@ describe('MirrorNodeCommand unit tests', (): void => {
       debugArguments.indexOf(userValuesFile),
     );
     expect(await prepare('')).to.not.include(constants.MIRROR_NODE_DEBUG_VALUES_FILE);
+  });
+
+  describe('prepareResourceNameChartValues', (): void => {
+    it('adds nothing for the primary mirror node', async (): Promise<void> => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+
+      const chartValues: HelmChartValues = await mirrorNodeCommandInternal.prepareResourceNameChartValues({
+        resourceNames: MirrorNodeResourceNames.primary(),
+      });
+
+      expect(chartValues.isEmpty()).to.be.true;
+    });
+
+    it('renames the passwords secret and sets distinct database users and passwords for another mirror node', async (): Promise<void> => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      const replacerStub: sinon.SinonStub = sinon
+        .stub(HelmPostRenderer, 'replacer')
+        .returns(new HelmChartValues().arguments('--post-renderer', '/cache/renderer.sh'));
+      mirrorNodeCommandInternal.chartManager = {getHelmMajorVersion: sinon.stub().resolves(3)};
+      const secrets: {exists: sinon.SinonStub; read: sinon.SinonStub} = {
+        exists: sinon.stub().resolves(false),
+        read: sinon.stub(),
+      };
+      mirrorNodeCommandInternal.k8Factory = {
+        getK8: (): {secrets: () => typeof secrets} => ({secrets: (): typeof secrets => secrets}),
+      };
+
+      const chartValues: HelmChartValues = await mirrorNodeCommandInternal.prepareResourceNameChartValues({
+        resourceNames: MirrorNodeResourceNames.forId(2),
+        namespace: {name: 'solo'},
+        clusterContext: 'kind-a',
+        useExternalDatabase: false,
+      });
+
+      const valueArguments: string[] = chartValues.toArguments();
+      expect(replacerStub).to.have.been.calledWith(sinon.match.string, 3, 'mirror-passwords', 'mirror-passwords-2');
+      expect(valueArguments.slice(valueArguments.indexOf('--post-renderer'))[1]).to.equal('/cache/renderer.sh');
+      expect(valueArguments).to.include('db.owner.username=mirror_node_2');
+      expect(valueArguments).to.include('importer.db.username=mirror_importer_2');
+      expect(valueArguments).to.include('web3.db.username=mirror_web3_2');
+      const passwords: string[] = valueArguments.filter((argument: string): boolean => /\.password=/.test(argument));
+      expect(passwords).to.have.length(8);
+      expect(new Set(passwords).size).to.equal(8);
+    });
+
+    it('reuses the passwords of an existing secret so they stay stable across upgrades', async (): Promise<void> => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      sinon
+        .stub(HelmPostRenderer, 'replacer')
+        .returns(new HelmChartValues().arguments('--post-renderer', '/cache/renderer.sh'));
+      mirrorNodeCommandInternal.chartManager = {getHelmMajorVersion: sinon.stub().resolves(3)};
+      const secrets: {exists: sinon.SinonStub; read: sinon.SinonStub} = {
+        exists: sinon.stub().resolves(true),
+        read: sinon.stub().resolves({data: {HIERO_MIRROR_WEB3_DB_PASSWORD: Base64.encode('kept-password')}}),
+      };
+      mirrorNodeCommandInternal.k8Factory = {
+        getK8: (): {secrets: () => typeof secrets} => ({secrets: (): typeof secrets => secrets}),
+      };
+
+      const chartValues: HelmChartValues = await mirrorNodeCommandInternal.prepareResourceNameChartValues({
+        resourceNames: MirrorNodeResourceNames.forId(2),
+        namespace: {name: 'solo'},
+        clusterContext: 'kind-a',
+        useExternalDatabase: false,
+      });
+
+      expect(secrets.read).to.have.been.calledWith({name: 'solo'}, 'mirror-passwords-2');
+      expect(chartValues.toArguments()).to.include('web3.db.password=kept-password');
+    });
+  });
+
+  describe('hasOtherMirrorNodes', (): void => {
+    const namespace: NamespaceName = NamespaceName.of('solo');
+
+    it('is false when the mirror node is the only one registered', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withMirrorNodes(mirrorNodeCommandInternal, [{metadata: {id: 1, cluster: 'cluster-a', namespace: 'solo'}}]);
+
+      expect(mirrorNodeCommandInternal.hasOtherMirrorNodes(1, 'cluster-a', namespace)).to.be.false;
+    });
+
+    it('is true when another mirror node shares the cluster and namespace', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withMirrorNodes(mirrorNodeCommandInternal, [
+        {metadata: {id: 1, cluster: 'cluster-a', namespace: 'solo'}},
+        {metadata: {id: 2, cluster: 'cluster-a', namespace: 'solo'}},
+      ]);
+
+      expect(mirrorNodeCommandInternal.hasOtherMirrorNodes(1, 'cluster-a', namespace)).to.be.true;
+      expect(mirrorNodeCommandInternal.hasOtherMirrorNodes(2, 'cluster-a', namespace)).to.be.true;
+    });
+
+    it('ignores mirror nodes in other clusters, which have their own shared resources', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withMirrorNodes(mirrorNodeCommandInternal, [
+        {metadata: {id: 1, cluster: 'cluster-a', namespace: 'solo'}},
+        {metadata: {id: 2, cluster: 'cluster-b', namespace: 'solo'}},
+      ]);
+
+      expect(mirrorNodeCommandInternal.hasOtherMirrorNodes(1, 'cluster-a', namespace)).to.be.false;
+    });
+
+    it('is false when remote config is not loaded', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withMirrorNodes(mirrorNodeCommandInternal, [], false);
+
+      expect(mirrorNodeCommandInternal.hasOtherMirrorNodes(1, 'cluster-a', namespace)).to.be.false;
+    });
+
+    it('keeps the shared resource components in remote config while other mirror nodes use them', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withMirrorNodes(mirrorNodeCommandInternal, [
+        {metadata: {id: 1, cluster: 'cluster-a', namespace: 'solo'}},
+        {metadata: {id: 2, cluster: 'cluster-a', namespace: 'solo'}},
+      ]);
+      const skip: (context: MirrorNodeDestroyTaskContext) => boolean =
+        mirrorNodeCommandInternal.disableSharedResourceComponents().skip as (
+          context: MirrorNodeDestroyTaskContext,
+        ) => boolean;
+
+      expect(skip({config: {id: 2, clusterReference: 'cluster-a', namespace}})).to.be.true;
+
+      withMirrorNodes(mirrorNodeCommandInternal, [{metadata: {id: 1, cluster: 'cluster-a', namespace: 'solo'}}]);
+      expect(skip({config: {id: 1, clusterReference: 'cluster-a', namespace}})).to.be.false;
+    });
+  });
+
+  describe('--mirror-node-source', (): void => {
+    const blockNode: {metadata: {cluster: string; id: number; namespace: string}} = {
+      metadata: {cluster: 'cluster-a', id: 1, namespace: 'solo'},
+    };
+
+    it('imports from the block node with auto and with block-node when a block node is deployed', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withBlockNodes(mirrorNodeCommandInternal, [blockNode]);
+
+      expect(integrationValues(mirrorNodeCommandInternal, 'auto').isEmpty()).to.be.false;
+      expect(integrationValues(mirrorNodeCommandInternal, 'block-node').isEmpty()).to.be.false;
+      expect(integrationValues(mirrorNodeCommandInternal).isEmpty()).to.be.false;
+    });
+
+    it('keeps importing from the bucket with bucket even though a block node is deployed', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withBlockNodes(mirrorNodeCommandInternal, [blockNode]);
+
+      expect(integrationValues(mirrorNodeCommandInternal, 'bucket').isEmpty()).to.be.true;
+    });
+
+    it('falls back to the bucket with auto when no block node is deployed', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withBlockNodes(mirrorNodeCommandInternal, []);
+
+      expect(integrationValues(mirrorNodeCommandInternal, 'auto').isEmpty()).to.be.true;
+    });
+
+    it('fails with block-node instead of silently falling back to the bucket', (): void => {
+      const mirrorNodeCommandInternal: MirrorNodeCommandInternal =
+        mirrorNodeCommand as unknown as MirrorNodeCommandInternal;
+      withBlockNodes(mirrorNodeCommandInternal, []);
+
+      expect((): HelmChartValues => integrationValues(mirrorNodeCommandInternal, 'block-node')).to.throw(
+        'block node integration does not apply in cluster cluster-a',
+      );
+    });
+
+    it('rejects values other than auto, bucket and block-node', (): void => {
+      expect(FlagValidation.violationOf(Flags.mirrorNodeSource, 'bucket')).to.be.undefined;
+      expect(FlagValidation.violationOf(Flags.mirrorNodeSource, 'block-node')).to.be.undefined;
+      expect(FlagValidation.violationOf(Flags.mirrorNodeSource, 'auto')).to.be.undefined;
+      expect(FlagValidation.violationOf(Flags.mirrorNodeSource, 'minio')).to.equal(
+        'must be one of: auto, bucket, block-node',
+      );
+    });
   });
 
   it('should accept only importer for --debug-mirror-node-component', (): void => {
