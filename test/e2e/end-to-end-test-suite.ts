@@ -2,7 +2,7 @@
 
 import {type NamespaceName} from '../../src/types/namespace/namespace-name.js';
 import {type ClusterReferenceName, type ClusterReferences, type DeploymentName} from '../../src/types/index.js';
-import {getTestCacheDirectory, getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../test-utility.js';
+import {getTestCacheDirectory, getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from './test-utility.js';
 import {type SoloLogger} from '../../src/core/logging/solo-logger.js';
 import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
 import {container} from 'tsyringe-neo';

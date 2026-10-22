@@ -49,10 +49,11 @@ export class K8ClientIngresses implements Ingresses {
   public async update(namespace: NamespaceName, name: string, patch: object): Promise<void> {
     const ingresses: string[] = [];
     try {
-      const result: V1IngressList = await this.networkingApi.listIngressForAllNamespaces();
+      const result: V1IngressList = await this.networkingApi.listNamespacedIngress({namespace: namespace.name});
       for (const ingress of result.items) {
         const currentIngressName: string = ingress.metadata.name;
-        if (currentIngressName.includes(name)) {
+        // an Ingress belongs to the release when its name is the release name or is prefixed by it
+        if (currentIngressName === name || currentIngressName.startsWith(`${name}-`)) {
           ingresses.push(currentIngressName);
         }
       }

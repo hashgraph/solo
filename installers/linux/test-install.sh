@@ -170,7 +170,8 @@ check 'binary is executable' test -x "${HOME}/.solo/bin/solo"
 check 'installed binary runs' is_equal "$("${HOME}/.solo/bin/solo" --version)" '0.0.0-test'
 # shellcheck disable=SC2016 # the startup file holds this text literally
 check '.bashrc appends ~/.solo/bin to PATH' contains "${HOME}/.bashrc" 'export PATH="$PATH:$HOME/.solo/bin"'
-check 'image cache pull ran in quiet mode' contains "${FAKE_SOLO_CALLS}" 'cache image pull --quiet-mode'
+check 'image cache pull is not run by default' test ! -e "${FAKE_SOLO_CALLS}"
+check 'image cache pull command is printed' contains "${HOME}/install.log" "run 'solo cache image pull' before your first deployment"
 check 'no staged file left behind' is_equal "$(find "${HOME}/.solo/bin" -name '.solo.install.*' | wc -l | tr -d ' ')" '0'
 
 printf '%s\n' 're-running changes nothing'
@@ -178,18 +179,26 @@ run_installer
 check '.bashrc still has one PATH block' is_equal "$(count_of "${HOME}/.bashrc" '# >>> solo installer >>>')" '1'
 
 begin_case 'piped into sh, solo cannot read the script'
-curl --fail --silent --show-error "file://${installer}" | sh -s -- --base-url "file://${release_directory}" >"${HOME}/install.log" 2>&1 || true
+curl --fail --silent --show-error "file://${installer}" | sh -s -- --base-url "file://${release_directory}" --with-image-cache >"${HOME}/install.log" 2>&1 || true
 check 'solo read nothing from stdin' is_equal "$(wc -c <"${FAKE_SOLO_STDIN}" | tr -d ' ')" '0'
 check 'install completed' contains "${HOME}/install.log" 'solo-install: done'
 
-begin_case 'installs a pinned version'
-run_installer --version 1.2.3 --skip-image-cache
+begin_case 'pulls the image cache with --with-image-cache'
+run_installer --with-image-cache
+check 'image cache pull ran in quiet mode' contains "${FAKE_SOLO_CALLS}" 'cache image pull --quiet-mode'
+
+begin_case 'still accepts --skip-image-cache'
+run_installer --skip-image-cache
 check 'binary is installed' test -x "${HOME}/.solo/bin/solo"
 check 'image cache pull was skipped' test ! -e "${FAKE_SOLO_CALLS}"
 
+begin_case 'installs a pinned version'
+run_installer --version 1.2.3
+check 'binary is installed' test -x "${HOME}/.solo/bin/solo"
+
 begin_case 'skips the image cache pull under sudo'
 export SUDO_USER='alice'
-run_installer
+run_installer --with-image-cache
 check 'image cache pull was skipped' test ! -e "${FAKE_SOLO_CALLS}"
 check 'pull command is printed for the sudo user' contains "${HOME}/install.log" "run 'solo cache image pull' as alice"
 
@@ -204,28 +213,28 @@ check 'error points to npm' contains "${HOME}/install.log" 'npm install -g @hier
 
 begin_case 'verifies the signature with cosign 2.4.2 or later'
 use_fake_cosign v2.4.2
-run_installer --version 5.5.5 --skip-image-cache
+run_installer --version 5.5.5
 check 'signature is verified' contains "${HOME}/install.log" 'verified the signature of SHA256SUMS'
 check 'cosign is not given --new-bundle-format' is_equal "$(count_of "${FAKE_COSIGN_CALLS}" '--new-bundle-format')" '0'
 check 'binary is installed' test -x "${HOME}/.solo/bin/solo"
 
 begin_case 'verifies the signature with cosign 2.4.1 through --new-bundle-format'
 use_fake_cosign v2.4.1
-run_installer --version 5.5.5 --skip-image-cache
+run_installer --version 5.5.5
 check 'signature is verified' contains "${HOME}/install.log" 'verified the signature of SHA256SUMS'
 check 'cosign is given --new-bundle-format' contains "${FAKE_COSIGN_CALLS}" '--new-bundle-format'
 check 'binary is installed' test -x "${HOME}/.solo/bin/solo"
 
 begin_case 'skips the signature check with cosign older than 2.4.1'
 use_fake_cosign v2.4.0
-run_installer --version 5.5.5 --skip-image-cache
+run_installer --version 5.5.5
 check 'warning names the cosign version' contains "${HOME}/install.log" 'cosign 2.4.0 cannot verify the release signature'
 check 'cosign verify-blob is not run' test ! -e "${FAKE_COSIGN_CALLS}"
 check 'binary is installed' test -x "${HOME}/.solo/bin/solo"
 
 begin_case 'verifies the signature when cosign reports no version number'
 use_fake_cosign devel
-run_installer --version 5.5.5 --skip-image-cache
+run_installer --version 5.5.5
 check 'signature is verified' contains "${HOME}/install.log" 'verified the signature of SHA256SUMS'
 
 begin_case 'rejects a tampered SHA256SUMS'
@@ -241,7 +250,7 @@ check 'error names the signature' contains "${HOME}/install.log" 'signature veri
 check 'nothing is installed' test ! -e "${HOME}/.solo/bin/solo"
 
 begin_case 'keeps the existing install when the new binary cannot run'
-run_installer --skip-image-cache
+run_installer
 check 'installer fails' test "$(run_installer --version v7.7.7 && echo passed || echo failed)" = 'failed'
 check 'error says the binary does not run' contains "${HOME}/install.log" 'does not run on this system'
 check 'previous binary still runs' is_equal "$("${HOME}/.solo/bin/solo" --version)" '0.0.0-test'

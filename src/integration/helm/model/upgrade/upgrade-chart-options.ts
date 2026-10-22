@@ -15,6 +15,7 @@ export class UpgradeChartOptions implements Options {
   private readonly _install?: boolean;
   private readonly _createNamespace?: boolean;
   private readonly _dependencyUpdate?: boolean;
+  private readonly _environmentVariables: Record<string, string>;
 
   public constructor(
     namespace?: string,
@@ -25,6 +26,7 @@ export class UpgradeChartOptions implements Options {
     install: boolean = false,
     createNamespace: boolean = false,
     dependencyUpdate: boolean = false,
+    environmentVariables: Record<string, string> = {},
   ) {
     this._namespace = namespace;
     this._kubeContext = kubeContext;
@@ -34,6 +36,7 @@ export class UpgradeChartOptions implements Options {
     this._install = install;
     this._createNamespace = createNamespace;
     this._dependencyUpdate = dependencyUpdate;
+    this._environmentVariables = {...environmentVariables};
   }
 
   /**
@@ -130,6 +133,10 @@ export class UpgradeChartOptions implements Options {
 
     if (this.valueArguments.length > 0) {
       builder.arguments(...this.valueArguments);
+    }
+
+    for (const [name, value] of Object.entries(this._environmentVariables)) {
+      builder.environmentVariable(name, value);
     }
 
     if (this.version) {
