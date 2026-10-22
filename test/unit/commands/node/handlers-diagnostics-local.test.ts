@@ -133,6 +133,7 @@ describe('NodeCommandHandlers - diagnostics local fallback', (): void => {
       initialize: initializeStub,
       getNodeLogsAndConfigs: sinon.stub().returns(dummyTask),
       getHelmChartValues: getHelmChartValuesStub,
+      collectPvcState: sinon.stub().returns(dummyTask),
       downloadHieroComponentLogs: downloadHieroComponentLogsStub,
       reportActivePortForwards: sinon.stub().returns(dummyTask),
     } as unknown as NodeCommandTasks;

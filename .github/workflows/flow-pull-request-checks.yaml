@@ -95,6 +95,12 @@ jobs:
     with:
       custom-job-label: Standard
 
+  check-production-overrides:
+    name: Production Overrides
+    uses: ./.github/workflows/zxc-check-production-overrides.yaml
+    with:
+      custom-job-label: Standard
+
   unit-tests:
     name: Unit Tests
     permissions:

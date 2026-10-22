@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {type KubernetesObject, type KubernetesObjectApi, PatchStrategy} from '@kubernetes/client-node';
+import {StatusCodes} from 'http-status-codes';
 import yaml from 'yaml';
 import fs from 'node:fs';
 import {type Manifests} from '../../../resources/manifest/manifests.js';
@@ -13,7 +14,7 @@ export class K8ClientManifests implements Manifests {
    * Uses server-side apply (Content-Type: application/apply-patch+yaml)
    * via KubernetesObjectApi.
    */
-  public async applyManifest(filePath: string): Promise<void> {
+  public async applyManifest(filePath: string, options?: {ignoreExisting?: boolean}): Promise<void> {
     const yamlText: string = fs.readFileSync(filePath, 'utf8');
 
     const documents: KubernetesObject[] = yaml
@@ -25,7 +26,20 @@ export class K8ClientManifests implements Manifests {
         continue;
       }
 
-      await this.k8sObjectApi.create(document);
+      try {
+        await this.k8sObjectApi.create(document);
+      } catch (error) {
+        if (options?.ignoreExisting) {
+          const statusCode: number =
+            (error as {code?: number; statusCode?: number}).code ??
+            (error as {code?: number; statusCode?: number}).statusCode ??
+            0;
+          if (statusCode === StatusCodes.CONFLICT) {
+            continue;
+          }
+        }
+        throw error;
+      }
     }
   }
 

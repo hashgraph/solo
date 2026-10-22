@@ -31,6 +31,8 @@ export interface NetworkDeployConfigClass {
   grpcTlsKeyPath: string;
   grpcWebTlsKeyPath: string;
   genesisThrottlesFile: string;
+  pvcStorageClass: string;
+  resolvedPvcStorageClass: Record<ClusterReferenceName, string>;
   resolvedThrottlesFile: string;
   haproxyIps: string;
   envoyIps: string;

@@ -103,6 +103,7 @@ import {OsPackageManager} from '../package-managers/os-package-manager.js';
 import {ClusterTaskManager} from '../cluster-task-manager.js';
 import {PostgresSharedResource} from '../shared-resources/postgres.js';
 import {SharedResourceManager} from '../shared-resources/shared-resource-manager.js';
+import {StorageClassHelper} from '../storage-class-helper.js';
 import {ROOT_DIR} from '../constants.js';
 import {CacheCommandDefinition} from '../../commands/command-definitions/cache-command-definition.js';
 import {InitCommandDefinition} from '../../commands/init/init-command-definition.js';
@@ -210,6 +211,7 @@ export class Container {
       new SingletonContainer(InjectTokens.ClusterTaskManager, ClusterTaskManager),
       new SingletonContainer(InjectTokens.PostgresSharedResource, PostgresSharedResource),
       new SingletonContainer(InjectTokens.SharedResourceManager, SharedResourceManager),
+      new SingletonContainer(InjectTokens.StorageClassHelper, StorageClassHelper),
 
       // Cache
       new SingletonContainer(InjectTokens.CacheHandlerRegistry, DefaultCacheHandlerRegistry),

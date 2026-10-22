@@ -77,6 +77,7 @@ export class InjectTokens {
   public static IgnorePodMetrics: symbol = Symbol.for('IgnorePodMetrics');
   public static PostgresSharedResource: symbol = Symbol.for('PostgresSharedResource');
   public static SharedResourceManager: symbol = Symbol.for('SharedResourceManager');
+  public static StorageClassHelper: symbol = Symbol.for('StorageClassHelper');
 
   // Dependencies
   public static DependencyManager: symbol = Symbol.for('DependencyManager');

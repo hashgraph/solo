@@ -1689,8 +1689,9 @@ export class Flags {
     constName: 'persistentVolumeClaims',
     name: 'pvcs',
     definition: {
-      describe: 'Enable persistent volume claims to store data outside the pod, required for consensus node add',
-      defaultValue: false,
+      describe:
+        'Enable persistent volume claims to store data outside the pod (default: true; required for node add and local builds)',
+      defaultValue: true,
       type: 'boolean',
       promptText: 'Would you like to enable persistent volume claims to store data outside the pod? ',
     },
@@ -1700,6 +1701,20 @@ export class Flags {
     ): Promise<boolean> {
       return await Flags.prompt('toggle', task, input, Flags.persistentVolumeClaims);
     },
+  };
+
+  public static readonly pvcStorageClass: CommandFlag = {
+    constName: 'pvcStorageClass',
+    name: 'pvc-storage-class',
+    definition: {
+      describe:
+        'StorageClass name for PersistentVolumeClaims; auto-detected from the cluster when not set ' +
+        '(uses the default StorageClass if one exists, otherwise installs and uses local-path-provisioner ' +
+        'without making it the cluster default)',
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
   };
 
   public static readonly verifyPersistentVolumeClaimMounts: CommandFlag = {
@@ -3095,6 +3110,7 @@ export class Flags {
     Flags.rollback,
     Flags.parallelDeploy,
     Flags.edgeEnabled,
+    Flags.pvcStorageClass,
   ];
 
   /** Resets the definition.disablePrompt for all flags */

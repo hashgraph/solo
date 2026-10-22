@@ -15,6 +15,7 @@ import {type Ingresses} from './resources/ingress/ingresses.js';
 import {type Crds} from './resources/crd/crds.js';
 import {type Manifests} from './resources/manifest/manifests.js';
 import {type Rbacs} from './resources/rbac/rbacs.js';
+import {type StorageClasses} from './resources/storage-class/storage-classes.js';
 
 export interface K8 {
   /**
@@ -106,6 +107,12 @@ export interface K8 {
    * @returns an object instance providing manifest operations
    */
   manifests(): Manifests;
+
+  /**
+   * Fluent accessor for reading StorageClasses in the cluster.
+   * @returns an object instance providing StorageClass operations
+   */
+  storageClasses(): StorageClasses;
 
   /**
    * Get the file path to the kubectl executable being used by this K8 client instance.

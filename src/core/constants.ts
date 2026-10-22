@@ -331,6 +331,11 @@ export const ACCOUNT_UPDATE_BATCH_SIZE: number = +getEnvironmentVariable('ACCOUN
 
 export const POD_PHASE_RUNNING: string = 'Running';
 
+export const PVC_PHASE_BOUND: string = 'Bound';
+
+/** Label the solo-deployment chart applies to every consensus node volume claim template. */
+export const SOLO_NODE_PVC_LABEL_SELECTOR: string = 'solo.hedera.com/type=node-pvc';
+
 export const POD_CONDITION_INITIALIZED: string = 'Initialized';
 export const POD_CONDITION_READY: string = 'Ready';
 
@@ -551,6 +556,11 @@ export const JVM_DEBUG_PORT: number = 5005;
 export const PODS_RUNNING_MAX_ATTEMPTS: number = +getEnvironmentVariable('PODS_RUNNING_MAX_ATTEMPTS') || 60 * 15;
 export const PODS_RUNNING_DELAY: number = +getEnvironmentVariable('PODS_RUNNING_DELAY') || 1000;
 
+// Consensus node PVC binding. Provisioning is serialized by the provisioner and scales with the number of nodes
+// (each consensus node declares 13 volume claims), so this is budgeted separately from the pod start-up wait above.
+export const PVC_BOUND_MAX_ATTEMPTS: number = +getEnvironmentVariable('PVC_BOUND_MAX_ATTEMPTS') || 60 * 15;
+export const PVC_BOUND_DELAY: number = +getEnvironmentVariable('PVC_BOUND_DELAY') || 1000;
+
 // Used during `node upgrade` to detect whether a helm upgrade actually triggered a node pod
 // rollout before waiting on its readiness, so an upgrade that never changes the pod template
 // doesn't block waiting for a restart that will never happen.
@@ -702,6 +712,9 @@ export const SIMPLE_FEES_SCHEDULES_JSON: string = 'simpleFeesSchedules.json';
 export const THROTTLES_JSON: string = 'throttles.json';
 export const BLOCK_NODES_JSON_FILE: string = 'block-nodes.json';
 export const NETWORK_NODE_SHARED_DATA_CONFIG_MAP_NAME: string = 'network-node-data-config-cm';
+export const LOCAL_PATH_PROVISIONER: string = 'rancher.io/local-path';
+export const LOCAL_PATH_STORAGE_CLASS: string = 'local-path';
+
 export const enum StorageType {
   MINIO_ONLY = 'minio_only',
   AWS_ONLY = 'aws_only',

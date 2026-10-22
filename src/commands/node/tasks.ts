@@ -131,6 +131,8 @@ import {Base64} from 'js-base64';
 import {SecretType} from '../../integration/kube/resources/secret/secret-type.js';
 import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {PathEx} from '../../business/utils/path-ex.js';
+import {type PvcDetail} from '../../integration/kube/resources/pvc/pvc-detail.js';
+import {KubernetesQuantity} from '../../business/utils/kubernetes-quantity.js';
 import {SubprocessEnvironment} from '../../core/subprocess-environment.js';
 import {SubprocessCommandProfile} from '../../core/subprocess-command-profile.js';
 import {helmValuesHelper} from '../../core/helm-values-helper.js';
@@ -3007,6 +3009,55 @@ export class NodeCommandTasks {
         await container
           .resolve<NetworkNodes>(InjectTokens.NetworkNodes)
           .getLogs(namespace, contexts, outputDirectory, excludeSensitiveData);
+      },
+    };
+  }
+
+  /**
+   * Records the state of the deployment's persistent volume claims. A claim that never binds keeps its pod
+   * unscheduled, so without this the bundle shows a stuck pod and no indication of why. Scoped to the deployment's
+   * own namespace and clusters so the output cannot be confused with another deployment on a shared cluster.
+   */
+  public collectPvcState(outputDirectory?: string): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Collect persistent volume claim state',
+      task: async ({config: {namespace, contexts}}): Promise<void> => {
+        const targetDirectory: string = outputDirectory
+          ? PathEx.resolve(outputDirectory)
+          : PathEx.join(constants.SOLO_LOGS_DIR, 'hiero-components-logs');
+
+        for (const context of contexts) {
+          try {
+            const claims: PvcDetail[] = await this.k8Factory.getK8(context).pvcs().readAll(namespace);
+            const lines: string[] = claims.map((claim: PvcDetail): string => {
+              const size: string =
+                claim.requestedStorageBytes === undefined
+                  ? '<unknown>'
+                  : KubernetesQuantity.format(claim.requestedStorageBytes);
+              return `${claim.pvcReference.name.toString()}\t${claim.phase}\t${size}\t${claim.storageClassName ?? '<default>'}`;
+            });
+            const bound: number = claims.filter(
+              (claim: PvcDetail): boolean => claim.phase === constants.PVC_PHASE_BOUND,
+            ).length;
+
+            const contextDirectory: string = PathEx.join(targetDirectory, context);
+            if (!fs.existsSync(contextDirectory)) {
+              fs.mkdirSync(contextDirectory, {recursive: true});
+            }
+
+            const outputFile: string = PathEx.join(contextDirectory, 'persistent-volume-claims.txt');
+            fs.writeFileSync(
+              outputFile,
+              `namespace: ${namespace.name}\nbound: ${bound}/${claims.length}\n\n` +
+                `NAME\tPHASE\tREQUESTED\tSTORAGECLASS\n${lines.join('\n')}\n`,
+              'utf8',
+            );
+            this.logger.info(`Saved ${claims.length} persistent volume claim(s) state to ${outputFile}`);
+          } catch (error) {
+            // Best-effort collection: a failure here must not abort the rest of the diagnostics gathering.
+            this.logger.warn(`Failed to collect persistent volume claim state for context ${context}: ${error}`);
+          }
+        }
       },
     };
   }
