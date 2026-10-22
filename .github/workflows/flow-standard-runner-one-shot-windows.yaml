@@ -169,7 +169,11 @@ jobs:
           $actionSha = $usesMatch.Matches[0].Groups[1].Value
 
           $bundleUrl = "https://raw.githubusercontent.com/Vampire/setup-wsl/$actionSha/build/distributions/index.mjs"
-          $bundle = (Invoke-WebRequest -Uri $bundleUrl -UseBasicParsing -TimeoutSec 60).Content
+          # raw.githubusercontent.com serves .mjs as application/octet-stream, so .Content would be a
+          # byte[] rather than text; save it and read it back as a string.
+          $bundlePath = Join-Path $env:RUNNER_TEMP 'setup-wsl-index.mjs'
+          Invoke-WebRequest -Uri $bundleUrl -OutFile $bundlePath -UseBasicParsing -TimeoutSec 60
+          $bundle = Get-Content -LiteralPath $bundlePath -Raw
           $pattern = "'" + [regex]::Escape($env:WSL_DISTRIBUTION) + "',\s*'Ubuntu',\s*new [\w.]*SemVer\('([^']+)'\),\s*new URL\('([^']+)'\)"
           $distributionMatch = [regex]::Match($bundle, $pattern)
           if (-not $distributionMatch.Success) {
