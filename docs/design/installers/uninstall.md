@@ -32,6 +32,9 @@ and macOS uses the install script, not a `.pkg`.
 - Measured after `one-shot single deploy` and `destroy` with the v0.94.0 install script (Ubuntu 24.04, arm64):
   kind cluster `solo-cluster` and context `kind-solo-cluster` still present, `~/.solo` about 390 MB (`bin/` 243 MB,
   `cache/` 132 MB, `sea-resources/` 17 MB), and seven helm repositories added to the user's own helm config.
+  `cache/` holds no image archives: no release publishes `cache-manifest.json` yet
+  ([#5747](https://github.com/hiero-ledger/solo/issues/5747)). Once one does, a one-shot deploy or an opt-in pull
+  adds several GB under `cache/images/`.
 
 ## 2. Goals
 
@@ -56,6 +59,7 @@ and macOS uses the install script, not a `.pkg`.
 - `cache/`: templates, node keys, platform build zips, values files, image and chart archives, `update-check.json`.
   Image and chart archives always use `$SOLO_HOME/cache`, even when `SOLO_CACHE_DIR` points elsewhere.
 - `logs/`, `local-config.yaml` and `one-shot-<deployment>/`.
+- `image-cache-warm-up.json`: the first-run warm-up marker (#6094, still open).
 - `sea-resources/<version>/`: always under `os.homedir()/.solo`, even when `SOLO_HOME` is set
   (`sea/sea-main.template.cjs`). One folder per version, never pruned.
 
@@ -135,9 +139,11 @@ solo uninstall [--quiet-mode] [--keep-config] [--keep-binary] [--force]
 
 ## 9. Related Work
 
-- [#6273](https://github.com/hiero-ledger/solo/issues/6273): images download only on request, into
-  `~/.solo/cache/images`, which uninstall removes with `SOLO_HOME`.
-- [#6094](https://github.com/hiero-ledger/solo/issues/6094): the first-run warm-up keeps its marker in `~/.solo`.
+- [#6273](https://github.com/hiero-ledger/solo/issues/6273) and
+  [#6276](https://github.com/hiero-ledger/solo/issues/6276): the install script and `npm install -g` download images
+  only on request. `solo one-shot single deploy` still caches them unless `ENABLE_IMAGE_CACHE=false`. Either way the
+  archives land in `$SOLO_HOME/cache/images/`, which uninstall removes with `SOLO_HOME`.
+- [#6094](https://github.com/hiero-ledger/solo/issues/6094): the first-run warm-up marker lives in `SOLO_HOME` (§4.1).
 - The manual removal steps on the solo-docs Linux Install Script page are replaced by `solo uninstall` once it ships.
 
 ## 10. Open Questions
