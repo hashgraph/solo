@@ -30,6 +30,9 @@ name: 'Installer E2E'
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
   pull_request:
     branches:
       - main
@@ -182,7 +185,7 @@ jobs:
       - name: Verify Image Cache Was Populated
         # Disabled until the image cache manifest is published as a release asset (#5747): without it,
         # `solo cache image pull` caches nothing and exits 0, so this check would fail on every run.
-        if: ${{ false }}
+        if: false
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
           # The installers only warn when the pull fails, so the install step alone does not prove it worked.
