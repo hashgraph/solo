@@ -11,7 +11,7 @@ import {PodReference} from '../../../../src/integration/kube/resources/pod/pod-r
 import {PodName} from '../../../../src/integration/kube/resources/pod/pod-name.js';
 import {ComponentTypes} from '../../../../src/core/config/remote/enumerations/component-types.js';
 
-type DestroyTask = (context_: NodeDestroyContext, task: unknown) => Promise<unknown> | void;
+type DestroyTask = (context_: NodeDestroyContext, task?: unknown) => Promise<unknown> | void;
 
 const DELETED_ALIAS: NodeAlias = 'node1' as NodeAlias;
 const REMAINING_ALIASES: NodeAlias[] = ['node2', 'node3'] as NodeAlias[];
