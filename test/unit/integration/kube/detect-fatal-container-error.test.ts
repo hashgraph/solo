@@ -153,7 +153,7 @@ describe('detectFatalContainerError', (): void => {
     });
   });
 
-  for (const reason of ['InvalidImageName', 'RegistryUnavailable', 'CrashLoopBackOff']) {
+  for (const reason of ['ErrImageNeverPull', 'InvalidImageName', 'RegistryUnavailable', 'CrashLoopBackOff']) {
     it(`should detect fatal waiting reason: ${reason}`, (): void => {
       const pod: Pod = buildPod([buildWaiting('test-container', reason)]);
       const result: string | undefined = podsClient.detectFatalContainerError(pod);
@@ -184,6 +184,12 @@ describe('detectFatalContainerError', (): void => {
 
   it('should return undefined for a non-fatal waiting reason (e.g. ContainerCreating)', (): void => {
     const pod: Pod = buildPod([buildWaiting('test-container', 'ContainerCreating')]);
+    expect(podsClient.detectFatalContainerError(pod)).to.be.undefined;
+  });
+
+  it('should return undefined for a recoverable ErrImagePull message', (): void => {
+    const message: string = 'Back-off pulling image "ghcr.io/example/app:1.2.3"';
+    const pod: Pod = buildPod([buildWaiting('test-container', 'ErrImagePull', message)]);
     expect(podsClient.detectFatalContainerError(pod)).to.be.undefined;
   });
 
@@ -298,5 +304,31 @@ describe('detectFatalContainerError', (): void => {
       }
       expect(listNamespacedPodStub).to.have.callCount(5);
     });
+  });
+
+  it('waitForRunningPhase rejects quickly for ErrImageNeverPull after fatal threshold', async (): Promise<void> => {
+    const pod: RawPodFixture = buildRawPodWithContainerStatus(
+      buildWaitingRawContainerStatus(
+        'ErrImageNeverPull',
+        'Container image "ghcr.io/hiero-ledger/hiero-block-node-solo-dev:0.44.2-tck.local1" is not present with pull policy of Never',
+      ),
+    );
+    pod.status.phase = 'Pending';
+
+    const listNamespacedPodStub: SinonStub = sinon.stub().resolves({items: [pod]});
+    const pods: K8ClientPods = new K8ClientPods({listNamespacedPod: listNamespacedPodStub} as never, {} as never, '');
+
+    try {
+      await pods.waitForRunningPhase(NamespaceName.of('test-namespace'), ['app=test'], 3, 0);
+      expect.fail('Expected waitForRunningPhase to reject');
+    } catch (error: Error | unknown) {
+      expect(error).to.be.instanceOf(KubePodCreationFailedError);
+      expect((error as KubePodCreationFailedError).result).to.include('ErrImageNeverPull');
+      expect((error as KubePodCreationFailedError).result).to.include('ghcr.io/hiero-ledger/hiero-block-node-solo-dev');
+      expect((error as KubePodCreationFailedError).result).to.include('test-container');
+      expect((error as KubePodCreationFailedError).result).to.include('test-pod');
+    }
+
+    expect(listNamespacedPodStub).to.have.callCount(3);
   });
 });

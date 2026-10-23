@@ -14,7 +14,7 @@ import {
   type KubectlDependencyManager,
 } from '../../../../../../src/core/dependency-managers/index.js';
 import {InjectTokens} from '../../../../../../src/core/dependency-injection/inject-tokens.js';
-import {getTemporaryDirectory} from '../../../../../test-utility.js';
+import {getTemporaryDirectory} from '../../../../test-utility.js';
 import {container} from 'tsyringe-neo';
 
 describe('MetricsServer', (): void => {
