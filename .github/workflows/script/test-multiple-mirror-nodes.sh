@@ -18,7 +18,7 @@
 #      and verify the shared resources are removed
 #
 # Requirements:
-#   - curl, jq, kind, kubectl, helm, base64, solo (npm run solo-test)
+#   - curl, jq, kind, kubectl, base64, solo (npm run solo-test); helm is installed by solo into ~/.solo/bin
 #
 # Usage:
 #   bash test-multiple-mirror-nodes.sh
@@ -31,6 +31,9 @@ if [[ -z "${_MULTIPLE_MIRROR_NODES_TEST_WRAPPED:-}" && "${BASH_SOURCE[0]}" == "$
   export _MULTIPLE_MIRROR_NODES_TEST_WRAPPED=1
   exec timeout --kill-after=10 "$SCRIPT_TIMEOUT_SECONDS" "$0" "$@"
 fi
+
+# solo installs helm into ~/.solo/bin; make it available to the helm calls in this script
+export PATH="${HOME}/.solo/bin:${PATH}"
 
 # ── configuration ──────────────────────────────────────────────────────────────
 SOLO_CLUSTER_NAME="${SOLO_CLUSTER_NAME:-solo-multi-mirror-test}"
@@ -66,7 +69,8 @@ fail() {
 
 check_deps() {
   local missing=()
-  for cmd in curl jq kind kubectl helm base64; do
+  # helm is not preinstalled on the runner; solo downloads it into ~/.solo/bin on first use
+  for cmd in curl jq kind kubectl base64; do
     command -v "$cmd" &>/dev/null || missing+=("$cmd")
   done
   if (( ${#missing[@]} > 0 )); then
