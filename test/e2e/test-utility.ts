@@ -8,12 +8,12 @@ import 'dotenv/config';
 
 import fs from 'node:fs';
 import os from 'node:os';
-import {Flags as flags} from '../src/commands/flags.js';
-import {type ClusterCommand} from '../src/commands/cluster/index.js';
-import {type NetworkCommand} from '../src/commands/network.js';
-import {type NodeCommand} from '../src/commands/node/index.js';
-import {type DependencyManager} from '../src/core/dependency-managers/index.js';
-import {sleep} from '../src/core/helpers.js';
+import {Flags as flags} from '../../src/commands/flags.js';
+import {type ClusterCommand} from '../../src/commands/cluster/index.js';
+import {type NetworkCommand} from '../../src/commands/network.js';
+import {type NodeCommand} from '../../src/commands/node/index.js';
+import {type DependencyManager} from '../../src/core/dependency-managers/index.js';
+import {sleep} from '../../src/core/helpers.js';
 import {
   AccountCreateTransaction,
   type AccountId,
@@ -25,50 +25,50 @@ import {
   type TransactionReceipt,
   type TransactionResponse,
 } from '@hiero-ledger/sdk';
-import * as constants from '../src/core/constants.js';
-import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../src/core/constants.js';
+import * as constants from '../../src/core/constants.js';
+import {NODE_LOG_FAILURE_MSG, ROOT_CONTAINER, SOLO_LOGS_DIR} from '../../src/core/constants.js';
 import crypto from 'node:crypto';
-import {type AccountCommand} from '../src/commands/account.js';
-import {type SoloLogger} from '../src/core/logging/solo-logger.js';
-import {type NodeAlias} from '../src/types/aliases.js';
-import {type K8Factory} from '../src/integration/kube/k8-factory.js';
-import {type AccountManager} from '../src/core/account-manager.js';
-import {type PlatformInstaller} from '../src/core/platform-installer.js';
-import {type ProfileManager} from '../src/core/profile-manager.js';
-import {type LockManager} from '../src/core/lock/lock-manager.js';
-import {type CertificateManager} from '../src/core/certificate-manager.js';
-import {Templates} from '../src/core/templates.js';
-import {type ConfigManager} from '../src/core/config-manager.js';
-import {type ChartManager} from '../src/core/chart-manager.js';
-import {type PackageDownloader} from '../src/core/package-downloader.js';
-import {type KeyManager} from '../src/core/key-manager.js';
+import {type AccountCommand} from '../../src/commands/account.js';
+import {type SoloLogger} from '../../src/core/logging/solo-logger.js';
+import {type NodeAlias} from '../../src/types/aliases.js';
+import {type K8Factory} from '../../src/integration/kube/k8-factory.js';
+import {type AccountManager} from '../../src/core/account-manager.js';
+import {type PlatformInstaller} from '../../src/core/platform-installer.js';
+import {type ProfileManager} from '../../src/core/profile-manager.js';
+import {type LockManager} from '../../src/core/lock/lock-manager.js';
+import {type CertificateManager} from '../../src/core/certificate-manager.js';
+import {Templates} from '../../src/core/templates.js';
+import {type ConfigManager} from '../../src/core/config-manager.js';
+import {type ChartManager} from '../../src/core/chart-manager.js';
+import {type PackageDownloader} from '../../src/core/package-downloader.js';
+import {type KeyManager} from '../../src/core/key-manager.js';
 
-import {Duration} from '../src/core/time/duration.js';
+import {Duration} from '../../src/core/time/duration.js';
 import {container} from 'tsyringe-neo';
-import {resetForTest} from './test-container.js';
-import {NamespaceName} from '../src/types/namespace/namespace-name.js';
-import {PodReference} from '../src/integration/kube/resources/pod/pod-reference.js';
-import {ContainerReference} from '../src/integration/kube/resources/container/container-reference.js';
-import {InjectTokens} from '../src/core/dependency-injection/inject-tokens.js';
-import {type DeploymentCommand} from '../src/commands/deployment.js';
-import {Argv} from './helpers/argv-wrapper.js';
-import {type ClusterReferenceName, type DeploymentName, type NamespaceNameAsString} from '../src/types/index.js';
-import {type CommandInvoker} from './helpers/command-invoker.js';
-import {PathEx} from '../src/business/utils/path-ex.js';
-import {type HelmClient} from '../src/integration/helm/helm-client.js';
-import {type NodeServiceMapping} from '../src/types/mappings/node-service-mapping.js';
-import {HEDERA_PLATFORM_VERSION} from '../version.js';
-import {type LocalConfigRuntimeState} from '../src/business/runtime-state/config/local/local-config-runtime-state.js';
-import {type InstanceOverrides} from '../src/core/dependency-injection/container-init.js';
-import {type RemoteConfigRuntimeStateApi} from '../src/business/runtime-state/api/remote-config-runtime-state-api.js';
-import {main} from '../src/index.js';
-import {BaseCommandTest} from './e2e/commands/tests/base-command-test.js';
-import {KeysTest} from './e2e/commands/tests/keys-test.js';
-import {ClusterReferenceTest} from './e2e/commands/tests/cluster-reference-test.js';
-import {ConsensusNodeTest} from './e2e/commands/tests/consensus-node-test.js';
-import {DeploymentTest} from './e2e/commands/tests/deployment-test.js';
-import {type ComponentFactoryApi} from '../src/core/config/remote/api/component-factory-api.js';
-import {SemanticVersion} from '../src/business/utils/semantic-version.js';
+import {resetForTest} from '../test-container.js';
+import {NamespaceName} from '../../src/types/namespace/namespace-name.js';
+import {PodReference} from '../../src/integration/kube/resources/pod/pod-reference.js';
+import {ContainerReference} from '../../src/integration/kube/resources/container/container-reference.js';
+import {InjectTokens} from '../../src/core/dependency-injection/inject-tokens.js';
+import {type DeploymentCommand} from '../../src/commands/deployment.js';
+import {Argv} from '../helpers/argv-wrapper.js';
+import {type ClusterReferenceName, type DeploymentName, type NamespaceNameAsString} from '../../src/types/index.js';
+import {type CommandInvoker} from '../helpers/command-invoker.js';
+import {PathEx} from '../../src/business/utils/path-ex.js';
+import {type HelmClient} from '../../src/integration/helm/helm-client.js';
+import {type NodeServiceMapping} from '../../src/types/mappings/node-service-mapping.js';
+import {HEDERA_PLATFORM_VERSION} from '../../version.js';
+import {type LocalConfigRuntimeState} from '../../src/business/runtime-state/config/local/local-config-runtime-state.js';
+import {type InstanceOverrides} from '../../src/core/dependency-injection/container-init.js';
+import {type RemoteConfigRuntimeStateApi} from '../../src/business/runtime-state/api/remote-config-runtime-state-api.js';
+import {main} from '../../src/index.js';
+import {BaseCommandTest} from './commands/tests/base-command-test.js';
+import {KeysTest} from './commands/tests/keys-test.js';
+import {ClusterReferenceTest} from './commands/tests/cluster-reference-test.js';
+import {ConsensusNodeTest} from './commands/tests/consensus-node-test.js';
+import {DeploymentTest} from './commands/tests/deployment-test.js';
+import {type ComponentFactoryApi} from '../../src/core/config/remote/api/component-factory-api.js';
+import {SemanticVersion} from '../../src/business/utils/semantic-version.js';
 
 export const BASE_TEST_DIR: string = PathEx.join('test', 'data', 'tmp');
 
@@ -593,7 +593,7 @@ export const testLocalConfigData: Record<string, unknown> = {
   },
 };
 
-export {HEDERA_PLATFORM_VERSION as HEDERA_PLATFORM_VERSION_TAG} from '../version.js';
+export {HEDERA_PLATFORM_VERSION as HEDERA_PLATFORM_VERSION_TAG} from '../../version.js';
 
 export function hederaPlatformSupportsNonZeroRealms(): boolean {
   return new SemanticVersion<string>(HEDERA_PLATFORM_VERSION).greaterThanOrEqual('0.61.4');

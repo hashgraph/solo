@@ -6,7 +6,7 @@ import {DeploymentNotFoundError} from '../../../../src/core/errors/classes/deplo
 import {RefreshLocalConfigSourceError} from '../../../../src/core/errors/classes/config/refresh-local-config-source-error.js';
 import {IncompleteLocalConfigError} from '../../../../src/core/errors/classes/config/incomplete-local-config-error.js';
 import {MigrateLegacyLocalConfigError} from '../../../../src/core/errors/classes/config/migrate-legacy-local-config-error.js';
-import {getTemporaryDirectory} from '../../../test-utility.js';
+import {getTemporaryDirectory} from '../../../e2e/test-utility.js';
 import fs from 'node:fs';
 import {PathEx} from '../../../../src/business/utils/path-ex.js';
 import {type Realm, type Shard} from '../../../../src/types/index.js';

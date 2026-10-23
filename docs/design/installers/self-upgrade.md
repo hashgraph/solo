@@ -16,9 +16,9 @@ research in the macOS installer proposal ([#5873](https://github.com/hiero-ledge
 |----------------------------------------------------------|-------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `VersionUpdateNotifier`                                  | `src/core/version-update-notifier.ts`, called from `index.ts` | After a command succeeds, in a TTY only, reads `registry.npmjs.org/@hiero-ledger/solo/latest` (2 s timeout), caches the answer in `SOLO_CACHE_DIR/update-check.json` and prints a banner. It never prompts. The "24 hour" cache interval is `Duration.ofHours(24).toMinutes()`, which is 1440 ms, so in practice it calls npm on almost every command. |
 | `HomebrewDeprecationNotifier`                            | `src/core/homebrew-deprecation-notifier.ts`                 | Detects a Homebrew install from the executable path (`Cellar/solo`). The same kind of path check tells the install channels apart (§6.1).                                                                                                             |
-| SEA binaries                                             | `sea/build.ts`, `.github/workflows/flow-build-sea.yaml`     | `solo-<platform>-<arch>[.exe]` for `linux-x64`, `darwin-arm64`, `darwin-x64`, `win32-x64`. None is on a GitHub Release yet. [#6102](https://github.com/hiero-ledger/solo/pull/6102) publishes the Linux one with a `SHA256SUMS` manifest.              |
-| Release signing                                          | [#5901](https://github.com/hiero-ledger/solo/pull/5901) (draft) | Signs every release asset with cosign keyless signing and uploads `<asset>.sigstore.json`, including `SHA256SUMS.sigstore.json`.                                                                                                                  |
-| Linux install script                                     | [#6093](https://github.com/hiero-ledger/solo/pull/6093)     | Picks `solo-linux-<arch>[-musl]`, checks it against `SHA256SUMS`, copies it into the target folder, runs `--version` on the copy, then renames it over `solo`. The binary swap in §7 repeats these steps so both paths behave the same.               |
+| SEA binaries                                             | `sea/build.ts`, `.github/workflows/flow-build-sea.yaml`     | `solo-<platform>-<arch>[.exe]` for `linux-x64`, `darwin-arm64`, `darwin-x64`, `win32-x64`. [#6102](https://github.com/hiero-ledger/solo/pull/6102) is merged. v0.93.0 publishes `solo-linux-x64` with `SHA256SUMS` and `SHA256SUMS.sigstore.json`; other targets require their own published asset before an update is offered.              |
+| Release signing                                          | [#5901](https://github.com/hiero-ledger/solo/pull/5901) (merged) | Signs every release asset with cosign keyless signing and uploads `<asset>.sigstore.json`, including `SHA256SUMS.sigstore.json`.                                                                                                                  |
+| Linux install script                                     | [#6093](https://github.com/hiero-ledger/solo/pull/6093) (merged) | Picks `solo-linux-<arch>[-musl]`, checks it against `SHA256SUMS`, copies it into the target folder, runs `--version` on the copy, then renames it over `solo`. The binary swap in §7 repeats these steps so both paths behave the same.               |
 | Unpacked SEA resources                                   | `sea/sea-main.template.cjs`                                 | Each version unpacks into `~/.solo/sea-resources/<version>/` on its first run. Nothing removes old versions.                                                                                                                                          |
 
 ---
@@ -227,14 +227,22 @@ The same steps as `install_binary` in the install script, in the same order:
    the new version's `sea-resources`, so the first real command after the update starts at normal speed.
 6. **Swap.** `fs.renameSync(<staged file>, <binary>)`. Processes still running the old binary (this one, other
    terminals, the persist port-forward workers from [#6090](https://github.com/hiero-ledger/solo/pull/6090)) keep
-   the old file open until they exit.
+   the old file open until they exit. On macOS, replacing the vnode by renaming a separate file is required:
+   overwriting the existing file can leave its cached code signature invalid and make the next launch fail with
+   `Killed: 9`. Do not replace the rename with `copyFile` or `cp` over the current binary.
 7. **Clean up** old `sea-resources` (§10), print `Updated Solo 0.91.0 to 0.92.0`, and exit.
 
 ### 7.1 Asset name
 
-`solo-${process.platform}-${process.arch}`, plus `-musl` on a musl Linux and `.exe` on Windows. Node reports glibc
-in `process.report.getReport().header.glibcVersionRuntime`; when that field is missing, the system uses musl. This
-matches the names the install script and `sea/build.ts` use.
+Start with `process.arch`. On macOS, an x64 binary may be running under Rosetta on Apple Silicon, so run
+`/usr/sbin/sysctl -n sysctl.proc_translated` with a bounded timeout and no shell. If it succeeds and returns `1`,
+select `arm64`; otherwise retain `process.arch` (including when the key is absent on Intel Macs). This moves a
+translated installation to the native binary. See Apple's [Rosetta detection guidance](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment).
+
+Use `solo-${process.platform}-${selectedArchitecture}`, plus `-musl` on a musl Linux and `.exe` on Windows. Node
+reports glibc in `process.report.getReport().header.glibcVersionRuntime`; when that field is missing on Linux, the
+system uses musl. These are the asset names from the install script and `sea/build.ts`; a missing native asset
+still refuses the update (§7.2).
 
 ### 7.2 Failures
 
@@ -268,7 +276,8 @@ Every download is verified before it is used, and a missing signature refuses th
 2. Verify the bundle inside Solo with the [`sigstore`](https://www.npmjs.com/package/sigstore) npm package (the code
    npm uses for package provenance): `verify(bundle, manifestBytes, {certificateIssuer:
    'https://token.actions.githubusercontent.com', certificateIdentityURI:
-   '^https://github\\.com/hiero-ledger/solo/\\.github/workflows/'})`. This pins the same signer identity as the
+   '^https://github\\.com/hiero-ledger/solo/\\.github/workflows/flow-sign-release-assets\\.yaml@refs/heads/main$'})`.
+   The anchored expression accepts only the release-signing workflow on `main`, matching the exact identity in the
    install script's `cosign verify-blob`.
 3. Check the downloaded file's SHA-256 against its line in the verified manifest.
 
@@ -281,7 +290,7 @@ Every download is verified before it is used, and a missing signature refuses th
 - **Installer packages** (`.pkg`, the Windows installer) go through the same three steps, so they must be listed in
   `SHA256SUMS`. On top of that, macOS `installer` checks the `.pkg`'s Developer ID signature itself.
 - **Cost.** `sigstore` and its `@sigstore/*` packages become dependencies, bundled into the SEA binary by esbuild.
-  #5728 records the size change.
+  \#5728 records the size change.
 
 This makes [#5901](https://github.com/hiero-ledger/solo/pull/5901) (or whatever signs the assets) a hard
 prerequisite: every release that `solo update` can install must carry `SHA256SUMS.sigstore.json`.
@@ -331,14 +340,15 @@ update removes it. At most two versions stay on disk.
 ## 11. Delivery
 
 1. This document closes #5722.
-2. #5728 builds it, in this order:
-   1. **Version check and prompt** (§4, §5): the channel-aware source, the cache fields, the 30-second prompt and the
-      24-hour interval fix, behind the `enableUpdateCheck` flag (§4.4), which needs #6021 merged. This part needs no
-      release with SEA assets: npm installs only get the improved banner, and a SEA build finds no assets and stays
-      quiet until the first release has them.
-   2. **`solo update` with the binary swap** (§6, §7, §8, §10) for Linux and macOS SEA binaries. Blocked until
-      #6093 and #6102 merge, #5901 merges, and one release ships with signed SEA assets. Before that, tests can serve
-      the assets from a local folder, the way the install script's `--base-url` does.
+2. \#5728 builds it, in this order:
+   1. **`solo update` with the binary swap** (§6, §7, §8, §10) for Linux SEA binaries. This is unblocked:
+      \#6093, #6102 and #5901 are merged, and v0.93.0 has a Linux binary and signed checksum manifest. The command is
+      not gated by the automatic-check feature flag. Tests can also serve assets from a local folder through the
+      install script's `--base-url`. The macOS SEA swap uses the same implementation once a signed native asset is
+      published; the Rosetta selection and rename requirement in §7 apply.
+   2. **Version check and prompt** (§4, §5): the channel-aware source, the cache fields, the 30-second prompt and the
+      24-hour interval fix, behind the `enableUpdateCheck` flag (§4.4). This still needs #6021 merged. npm installs
+      only get the improved banner; a SEA build with no matching release asset stays quiet.
    3. **macOS `.pkg` path** (§9.1). Blocked on #5724, which still has to choose between a `.pkg` and a DMG.
    4. **Windows installer path** (§9.2). Blocked on #5723.
    5. **Remove the `enableUpdateCheck` flag** when the exit criteria in §4.4 are met.
@@ -382,4 +392,4 @@ update removes it. At most two versions stay on disk.
 
 ---
 
-*Last updated: 2026-10-12*
+*Last updated: 2026-10-23*

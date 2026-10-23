@@ -163,6 +163,39 @@ describe('Middlewares.warnDeprecatedFlags', (): void => {
 
     expect(consoleOutput.join('\n')).to.contain("'temporary group' is deprecated");
   });
+
+  describe('warnDeprecatedEnvironmentVariables', (): void => {
+    const deprecatedVariable: string = 'EXPERIMENTAL_COPY_WRAPS_LIB_IN_PARALLEL';
+    let originalValue: string | undefined;
+
+    beforeEach((): void => {
+      originalValue = process.env[deprecatedVariable];
+    });
+
+    afterEach((): void => {
+      if (originalValue === undefined) {
+        delete process.env[deprecatedVariable];
+      } else {
+        process.env[deprecatedVariable] = originalValue;
+      }
+    });
+
+    it('warns when a deprecated environment variable is set', (): void => {
+      process.env[deprecatedVariable] = 'true';
+
+      middlewares.warnDeprecatedEnvironmentVariables()({_: []} as unknown as ArgvStruct);
+
+      expect(consoleOutput.join('\n')).to.contain(`'${deprecatedVariable}' is deprecated`);
+    });
+
+    it('does not warn when the deprecated environment variable is unset', (): void => {
+      delete process.env[deprecatedVariable];
+
+      middlewares.warnDeprecatedEnvironmentVariables()({_: []} as unknown as ArgvStruct);
+
+      expect(consoleOutput.join('\n')).to.not.contain(deprecatedVariable);
+    });
+  });
 });
 
 describe('Middlewares.initSystemFiles', (): void => {

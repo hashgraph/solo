@@ -1,0 +1,151 @@
+version: '3'
+
+# Reproduces hiero-ledger/solo issue #6118: `solo explorer node upgrade` rewrites the explorer's
+# Helm-managed ConfigMap with a freshly resolved mirror-node backend URL, but the explorer chart's
+# Deployment mounts nginx.conf with `subPath`, so kubelet never refreshes the already-running pod's
+# copy of the file, and the Deployment carries no checksum/restart annotation that would force a
+# rollout. Net effect: the ConfigMap is correct but the live pod keeps proxying to a backend that
+# may no longer exist.
+#
+# This example always runs against the checked-out source (`npm run solo-test --`, not a published
+# package) since it exists to validate a specific code path, not to be distributed.
+
+env:
+  SOLO_COMMAND:
+    sh: echo "npm run solo-test --silent --"
+
+vars:
+  CLUSTER_NAME: '{{default "explorer-stale-routing" .CLUSTER_NAME}}'
+  CONTEXT: 'kind-{{.CLUSTER_NAME}}'
+  CLUSTER_REF: 'kind-{{.CLUSTER_NAME}}'
+  NAMESPACE: '{{default "explorer-stale-routing" .NAMESPACE}}'
+  CLUSTER_SETUP_NAMESPACE: '{{default "solo-setup" .CLUSTER_SETUP_NAMESPACE}}'
+  DEPLOYMENT: '{{default "explorer-stale-routing-deployment" .DEPLOYMENT}}'
+  NODE_ALIASES: '{{default "node1" .NODE_ALIASES}}'
+  EXPLORER_INSTANCE_LABEL: '{{default "hiero-explorer-1" .EXPLORER_INSTANCE_LABEL}}'
+  EXPLORER_BASE_URL: '{{default "http://localhost:38080" .EXPLORER_BASE_URL}}'
+  # /api/v1/network/nodes returns 404 until an address-book file update has been processed; the
+  # accounts endpoint is populated from genesis and is a reliable "is routing alive" probe.
+  MIRROR_PROBE_PATH: '{{default "/api/v1/accounts?limit=1" .MIRROR_PROBE_PATH}}'
+  CURL_MAX_TIME: '{{default "10" .CURL_MAX_TIME}}'
+  RESULTS_DIR: '{{.TASKFILE_DIR}}/results'
+  VERIFY_SCRIPT: '{{.TASKFILE_DIR}}/scripts/verify-routing.sh'
+
+tasks:
+  default:
+    desc: Full repro - deploy with ingress, verify baseline, break routing, upgrade explorer, verify staleness
+    cmds:
+      - task: deploy
+      - task: verify-baseline
+      - task: break-mirror-routing
+      - task: upgrade-explorer
+      - task: verify-post-upgrade
+      - task: report
+
+  # ==================== Deployment ====================
+
+  deploy:
+    desc: Create cluster, deploy a minimal network, mirror node (with ingress), and explorer
+    cmds:
+      - task: create-cluster
+      - task: init-solo
+      - task: deploy-network
+      - task: deploy-mirror-ingress
+      - task: deploy-explorer
+      - cmd: echo "✅ Baseline deployment complete (mirror node with --enable-ingress, explorer in front)"
+
+  create-cluster:
+    desc: Create Kind cluster
+    cmds:
+      - cmd: |
+          SHARED_KIND_CONFIG="{{.TASKFILE_DIR}}/../../resources/kind-config.yaml"
+          if [ -f "${SHARED_KIND_CONFIG}" ]; then
+            kind create cluster -n {{.CLUSTER_NAME}} --config "${SHARED_KIND_CONFIG}"
+          else
+            kind create cluster -n {{.CLUSTER_NAME}}
+          fi
+      - cmd: sleep 10 # Wait for control plane
+      - cmd: kubectl config use-context {{.CONTEXT}}
+
+  init-solo:
+    desc: Connect cluster reference and create the deployment
+    cmds:
+      - cmd: $SOLO_COMMAND cluster-ref config connect --cluster-ref {{.CLUSTER_REF}} --context {{.CONTEXT}} --quiet-mode
+      - cmd: $SOLO_COMMAND deployment config create --namespace {{.NAMESPACE}} --deployment {{.DEPLOYMENT}} --realm 0 --shard 0
+      - cmd: $SOLO_COMMAND deployment cluster attach --cluster-ref {{.CLUSTER_REF}} --deployment {{.DEPLOYMENT}} --num-consensus-nodes 1
+      - cmd: $SOLO_COMMAND cluster-ref config setup -s {{.CLUSTER_SETUP_NAMESPACE}}
+
+  deploy-network:
+    desc: Deploy a single-node consensus network (enough to feed the mirror node)
+    cmds:
+      - cmd: $SOLO_COMMAND keys consensus generate --gossip-keys --tls-keys --node-aliases {{.NODE_ALIASES}} --deployment {{.DEPLOYMENT}}
+      - cmd: $SOLO_COMMAND consensus network deploy --deployment {{.DEPLOYMENT}} --node-aliases {{.NODE_ALIASES}} --quiet-mode --dev
+      - cmd: $SOLO_COMMAND consensus node setup --deployment {{.DEPLOYMENT}} --node-aliases {{.NODE_ALIASES}}
+      - cmd: $SOLO_COMMAND consensus node start --deployment {{.DEPLOYMENT}} --node-aliases {{.NODE_ALIASES}}
+      - cmd: echo "✅ Consensus network deployed"
+
+  deploy-mirror-ingress:
+    desc: Deploy mirror node with its ingress controller enabled (step 1 of the issue's repro)
+    cmds:
+      - cmd: $SOLO_COMMAND mirror node add --deployment {{.DEPLOYMENT}} --enable-ingress --pinger
+      - cmd: echo "✅ Mirror node deployed with --enable-ingress"
+
+  deploy-explorer:
+    desc: Deploy the explorer in front of the mirror node
+    cmds:
+      - cmd: $SOLO_COMMAND explorer node add --deployment {{.DEPLOYMENT}}
+      - cmd: echo "✅ Explorer deployed"
+
+  # ==================== Routing verification ====================
+
+  verify-baseline:
+    desc: Capture ConfigMap vs live-pod routing state and a live curl before anything changes
+    cmds:
+      - cmd: |
+          bash "{{.VERIFY_SCRIPT}}" "{{.NAMESPACE}}" "{{.EXPLORER_INSTANCE_LABEL}}" "baseline" "{{.RESULTS_DIR}}" \
+            "{{.EXPLORER_BASE_URL}}" "{{.MIRROR_PROBE_PATH}}" "{{.CURL_MAX_TIME}}"
+
+  break-mirror-routing:
+    desc: "Destroy + redeploy mirror node without ingress (step 2 of the issue's repro) -- this makes the previously-resolved backend disappear"
+    cmds:
+      - cmd: $SOLO_COMMAND mirror node destroy --deployment {{.DEPLOYMENT}} --force
+      - cmd: $SOLO_COMMAND mirror node add --deployment {{.DEPLOYMENT}} --pinger
+      - cmd: echo "✅ Mirror node redeployed without --enable-ingress (old ingress-controller/backend no longer exists)"
+
+  upgrade-explorer:
+    desc: "Run `explorer node upgrade` so it re-resolves mirror node service URLs (step 3 of the issue's repro)"
+    cmds:
+      - cmd: $SOLO_COMMAND explorer node upgrade --deployment {{.DEPLOYMENT}}
+      - cmd: echo "✅ explorer node upgrade completed (check verify-post-upgrade for whether the live pod actually picked up the change)"
+
+  verify-post-upgrade:
+    desc: Capture ConfigMap vs live-pod routing state and a live curl after the upgrade (step 4 of the issue's repro)
+    cmds:
+      - cmd: |
+          bash "{{.VERIFY_SCRIPT}}" "{{.NAMESPACE}}" "{{.EXPLORER_INSTANCE_LABEL}}" "post-upgrade" "{{.RESULTS_DIR}}" \
+            "{{.EXPLORER_BASE_URL}}" "{{.MIRROR_PROBE_PATH}}" "{{.CURL_MAX_TIME}}"
+      - cmd: |
+          grep -q 'configmap_vs_pod: MATCH' "{{.RESULTS_DIR}}/post-upgrade.txt" &&
+            grep -q 'curl_result: SUCCESS' "{{.RESULTS_DIR}}/post-upgrade.txt"
+
+  report:
+    desc: Print baseline vs post-upgrade results side by side
+    cmds:
+      - cmd: |
+          echo "==================== baseline ===================="
+          cat "{{.RESULTS_DIR}}/baseline.txt" 2>/dev/null || echo "(missing - run 'task verify-baseline' first)"
+          echo ""
+          echo "==================== post-upgrade ===================="
+          cat "{{.RESULTS_DIR}}/post-upgrade.txt" 2>/dev/null || echo "(missing - run 'task verify-post-upgrade' first)"
+          echo ""
+          echo "If 'post-upgrade' shows configmap_vs_pod: MISMATCH and/or curl_result: FAILED, issue #6118 has reproduced:"
+          echo "the ConfigMap was updated by 'explorer node upgrade' but the running pod never picked it up."
+
+  # ==================== Cleanup ====================
+
+  destroy:
+    desc: Delete the Kind cluster and remove captured results
+    cmds:
+      - cmd: kind delete cluster --name {{.CLUSTER_NAME}} || true
+      - cmd: rm -rf "{{.RESULTS_DIR}}"
+      - cmd: echo "✅ Cluster destroyed and results cleaned up"

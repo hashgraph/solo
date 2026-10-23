@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import {appendFileSync, writeFileSync} from 'node:fs';
+import {appendFileSync, mkdtempSync, writeFileSync} from 'node:fs';
 import {randomInt} from 'node:crypto';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -11,7 +11,7 @@ const args = process.argv.slice(2);
 let logFile = process.env.LOG_FILE ?? '';
 let mode = 'select';
 let iterations = 1;
-let killedPortFile = process.env.KILLED_PORT_FILE ?? join(tmpdir(), 'killed_port.txt');
+let killedPortFile = process.env.KILLED_PORT_FILE ?? '';
 
 const usage = () => {
   console.log(`Usage:
@@ -22,7 +22,7 @@ Options:
   --kill              Select and kill all kubectl port-forward pids on the selected local port
   --iterations N      Repeat selection N times (selection-only mode)
   --log-file PATH     Append logs to a file
-  --killed-port-file  File to write the selected/killed local port
+  --killed-port-file  File to write the selected/killed local port (default: in a new temporary directory)
   -h, --help          Show this help
 
 Output variables:
@@ -183,8 +183,10 @@ const killTarget = (port, pids) => {
     throw new Error(`Remaining PID(s) still running for port ${port}: ${remaining.join(' ')}`);
   }
 
-  writeFileSync(killedPortFile, `${port}\n`, 'utf8');
-  log(`Killed successfully; wrote selected port ${port} to ${killedPortFile}`);
+  // a private temporary directory, so another user cannot plant the file in the shared temp dir first
+  const portFile = killedPortFile || join(mkdtempSync(join(tmpdir(), 'port-forward-')), 'killed_port.txt');
+  writeFileSync(portFile, `${port}\n`, 'utf8');
+  log(`Killed successfully; wrote selected port ${port} to ${portFile}`);
 };
 
 try {

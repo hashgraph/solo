@@ -23,6 +23,12 @@ type TaskContext = {
   config?: Record<string, unknown>;
 };
 
+type DeploymentRestartPatch = {
+  kind: string;
+  metadata: {name: string; namespace: string};
+  spec: {template: {metadata: {annotations: Record<string, string>}}};
+};
+
 type PromptRunner = {
   run: (promptFunction: unknown, options: {default: boolean; message: string}) => Promise<boolean>;
 };
@@ -114,6 +120,7 @@ const createDeployConfig: (namespaceName: string) => Record<string, unknown> = (
   mirrorNodeId: 1,
   mirrorNamespace: 'mirror-ns',
   mirrorNodeReleaseName: 'mirror-1',
+  mirrorNodeIngressControllerName: 'mirror-ingress-controller-mirror-ns',
   isMirrorNodeLegacyChartInstalled: false,
 });
 
@@ -148,6 +155,7 @@ const createUpgradeConfig: (namespaceName: string) => Record<string, unknown> = 
   mirrorNodeId: 1,
   mirrorNamespace: 'mirror-ns',
   mirrorNodeReleaseName: 'mirror-1',
+  mirrorNodeIngressControllerName: 'mirror-ingress-controller-mirror-ns',
   isMirrorNodeLegacyChartInstalled: false,
 });
 
@@ -336,6 +344,10 @@ const createHarness: (sandbox: SinonSandbox) => Promise<ExplorerHarness> = async
       const secretsStubs: Record<string, unknown> = {delete: sandbox.stub().resolves(true)};
       return (): Record<string, unknown> => secretsStubs;
     })(),
+    manifests: ((): (() => Record<string, unknown>) => {
+      const manifestsStubs: Record<string, unknown> = {patchObject: sandbox.stub().resolves()};
+      return (): Record<string, unknown> => manifestsStubs;
+    })(),
     namespaces: (): Record<string, unknown> => ({has: sandbox.stub().resolves(true)}),
     services: ((): (() => Record<string, unknown>) => {
       const servicesStubs: Record<string, unknown> = {list: sandbox.stub().resolves([])};
@@ -362,6 +374,7 @@ const createHarness: (sandbox: SinonSandbox) => Promise<ExplorerHarness> = async
     mirrorNodeId: 1,
     mirrorNamespace: 'mirror-ns',
     mirrorNodeReleaseName: 'mirror-1',
+    mirrorNodeIngressControllerName: 'mirror-ingress-controller-mirror-ns',
   });
   // @ts-expect-error: Sinon stub typing requires unsafe cast for mocking private methods
   sandbox.stub(command, 'throwIfNamespaceIsMissing').resolves();
@@ -460,6 +473,29 @@ describe('ExplorerCommand unit tests', (): void => {
     expect(helmArguments).to.include(`mirrorNodeServices.restjava=${ingressControllerUrl}`);
     expect(helmArguments).to.include(`mirrorNodeServices.web3=${ingressControllerUrl}`);
     expect(helmArguments).to.not.include('proxyPass.');
+  });
+
+  it('should point the explorer at the ingress controller of the selected mirror node', async (): Promise<void> => {
+    const harness: ExplorerHarness = await createHarness(sandbox);
+    const command: ExplorerCommandInternal = harness.command as unknown as ExplorerCommandInternal;
+
+    // @ts-expect-error: Type '{}' has no call signatures (Kubernetes client methods are stubbed)
+    const kubernetesClient: Record<string, unknown> = harness.k8Factory.getK8('cluster-context-1') as Record<
+      string,
+      unknown
+    >;
+    const servicesClient: Record<string, unknown> = (kubernetesClient.services as () => Record<string, unknown>)();
+    (servicesClient.list as SinonStub).resolves([{metadata: {name: 'mirror-ingress-controller-mirror-ns-2'}}]);
+
+    const chartValues: HelmChartValues = await command.prepareHederaExplorerChartValues({
+      ...createDeployConfig('explorer'),
+      mirrorNodeIngressControllerName: 'mirror-ingress-controller-mirror-ns-2',
+    });
+
+    expect(chartValues.toArguments().join(' ')).to.include(
+      // eslint-disable-next-line unicorn/prefer-https
+      'mirrorNodeServices.rest=http://mirror-ingress-controller-mirror-ns-2.mirror-ns.svc.cluster.local',
+    );
   });
 
   it('should set explorer service type to LoadBalancer only when load balancer is enabled', async (): Promise<void> => {
@@ -577,6 +613,14 @@ describe('ExplorerCommand unit tests', (): void => {
 
     expect(stopPortForwardsStub).to.not.have.been.called;
     expect(managePortForwardsStub).to.not.have.been.called;
+
+    // A freshly-created pod already reflects the just-applied config, so `explorer node add` has
+    // no stale state to roll away and must not patch the restart annotation (issue #6118 only
+    // applies to upgrade, see restartExplorerDeploymentTask()).
+    const manifestsClient: Record<string, unknown> = (kubernetesClient.manifests as () => Record<string, unknown>)();
+    const patchObjectStub: SinonStub = manifestsClient.patchObject as SinonStub;
+    expect(patchObjectStub).to.not.have.been.called;
+    expect(getTaskTitles(harness.tasks)).to.not.include('Restart explorer deployment');
   });
 
   it('loads an available local Explorer image before chart deployment', async (): Promise<void> => {
@@ -654,6 +698,7 @@ describe('ExplorerCommand unit tests', (): void => {
       'Load remote config',
       'Install cert manager',
       'Install explorer',
+      'Restart explorer deployment',
       'Install explorer ingress controller',
       'Check explorer pod is ready',
       'Check haproxy ingress controller pod is ready',
@@ -710,6 +755,26 @@ describe('ExplorerCommand unit tests', (): void => {
     expect(waitForReadyStatusStub).to.have.been.calledTwice;
     expect(ingressUpdateStub).to.have.been.calledOnce;
     expect(ingressCreateStub).to.have.been.calledOnce;
+
+    // The explorer Deployment's pod template carries no checksum tied to ConfigMap content, so
+    // `explorer node upgrade` must force a rollout by patching a restart annotation (issue #6118).
+    const manifestsClient: Record<string, unknown> = (kubernetesClient.manifests as () => Record<string, unknown>)();
+    const patchObjectStub: SinonStub = manifestsClient.patchObject as SinonStub;
+
+    expect(patchObjectStub).to.have.been.calledOnce;
+    const patchedSpec: DeploymentRestartPatch = patchObjectStub.getCall(0).args[0] as DeploymentRestartPatch;
+    expect(patchedSpec.kind).to.equal('Deployment');
+    expect(patchedSpec.metadata.name).to.equal(`${releaseName}-explorer-upgrade`);
+    expect(patchedSpec.metadata.namespace).to.equal('explorer-upgrade');
+    expect(patchedSpec.spec.template.metadata.annotations).to.have.property('solo.hedera.com/restartedAt');
+
+    // The restart annotation must be patched before the pod-ready check waits for the new pod,
+    // and the pod-ready check must use that same moment as its createdAfter cutoff so it does not
+    // report success against the still-running old pod.
+    expect(patchObjectStub).to.have.been.calledBefore(waitForReadyStatusStub);
+    // Call 0 is 'Check explorer pod is ready' (runs before the haproxy ingress pod check).
+    const createdAfterArgument: unknown = waitForReadyStatusStub.getCall(0).args[4];
+    expect(createdAfterArgument).to.be.instanceOf(Date);
   });
 
   it('destroy removes explorer resources and remote config entries after confirmation', async (): Promise<void> => {

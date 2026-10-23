@@ -22,6 +22,7 @@ export interface NodeAddConfigClass extends NodeCommonConfigWithNodeAlias, Check
   grpcEndpoints: string;
   localBuildPath: string;
   releaseTag: string;
+  force: boolean;
   adminKey: PrivateKey;
   allNodeAliases: NodeAliases;
   newNodeAliases: NodeAliases;

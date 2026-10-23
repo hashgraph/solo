@@ -53,8 +53,18 @@
     "block-node-enabled": false
   },
   {
+    "name": "Explorer Stale Routing Repro",
+    "directory": "explorer-stale-routing-repro",
+    "local-java-build": false
+  },
+  {
     "name": "Mirror Node Component Image",
     "directory": "mirror-node-component-image",
     "local-java-build": true
+  },
+  {
+    "name": "Multicluster Component Image",
+    "directory": "multicluster-component-image",
+    "local-java-build": false
   }
 ]

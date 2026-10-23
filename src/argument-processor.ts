@@ -36,6 +36,7 @@ export class ArgumentProcessor {
         middlewares.printCustomHelp(rootCmd),
         middlewares.warnDeprecatedFlags(),
         middlewares.warnDeprecatedCommands(),
+        middlewares.warnDeprecatedEnvironmentVariables(),
         middlewares.setLoggerDebugFlag(),
         // @ts-expect-error - TS2322: To assign middlewares
         middlewares.processArgumentsAndDisplayHeader(),

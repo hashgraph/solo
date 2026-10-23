@@ -236,6 +236,11 @@ channel. This sketches the mechanism as input to
 [#5722](https://github.com/hiero-ledger/solo/issues/5722), which owns the final cross-channel
 design: [Self-Upgrade](self-upgrade.md).
 
+The following sketch is superseded by that design where they differ: latest-version lookup uses the
+`releases/latest` redirect with a matching release asset, npm installs print the exact `npm install -g` command
+without executing it, and an unwritable system-wide install prints the manual `sudo` command without elevating
+itself. The same-directory verified rename remains the binary-swap mechanism.
+
 **Mechanism — atomic self-replace.** `solo update` resolves the latest version and
 per-`(os, libc, arch)` download URL from the GitHub Releases API (the same source §6.1 already
 publishes to — `VersionUpdateNotifier`'s existing 24-hour-cache pattern can be reused here, pointed

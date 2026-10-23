@@ -36,6 +36,7 @@ import chalk from 'chalk';
 import {type Pod} from '../integration/kube/resources/pod/pod.js';
 import {type BlockNodeStateSchema} from '../data/schema/model/remote/state/block-node-state-schema.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentCompatibility} from '../business/compatibility/component-compatibility.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
@@ -388,14 +389,14 @@ export class BlockNodeCommand extends BaseCommand {
             // Image found locally or loaded from an archive — kind-load task will load it; set pullPolicy: Never.
             chartValues
               .setLiteral('image.registry', parsedReference.registry)
-              .set('image.repository', parsedReference.repository)
+              .set('image.repository', this.buildRepositoryWithRegistry(parsedReference))
               .set('image.tag', parsedReference.tag)
               .set('image.pullPolicy', 'Never');
           } else {
             // Preserve the explicit registry/repository when a local registry image is pulled remotely.
             chartValues
               .setLiteral('image.registry', parsedReference.registry)
-              .set('image.repository', parsedReference.repository)
+              .set('image.repository', this.buildRepositoryWithRegistry(parsedReference))
               .set('image.tag', parsedReference.tag);
           }
         } else {
@@ -416,7 +417,7 @@ export class BlockNodeCommand extends BaseCommand {
         const parsedReference: ParsedImageReference = ImageReference.parseImageReference(config.componentImage);
         chartValues
           .setLiteral('image.registry', parsedReference.registry)
-          .set('image.repository', parsedReference.repository)
+          .set('image.repository', this.buildRepositoryWithRegistry(parsedReference))
           .set('image.tag', parsedReference.tag);
         if (hasComponentImageArchive) {
           chartValues.set('image.pullPolicy', 'Never');
@@ -453,6 +454,10 @@ export class BlockNodeCommand extends BaseCommand {
     return chartValues;
   }
 
+  private buildRepositoryWithRegistry(parsedReference: ParsedImageReference): string {
+    return `${parsedReference.registry}/${parsedReference.repository}`;
+  }
+
   private shouldConfigureRsaMirrorBootstrapSource(): boolean {
     const consensusNodeVersion: SemanticVersion<string> = new SemanticVersion<string>(
       this.remoteConfig.configuration.versions?.consensusNode?.toString() || versions.HEDERA_PLATFORM_VERSION,
@@ -465,15 +470,6 @@ export class BlockNodeCommand extends BaseCommand {
     return blockStreamMode === 'BLOCKS' || blockStreamMode === 'BOTH';
   }
 
-  /**
-   * Rejects a block node version that sits on the opposite side of the fixed 16-slot block root hash
-   * boundary (hiero-consensus-node#26918) from the consensus node it will serve. The consensus node
-   * streams every block to the block node for verification, so a mismatched pair is rejected with
-   * BAD_BLOCK_PROOF until the consensus node block buffer saturates and the network stalls.
-   *
-   * `consensusNodeVersion` must be the version that will actually be running alongside this block
-   * node. See {@link resolveConsensusNodeVersionForCompatibility} for how add picks it.
-   */
   /**
    * Picks the consensus node version that a block node being added will actually serve.
    *
@@ -500,30 +496,21 @@ export class BlockNodeCommand extends BaseCommand {
     return this.remoteConfig.configuration.versions?.consensusNode?.toString() ?? versions.HEDERA_PLATFORM_VERSION;
   }
 
-  private assertBlockProofCompatibility(blockNodeVersion: string, consensusNodeVersion: string, force: boolean): void {
-    const blockNodeUsesFixedSlots: boolean = new SemanticVersion<string>(blockNodeVersion).greaterThanOrEqual(
-      versions.MINIMUM_BLOCK_NODE_VERSION_FOR_16_SLOT_BLOCK_PROOF,
-    );
-    const consensusNodeUsesFixedSlots: boolean = new SemanticVersion<string>(consensusNodeVersion).greaterThanOrEqual(
-      versions.MINIMUM_CN_VERSION_FOR_16_SLOT_BLOCK_PROOF,
-    );
-
-    if (blockNodeUsesFixedSlots === consensusNodeUsesFixedSlots) {
-      return;
-    }
-
-    if (force) {
-      this.logger.warn(
-        `Force flag enabled, bypassing the block root hash compatibility check between block node ${blockNodeVersion} and consensus node ${consensusNodeVersion}`,
-      );
-      return;
-    }
-
-    throw new SoloErrors.validation.blockNodeBlockProofIncompatible(
-      blockNodeVersion,
-      consensusNodeVersion,
-      versions.MINIMUM_BLOCK_NODE_VERSION_FOR_16_SLOT_BLOCK_PROOF,
-      versions.MINIMUM_CN_VERSION_FOR_16_SLOT_BLOCK_PROOF,
+  /**
+   * Rejects a block node version that cannot run alongside the consensus node it will serve or the other
+   * deployed components. `consensusNodeVersion` must be the version that will actually be running alongside this
+   * block node. See {@link resolveConsensusNodeVersionForCompatibility} for how add picks it.
+   */
+  private assertBlockNodeCompatibility(blockNodeVersion: string, consensusNodeVersion: string, force: boolean): void {
+    ComponentCompatibility.assertCompatible(
+      {
+        ...ComponentCompatibility.deployedVersions(this.remoteConfig),
+        [ComponentTypes.ConsensusNode]: consensusNodeVersion,
+        [ComponentTypes.BlockNode]: blockNodeVersion,
+      },
+      ComponentTypes.BlockNode,
+      force,
+      this.logger,
     );
   }
 
@@ -994,7 +981,7 @@ export class BlockNodeCommand extends BaseCommand {
               config.componentImage = `${constants.BLOCK_NODE_IMAGE_NAME}:${config.imageTag}`;
             }
 
-            this.assertBlockProofCompatibility(
+            this.assertBlockNodeCompatibility(
               config.chartVersion,
               this.resolveConsensusNodeVersionForCompatibility(argv),
               config.force,
@@ -1469,7 +1456,7 @@ export class BlockNodeCommand extends BaseCommand {
             );
 
             // On upgrade the consensus network is already deployed, so remote config is ground truth.
-            this.assertBlockProofCompatibility(
+            this.assertBlockNodeCompatibility(
               config.upgradeVersion,
               this.remoteConfig.configuration.versions?.consensusNode?.toString() ?? versions.HEDERA_PLATFORM_VERSION,
               config.force,
