@@ -483,16 +483,20 @@ export class AccountManager {
   }
 
   /**
-   * pings a consensus node from the client's own network to ensure the client is working; the operator account
-   * (normally 0.0.2) is not a node account, and the SDK rejects node account ids outside the client's network
+   * checks the client with a free cost query, allowing SDK retries to rotate across its configured consensus nodes
    * @param nodeClient - the node client to check
    */
   private static async pingNodeClient(nodeClient: Client): Promise<void> {
     if (constants.SKIP_NODE_PING) {
       return;
     }
-    const [nodeAccountId]: (string | AccountId)[] = Object.values(nodeClient.network);
-    await nodeClient.ping(nodeAccountId);
+    const nodeAccountIds: AccountId[] = Object.values(nodeClient.network).map(
+      (accountId: string | AccountId): AccountId => AccountId.fromString(accountId.toString()),
+    );
+    await new AccountInfoQuery()
+      .setAccountId(new AccountId(nodeClient.shard, nodeClient.realm, 2))
+      .setNodeAccountIds(nodeAccountIds)
+      .getCost(nodeClient);
   }
 
   private async configureNodeAccess(

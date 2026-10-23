@@ -6,13 +6,17 @@ import sinon from 'sinon';
 import {
   AccountCreateTransaction,
   AccountId,
+  AccountInfoQuery,
   Client,
+  Hbar,
+  Long,
   PrivateKey,
   PrecheckStatusError,
   Status,
   type TransactionReceipt,
   type TransactionResponse,
 } from '@hiero-ledger/sdk';
+import {proto} from '@hiero-ledger/proto';
 import {AccountManager} from '../../../src/core/account-manager.js';
 import {NamespaceName} from '../../../src/types/namespace/namespace-name.js';
 import {type K8Factory} from '../../../src/integration/kube/k8-factory.js';
@@ -131,7 +135,7 @@ describe('AccountManager node client ping', (): void => {
     sinon
       .stub(accountManager as unknown as {configureNodeAccess: () => unknown}, 'configureNodeAccess')
       .resolves({'127.0.0.1:50211': AccountId.fromString(nodeAccountId)});
-    const pingStub: sinon.SinonStub = sinon.stub(Client.prototype, 'ping').resolves();
+    const costStub: sinon.SinonStub = sinon.stub(AccountInfoQuery.prototype, 'getCost').resolves(Hbar.fromTinybars(1));
     const networkNodeServicesMap: NodeServiceMapping = new Map([
       ['node1', {nodeAlias: 'node1', accountId: nodeAccountId} as unknown as NetworkNodeServices],
     ]);
@@ -143,10 +147,67 @@ describe('AccountManager node client ping', (): void => {
       operatorKey,
     );
 
-    expect(pingStub.callCount).to.equal(1);
-    expect(pingStub.firstCall.args[0].toString()).to.equal(nodeAccountId);
+    expect(costStub.callCount).to.equal(1);
+    const query: AccountInfoQuery = costStub.firstCall.thisValue;
+    expect(query.nodeAccountIds?.map((accountId: AccountId): string => accountId.toString())).to.deep.equal([
+      nodeAccountId,
+    ]);
     expect(nodeClient.operatorAccountId?.toString()).to.equal(operatorAccountId);
     nodeClient.close();
+  });
+
+  it('retries another configured node when the first node is unavailable', async (): Promise<void> => {
+    const accountManager: AccountManager = makeAccountManager(sinon.stub(), makeLogger());
+    const nodeClient: Client = Client.fromConfig({
+      network: {'127.0.0.1:50211': nodeAccountId, '127.0.0.1:50213': '0.0.4'},
+      scheduleNetworkUpdate: false,
+    });
+    nodeClient.setOperator(operatorAccountId, operatorKey);
+    nodeClient.setMaxAttempts(3).setMinBackoff(1).setMaxBackoff(1).setGrpcDeadline(100).setRequestTimeout(1000);
+    (accountManager as unknown as {_nodeClient: Client})._nodeClient = nodeClient;
+    const unavailableEndpoint: string = Object.keys(nodeClient.network)[0];
+    const attemptedEndpoints: string[] = [];
+    const refreshStub: sinon.SinonStub = sinon
+      .stub(accountManager, 'refreshNodeClient')
+      .rejects(new Error('a healthy configured node should avoid refreshing the client'));
+    sinon
+      .stub(AccountInfoQuery.prototype, '_execute')
+      .callsFake(
+        async (
+          channel: Parameters<AccountInfoQuery['_execute']>[0],
+          request: proto.IQuery,
+        ): Promise<proto.IResponse> => {
+          expect(request.cryptoGetInfo?.header?.responseType).to.equal(proto.ResponseType.COST_ANSWER);
+          if (!('address' in channel) || typeof channel.address !== 'string') {
+            throw new Error('expected a Node.js SDK channel');
+          }
+          attemptedEndpoints.push(channel.address);
+          if (channel.address === unavailableEndpoint) {
+            throw Object.assign(new Error('node unavailable'), {code: 14, details: 'node unavailable'});
+          }
+          return {
+            cryptoGetInfo: {
+              header: {nodeTransactionPrecheckCode: proto.ResponseCodeEnum.OK, cost: Long.fromNumber(1)},
+            },
+          };
+        },
+      );
+
+    try {
+      const loadedClient: Client = await accountManager.loadNodeClient(
+        NamespaceName.of('solo'),
+        {} as never,
+        'deployment' as never,
+      );
+
+      expect(loadedClient).to.equal(nodeClient);
+      expect(attemptedEndpoints).to.have.length(2);
+      expect(attemptedEndpoints[0]).to.equal(unavailableEndpoint);
+      expect(attemptedEndpoints[1]).not.to.equal(unavailableEndpoint);
+      expect(refreshStub.callCount).to.equal(0);
+    } finally {
+      nodeClient.close();
+    }
   });
 
   it('pings a configured node account, not the operator, when reusing the client', async (): Promise<void> => {
@@ -157,7 +218,7 @@ describe('AccountManager node client ping', (): void => {
     });
     nodeClient.setOperator(operatorAccountId, operatorKey);
     (accountManager as unknown as {_nodeClient: Client})._nodeClient = nodeClient;
-    const pingStub: sinon.SinonStub = sinon.stub(Client.prototype, 'ping').resolves();
+    const costStub: sinon.SinonStub = sinon.stub(AccountInfoQuery.prototype, 'getCost').resolves(Hbar.fromTinybars(1));
     const refreshStub: sinon.SinonStub = sinon.stub(accountManager, 'refreshNodeClient');
 
     const loadedClient: Client = await accountManager.loadNodeClient(
@@ -167,8 +228,11 @@ describe('AccountManager node client ping', (): void => {
     );
 
     expect(loadedClient).to.equal(nodeClient);
-    expect(pingStub.callCount).to.equal(1);
-    expect(pingStub.firstCall.args[0].toString()).to.equal(nodeAccountId);
+    expect(costStub.callCount).to.equal(1);
+    const query: AccountInfoQuery = costStub.firstCall.thisValue;
+    expect(query.nodeAccountIds?.map((accountId: AccountId): string => accountId.toString())).to.deep.equal([
+      nodeAccountId,
+    ]);
     expect(refreshStub.callCount).to.equal(0);
     nodeClient.close();
   });
