@@ -308,6 +308,24 @@ export class ClusterCommandTasks {
             `chart version ${versions.PROMETHEUS_STACK_VERSION}`,
           );
         } else {
+          // The chart's CRDs are cluster-scoped and may already be owned by another manager (e.g. ArgoCD
+          // or another Prometheus operator install). Helm applies crds/ with server-side apply, which
+          // fails on field-ownership conflicts, so leave existing CRDs alone rather than fight for them.
+          const existingCrds: Map<string, Record<string, string>> = await ClusterCrdProbe.probe(
+            this.k8Factory,
+            context_.config.context,
+            constants.PROMETHEUS_OPERATOR_CRDS,
+          );
+          const skipCrds: boolean = existingCrds.size > 0;
+          if (skipCrds) {
+            SharedClusterResourceReport.show(
+              this.logger,
+              'Prometheus Operator CRDs',
+              context_.config.context,
+              `${existingCrds.size} of ${constants.PROMETHEUS_OPERATOR_CRDS.length} CRDs already present`,
+              `chart version ${versions.PROMETHEUS_STACK_VERSION} (installing with --skip-crds)`,
+            );
+          }
           try {
             await this.chartManager.install(
               clusterSetupNamespace,
@@ -317,6 +335,10 @@ export class ClusterCommandTasks {
               versions.PROMETHEUS_STACK_VERSION,
               new HelmChartValues().file(constants.PROMETHEUS_STACK_VALUES_FILE),
               context_.config.context,
+              false,
+              false,
+              false,
+              skipCrds,
             );
             this.logger.showUserUnlessOneShot('✅ Prometheus Stack chart installed successfully');
           } catch (error) {

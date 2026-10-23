@@ -211,7 +211,8 @@ export class ImageCacheHandler implements CacheOperationHandler {
 
   /**
    * Downloads an archive and its published hash file, then accepts the archive only when the manifest hash,
-   * the published hash file and the archive's own SHA-256 all agree. Anything else discards the download.
+   * the published hash file and the archive's own SHA-256 all agree, and its size matches the manifest when
+   * the manifest records one. Anything else discards the download.
    */
   private async downloadArchive(
     reference: string,
@@ -243,6 +244,23 @@ export class ImageCacheHandler implements CacheOperationHandler {
       }
 
       await this.downloader.fetchFile(manifestImage.tarUrl, archivePath);
+
+      // Checked before hashing: a truncated download is reported as a size mismatch without reading the archive.
+      if (manifestImage.size !== undefined) {
+        const {size: downloadedSize}: {size: number} = await fs.stat(archivePath);
+
+        if (downloadedSize !== manifestImage.size) {
+          await this.discardArchive(archivePath);
+          task.title += ' - ' + chalk.red('downloaded archive size mismatch, discarded');
+          this.logger.warn(
+            `Downloaded archive for ${reference} is ${downloadedSize} bytes, not the ${manifestImage.size} the manifest records, and was deleted; the next \`solo cache image pull\` will download it again.`,
+          );
+          this.recordFailure(
+            `${reference}: downloaded archive is ${downloadedSize} bytes but the manifest records ${manifestImage.size}; the archive was deleted and will be downloaded on the next pull.`,
+          );
+          return false;
+        }
+      }
 
       const computed: string = await ImageCacheHandler.computeSha256(archivePath);
 

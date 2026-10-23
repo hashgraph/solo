@@ -6,6 +6,7 @@ import {SoloErrors} from '../core/errors/solo-errors.js';
 import {Flags as flags} from './flags.js';
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
+import {GenesisKeyResolver} from '../core/genesis-key-resolver.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {
   FileCreateTransaction,
@@ -176,8 +177,8 @@ export class FileCommand extends BaseCommand {
     // Use genesis key for system file operations if requested
     if (useGenesisKeyForSystemFile) {
       this.logger.showUser(chalk.cyan('Using genesis key for system file operations'));
-      this.logger.showUser(chalk.gray('  Genesis key can be customized via GENESIS_KEY environment variable'));
-      return PrivateKey.fromString(constants.GENESIS_KEY);
+      this.logger.showUser(chalk.gray('  Genesis key is read from the network genesis-key secret'));
+      return GenesisKeyResolver.resolve(this.k8Factory, this.remoteConfig.getContexts(), namespace);
     }
 
     // Get treasury account keys
@@ -224,8 +225,8 @@ Possible reasons:
 3. The network may be using a different genesis key than expected
 
 Troubleshooting:
-• Verify the correct genesis key using: echo $GENESIS_KEY
-• Set custom genesis key: export GENESIS_KEY=<your-genesis-key>
+• Verify the stored genesis key: kubectl get secret genesis-key -n <namespace>
+• The key is stored at 'network deploy' from the GENESIS_KEY environment variable (or the default)
 • Check if the file requires special permissions beyond genesis key
 • Consider using FileUpdateTransaction with additional authorization in custom code`;
       }
@@ -378,7 +379,7 @@ Troubleshooting:
                   );
                   this.logger.showUser(
                     chalk.yellow(
-                      '    Update may fail. Set GENESIS_KEY environment variable if this file requires genesis key authorization.',
+                      '    Update may fail. Verify the network genesis-key secret if this file requires genesis key authorization.',
                     ),
                   );
                 }

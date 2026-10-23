@@ -21,6 +21,8 @@ import {BlockNodeTest} from './tests/block-node-test.js';
 import {MirrorNodeTest} from './tests/mirror-node-test.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {type EndToEndTestSuite} from '../end-to-end-test-suite.js';
+import {Templates} from '../../../src/core/templates.js';
+import {type NodeAlias} from '../../../src/types/aliases.js';
 
 const testName: string = 'block-node-test';
 
@@ -81,15 +83,28 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
 
         BlockNodeTest.add(options);
 
+        // In-cluster resolvable (so the pinger still reaches the nodes) but distinct from the default service FQDN
+        const domainNameOptions: BaseTestOptions = {
+          ...options,
+          domainNames: Object.fromEntries(
+            Array.from({length: options.consensusNodesCount}, (_, index: number): [NodeAlias, string] => {
+              const nodeAlias: NodeAlias = Templates.renderNodeAliasFromNumber(index + 1);
+              return [nodeAlias, `${Templates.renderNetworkSvcName(nodeAlias)}.${namespace.name}.svc`];
+            }),
+          ) as Record<NodeAlias, string>,
+        };
+
         NetworkTest.deploy(options);
-        ConsensusNodeTest.setup(options);
+        ConsensusNodeTest.setup(domainNameOptions);
         ConsensusNodeTest.start(options);
+        NetworkTest.verifyAddressBookFiles(domainNameOptions);
 
         // Verify WRAPs/TSS is operational: deploy a mirror node with pinger enabled so the network
         // keeps receiving transactions, then confirm TSS-signed blocks keep being produced by the
         // network and ingested by the mirror node.
         MirrorNodeTest.add({...options, pinger: true}, 0);
         MirrorNodeTest.verifyBlocksAreBeingProduced(options);
+        MirrorNodeTest.verifyAddressBookServiceEndpoints(domainNameOptions);
         BlockNodeTest.testBlockNode(options, 1);
 
         BlockNodeTest.add(options, ['node2']);

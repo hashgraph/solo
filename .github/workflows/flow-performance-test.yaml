@@ -89,7 +89,7 @@ jobs:
     runs-on: hiero-solo-linux-large
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
@@ -114,7 +114,7 @@ jobs:
       # (issue #5957): no release artifact is produced here, so the impact is a corrupted
       # performance run rather than anything shipped.
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0 # zizmor: ignore[cache-poisoning]
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.0.0 # zizmor: ignore[cache-poisoning]
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: 24
@@ -180,7 +180,6 @@ jobs:
           echo SOLO_TEST_CLUSTER=solo-e2e > .env
           echo ONE_SHOT_WITH_BLOCK_NODE=true >> .env
           echo BLOCK_STREAM_STREAM_MODE=BLOCKS >> .env
-          echo ONE_SHOT_BLOCK_NODE_PERF=true >> .env
           CN_EDGE_VERSION="${CN_EDGE_VERSION_INPUT}"
           if [[ -n "${CN_EDGE_VERSION}" ]]; then
             echo "Using consensus node edge version: ${CN_EDGE_VERSION}"
@@ -200,7 +199,6 @@ jobs:
           fi
           echo MIRROR_NODE_PINGER_TPS=10 >> .env
           echo ONE_SHOT_METRICS_TEST_DURATION_IN_MINUTES=5 >> .env
-          echo ONE_SHOT_BLOCK_NODE_PERF=false >> .env
           if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
             echo PERFORMANCE_TEST_CONCISE_MODE=true >> .env
           else
@@ -532,7 +530,7 @@ jobs:
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: solo-performance-test.log
@@ -542,7 +540,7 @@ jobs:
 
       - name: Upload Java Flight Recorder Recordings to GitHub
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: solo-performance-test-jfr
@@ -553,7 +551,7 @@ jobs:
       - name: Performance Test Verification
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
-          # ONE_SHOT_BLOCK_NODE_PERF=false: no ring-buffer workaround applied.
+          # The block node messaging workaround was removed — no ring-buffer override applied.
           # RTT probe runs but failures are non-fatal (hiero-block-node#3150) — block-node RSS
           # stays at the ~143 MB baseline.  Measured peak (run 29267777062): 2 331 MiB.
           # 3 000 MB (= 2 331 + 500 margin rounded to nearest 500) leaves headroom for NLG + mirror + kube-system.
@@ -607,7 +605,7 @@ jobs:
           fi
 
       - name: Upload Metrics Data and Chart to GitHub
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: solo-performance-chart

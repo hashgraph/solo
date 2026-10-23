@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import sinon, {type SinonStub} from 'sinon';
 import {PodmanDependencyManager} from '../../../../../src/core/dependency-managers/index.js';
-import {getTestCacheDirectory, getTemporaryDirectory} from '../../../../test-utility.js';
+import {getTestCacheDirectory, getTemporaryDirectory} from '../../../test-utility.js';
 import * as version from '../../../../../version.js';
 import {PathEx} from '../../../../../src/business/utils/path-ex.js';
 import * as constants from '../../../../../src/core/constants.js';

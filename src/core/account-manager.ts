@@ -29,6 +29,7 @@ import {
 } from '@hiero-ledger/sdk';
 import {SoloError} from './errors/solo-error.js'; // kept for instanceof checks
 import {Templates} from './templates.js';
+import {GenesisKeyResolver} from './genesis-key-resolver.js';
 import {type NetworkNodeServices} from './network-node-services.js';
 
 import {type SoloLogger} from './logging/solo-logger.js';
@@ -141,10 +142,11 @@ export class AccountManager {
     }
 
     // if it isn't in the secrets we can load genesis key
+    const genesisKey: PrivateKey = await GenesisKeyResolver.resolve(this.k8Factory, contexts, namespace);
     return {
       accountId,
-      privateKey: constants.GENESIS_KEY,
-      publicKey: PrivateKey.fromStringED25519(constants.GENESIS_KEY).publicKey.toString(),
+      privateKey: genesisKey.toString(),
+      publicKey: genesisKey.publicKey.toString(),
     };
   }
 
@@ -180,6 +182,22 @@ export class AccountManager {
         consensusNode.name,
         `secret '${secretName}' is missing data key '${dataKey}'`,
       );
+    }
+
+    return Base64.decode(encodedCertificate);
+  }
+
+  /** Reads a consensus node's gRPC TLS certificate PEM from the shared node TLS key secret. */
+  public async getTlsCertificatePem(consensusNode: ConsensusNode): Promise<string> {
+    const dataKey: string = Templates.renderTLSPemPublicKeyFile(consensusNode.name);
+    const secret: Secret = await this.k8Factory
+      .getK8(consensusNode.context)
+      .secrets()
+      .read(NamespaceName.of(consensusNode.namespace), constants.NODE_TLS_KEYS_SECRET_NAME);
+
+    const encodedCertificate: string | undefined = secret?.data?.[dataKey];
+    if (!encodedCertificate) {
+      throw new SoloErrors.component.platformKeyFileMissing(dataKey);
     }
 
     return Base64.decode(encodedCertificate);
@@ -814,7 +832,11 @@ export class AccountManager {
     },
     deploymentName: DeploymentName,
   ): Promise<{skippedCount: number; rejectedCount: number; fulfilledCount: number}> {
-    const genesisKey: PrivateKey = PrivateKey.fromStringED25519(constants.OPERATOR_KEY);
+    const genesisKey: PrivateKey = await GenesisKeyResolver.resolve(
+      this.k8Factory,
+      this.remoteConfig.getContexts(),
+      namespace,
+    );
     const accountUpdatePromiseArray: Promise<
       {value: string; status: string} | {reason: string; value: string; status: string}
     >[] = [];
@@ -901,7 +923,7 @@ export class AccountManager {
       };
     }
 
-    if (constants.GENESIS_PUBLIC_KEY.toString() !== keys[0].toString()) {
+    if (genesisKey.publicKey.toString() !== keys[0].toString()) {
       this.logger.debug(`account ${accountId.toString()} can be skipped since it does not have a genesis key`);
       return {
         status: REJECTED,

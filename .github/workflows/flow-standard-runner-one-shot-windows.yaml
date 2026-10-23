@@ -18,7 +18,8 @@ name: 'Windows One-Shot Deploy and Destroy'
 # Compatibility gate: verifies that Solo one-shot deploy continues to work on native Windows.
 # Solo runs natively in PowerShell on a standard GitHub-hosted Windows runner.
 # Docker runs inside WSL2 (replicating how Docker Desktop works for Windows users) and is
-# exposed to Windows via DOCKER_HOST=tcp://localhost:2375.
+# exposed to Windows via DOCKER_HOST=tcp://<wsl2 ip>:2375, set at runtime once the VM has an
+# address (see "Point the Docker Client at the WSL2 Daemon").
 # Any PR that breaks Solo on Windows will cause this workflow to fail.
 #
 # The run covers a full install -> remove -> reinstall cycle, because failures that only appear on a
@@ -56,13 +57,15 @@ concurrency:
 
 env:
   STEP_TIMEOUT_MINUTES: '5'
-  DOCKER_HOST: tcp://localhost:2375
+  WSL_DISTRIBUTION: 'Ubuntu-24.04'
+  # DOCKER_HOST is deliberately absent here: it names the WSL2 VM's address, which only exists
+  # once the VM is up, and a value set here would shadow the one the job exports at runtime.
   ACTIONS_STEP_DEBUG: 'true'
   ACTIONS_RUNNER_DEBUG: 'true'
-  WSL_UBUNTU_VERSION: '24.4.4'
-  WSL_UBUNTU_INSTALLER_FILE: 'ubuntu-24.04.4-wsl-amd64.wsl'
-  WSL_UBUNTU_INSTALLER_URL: 'https://releases.ubuntu.com/24.04.4/ubuntu-24.04.4-wsl-amd64.wsl'
-  WSL_UBUNTU_INSTALLER_SHA256: '9b2f7730dc68227dd04a9f3e5eab86ad85caf556b8606ad94f1f29ff5c4fd3f5'
+  WSL_UBUNTU_VERSION: '24.4.5'
+  WSL_UBUNTU_INSTALLER_FILE: 'ubuntu-24.04.5-wsl-amd64.wsl'
+  WSL_UBUNTU_INSTALLER_URL: 'https://releases.ubuntu.com/24.04.5/ubuntu-24.04.5-wsl-amd64.wsl'
+  WSL_UBUNTU_INSTALLER_SHA256: 'bb415d824822c4b878125729af451a5d18fb13d1cf5cbed9a7393ad64ac6039e'
   # Windows-side Docker CLI. Kind shells out to whichever `docker` is on PATH to talk to the WSL2
   # daemon over DOCKER_HOST, so the runner image's bundled client is a silent, unpinned input to
   # this job. Image 20260907.229 rolled it 29.1.5 -> 29.7.2 and `docker exec` started returning an
@@ -130,7 +133,7 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
 
       - name: Setup Node.js 24
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: '24'
@@ -149,6 +152,48 @@ jobs:
         timeout-minutes: 10
         run: |
           task build:compile
+
+      - name: Verify pinned Ubuntu WSL installer matches setup-wsl
+        shell: pwsh
+        timeout-minutes: 2
+        run: |
+          # setup-wsl hard-codes the installer version and URL per distribution. When they differ from
+          # the WSL_UBUNTU_* pins, the verified cache below is keyed on a version the action never
+          # looks up, so it silently falls back to downloading its own installer inside a 3-minute
+          # step and times out with no hint why. Fail here instead, naming the values to change.
+          $workflowFile = Join-Path $env:GITHUB_WORKSPACE '.github/workflows/flow-standard-runner-one-shot-windows.yaml'
+          $usesMatch = Select-String -Path $workflowFile -Pattern 'uses:\s*Vampire/setup-wsl@([0-9a-f]{40})' | Select-Object -First 1
+          if (-not $usesMatch) {
+            throw "Could not find the pinned Vampire/setup-wsl commit in $workflowFile"
+          }
+          $actionSha = $usesMatch.Matches[0].Groups[1].Value
+
+          $bundleUrl = "https://raw.githubusercontent.com/Vampire/setup-wsl/$actionSha/build/distributions/index.mjs"
+          # raw.githubusercontent.com serves .mjs as application/octet-stream, so .Content would be a
+          # byte[] rather than text; save it and read it back as a string.
+          $bundlePath = Join-Path $env:RUNNER_TEMP 'setup-wsl-index.mjs'
+          Invoke-WebRequest -Uri $bundleUrl -OutFile $bundlePath -UseBasicParsing -TimeoutSec 60
+          $bundle = Get-Content -LiteralPath $bundlePath -Raw
+          $pattern = "'" + [regex]::Escape($env:WSL_DISTRIBUTION) + "',\s*'Ubuntu',\s*new [\w.]*SemVer\('([^']+)'\),\s*new URL\('([^']+)'\)"
+          $distributionMatch = [regex]::Match($bundle, $pattern)
+          if (-not $distributionMatch.Success) {
+            throw "Could not find $env:WSL_DISTRIBUTION in Vampire/setup-wsl@$actionSha ($bundleUrl); its distribution table layout may have changed"
+          }
+          $actionVersion = $distributionMatch.Groups[1].Value
+          $actionUrl = $distributionMatch.Groups[2].Value
+
+          Write-Host "setup-wsl@$actionSha resolves $env:WSL_DISTRIBUTION to version $actionVersion ($actionUrl)"
+          Write-Host "Workflow pins version $env:WSL_UBUNTU_VERSION ($env:WSL_UBUNTU_INSTALLER_URL)"
+
+          if ($actionVersion -ne $env:WSL_UBUNTU_VERSION -or $actionUrl -ne $env:WSL_UBUNTU_INSTALLER_URL) {
+            $message = "Pinned Ubuntu WSL installer does not match setup-wsl. " +
+              "Vampire/setup-wsl@$actionSha resolves $env:WSL_DISTRIBUTION to $actionVersion ($actionUrl), " +
+              "but WSL_UBUNTU_VERSION/WSL_UBUNTU_INSTALLER_URL pin $env:WSL_UBUNTU_VERSION ($env:WSL_UBUNTU_INSTALLER_URL). " +
+              "Update WSL_UBUNTU_VERSION, WSL_UBUNTU_INSTALLER_FILE, WSL_UBUNTU_INSTALLER_URL and WSL_UBUNTU_INSTALLER_SHA256 " +
+              "to the installer setup-wsl expects; otherwise the Setup WSL2 step ignores the cache and times out downloading it."
+            Write-Host "::error title=WSL Ubuntu installer pin out of sync with setup-wsl::$message"
+            throw $message
+          }
 
       - name: Restore verified Ubuntu WSL installer cache
         id: restore_ubuntu_wsl_installer
@@ -210,7 +255,7 @@ jobs:
         id: seed_ubuntu_wsl_installer
         if: ${{ success() && steps.validate_ubuntu_wsl_installer.outputs.valid != 'true' }}
         shell: pwsh
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
           $cacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE "Ubuntu\$env:WSL_UBUNTU_VERSION\x64"
           $installerPath = Join-Path $cacheDirectory $env:WSL_UBUNTU_INSTALLER_FILE
@@ -218,11 +263,45 @@ jobs:
           New-Item -ItemType Directory -Path $cacheDirectory -Force | Out-Null
           Remove-Item -LiteralPath $installerPath,$completeMarkerPath -Force -ErrorAction SilentlyContinue
 
-          Invoke-WebRequest -Uri $env:WSL_UBUNTU_INSTALLER_URL -OutFile $installerPath
-          $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
-          if ($actualHash -ne $env:WSL_UBUNTU_INSTALLER_SHA256) {
+          # releases.ubuntu.com serves this ~390 MB file at a few hundred KB/s at times, which alone
+          # exceeded the step budget. Try the public Ubuntu mirrors first, abandoning any source that
+          # stays under 1 MB/s for 15 seconds, and fall back to the canonical URL with no speed floor.
+          # The mirror path mirrors the canonical one; the pinned SHA-256 below is the trust anchor,
+          # so a mirror can only supply the exact bytes that were pinned.
+          $relativePath = ([System.Uri]$env:WSL_UBUNTU_INSTALLER_URL).AbsolutePath
+          $sources = @(
+            @{Url = "https://mirror.us.leaseweb.net/ubuntu-releases$relativePath"; SpeedFloor = $true},
+            @{Url = "https://mirrors.edge.kernel.org/ubuntu-releases$relativePath"; SpeedFloor = $true},
+            @{Url = $env:WSL_UBUNTU_INSTALLER_URL; SpeedFloor = $false}
+          )
+
+          $seeded = $false
+          foreach ($source in $sources) {
             Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
-            throw "Seeded Ubuntu WSL installer failed SHA-256 validation: $actualHash"
+            Write-Host "Downloading Ubuntu WSL installer from $($source.Url)"
+            $curlArguments = @('--fail', '--location', '--silent', '--show-error', '--retry', '2', '--output', $installerPath)
+            if ($source.SpeedFloor) {
+              $curlArguments += @('--speed-limit', '1000000', '--speed-time', '15')
+            }
+            & curl.exe @curlArguments $source.Url
+            if ($LASTEXITCODE -ne 0) {
+              Write-Warning "Download from $($source.Url) failed with curl exit code $LASTEXITCODE"
+              continue
+            }
+
+            $actualHash = (Get-FileHash -LiteralPath $installerPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($actualHash -ne $env:WSL_UBUNTU_INSTALLER_SHA256) {
+              Write-Warning "Installer from $($source.Url) failed SHA-256 validation: $actualHash"
+              continue
+            }
+
+            $seeded = $true
+            break
+          }
+
+          if (-not $seeded) {
+            Remove-Item -LiteralPath $installerPath -Force -ErrorAction SilentlyContinue
+            throw "Could not download a Ubuntu WSL installer matching SHA-256 $env:WSL_UBUNTU_INSTALLER_SHA256 from any source"
           }
 
           New-Item -ItemType File -Path $completeMarkerPath -Force | Out-Null
@@ -243,7 +322,7 @@ jobs:
         # what Docker Desktop does for Windows users, exposing a Linux daemon via TCP.
         # The verified restore above creates setup-wsl's .complete marker so find()
         # returns the installer before the action reaches its cache or download path.
-        uses: Vampire/setup-wsl@d1da7f2c0322a5ee4f24975344f67fc0f5baf364 # v7.0.0
+        uses: Vampire/setup-wsl@614202866847d986a4f737ae6020b760283d3f5a # v7.1.1
         # A healthy setup completes in well under a minute. Bound a stalled action so a
         # distribution problem is reported promptly instead of consuming ten minutes.
         # Keep this step off the network: `additional-packages` would run `apt-get update`
@@ -252,7 +331,7 @@ jobs:
         # apt call this job needs lives in "Install Docker in WSL2" with its own timeout.
         timeout-minutes: 3
         with:
-          distribution: Ubuntu-24.04
+          distribution: ${{ env.WSL_DISTRIBUTION }}
           wsl-version: 2
           use-cache: false
           set-as-default: true
@@ -279,8 +358,8 @@ jobs:
           Write-Host '::endgroup::'
 
           Write-Host '::group::Ubuntu installer cache'
-          $installerCacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE 'Ubuntu\24.4.4\x64'
-          $installerPath = Join-Path $installerCacheDirectory 'ubuntu-24.04.4-wsl-amd64.wsl'
+          $installerCacheDirectory = Join-Path $env:RUNNER_TOOL_CACHE "Ubuntu\$env:WSL_UBUNTU_VERSION\x64"
+          $installerPath = Join-Path $installerCacheDirectory $env:WSL_UBUNTU_INSTALLER_FILE
           if (Test-Path -LiteralPath $installerPath) {
             Get-Item -LiteralPath $installerPath |
               Select-Object FullName,Length,LastWriteTime |
@@ -326,7 +405,7 @@ jobs:
           Write-Host '::endgroup::'
 
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
@@ -340,6 +419,12 @@ jobs:
         run: |
           set -euo pipefail
           WORKSPACE="$PWD"
+          # The daemon is the other half of the `docker exec` transport the pinned Windows client
+          # talks to (see the WINDOWS_DOCKER_CLI_* note at the top of this workflow), so an
+          # unpinned `apt-get install docker-ce` leaves half of that pair rolling silently under
+          # the job. download.docker.com keeps every published version in the noble index, so this
+          # pin is safe to hold and deliberate to bump. Expanded into the heredoc below.
+          DOCKER_CE_VERSION='5:29.9.2-1~ubuntu.24.04~noble'
           cat > /tmp/install-docker.sh << EOF
             #!/usr/bin/env bash
             set -euo pipefail
@@ -375,7 +460,17 @@ jobs:
             update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
             echo "::endgroup::"
             echo "::group::Installing Docker Engine"
-            apt-get -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin
+            apt-get -y install docker-ce=$DOCKER_CE_VERSION docker-ce-cli=$DOCKER_CE_VERSION containerd.io docker-compose-plugin docker-buildx-plugin
+            echo "::endgroup::"
+            echo "::group::Configuring Docker registry mirrors"
+            # Docker Hub rate-limits anonymous pulls from shared runner IPs, which failed the probe's
+            # busybox pull and would equally fail kind's kindest/node pull. These pulls go through
+            # this dockerd, not the containerd inside the kind node (that one is covered by the
+            # mirrors in kind-config.yaml). dockerd tries registry-mirrors in order and falls back to
+            # Docker Hub itself when none can serve the image, so list the Hashgraph mirror first.
+            mkdir -p /etc/docker
+            printf '{"registry-mirrors":["https://hub.mirror.docker.lat.ope.eng.hashgraph.io","https://mirror.gcr.io"]}\n' > /etc/docker/daemon.json
+            cat /etc/docker/daemon.json
             echo "::endgroup::"
             echo "::group::Starting Docker Daemon"
             # Skip systemd — start dockerd directly with both Unix socket and TCP listener.
@@ -415,17 +510,30 @@ jobs:
           $env:PATH = "$clientDirectory$([System.IO.Path]::PathSeparator)$env:PATH"
           docker --version
 
-      - name: Forward Docker TCP Port from WSL2 to Windows
+      - name: Point the Docker Client at the WSL2 Daemon
         shell: pwsh
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
-          # WSL2 on Windows Server 2022 uses NAT mode — localhost does not automatically
-          # forward to services inside WSL2. Explicitly proxy port 2375 to the WSL2 VM IP.
+          # WSL2 uses NAT mode, so localhost does not reach the daemon and this job used to bridge
+          # the gap with `netsh interface portproxy`. That proxy closes both halves of a connection
+          # when either half closes, and `docker exec` with no stdin half-closes its write side as
+          # soon as the request is sent — so the proxy tore down the response direction before the
+          # container's stdout crossed it. The exec itself still ran and still reported exit 0,
+          # because the exit code travels over a separate request, which is exactly the shape of
+          # issue #5975: an empty stream, no error, and kind failing later on "file should only be
+          # one line, got 0 lines".
+          #
+          # Windows routes to the WSL2 VM over the vEthernet (WSL) adapter without help, so address
+          # the daemon there and keep every relay out of the Docker API path. Solo's own port
+          # forwards are untouched: they stay on localhost, where WSL's forwarding already carries
+          # them.
           $wslIp = (wsl hostname -I).Trim().Split()[0]
+          if ([string]::IsNullOrWhiteSpace($wslIp)) {
+            throw "Could not resolve a WSL IPv4 address to point DOCKER_HOST at."
+          }
           Write-Host "WSL2 IP: $wslIp"
-          netsh interface portproxy add v4tov4 listenport=2375 listenaddress=127.0.0.1 connectport=2375 connectaddress=$wslIp
-          netsh interface portproxy show all
-          Start-Sleep -Seconds 5
+          $env:DOCKER_HOST = "tcp://${wslIp}:2375"
+          "DOCKER_HOST=$env:DOCKER_HOST" | Out-File -FilePath $env:GITHUB_ENV -Append
           docker info
 
       - name: Verify Docker Exec Round-Trip From Windows
@@ -439,20 +547,70 @@ jobs:
           # seconds, against the transport rather than against Solo.
           $probeContainer = 'solo-docker-exec-probe'
           docker rm --force $probeContainer 2>$null | Out-Null
-          docker run --detach --name $probeContainer busybox:1.36.1 sleep 120 | Out-Null
 
+          # Docker Hub rate-limits anonymous pulls from shared runners (HTTP 429), so pull through the
+          # same mirrors the kind config uses, falling back to Docker Hub, and retry transient failures.
+          $probeImages = @('mirror.gcr.io/library/busybox:1.36.1', 'busybox:1.36.1')
+          $probeImage = $null
+          foreach ($attempt in 1..3) {
+            foreach ($candidate in $probeImages) {
+              docker pull $candidate | Out-Null
+              if ($LASTEXITCODE -eq 0) { $probeImage = $candidate; break }
+            }
+            if ($probeImage) { break }
+            Start-Sleep -Seconds (10 * $attempt)
+          }
+          if (-not $probeImage) {
+            throw "Unable to pull the busybox probe image from any registry; this is a registry failure, not a docker exec transport failure."
+          }
+
+          docker run --detach --name $probeContainer $probeImage sleep 120 | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to start the docker exec probe container from $probeImage."
+          }
+
+          # Report the exit code next to the line count on every attempt. That pairing is what
+          # identified the portproxy: `exit code 0, 0 line(s)` means the command ran in the
+          # container and reported success over one request while its stdout was lost on another,
+          # which is a broken stream rather than a broken daemon, and no other symptom says so.
+          # Retries only cover a daemon still settling: the transport failure this probe exists for
+          # survived every attempt thrown at it, so a few are enough.
+          $probeStandardError = Join-Path $env:RUNNER_TEMP 'docker-exec-probe-stderr.txt'
+          $probeOutput = @()
+          $attemptsTaken = 0
           try {
-            $probeOutput = @(docker exec $probeContainer cat /etc/hostname)
+            foreach ($attempt in 1..3) {
+              $attemptsTaken = $attempt
+              $attemptOutput = @(docker exec $probeContainer cat /etc/hostname 2>$probeStandardError)
+              $attemptExitCode = $LASTEXITCODE
+              Write-Host "attempt ${attempt}: exit code $attemptExitCode, $($attemptOutput.Count) line(s): $($attemptOutput -join '|')"
+              if ($attemptExitCode -eq 0 -and $attemptOutput.Count -eq 1 -and -not [string]::IsNullOrWhiteSpace($attemptOutput[0])) {
+                $probeOutput = $attemptOutput
+                break
+              }
+              Start-Sleep -Seconds (2 * $attempt)
+            }
           } finally {
             docker rm --force $probeContainer 2>$null | Out-Null
             # The probe's verdict is $probeOutput, not whether the throwaway container cleaned up.
             $global:LASTEXITCODE = 0
           }
 
-          Write-Host "docker exec returned $($probeOutput.Count) line(s): $($probeOutput -join '|')"
-          if ($probeOutput.Count -ne 1 -or [string]::IsNullOrWhiteSpace($probeOutput[0])) {
-            throw "docker exec returned an empty stdout stream over $env:DOCKER_HOST. Kind cannot create a cluster through this transport."
+          if ($probeOutput.Count -eq 1) {
+            Write-Host "docker exec round-trip succeeded on attempt ${attemptsTaken}: $($probeOutput[0])"
+            exit 0
           }
+
+          # Nothing else captures the daemon's own view of the dropped stream: the job dies here,
+          # before a deployment exists, so the Solo diagnostics step that runs on failure has
+          # nothing to report. This is the only server-side evidence the run will ever carry.
+          Write-Host '::group::docker exec stderr'
+          Get-Content -LiteralPath $probeStandardError -ErrorAction SilentlyContinue
+          Write-Host '::endgroup::'
+          Write-Host '::group::dockerd log (tail)'
+          wsl -u root bash -lc "tail -n 100 /tmp/dockerd.log"
+          Write-Host '::endgroup::'
+          throw "docker exec returned an empty stdout stream over $env:DOCKER_HOST on all $attemptsTaken attempts. Kind cannot create a cluster through this transport."
 
       - name: Render Kind Config for WSL Docker Daemon
         shell: pwsh
@@ -624,15 +782,42 @@ jobs:
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- one-shot single destroy --quiet-mode --dev
 
+      - name: Raise Block Buffer (Docker Restart Recovery Is Validated With Increased Buffer)
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # SCOPE: the Docker restart recovery steps below validate recovery with an INCREASED block
+          # buffer (1000), not with Solo's shipped default (5). Recovery with the default buffer is not
+          # covered by this nightly, so a green run does not prove it.
+          #
+          # The one-shot small-memory template caps blockStream.buffer.maxBlocks at 5. After a Docker
+          # restart the consensus node replays old blocks the block node never acks again, which
+          # saturates that buffer, blocks the transaction handler and leaves the node stuck in
+          # REPLAYING_EVENTS. Solo reads its templates from the build output (dist/resources, copied
+          # from resources/ at build time) and copies them into its cache on every run, so raising the
+          # cap there applies it to every one-shot deploy in this job only.
+          $propertiesFile = Join-Path $env:GITHUB_WORKSPACE 'dist/resources/templates/small-memory/application.properties'
+          $content = Get-Content -LiteralPath $propertiesFile -Raw
+          $updated = $content -replace '(?m)^blockStream\.buffer\.maxBlocks=\d+[ \t\r]*$', 'blockStream.buffer.maxBlocks=1000'
+          if ($updated -eq $content) {
+            throw "blockStream.buffer.maxBlocks was not found in $propertiesFile"
+          }
+          Set-Content -LiteralPath $propertiesFile -Value $updated -NoNewline
+          Select-String -LiteralPath $propertiesFile -Pattern 'blockStream.buffer.maxBlocks'
+
       - name: One-Shot Single Redeploy
         # Second deploy cycle on the same cluster — no cluster deletion between rounds.
         # This validates that redeployment works correctly after a destroy (issue #6003).
-        # Only runs when called from the nightly workflow with run-twice: true.
+        # Only runs when called from the nightly workflow with run-twice: true. Deploys with the block
+        # node and the raised block buffer from the preceding step.
         if: ${{ inputs.run-twice == true }}
         shell: pwsh
         timeout-minutes: 70
         env:
           ENABLE_IMAGE_CACHE: 'false'
+          BLOCK_STREAM_STREAM_MODE: BLOCKS
+          ONE_SHOT_WITH_BLOCK_NODE: 'true'
         run: |
           [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           $OutputEncoding = [System.Text.Encoding]::UTF8
@@ -648,6 +833,228 @@ jobs:
           $OutputEncoding = [System.Text.Encoding]::UTF8
           $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
           npm run solo -- deployment diagnostics connections -d one-shot --check
+
+      - name: Stop Consensus Nodes Before Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- consensus node stop --deployment one-shot --dev
+
+      - name: Restart Docker Daemon in WSL2
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: 10
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          # Snapshot WSL state at each stage so a VM shutdown can be placed relative to our actions.
+          # Query via `wsl --list` only: running a command inside the distro would boot it again.
+          function Write-WslState([string]$Stage) {
+            Write-Host "[wsl-state] $Stage @ $(Get-Date -Format 'HH:mm:ss')"
+            wsl --list --verbose
+          }
+          Write-WslState 'before dockerd stop'
+          wsl -u root bash -lc "uptime; free -m | head -2; pgrep -a dockerd"
+          wsl -u root bash -lc "pkill -x dockerd || true"
+          for ($attempt = 1; $attempt -le 30; $attempt++) {
+            $dockerdProcessId = wsl -u root bash -lc "pgrep -x dockerd || true"
+            if ([string]::IsNullOrWhiteSpace("$dockerdProcessId")) {
+              break
+            }
+            Start-Sleep -Seconds 1
+          }
+          $dockerdProcessId = wsl -u root bash -lc "pgrep -x dockerd || true"
+          if (-not [string]::IsNullOrWhiteSpace("$dockerdProcessId")) {
+            Write-Host "dockerd did not stop gracefully within 30 seconds; forcing shutdown."
+            wsl -u root bash -lc "pkill -9 -x dockerd || true"
+            Start-Sleep -Seconds 1
+          }
+          $dockerdProcessId = wsl -u root bash -lc "pgrep -x dockerd || true"
+          if (-not [string]::IsNullOrWhiteSpace("$dockerdProcessId")) {
+            throw "dockerd did not stop cleanly before restart, even after SIGKILL."
+          }
+          Write-WslState 'after dockerd stop'
+          $wslIpOutput = wsl hostname -I
+          $wslIp = @(
+            "$wslIpOutput" -split '\s+' |
+              Where-Object { $_ -match '^\d{1,3}(\.\d{1,3}){3}$' }
+          ) | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($wslIp)) {
+            throw "Could not resolve a WSL IPv4 address for Docker restart."
+          }
+          # Same listeners as the initial start. WSL2 tears down background processes once its last
+          # wsl.exe session ends (a short-lived `wsl ... &` call left no dockerd and no log behind), so
+          # run dockerd in the foreground of a hidden wsl.exe that stays alive for the rest of the job.
+          # Start-Process joins -ArgumentList with spaces and does not quote, so the bash -c script is wrapped
+          # in explicit double quotes; unquoted, bash received only `exec` and exited 0 immediately.
+          $dockerdSession = Start-Process -FilePath "$env:SystemRoot\System32\wsl.exe" -WindowStyle Hidden -PassThru `
+            -ArgumentList @('-u', 'root', '--', 'bash', '-c', '"exec /usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:2375 > /tmp/dockerd.log 2>&1"')
+          Write-Host "Started dockerd session wsl.exe [pid=$($dockerdSession.Id)]"
+          Start-Sleep -Seconds 5
+          Write-WslState "after dockerd start (session exited: $($dockerdSession.HasExited))"
+          # Restarting the daemon does not restart the VM, but re-export DOCKER_HOST anyway so a
+          # reassigned address cannot leave the rest of the job pointing at the old one.
+          $env:DOCKER_HOST = "tcp://${wslIp}:2375"
+          "DOCKER_HOST=$env:DOCKER_HOST" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $ready = $false
+          for ($attempt = 1; $attempt -le 60; $attempt++) {
+            try {
+              $dockerPingResponse = Invoke-WebRequest -UseBasicParsing -Uri "http://${wslIp}:2375/_ping" -TimeoutSec 3
+              if ($dockerPingResponse.Content -match 'OK') {
+                $ready = $true
+                Write-Host "Docker daemon reachable after restart [attempt=$attempt]"
+                break
+              }
+            } catch {
+              # best-effort probe: daemon may still be starting, so keep retrying until timeout budget is exhausted
+            }
+            if ($dockerdSession.HasExited) {
+              Write-Host "dockerd session wsl.exe exited early [exit code=$($dockerdSession.ExitCode), attempt=$attempt]"
+              break
+            }
+            Start-Sleep -Seconds 2
+          }
+          if (-not $ready) {
+            Write-Host "::group::dockerd diagnostics after failed restart"
+            Write-Host "dockerd session exited: $($dockerdSession.HasExited)"
+            wsl --list --verbose
+            wsl -u root bash -lc "uptime; pgrep -a dockerd || echo 'dockerd is not running'; ss -tlnp | grep 2375 || echo 'nothing listening on 2375'; echo '--- /tmp/dockerd.log (tail) ---'; tail -n 100 /tmp/dockerd.log"
+            Write-Host "::endgroup::"
+            throw "Docker daemon did not become reachable after restart."
+          }
+
+      - name: Wait for Kubernetes API After Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # Restarting dockerd restarts the kind control plane. The API server answers before its RBAC
+          # bootstrap has finished and returns 403 Forbidden ("kubernetes-admin cannot get resource
+          # configmaps") for a short while, which fails the first Solo command that follows. Wait
+          # until the admin user is actually authorized and the node is Ready.
+          $ready = $false
+          for ($attempt = 1; $attempt -le 60; $attempt++) {
+            $canReadConfigMaps = kubectl --context kind-solo-cluster auth can-i get configmaps --namespace one-shot 2>$null
+            $nodeReady = kubectl --context kind-solo-cluster get nodes -o "jsonpath={.items[*].status.conditions[?(@.type=='Ready')].status}" 2>$null
+            if ("$canReadConfigMaps".Trim() -eq 'yes' -and "$nodeReady" -notmatch 'False|Unknown' -and "$nodeReady" -match 'True') {
+              $ready = $true
+              Write-Host "Kubernetes API authorized and node Ready after restart [attempt=$attempt]"
+              break
+            }
+            Write-Host "Waiting for Kubernetes API [attempt=$attempt, can-i=$canReadConfigMaps, nodeReady=$nodeReady]"
+            Start-Sleep -Seconds 3
+          }
+          if (-not $ready) {
+            kubectl --context kind-solo-cluster get nodes
+            throw "Kubernetes API did not become authorized after Docker restart."
+          }
+
+      - name: Refresh Port Forwards After Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- deployment refresh port-forwards --deployment one-shot --dev
+
+      - name: Start Consensus Nodes After Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- consensus node start --deployment one-shot --dev
+
+      - name: Verify Ledger Account Creation After Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- ledger account create --deployment one-shot --hbar-amount 100 --generate-ecdsa-key --set-alias --dev
+
+      - name: Verify Relay and Mirror After Docker Restart
+        if: ${{ inputs.run-twice == true }}
+        shell: pwsh
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # solo_smoke_test.sh reaches the relay and mirror through the one-shot static NodePort host
+          # ports (37546/38081). Solo only creates those NodePort services for a kind cluster it
+          # configured itself; this job supplies its own rendered kind config, so one-shot falls back to
+          # kubectl port-forwards and the static ports serve nothing. Use the forwards Solo recorded.
+          #
+          # A kubectl port-forward is bound to one pod connection and dies when that connection breaks,
+          # so restore any missing forward (the relay's, here) first; the refresh is idempotent and
+          # reuses the recorded ports.
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+          $OutputEncoding = [System.Text.Encoding]::UTF8
+          $env:PATH = "$env:USERPROFILE\.solo\bin;$env:PATH"
+          npm run solo -- deployment refresh port-forwards --deployment one-shot --dev
+          if ($LASTEXITCODE -ne 0) { throw "Refreshing port-forwards failed with exit code $LASTEXITCODE" }
+          $forwardsFile = Get-ChildItem -Path (Join-Path $env:USERPROFILE '.solo') -Filter forwards -Recurse -File |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $forwardsFile) { throw "Solo forwards file not found under $env:USERPROFILE\.solo" }
+          $forwards = Get-Content -LiteralPath $forwardsFile.FullName -Raw
+          Write-Host $forwards
+          $relayPort = [regex]::Match($forwards, 'JSON RPC Relay port forward enabled on 127\.0\.0\.1:(\d+)').Groups[1].Value
+          if (-not $relayPort) { throw "Could not read the relay port from $($forwardsFile.FullName)" }
+
+          function Invoke-RelayCall([string]$Method) {
+            $body = @{jsonrpc = '2.0'; id = 1; method = $Method; params = @()} | ConvertTo-Json -Compress
+            (Invoke-RestMethod -Uri "http://127.0.0.1:$relayPort" -Method Post -ContentType 'application/json' -Body $body -TimeoutSec 10).result
+          }
+
+          $chainId = $null
+          for ($attempt = 1; $attempt -le 30 -and -not $chainId; $attempt++) {
+            try { $chainId = Invoke-RelayCall 'eth_chainId' } catch { Start-Sleep -Seconds 5 }
+          }
+          if ($chainId -ne '0x12a') { throw "Relay on port $relayPort returned chain id '$chainId', expected 0x12a" }
+          Write-Host "Relay on port $relayPort answers eth_chainId=$chainId, eth_blockNumber=$(Invoke-RelayCall 'eth_blockNumber')"
+
+          # Solo records the mirror ingress and the explorer on the same local port (both 38082), and
+          # refreshing the forwards stops one to start the other, so that port cannot be trusted to reach
+          # the mirror. Open a dedicated forward straight to the mirror REST service instead.
+          $mirrorPort = 38090
+          $mirrorForward = Start-Process -FilePath kubectl -WindowStyle Hidden -PassThru `
+            -ArgumentList @('--context', 'kind-solo-cluster', '--namespace', 'one-shot', 'port-forward', 'svc/mirror-1-rest', "${mirrorPort}:80")
+          try {
+            $script:lastMirrorError = ''
+            function Get-LatestMirrorBlock() {
+              for ($try = 1; $try -le 30; $try++) {
+                try {
+                  return (Invoke-RestMethod -Uri "http://127.0.0.1:$mirrorPort/api/v1/blocks?limit=1&order=desc" -TimeoutSec 10).blocks[0].number
+                } catch {
+                  # best-effort: the forward or mirror REST may still be settling; keep the last error to report it
+                  $script:lastMirrorError = $_.Exception.Message
+                  Start-Sleep -Seconds 5
+                }
+              }
+              throw "Mirror REST via svc/mirror-1-rest on port $mirrorPort never answered /api/v1/blocks: $script:lastMirrorError"
+            }
+
+            # The mirror importer must keep ingesting blocks from the restarted network.
+            $firstBlock = Get-LatestMirrorBlock
+            $advanced = $false
+            for ($attempt = 1; $attempt -le 30 -and -not $advanced; $attempt++) {
+              Start-Sleep -Seconds 5
+              $latestBlock = Get-LatestMirrorBlock
+              $advanced = $latestBlock -gt $firstBlock
+            }
+            if (-not $advanced) { throw "Mirror did not ingest new blocks after restart (stuck at block $firstBlock)" }
+            Write-Host "Mirror advanced from block $firstBlock to $latestBlock"
+          } finally {
+            if (-not $mirrorForward.HasExited) { Stop-Process -Id $mirrorForward.Id -Force }
+          }
 
       - name: Collect Diagnostics on Redeploy Failure
         if: ${{ inputs.run-twice == true && failure() }}
@@ -690,7 +1097,7 @@ jobs:
 
       - name: Upload Logs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: standard-runner-one-shot-windows-logs

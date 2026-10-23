@@ -50,6 +50,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
    * or the container process has repeatedly crashed and will never restart cleanly on its own).
    */
   private static readonly FATAL_WAITING_REASONS: ReadonlySet<string> = new Set([
+    'ErrImageNeverPull',
     'ImagePullBackOff',
     'ErrImagePull',
     'InvalidImageName',
