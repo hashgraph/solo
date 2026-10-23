@@ -211,3 +211,9 @@ jobs:
           path: ~/.solo/logs/*
           overwrite: true
           if-no-files-found: warn
+
+      # Cleanup
+      - name: Remove Image Cache Archives
+        if: always()
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: rm -rf image-cache
