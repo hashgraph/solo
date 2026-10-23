@@ -796,6 +796,10 @@ export class AccountManager {
           const serviceBuilder: NetworkNodeServicesBuilder = serviceBuilderMap.get(
             nodeAlias,
           ) as NetworkNodeServicesBuilder;
+          if (!serviceBuilder) {
+            // a pod without a node service is not part of the network, e.g. the still terminating pod of a deleted node
+            continue;
+          }
           serviceBuilder.withNodePodName(podName);
         }
       }

@@ -48,6 +48,7 @@ import {
   TransactionResponse,
 } from '@hiero-ledger/sdk';
 import fs from 'node:fs';
+import os from 'node:os';
 import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import find from 'find-process';
@@ -137,6 +138,7 @@ import {SubprocessCommandProfile} from '../../core/subprocess-command-profile.js
 import {helmValuesHelper} from '../../core/helm-values-helper.js';
 import {NetworkNodeLifecycle} from '../../core/network-node-lifecycle.js';
 import {type GitClient} from '../../integration/git/git-client.js';
+import {type ConfigMap} from '../../integration/kube/resources/config-map/config-map.js';
 import {type NodeDestroyConfigClass} from './config-interfaces/node-destroy-config-class.js';
 import {type NodeRefreshConfigClass} from './config-interfaces/node-refresh-config-class.js';
 import {type NodeUpdateConfigClass} from './config-interfaces/node-update-config-class.js';
@@ -882,6 +884,7 @@ export class NodeCommandTasks {
     }
 
     if (!success) {
+      await this.showNodeNotReadyDiagnostics(podReference, nodeAlias, context);
       throw new SoloErrors.component.nodeNotReady(nodeAlias, NodeStatusEnums[status], attempt, maxAttempts);
     }
 
@@ -890,6 +893,33 @@ export class NodeCommandTasks {
     }
 
     return podReference;
+  }
+
+  /**
+   * Best-effort: print the tail of the node's platform log and its key directory so a node that never reaches the
+   * expected status can be diagnosed from the CI log alone.
+   */
+  private async showNodeNotReadyDiagnostics(
+    podReference: PodReference,
+    nodeAlias: NodeAlias,
+    context?: string,
+  ): Promise<void> {
+    try {
+      const output: string = await this.k8Factory
+        .getK8(context)
+        .containers()
+        .readByRef(ContainerReference.of(podReference, constants.ROOT_CONTAINER))
+        .execContainer([
+          'bash',
+          '-c',
+          `ls -la ${constants.HEDERA_HAPI_PATH}/data/keys; ` +
+            `grep -hE 'ERROR|WARN|Exception' ${constants.HEDERA_HAPI_PATH}/output/swirlds.log | tail -n 60; ` +
+            `tail -n 60 ${constants.HEDERA_HAPI_PATH}/output/swirlds.log`,
+        ]);
+      this.logger.showUser(`Diagnostics for node '${nodeAlias}' that is not ready:\n${output}`);
+    } catch {
+      // best-effort diagnostic only: the node-not-ready error below is what the caller needs to see
+    }
   }
 
   /**
@@ -5048,21 +5078,18 @@ export class NodeCommandTasks {
     };
   }
 
-  public killNodes(transactionType?: NodeSubcommandType): SoloListrTask<NodeDestroyContext | NodeAddContext> {
+  public killNodes(nodeAliasesProperty: string): SoloListrTask<NodeAddContext> {
     return {
-      title: 'Kill nodes',
+      title: 'Restart nodes',
       task: async (context_): Promise<void> => {
-        const config: any = context_.config;
+        const config: NodeAddConfigClass = context_.config;
         for (const service of config.serviceMap.values()) {
-          // skip pod if it's not in the list of config.allNodeAliases
-          if (!config.allNodeAliases.includes(service.nodeAlias)) {
+          if (!config[nodeAliasesProperty].includes(service.nodeAlias)) {
             continue;
           }
 
-          // Remove the autostart flag file BEFORE killing the pod so that when the
-          // pod restarts the network-node-autostart oneshot does NOT fire prematurely
-          // (i.e. before new config files are staged by later tasks).  startNodes()
-          // will re-create the flag file when it is safe to start the platform.
+          // Disable autostart BEFORE killing the pod so that the restarted pod does not launch the JVM
+          // before the platform software, state and config are staged. startNodes() re-enables it.
           try {
             const podReference: PodReference = PodReference.of(config.namespace, service.nodePodName);
             const containerReference: ContainerReference = ContainerReference.of(
@@ -5084,22 +5111,110 @@ export class NodeCommandTasks {
             .readByReference(PodReference.of(config.namespace, service.nodePodName))
             .killPod();
         }
+      },
+    };
+  }
 
-        // remove from remote config
-        if (transactionType === NodeSubcommandType.DESTROY) {
-          const nodeId: NodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
+  /**
+   * Existing nodes only receive other nodes' gossip public keys from the key secrets through the pod's init
+   * container, so without a pod restart the new node's public key is copied into their data/keys directory.
+   */
+  public copyNewNodeGossipPublicKeys(): SoloListrTask<NodeAddContext> {
+    return {
+      title: 'Copy new node gossip public key to existing nodes',
+      task: async (context_, task): Promise<SoloListr<NodeAddContext>> => {
+        const config: NodeAddConfigClass = context_.config;
+        const publicKeyFiles: string[] = config.newNodeAliases.map((nodeAlias: NodeAlias): string =>
+          PathEx.joinWithRealPath(config.keysDir, Templates.renderGossipPemPublicKeyFile(nodeAlias)),
+        );
 
-          const componentId: ComponentId = Templates.renderComponentIdFromNodeId(nodeId);
-          this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.ConsensusNode);
-          this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.EnvoyProxy);
-          this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.HaProxy);
+        const subTasks: SoloListrTask<NodeAddContext>[] = config.existingNodeAliases.map(
+          (nodeAlias: NodeAlias): SoloListrTask<NodeAddContext> => ({
+            title: `Node: ${chalk.yellow(nodeAlias)}`,
+            task: async (): Promise<void> => {
+              await this.platformInstaller.copyFiles(
+                config.podRefs[nodeAlias],
+                publicKeyFiles,
+                `${constants.HEDERA_HAPI_PATH}/data/keys`,
+                undefined,
+                extractContextFromConsensusNodes(nodeAlias, config.consensusNodes),
+              );
+            },
+          }),
+        );
 
-          await this.remoteConfig.persist();
+        return task.newListr(subTasks, constants.LISTR_DEFAULT_OPTIONS.WITH_CONCURRENCY);
+      },
+    };
+  }
 
-          context_.config.nodeAliases = config.allNodeAliases.filter(
-            (nodeAlias: NodeAlias): boolean => nodeAlias !== config.nodeAlias,
-          );
-        }
+  /**
+   * The pod's init container copies the shared config map files (application.properties with its bumped
+   * hedera.config.version, etc.) into data/config at pod start. Existing pods are no longer restarted by node
+   * add and delete, so the same files are copied in place; otherwise their platform version no longer matches
+   * the nodes created or updated from the new config map and gossip handshakes are rejected.
+   */
+  public copyConfigMapFilesToNodes(): SoloListrTask<NodeAddContext | NodeDestroyContext> {
+    return {
+      title: 'Copy updated config map files to nodes',
+      task: async (context_, task): Promise<SoloListr<NodeAddContext | NodeDestroyContext>> => {
+        const config: NodeAddConfigClass | NodeDestroyConfigClass = context_.config;
+
+        const subTasks: SoloListrTask<NodeAddContext | NodeDestroyContext>[] = config.allNodeAliases.map(
+          (nodeAlias: NodeAlias): SoloListrTask<NodeAddContext | NodeDestroyContext> => ({
+            title: `Node: ${chalk.yellow(nodeAlias)}`,
+            task: async (): Promise<void> => {
+              const nodeContext: Context = extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
+              const configMap: ConfigMap = await this.k8Factory
+                .getK8(nodeContext)
+                .configMaps()
+                .read(config.namespace, constants.NETWORK_NODE_SHARED_DATA_CONFIG_MAP_NAME);
+
+              const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-config-'));
+              try {
+                const configFiles: string[] = [];
+                for (const [fileName, content] of Object.entries(configMap.data ?? {})) {
+                  const filePath: string = PathEx.join(temporaryDirectory, fileName);
+                  fs.writeFileSync(filePath, content);
+                  configFiles.push(filePath);
+                }
+
+                await this.platformInstaller.copyFiles(
+                  config.podRefs[nodeAlias],
+                  configFiles,
+                  `${constants.HEDERA_HAPI_PATH}/data/config`,
+                  undefined,
+                  nodeContext,
+                );
+              } finally {
+                fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+              }
+            },
+          }),
+        );
+
+        return task.newListr(subTasks, constants.LISTR_DEFAULT_OPTIONS.WITH_CONCURRENCY);
+      },
+    };
+  }
+
+  public removeNodeFromRemoteConfig(): SoloListrTask<NodeDestroyContext> {
+    return {
+      title: 'Remove node from remote config',
+      task: async (context_): Promise<void> => {
+        const config: NodeDestroyConfigClass = context_.config;
+        const nodeId: NodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
+
+        const componentId: ComponentId = Templates.renderComponentIdFromNodeId(nodeId);
+        this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.ConsensusNode);
+        this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.EnvoyProxy);
+        this.remoteConfig.configuration.components.removeComponent(componentId, ComponentTypes.HaProxy);
+
+        await this.remoteConfig.persist();
+
+        context_.config.nodeAliases = config.allNodeAliases.filter(
+          (nodeAlias: NodeAlias): boolean => nodeAlias !== config.nodeAlias,
+        );
       },
     };
   }
