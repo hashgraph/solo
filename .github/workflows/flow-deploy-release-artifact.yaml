@@ -431,13 +431,8 @@ jobs:
           echo "::endgroup::"
 
           echo "::group::Create Package"
-            FLAGS=""
-            if [[ "${{ inputs.dry-run-enabled }}" == "true" ]]; then
-              echo "Command: npm pack --pack-destination \"output/hl\""
-              FLAGS="--dry-run"
-            fi
             mkdir -p "output/hl"
-            npm pack --pack-destination "output/hl" ${FLAGS}
+            npm pack --pack-destination "output/hl"
           echo "::endgroup::"
 
       - name: Validate Hiero-Ledger package version consistency
@@ -524,14 +519,14 @@ jobs:
           echo "npm-dist-tag=${NPM_DIST_TAG}" >> "${GITHUB_OUTPUT}"
 
       - name: Download Hiero-Ledger NPM Package Artifact
-        if: ${{ needs.create-github-release.outputs.need-hl-publish == 'true' && inputs.dry-run-enabled != true }}
+        if: ${{ needs.create-github-release.outputs.need-hl-publish == 'true' }}
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: npm-hl-package
           path: output/hl
 
       - name: Publish Hiero-Ledger NPM Package
-        if: ${{ needs.create-github-release.outputs.need-hl-publish == 'true' || inputs.dry-run-enabled == true }}
+        if: ${{ needs.create-github-release.outputs.need-hl-publish == 'true' }}
         env:
           NPM_DIST_TAG: ${{ steps.dist-tag.outputs.npm-dist-tag }}
           HL_PACKAGE_NAME: ${{ needs.get-package-info.outputs.hl-package-name }}
@@ -539,20 +534,23 @@ jobs:
         run: |
           echo "::group::Set Publish Args"
             FLAGS="--access=public --tag ${NPM_DIST_TAG}"
+            if [[ "${DRY_RUN_ENABLED_INPUT}" == "true" ]]; then
+              FLAGS="${FLAGS} --dry-run"
+            fi
             echo "flags=${FLAGS}"
           echo "::endgroup::"
 
           echo "::group::Set tarball output"
             TARBALL="./output/hl/${HL_PACKAGE_NAME}"
-            if [[ "${DRY_RUN_ENABLED_INPUT}" == "true" ]]; then
-              TARBALL=""
-            fi
             echo "tarball=${TARBALL}"
           echo "::endgroup::"
 
           echo "::group::Publish Hiero-Ledger NPM Package"
-            if [[ "${DRY_RUN_ENABLED_INPUT}" != "true" ]]; then
-              npm publish ${TARBALL} ${FLAGS}
+            PKG_VERSION="$(tar -xOf "${TARBALL}" package/package.json | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version")"
+            if [[ "${DRY_RUN_ENABLED_INPUT}" == "true" ]] && [[ -n "$(npm view "${HIERO_PKG_NAME}@${PKG_VERSION}" version 2>/dev/null)" ]]; then
+              echo "::notice file=flow-deploy-release-artifact.yaml::${PKG_VERSION} is already on npm, skipping the publish dry run"
+            else
+              npm publish "${TARBALL}" ${FLAGS}
             fi
           echo "::endgroup::"
 
