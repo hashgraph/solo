@@ -17,7 +17,7 @@ import {PodReference} from '../../../src/integration/kube/resources/pod/pod-refe
 import {NamespaceName} from '../../../src/types/namespace/namespace-name.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {PathEx} from '../../../src/business/utils/path-ex.js';
-import {getTestCacheDirectory} from '../../test-utility.js';
+import {getTestCacheDirectory} from '../../e2e/test-utility.js';
 
 describe('PackageInstaller', (): void => {
   let installer: PlatformInstaller;

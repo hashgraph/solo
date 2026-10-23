@@ -25,6 +25,7 @@ import {FlagValidation} from './validation/flag-validation.js';
 const TLS_CLUSTER_ISSUER_TYPES: string[] = ['acme-staging', 'acme-prod', 'self-signed'];
 // Each component needs its own JVM image swap and values overlay (rest-java, web3 and grpc are native images too).
 const MIRROR_NODE_DEBUG_COMPONENTS: string[] = ['importer'];
+const MIRROR_NODE_SOURCES: string[] = ['auto', 'bucket', 'block-node'];
 
 export class Flags {
   public static KEY_COMMON: string = '_COMMON_';
@@ -678,6 +679,22 @@ export class Flags {
     },
   };
 
+  public static readonly mirrorNodeSource: CommandFlag = {
+    constName: 'mirrorNodeSource',
+    name: 'mirror-node-source',
+    definition: {
+      describe:
+        'Where the mirror node imports its data from: "bucket" reads the consensus node record files, ' +
+        '"block-node" reads the block stream of a block node and fails when no block node applies, ' +
+        '"auto" picks the block node when one is deployed in the same cluster and the bucket otherwise. ' +
+        'Pass it again on every upgrade, because "auto" is applied when it is omitted',
+      defaultValue: 'auto',
+      type: 'string',
+    },
+    prompt: undefined,
+    rules: [FlagRules.oneOf(...MIRROR_NODE_SOURCES)],
+  };
+
   public static readonly javaFlightRecorderConfiguration: CommandFlag = {
     constName: 'javaFlightRecorderConfiguration',
     name: 'jfr-config',
@@ -1244,6 +1261,11 @@ export class Flags {
       describe: 'Enable recursive WRAPs aggregation for hinTS/TSS (CN >= v0.72).',
       type: 'boolean',
       defaultValue: false,
+      deprecated: {
+        since: '0.94.0',
+        removalIssue: 6174,
+        reason: 'Consensus node v0.79.0 and later embed the WRAPS proving parameters, so it has no effect on them.',
+      },
     },
   };
 
@@ -1253,6 +1275,11 @@ export class Flags {
     definition: {
       describe: 'Path to a local directory containing pre-existing WRAPs proving key files (.bin)',
       type: 'string',
+      deprecated: {
+        since: '0.94.0',
+        removalIssue: 6174,
+        reason: 'Consensus node v0.79.0 and later embed the WRAPS proving parameters, so it has no effect on them.',
+      },
     },
   };
 
@@ -3082,6 +3109,7 @@ export class Flags {
     Flags.tssEnabled,
     Flags.javaFlightRecorderConfiguration,
     Flags.forceBlockNodeIntegration,
+    Flags.mirrorNodeSource,
     Flags.rollback,
     Flags.parallelDeploy,
     Flags.edgeEnabled,

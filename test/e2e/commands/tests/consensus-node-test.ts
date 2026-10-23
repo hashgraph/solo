@@ -55,7 +55,7 @@ import {
   getTemporaryDirectory,
   getTestCacheDirectory,
   HEDERA_PLATFORM_VERSION_TAG,
-} from '../../../test-utility.js';
+} from '../../test-utility.js';
 import {type RemoteConfigRuntimeState} from '../../../../src/business/runtime-state/config/remote/remote-config-runtime-state.js';
 import {type SoloLogger} from '../../../../src/core/logging/solo-logger.js';
 import {TEST_UPGRADE_FROM_VERSION, TEST_UPGRADE_TO_VERSION} from '../../../../version-test.js';
@@ -65,6 +65,7 @@ import {Zippy} from '../../../../src/core/zippy.js';
 import {type NetworkNodes} from '../../../../src/core/network-nodes.js';
 import {NodeStatusCodes} from '../../../../src/core/enumerations.js';
 import {type LocalConfigRuntimeState} from '../../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
+import {NetworkNodeLifecycle} from '../../../../src/core/network-node-lifecycle.js';
 
 export class ConsensusNodeTest extends BaseCommandTest {
   public static keys(options: BaseTestOptions): void {
@@ -458,7 +459,8 @@ export class ConsensusNodeTest extends BaseCommandTest {
           ROOT_CONTAINER,
         );
 
-        if (!enableLocalBuildPathTesting) {
+        // the consensus node image already contains the platform software, so nothing is fetched or extracted
+        if (!enableLocalBuildPathTesting && !NetworkNodeLifecycle.isConsensusNodeImage()) {
           expect(
             await k8.containers().readByRef(rootContainer).hasFile(`${HEDERA_USER_HOME_DIR}/extract-platform.sh`),
             'expect extract-platform.sh to be present on the pods',

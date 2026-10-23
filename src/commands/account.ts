@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {MirrorNodeResourceNames} from '../core/mirror-node-resource-names.js';
 import {SoloErrors} from '../core/errors/solo-errors.js';
 import chalk from 'chalk';
 import * as fs from 'node:fs';
@@ -36,6 +37,7 @@ import {
   type SoloListrTaskWrapper,
 } from '../types/index.js';
 import {Templates} from '../core/templates.js';
+import {GenesisKeyResolver} from '../core/genesis-key-resolver.js';
 import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {Base64} from 'js-base64';
 import {inject, injectable} from 'tsyringe-neo';
@@ -421,7 +423,11 @@ export class AccountCommand extends BaseCommand {
                 {
                   title: 'Update node admin key',
                   task: async ({config}: Context): Promise<void> => {
-                    const adminKey: PrivateKey = PrivateKey.fromStringED25519(constants.GENESIS_KEY);
+                    const adminKey: PrivateKey = await GenesisKeyResolver.resolve(
+                      this.k8Factory,
+                      this.remoteConfig.getContexts(),
+                      config.namespace,
+                    );
 
                     for (const nodeAlias of config.nodeAliases) {
                       const nodeId: NodeId = Templates.nodeIdFromNodeAlias(nodeAlias);
@@ -703,7 +709,14 @@ export class AccountCommand extends BaseCommand {
                 ContainerName.of('postgresql'),
               );
 
-              const mirrorPasswordsSecret: Secret = await k8.secrets().read(namespace, 'mirror-passwords');
+              const mirrorNodeNames: MirrorNodeResourceNames = await MirrorNodeResourceNames.resolveExisting(
+                k8,
+                namespace,
+                mirrorNode.metadata.id,
+              );
+              const mirrorPasswordsSecret: Secret = await k8
+                .secrets()
+                .read(namespace, mirrorNodeNames.passwordsSecretName);
               const ownerKey: string | undefined = Object.keys(mirrorPasswordsSecret.data).find(
                 (key: string): boolean => key.endsWith('_MIRROR_IMPORTER_DB_OWNER'),
               );

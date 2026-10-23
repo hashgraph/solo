@@ -13,8 +13,10 @@ import {Flags as flags} from './flags.js';
 import * as constants from '../core/constants.js';
 import {SoloChartRepository} from '../core/solo-chart-repository.js';
 import {DEFAULT_SOLO_NAMESPACE_LABELS, getEnvironmentVariable} from '../core/constants.js';
+import {NetworkNodeLifecycle} from '../core/network-node-lifecycle.js';
 import {SharedClusterResourceReport} from '../core/shared-cluster-resource-report.js';
 import {ClusterCrdProbe} from '../core/cluster-crd-probe.js';
+import {GenesisKeyResolver} from '../core/genesis-key-resolver.js';
 import {Templates} from '../core/templates.js';
 import {
   Helpers,
@@ -225,6 +227,37 @@ export class NetworkCommand extends BaseCommand {
             collapseSubtasks: false,
           },
         });
+      },
+    };
+  }
+
+  /**
+   * The consensus node image ships without zip, unzip and curl, which Solo uses to archive, extract and verify node
+   * state and platform archives and to read node metrics, so install them in each root container once its pod is running.
+   */
+  private installRootContainerTools(): SoloListrTask<NetworkDeployContext> {
+    return {
+      title: 'Install zip, unzip and curl in the consensus node image',
+      skip: (): boolean => !NetworkNodeLifecycle.isConsensusNodeImage(),
+      task: (
+        context_: NetworkDeployContext,
+        task: SoloListrTaskWrapper<NetworkDeployContext>,
+      ): SoloListr<NetworkDeployContext> => {
+        const config: NetworkDeployConfigClass = context_.config;
+        const subTasks: SoloListrTask<NetworkDeployContext>[] = config.consensusNodes.map(
+          (consensusNode: ConsensusNode): SoloListrTask<NetworkDeployContext> => ({
+            title: `Install on node: ${chalk.yellow(consensusNode.name)}, cluster: ${chalk.yellow(consensusNode.cluster)}`,
+            task: async (): Promise<void> => {
+              await NetworkNodeLifecycle.installRootContainerTools(
+                consensusNode.context,
+                config.namespace,
+                consensusNode.name,
+              );
+            },
+          }),
+        );
+
+        return task.newListr(subTasks, {concurrent: true, rendererOptions: {collapseSubtasks: false}});
       },
     };
   }
@@ -473,8 +506,12 @@ export class NetworkCommand extends BaseCommand {
     // Each file carries only the nodes that belong to the target cluster, preventing Helm's
     // array-replacement semantics from inserting nodes from other clusters.
     const perClusterExtraEnvironmentValuesFiles: Record<ClusterReferenceName, string> = {};
+    const provisionWraps: boolean = Helpers.shouldProvisionWraps(config.wrapsEnabled, config.releaseTag);
     const needsExtraEnvironment: boolean =
-      config.wrapsEnabled || !!config.debugNodeAlias || config.app !== constants.HEDERA_APP_NAME; // JAVA_MAIN_CLASS for tools/local builds
+      provisionWraps ||
+      !!config.debugNodeAlias ||
+      config.app !== constants.HEDERA_APP_NAME || // JAVA_MAIN_CLASS for tools/local builds
+      NetworkNodeLifecycle.isConsensusNodeImage(); // AUTO_START_CONSENSUS_SERVICE=false
 
     if (needsExtraEnvironment) {
       const realm: Realm = this.localConfig.configuration.realmForDeployment(config.deployment);
@@ -533,7 +570,7 @@ export class NetworkCommand extends BaseCommand {
           userValueFilePaths,
           clusterConsensusNodes,
           {
-            wrapsEnabled: config.wrapsEnabled,
+            wrapsEnabled: provisionWraps,
             tss: this.soloConfig.tss,
             debugNodeAlias: config.debugNodeAlias,
             useJavaMainClass: config.app !== constants.HEDERA_APP_NAME,
@@ -546,7 +583,7 @@ export class NetworkCommand extends BaseCommand {
         const clusterExtraEnvironmentValuesFile: string = helmValuesHelper.generateExtraEnvironmentValuesFile(
           clusterConsensusNodes,
           {
-            wrapsEnabled: config.wrapsEnabled,
+            wrapsEnabled: provisionWraps,
             tss: this.soloConfig.tss,
             debugNodeAlias: config.debugNodeAlias,
             useJavaMainClass: config.app !== constants.HEDERA_APP_NAME,
@@ -1125,6 +1162,9 @@ export class NetworkCommand extends BaseCommand {
 
     this.logger.debug('Preparing storage secrets');
     await this.prepareStorageSecrets(config);
+
+    this.logger.debug('Storing genesis key secret');
+    await GenesisKeyResolver.store(this.k8Factory, config.contexts, namespace);
 
     return config;
   }
@@ -2039,6 +2079,7 @@ export class NetworkCommand extends BaseCommand {
           },
         },
         this.waitForNetworkPods(),
+        this.installRootContainerTools(),
         this.verifyPersistentVolumeClaimMounts(),
         {
           title: 'Check proxy pods are running',
@@ -2131,7 +2172,11 @@ export class NetworkCommand extends BaseCommand {
         this.addNodesAndProxies(),
         {
           title: 'Copy wraps lib into consensus node',
-          skip: (): boolean => !this.remoteConfig.configuration.state.wrapsEnabled,
+          skip: (): boolean =>
+            !Helpers.shouldProvisionWraps(
+              this.remoteConfig.configuration.state.wrapsEnabled,
+              this.remoteConfig.configuration.versions.consensusNode,
+            ),
           task: async ({config}, task): Promise<void> => {
             const wraps: Wraps = this.soloConfig.tss.wraps;
             const extractedDirectory: string = PathEx.join(constants.SOLO_CACHE_DIR, wraps.directoryName);

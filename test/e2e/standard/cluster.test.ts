@@ -4,7 +4,7 @@ import sinon from 'sinon';
 import {after, afterEach, before, beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {getTestCacheDirectory} from '../../test-utility.js';
+import {getTestCacheDirectory} from '../test-utility.js';
 import * as constants from '../../../src/core/constants.js';
 import {sleep} from '../../../src/core/helpers.js';
 import {Duration} from '../../../src/core/time/duration.js';

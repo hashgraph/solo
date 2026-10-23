@@ -389,14 +389,14 @@ export class BlockNodeCommand extends BaseCommand {
             // Image found locally or loaded from an archive — kind-load task will load it; set pullPolicy: Never.
             chartValues
               .setLiteral('image.registry', parsedReference.registry)
-              .set('image.repository', parsedReference.repository)
+              .set('image.repository', this.buildRepositoryWithRegistry(parsedReference))
               .set('image.tag', parsedReference.tag)
               .set('image.pullPolicy', 'Never');
           } else {
             // Preserve the explicit registry/repository when a local registry image is pulled remotely.
             chartValues
               .setLiteral('image.registry', parsedReference.registry)
-              .set('image.repository', parsedReference.repository)
+              .set('image.repository', this.buildRepositoryWithRegistry(parsedReference))
               .set('image.tag', parsedReference.tag);
           }
         } else {
@@ -417,7 +417,7 @@ export class BlockNodeCommand extends BaseCommand {
         const parsedReference: ParsedImageReference = ImageReference.parseImageReference(config.componentImage);
         chartValues
           .setLiteral('image.registry', parsedReference.registry)
-          .set('image.repository', parsedReference.repository)
+          .set('image.repository', this.buildRepositoryWithRegistry(parsedReference))
           .set('image.tag', parsedReference.tag);
         if (hasComponentImageArchive) {
           chartValues.set('image.pullPolicy', 'Never');
@@ -452,6 +452,10 @@ export class BlockNodeCommand extends BaseCommand {
     }
 
     return chartValues;
+  }
+
+  private buildRepositoryWithRegistry(parsedReference: ParsedImageReference): string {
+    return `${parsedReference.registry}/${parsedReference.repository}`;
   }
 
   private shouldConfigureRsaMirrorBootstrapSource(): boolean {
