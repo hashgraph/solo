@@ -217,3 +217,81 @@ jobs:
         if: always()
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: rm -rf image-cache
+
+  # Temporary probe for the image cache CDN: signs in as the CDN service account and reports, read-only, which
+  # buckets it can see and what it may do in them. Skipped when the release workflow calls this workflow.
+  probe-cdn-access:
+    name: Probe CDN Access
+    if: ${{ inputs.version == '' }}
+    runs-on: hiero-solo-linux-medium
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write # Workload Identity Federation sign-in to Google Cloud
+    env:
+      CDN_PROJECT: 'solo-cdn-production'
+      # Guessed bucket names, probed alongside whatever the bucket listing returns.
+      CANDIDATE_BUCKETS: 'cdn.solo.hashgraph.io solo-cdn-production'
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+
+      - name: Authenticate to Google Cloud
+        id: google-auth
+        uses: step-security/google-github-auth@775fc4c80760272ef389c9f9f8d98de7db0c170d # v3.0.2
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          workload_identity_provider: 'projects/1074309218154/locations/global/workloadIdentityPools/solo-cdn-pool/providers/gh-provider'
+          service_account: 'solo-cdn-read-write-access@solo-cdn-production.iam.gserviceaccount.com'
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+
+      - name: Report Reachable Buckets
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # Every probe is read-only and reports its own failure, so one denial does not hide the rest.
+          set -uo pipefail
+          token="$(gcloud auth print-access-token)"
+          # Not a registered secret, so the runner would not hide it if a command ever echoed it.
+          echo "::add-mask::${token}"
+          permissions=(storage.buckets.get storage.buckets.update storage.buckets.delete
+            storage.objects.list storage.objects.get storage.objects.create storage.objects.update
+            storage.objects.delete)
+
+          echo "::group::Active account"
+          gcloud auth list
+          echo "::endgroup::"
+
+          echo "::group::Project permissions on ${CDN_PROJECT}"
+          curl -sS -X POST -H "Authorization: Bearer ${token}" -H 'Content-Type: application/json' \
+            -d '{"permissions":["storage.buckets.list","storage.buckets.create","storage.buckets.delete"]}' \
+            "https://cloudresourcemanager.googleapis.com/v1/projects/${CDN_PROJECT}:testIamPermissions"
+          echo
+          echo "::endgroup::"
+
+          echo "::group::Buckets in ${CDN_PROJECT}"
+          if listed="$(gcloud storage buckets list --project="${CDN_PROJECT}" --format='value(name)' 2>&1)"; then
+            echo "${listed:-<none>}"
+          else
+            echo "::warning::cannot list buckets: ${listed}"
+            listed=''
+          fi
+          echo "::endgroup::"
+
+          query="$(printf 'permissions=%s&' "${permissions[@]}")"
+          mapfile -t buckets < <({ printf '%s\n' "${listed}"; tr ' ' '\n' <<< "${CANDIDATE_BUCKETS}"; } \
+            | grep -v '^$' | sort -u)
+          for bucket in "${buckets[@]}"; do
+            echo "::group::gs://${bucket}"
+            echo "Granted permissions:"
+            curl -sS -H "Authorization: Bearer ${token}" \
+              "https://storage.googleapis.com/storage/v1/b/${bucket}/iam/testPermissions?${query%&}"
+            echo
+            echo "First objects:"
+            gcloud storage ls "gs://${bucket}" 2>&1 | head -20
+            echo "::endgroup::"
+          done
