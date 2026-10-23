@@ -32,4 +32,10 @@ export interface ContainerEngineClient {
    * handling a cluster failure can decide what to surface.
    */
   resumeStoppedClusterNode(clusterName: string): Promise<ClusterNodeResumeOutcome>;
+
+  /**
+   * Returns the Linux platform (`linux/amd64` or `linux/arm64`) of the container engine, which is the platform
+   * of every cluster node it runs and so of every image loaded into one.
+   */
+  getLinuxPlatform(): Promise<string>;
 }

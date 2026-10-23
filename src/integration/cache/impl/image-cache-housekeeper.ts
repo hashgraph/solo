@@ -142,8 +142,9 @@ export class ImageCacheHousekeeper {
    * File names the image cache is expected to hold for the current manifest.
    *
    * Both spellings of each name are kept: the manifest file names, which the release workflow publishes, and
-   * the local file names the catalog store resolves. They follow the same convention, and holding both means
-   * a drift between the two can never delete an archive this pull just downloaded.
+   * the local file names the catalog store resolves. The manifest names also carry the archive's platform while
+   * the local names do not, and holding both means the difference can never delete an archive this pull just
+   * downloaded.
    */
   private resolveExpectedFileNames(
     targets: readonly CacheTarget[],

@@ -9,6 +9,7 @@ import {getSoloVersion} from '../../../../version.js';
 /** Raw shape of one `images` entry in `cache-manifest.json`. Every field is validated before use. */
 interface RawCacheManifestImage {
   image?: unknown;
+  platform?: unknown;
   tarFile?: unknown;
   hashFile?: unknown;
   sha256?: unknown;
@@ -24,11 +25,11 @@ interface RawCacheManifest {
 
 /**
  * Downloads and validates the image cache manifest published as a release asset for a given Solo version,
- * and resolves each entry to its CDN locations.
+ * and resolves the entries for one platform to their CDN locations.
  *
- * The manifest lists, for the Solo version that produced it, every container image the deployment needs,
- * the archive file name for that image, the file name holding the archive's SHA-256, and the hash value
- * itself. Both hash representations are kept so a download can be checked against the manifest and against
+ * The manifest lists, for the Solo version that produced it, every container image the deployment needs once
+ * per platform it is published for, the archive file name for that image and platform, the file name holding
+ * the archive's SHA-256, and the hash value itself. Both hash representations are kept so a download can be checked against the manifest and against
  * the published hash file, and the two must agree.
  *
  * The CDN is flat: `<base>/<tarFile>` and `<base>/<hashFile>`. The base defaults to
@@ -40,11 +41,13 @@ export class CacheManifestClient {
   public static readonly DEFAULT_CDN_BASE_URL: string = 'https://cdn.solo.hashgraph.io';
   public static readonly CDN_BASE_URL_ENVIRONMENT_VARIABLE: string = 'SOLO_CACHE_CDN_BASE_URL';
   public static readonly MANIFEST_URL_ENVIRONMENT_VARIABLE: string = 'SOLO_CACHE_MANIFEST_URL';
-  public static readonly SCHEMA_VERSION: number = 1;
+  /** Version 2 added `images[].platform`; a version 1 manifest cannot say which platform an archive is for. */
+  public static readonly SCHEMA_VERSION: number = 2;
 
   private static readonly MANIFEST_FILE_NAME: string = 'cache-manifest.json';
   private static readonly RELEASE_DOWNLOAD_BASE_URL: string = 'https://github.com/hiero-ledger/solo/releases/download';
   private static readonly SHA256_PATTERN: RegExp = /^[\da-f]{64}$/;
+  private static readonly PLATFORM_PATTERN: RegExp = /^[\da-z]+\/[\da-z]+(\/[\da-z]+)?$/;
 
   private constructor() {}
 
@@ -79,13 +82,18 @@ export class CacheManifestClient {
   }
 
   /**
-   * Downloads the manifest for the given Solo version and returns its images with CDN URLs resolved.
+   * Downloads the manifest for the given Solo version and returns its images for one platform with CDN URLs
+   * resolved. An image the manifest does not publish for that platform is left out.
    *
+   * @param platform the platform to return archives for, for example `linux/arm64`
    * @param soloVersion the Solo version whose manifest to fetch; defaults to the running version
    * @throws CacheManifestDownloadFailedSoloError when the manifest cannot be fetched or read
    * @throws CacheManifestInvalidSoloError when the manifest does not match the expected schema
    */
-  public static async fetchImages(soloVersion: string = getSoloVersion()): Promise<readonly CacheManifestImage[]> {
+  public static async fetchImages(
+    platform: string,
+    soloVersion: string = getSoloVersion(),
+  ): Promise<readonly CacheManifestImage[]> {
     const url: string = CacheManifestClient.getManifestUrl(soloVersion);
 
     let body: string;
@@ -96,7 +104,9 @@ export class CacheManifestClient {
       throw new SoloErrors.system.cacheManifestDownloadFailed(url, error);
     }
 
-    return CacheManifestClient.parse(url, soloVersion, body);
+    return CacheManifestClient.parse(url, soloVersion, body).filter(
+      (image: CacheManifestImage): boolean => image.platform === platform,
+    );
   }
 
   private static parse(url: string, soloVersion: string, body: string): readonly CacheManifestImage[] {
@@ -141,11 +151,13 @@ export class CacheManifestClient {
     }
 
     const baseUrl: string = CacheManifestClient.getCdnBaseUrl();
+    const seen: Set<string> = new Set<string>();
 
     return manifest.images.map((entry: unknown, index: number): CacheManifestImage => {
       const raw: RawCacheManifestImage = CacheManifestClient.requireObject(url, entry, index);
 
       const image: string = CacheManifestClient.requireString(url, raw.image, index, 'image');
+      const platform: string = CacheManifestClient.requireString(url, raw.platform, index, 'platform');
       const tarFile: string = CacheManifestClient.requireFileName(url, raw.tarFile, index, 'tarFile');
       const hashFile: string = CacheManifestClient.requireFileName(url, raw.hashFile, index, 'hashFile');
       const sha256: string = CacheManifestClient.requireString(url, raw.sha256, index, 'sha256');
@@ -157,8 +169,23 @@ export class CacheManifestClient {
         );
       }
 
+      if (!CacheManifestClient.PLATFORM_PATTERN.test(platform)) {
+        throw new SoloErrors.system.cacheManifestInvalid(
+          url,
+          `images[${index}].platform must be an <os>/<architecture> platform such as linux/amd64`,
+        );
+      }
+
+      // Images are looked up by reference within a platform, so a second entry would make the lookup ambiguous.
+      const key: string = `${image} ${platform}`;
+      if (seen.has(key)) {
+        throw new SoloErrors.system.cacheManifestInvalid(url, `images[${index}] repeats ${image} for ${platform}`);
+      }
+      seen.add(key);
+
       return new CacheManifestImage(
         image,
+        platform,
         tarFile,
         hashFile,
         sha256,

@@ -145,6 +145,10 @@ export class DockerClient implements ContainerEngineClient {
     }
   }
 
+  public async getLinuxPlatform(): Promise<string> {
+    return this.resourceInspector.getEngineLinuxPlatform();
+  }
+
   public async resumeStoppedClusterNode(clusterName: string): Promise<ClusterNodeResumeOutcome> {
     const nodeName: string = `${clusterName}-control-plane`;
     const engineCommand: ContainerEngineCommand = (await this.podmanClient.getKindContainerCommand(nodeName)) ?? {

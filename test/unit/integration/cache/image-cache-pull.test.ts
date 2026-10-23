@@ -41,11 +41,13 @@ const engine: ContainerEngineClient = {
   removeImage: async (): Promise<void> => undefined,
   listLoadedImagesInCluster: async (): Promise<readonly string[]> => [],
   resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
+  getLinuxPlatform: async (): Promise<string> => 'linux/amd64',
 };
 
 function manifestImage(sha256: string = ARCHIVE_HASH, size?: number): CacheManifestImage {
   return new CacheManifestImage(
     IMAGE_REFERENCE,
+    'linux/amd64',
     TAR_FILE,
     `${TAR_FILE}.sha256`,
     sha256,
@@ -162,6 +164,26 @@ describe('ImageCacheHandler pull', (): void => {
     expect(await fs.readFile(archivePath, 'utf8')).to.equal(ARCHIVE_CONTENTS);
     // The hash file is kept next to the archive so it can be re-checked without another download.
     expect(await exists(hashPath)).to.equal(true);
+  });
+
+  it("reads the manifest entries for the container engine's platform", async (): Promise<void> => {
+    const fetchImages: SinonStub = sinon.stub(CacheManifestClient, 'fetchImages').resolves([]);
+    const arm64Engine: ContainerEngineClient = {
+      ...engine,
+      getLinuxPlatform: async (): Promise<string> => 'linux/arm64',
+    };
+    const handler: ImageCacheHandler = new ImageCacheHandler(
+      arm64Engine,
+      new StaticCacheTargetProvider([target]),
+      store,
+      inspector,
+      logger,
+      {fetchFile: stubDownloader({})} as unknown as PackageDownloader,
+    );
+
+    await runPull(handler);
+
+    expect(fetchImages).to.have.been.calledOnceWithExactly('linux/arm64');
   });
 
   it('skips the download when a valid archive is already cached', async (): Promise<void> => {

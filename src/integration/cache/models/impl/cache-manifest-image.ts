@@ -3,13 +3,15 @@
 /**
  * One image entry of the Solo image cache manifest, with its CDN locations already resolved.
  *
- * The tar file name carries the registry, container and version of {@link image}, so it is unique per
- * image reference and can be stored flat on the CDN alongside every other version.
+ * The tar file name carries the registry, container, version and platform of the archive, so it is unique per
+ * image reference and platform and can be stored flat on the CDN alongside every other version.
  */
 export class CacheManifestImage {
   public constructor(
     /** Full image reference, for example `docker.io/library/busybox:1.36.1`. */
     public readonly image: string,
+    /** Platform the archive is built for, for example `linux/amd64`. */
+    public readonly platform: string,
     /** Bare file name of the image archive on the CDN. */
     public readonly tarFile: string,
     /** Bare file name of the file holding the archive's SHA-256 hash. */
