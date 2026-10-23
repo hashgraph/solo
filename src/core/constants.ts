@@ -686,6 +686,7 @@ export const IGNORED_NODE_ACCOUNT_ID: string = '0.0.0';
 export const UPLOADER_SECRET_NAME: string = 'uploader-mirror-secrets';
 export const MINIO_SECRET_NAME: string = 'minio-secrets';
 export const BACKUP_SECRET_NAME: string = 'backup-uploader-secrets';
+export const MIRROR_NODE_SECRETS_BACKUP_NAME: string = 'mirror-node-secrets-backup';
 export const MIRROR_INGRESS_TLS_SECRET_NAME: string = 'ca-secret-mirror-node';
 export const EXPLORER_INGRESS_TLS_SECRET_NAME: string = 'ca-secret-hiero-explorer';
 export const NODE_TLS_KEYS_SECRET_NAME: string = 'network-node-hapi-app-secrets';
