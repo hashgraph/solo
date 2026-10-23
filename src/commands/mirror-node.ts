@@ -2655,7 +2655,7 @@ export class MirrorNodeCommand extends BaseCommand {
             await this.k8Factory
               .getK8(context_.config.clusterContext)
               .secrets()
-              .delete(context_.config.namespace, constants.MIRROR_INGRESS_TLS_SECRET_NAME);
+              .delete(context_.config.namespace, context_.config.resourceNames.tlsSecretName);
 
             // Delete the secrets backup created on add/upgrade so stale credentials don't outlive the mirror node
             await this.k8Factory
