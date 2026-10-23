@@ -195,7 +195,7 @@ EOF
   if ! cosign_output="$(cosign verify-blob \
     ${bundle_format_option:+"${bundle_format_option}"} \
     --bundle "${bundle}" \
-    --certificate-identity-regexp "^${SOLO_REPOSITORY_URL}/\\.github/workflows/" \
+    --certificate-identity "${SOLO_REPOSITORY_URL}/.github/workflows/flow-sign-release-assets.yaml@refs/heads/main" \
     --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
     "${work_directory}/${CHECKSUMS_ASSET}" 2>&1)"; then
     fail "signature verification of ${CHECKSUMS_ASSET} failed: ${cosign_output}"
