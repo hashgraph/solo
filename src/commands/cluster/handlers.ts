@@ -105,6 +105,52 @@ export class ClusterCommandHandlers extends CommandHandler {
     return true;
   }
 
+  /** Starts the container engine (Docker Desktop / Podman machine) and any stopped Kind cluster containers of the configured cluster references. */
+  public async stateStart(argv: ArgvStruct): Promise<boolean> {
+    argv = addFlagsToArgv(argv, ContextFlags.NO_FLAGS);
+
+    await this.commandAction(
+      argv,
+      [this.tasks.startClusterState()],
+      constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
+      'cluster-ref state start',
+      undefined,
+      'cluster-ref state start',
+    );
+
+    return true;
+  }
+
+  /** Stops the running Kind cluster containers of the configured cluster references. */
+  public async stateStop(argv: ArgvStruct): Promise<boolean> {
+    argv = addFlagsToArgv(argv, ContextFlags.NO_FLAGS);
+
+    await this.commandAction(
+      argv,
+      [this.tasks.stopClusterState()],
+      constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
+      'cluster-ref state stop',
+      undefined,
+      'cluster-ref state stop',
+    );
+
+    return true;
+  }
+
+  /** Reports the container engine and Kind cluster container state. */
+  public async stateInfo(argv: ArgvStruct): Promise<boolean> {
+    argv = addFlagsToArgv(argv, ContextFlags.NO_FLAGS);
+
+    await this.commandAction(
+      argv,
+      [this.tasks.showClusterStateInfo()],
+      constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
+      'cluster-ref state info',
+    );
+
+    return true;
+  }
+
   public async setup(argv: ArgvStruct): Promise<boolean> {
     argv = addFlagsToArgv(argv, ContextFlags.SETUP_FLAGS);
 

@@ -31,6 +31,15 @@ export class ClusterReferenceCommandDefinition extends BaseCommandDefinition {
   private static readonly CONFIG_SUBCOMMAND_DESCRIPTION: string =
     'List, create, manage, and remove associations between Kubernetes contexts and Solo cluster references.';
 
+  public static readonly STATE_SUBCOMMAND_NAME: string = 'state';
+  private static readonly STATE_SUBCOMMAND_DESCRIPTION: string =
+    'Detect, start, and stop the local container engine (Docker Desktop / Podman machine) and the ' +
+    'Kind cluster containers it hosts.';
+
+  public static readonly STATE_START: string = 'start';
+  public static readonly STATE_STOP: string = 'stop';
+  public static readonly STATE_INFO: string = 'info';
+
   public static readonly CONFIG_CONNECT: string = 'connect';
   public static readonly CONFIG_DISCONNECT: string = 'disconnect';
   public static readonly CONFIG_LIST: string = 'list';
@@ -127,6 +136,42 @@ export class ClusterReferenceCommandDefinition extends BaseCommandDefinition {
               this.clusterCommand.handlers.reset,
               ContextFlags.RESET_FLAGS,
               [...constants.BASE_DEPENDENCIES],
+            ),
+          ),
+      )
+      .addCommandGroup(
+        new CommandGroup(
+          ClusterReferenceCommandDefinition.STATE_SUBCOMMAND_NAME,
+          ClusterReferenceCommandDefinition.STATE_SUBCOMMAND_DESCRIPTION,
+        )
+          .addSubcommand(
+            new Subcommand(
+              ClusterReferenceCommandDefinition.STATE_START,
+              'Starts the container engine (Docker Desktop / Podman machine), then starts any stopped Kind cluster containers belonging to the configured cluster references. Already running containers are left untouched.',
+              this.clusterCommand.handlers,
+              this.clusterCommand.handlers.stateStart,
+              ContextFlags.NO_FLAGS,
+              [],
+            ),
+          )
+          .addSubcommand(
+            new Subcommand(
+              ClusterReferenceCommandDefinition.STATE_STOP,
+              'Stops the running Kind cluster containers belonging to the configured cluster references, freeing local resources. Kind clusters not managed by Solo are left untouched.',
+              this.clusterCommand.handlers,
+              this.clusterCommand.handlers.stateStop,
+              ContextFlags.NO_FLAGS,
+              [],
+            ),
+          )
+          .addSubcommand(
+            new Subcommand(
+              ClusterReferenceCommandDefinition.STATE_INFO,
+              'Displays the container engine state and the state of every Kind cluster container on the machine, marking which ones belong to a Solo cluster reference.',
+              this.clusterCommand.handlers,
+              this.clusterCommand.handlers.stateInfo,
+              ContextFlags.NO_FLAGS,
+              [],
             ),
           ),
       )

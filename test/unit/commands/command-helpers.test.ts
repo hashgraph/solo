@@ -11,8 +11,9 @@ import {ConfigManager} from '../../../src/core/config-manager.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {type TaskList, type TaskNodeType} from '../../../src/core/task-list/task-list.js';
 import {type ListrContext, type ListrRendererValue} from 'listr2';
-import {BASE_TEST_DIR, getTestLogger} from '../../test-utility.js';
+import {BASE_TEST_DIR, getTestLogger} from '../../e2e/test-utility.js';
 import {type AnyObject} from '../../../src/types/aliases.js';
+import {resetForTest} from '../../test-container.js';
 
 describe('CommandHelpers.subTaskSoloCommand', (): void => {
   let configManager: ConfigManager;
@@ -29,6 +30,7 @@ describe('CommandHelpers.subTaskSoloCommand', (): void => {
 
   afterEach((): void => {
     sinon.restore();
+    resetForTest();
   });
 
   it('does not inherit component image overrides from sibling command state', async (): Promise<void> => {
