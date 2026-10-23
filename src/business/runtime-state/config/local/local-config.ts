@@ -8,8 +8,8 @@ import {Deployment} from './deployment.js';
 import {DeploymentSchema} from '../../../../data/schema/model/local/deployment-schema.js';
 import {UserIdentity} from '../common/user-identity.js';
 import {UserIdentitySchema} from '../../../../data/schema/model/common/user-identity-schema.js';
-import {MutableFacadeMap} from '../../collection/mutable-facade-map.js';
-import {StringFacade} from '../../facade/string-facade.js';
+import {MutableStringFacadeMap} from '../../collection/mutable-string-facade-map.js';
+import {type StringFacade} from '../../facade/string-facade.js';
 import {type FacadeMap} from '../../collection/facade-map.js';
 import {type DeploymentName, type Realm, type Shard} from '../../../../types/index.js';
 import {ApplicationVersions} from '../common/application-versions.js';
@@ -22,12 +22,7 @@ export class LocalConfig implements Facade<LocalConfigSchema> {
   private readonly _versions: ApplicationVersions;
 
   public constructor(public readonly encapsulatedObject: LocalConfigSchema) {
-    // eslint-disable-next-line @typescript-eslint/no-wrapper-object-types
-    this._clusterRefs = new MutableFacadeMap<string, StringFacade, String>(
-      StringFacade,
-      String,
-      encapsulatedObject.clusterRefs ?? new Map<string, string>(),
-    );
+    this._clusterRefs = new MutableStringFacadeMap(encapsulatedObject.clusterRefs ?? new Map<string, string>());
 
     this._deployments = new MutableFacadeArray<Deployment, DeploymentSchema>(
       Deployment,

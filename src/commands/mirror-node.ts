@@ -60,6 +60,7 @@ import {assertUpgradeVersionNotOlder} from '../core/upgrade-version-guard.js';
 import {UpgradeVersionResolver} from '../core/upgrade-version-resolver.js';
 import {IngressClass} from '../integration/kube/resources/ingress-class/ingress-class.js';
 import {Secret} from '../integration/kube/resources/secret/secret.js';
+import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {BlockNodeStateSchema} from '../data/schema/model/remote/state/block-node-state-schema.js';
 import {PostgresStateSchema} from '../data/schema/model/remote/state/postgres-state-schema.js';
 import {RedisStateSchema} from '../data/schema/model/remote/state/redis-state-schema.js';
@@ -827,7 +828,52 @@ export class MirrorNodeCommand extends BaseCommand {
       chartValues.file(constants.MIRROR_NODE_DEBUG_VALUES_FILE);
     }
 
+    await this.backupMirrorNodeSecrets(config);
+
     return chartValues;
+  }
+
+  /**
+   * Keeps a cluster copy of the secrets passed to Helm as values, so they can be recovered if a
+   * `helm upgrade` with the wrong values overwrites them. See issue #1100.
+   */
+  private async backupMirrorNodeSecrets(
+    config: MirrorNodeDeployConfigClass | MirrorNodeUpgradeConfigClass,
+  ): Promise<void> {
+    const secretData: Record<string, string> = {};
+    const candidates: Record<string, Optional<string>> = {
+      STORAGE_READ_ACCESS_KEY: config.storageReadAccessKey,
+      STORAGE_READ_SECRETS: config.storageReadSecrets,
+      EXTERNAL_DATABASE_OWNER_PASSWORD: config.externalDatabaseOwnerPassword,
+      EXTERNAL_DATABASE_READONLY_PASSWORD: config.externalDatabaseReadonlyPassword,
+    };
+    for (const [key, value] of Object.entries(candidates)) {
+      if (value) {
+        secretData[key] = Base64.encode(value);
+      }
+    }
+
+    if (Object.keys(secretData).length === 0) {
+      return;
+    }
+
+    const k8: K8 = this.k8Factory.getK8(config.clusterContext);
+    const secretName: string = constants.MIRROR_NODE_SECRETS_BACKUP_NAME;
+    let existingData: Record<string, string> = {};
+    if (await k8.secrets().exists(config.namespace, secretName)) {
+      const existingSecret: Secret = await k8.secrets().read(config.namespace, secretName);
+      existingData = existingSecret.data;
+    }
+
+    const isCreated: boolean = await k8
+      .secrets()
+      .createOrReplace(config.namespace, secretName, SecretType.OPAQUE, {...existingData, ...secretData});
+
+    if (!isCreated) {
+      throw new SoloErrors.system.k8sSecretCreateFailed(
+        `failed to create mirror node secrets backup using context: ${config.clusterContext}`,
+      );
+    }
   }
 
   /**
@@ -2610,6 +2656,12 @@ export class MirrorNodeCommand extends BaseCommand {
               .getK8(context_.config.clusterContext)
               .secrets()
               .delete(context_.config.namespace, context_.config.resourceNames.tlsSecretName);
+
+            // Delete the secrets backup created on add/upgrade so stale credentials don't outlive the mirror node
+            await this.k8Factory
+              .getK8(context_.config.clusterContext)
+              .secrets()
+              .delete(context_.config.namespace, constants.MIRROR_NODE_SECRETS_BACKUP_NAME);
           },
         },
         this.disableMirrorNodeComponents(),
