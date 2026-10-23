@@ -17,6 +17,7 @@ export class InjectTokens {
   public static SoloEventBus: symbol = Symbol.for('SoloEventBus');
   public static DeprecationRegistry: symbol = Symbol.for('DeprecationRegistry');
   public static K8Factory: symbol = Symbol.for('K8Factory');
+  public static HederaClientFactory: symbol = Symbol.for('HederaClientFactory');
   public static SoloLogger: symbol = Symbol.for('SoloLogger');
   public static PackageDownloader: symbol = Symbol.for('PackageDownloader');
   public static Zippy: symbol = Symbol.for('Zippy');

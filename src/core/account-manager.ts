@@ -4,29 +4,7 @@ import {SoloErrors} from './errors/solo-errors.js';
 import * as Base64 from 'js-base64';
 import * as constants from './constants.js';
 import {IGNORED_NODE_ACCOUNT_ID} from './constants.js';
-import {
-  AccountCreateTransaction,
-  AccountId,
-  type AccountInfo,
-  AccountInfoQuery,
-  AccountUpdateTransaction,
-  Client,
-  FileContentsQuery,
-  FileId,
-  Hbar,
-  HbarUnit,
-  type Key,
-  KeyList,
-  Logger,
-  LogLevel,
-  Long,
-  PrecheckStatusError,
-  PrivateKey,
-  Status,
-  TransactionReceipt,
-  TransactionResponse,
-  TransferTransaction,
-} from '@hiero-ledger/sdk';
+import {AccountId, type AccountInfo, type Client, FileId, type Key, KeyList, Long, PrivateKey} from '@hiero-ledger/sdk';
 import {SoloError} from './errors/solo-error.js'; // kept for instanceof checks
 import {Templates} from './templates.js';
 import {GenesisKeyResolver} from './genesis-key-resolver.js';
@@ -34,6 +12,8 @@ import {type NetworkNodeServices} from './network-node-services.js';
 
 import {type SoloLogger} from './logging/solo-logger.js';
 import {type K8Factory} from '../integration/kube/k8-factory.js';
+import {type HederaClient} from '../integration/hedera/hedera-client.js';
+import {type HederaClientFactory} from '../integration/hedera/hedera-client-factory.js';
 import {
   type AccountIdWithKeyPairObject,
   type ClusterReferenceName,
@@ -89,7 +69,12 @@ export class AccountManager {
   private _forcePortForward: boolean = false;
   private _portForwardCreationLock: Promise<void> = Promise.resolve();
   private _nextPortForwardScanStart: number = 0;
-  public _nodeClient: Optional<Client>;
+  private _hederaClient: Optional<HederaClient>;
+
+  /** @deprecated the SDK client behind the Hedera client, for callers that still build SDK transactions themselves */
+  public get _nodeClient(): Optional<Client> {
+    return this._hederaClient?.sdkClient;
+  }
 
   public constructor(
     @inject(InjectTokens.SoloLogger) private readonly logger?: SoloLogger,
@@ -97,15 +82,21 @@ export class AccountManager {
     @inject(InjectTokens.RemoteConfigRuntimeState) private readonly remoteConfig?: RemoteConfigRuntimeStateApi,
     @inject(InjectTokens.LocalConfigRuntimeState) private readonly localConfig?: LocalConfigRuntimeState,
     @inject(InjectTokens.NetworkNodes) private readonly networkNodes?: NetworkNodes,
+    @inject(InjectTokens.HederaClientFactory) private readonly hederaClientFactory?: HederaClientFactory,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.remoteConfig = patchInject(remoteConfig, InjectTokens.RemoteConfigRuntimeState, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfigRuntimeState, this.constructor.name);
     this.networkNodes = patchInject(networkNodes, InjectTokens.NetworkNodes, this.constructor.name);
+    this.hederaClientFactory = patchInject(
+      hederaClientFactory,
+      InjectTokens.HederaClientFactory,
+      this.constructor.name,
+    );
 
     this._portForwards = [];
-    this._nodeClient = undefined;
+    this._hederaClient = undefined;
   }
 
   /**
@@ -251,16 +242,16 @@ export class AccountManager {
     return batchSets;
   }
 
-  /** stops and closes the port forwards and the _nodeClient */
+  /** stops and closes the port forwards and the Hedera client */
   public async close(): Promise<void> {
-    this._nodeClient?.close();
+    this._hederaClient?.close();
     if (this._portForwards) {
       for (const srv of this._portForwards) {
         await this.k8Factory.default().pods().readByReference(null).stopPortForward(srv);
       }
     }
 
-    this._nodeClient = undefined;
+    this._hederaClient = undefined;
     this._portForwards = [];
     this._nextPortForwardScanStart = 0;
     this.logger.debug('node client and port forwards have been closed');
@@ -302,17 +293,17 @@ export class AccountManager {
   ): Promise<Client> {
     try {
       this.logger.debug(
-        `loading node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
+        `loading node client: [!this._hederaClient=${!this._hederaClient}, this._hederaClient.isShutDown=${this._hederaClient?.isShutDown}]`,
       );
-      if (!this._nodeClient || this._nodeClient?.isClientShutDown) {
+      if (!this._hederaClient || this._hederaClient.isShutDown) {
         this.logger.debug(
-          `refreshing node client: [!this._nodeClient=${!this._nodeClient}, this._nodeClient.isClientShutDown=${this._nodeClient?.isClientShutDown}]`,
+          `refreshing node client: [!this._hederaClient=${!this._hederaClient}, this._hederaClient.isShutDown=${this._hederaClient?.isShutDown}]`,
         );
         await this.refreshNodeClient(namespace, clusterReferences, deployment, forcePortForward);
       } else {
         try {
           if (!constants.SKIP_NODE_PING) {
-            await this._nodeClient.ping(this._nodeClient.operatorAccountId);
+            await this._hederaClient.ping(this._hederaClient.operatorAccountId);
           }
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
@@ -463,27 +454,27 @@ export class AccountManager {
       }
       this.logger.info(`creating client from network configuration: [${formattedNetworkConnection}]`);
 
-      // scheduleNetworkUpdate is set to false, because the ports 50212/50211 are hardcoded in JS SDK that will not work
-      // when running locally or in a pipeline
-      const nodeClient: Client = Client.fromConfig({network: nodes, scheduleNetworkUpdate: false});
-      nodeClient.setOperator(operatorId, operatorKey);
-      nodeClient.setLogger(new Logger(LogLevel.Trace, PathEx.join(constants.SOLO_LOGS_DIR, 'hashgraph-sdk.log')));
-      nodeClient.setMaxAttempts(constants.NODE_CLIENT_MAX_ATTEMPTS as number);
-      nodeClient.setMinBackoff(constants.NODE_CLIENT_MIN_BACKOFF as number);
-      nodeClient.setMaxBackoff(constants.NODE_CLIENT_MAX_BACKOFF as number);
-      nodeClient.setRequestTimeout(constants.NODE_CLIENT_REQUEST_TIMEOUT as number);
-      nodeClient.setMaxQueryPayment(new Hbar(constants.NODE_CLIENT_MAX_QUERY_PAYMENT));
+      const hederaClient: HederaClient = this.hederaClientFactory.create({
+        network: nodes,
+        operator: {accountId: operatorId, privateKey: operatorKey},
+        logFilePath: PathEx.join(constants.SOLO_LOGS_DIR, 'hashgraph-sdk.log'),
+        maxAttempts: constants.NODE_CLIENT_MAX_ATTEMPTS as number,
+        minBackoffMs: constants.NODE_CLIENT_MIN_BACKOFF as number,
+        maxBackoffMs: constants.NODE_CLIENT_MAX_BACKOFF as number,
+        requestTimeoutMs: constants.NODE_CLIENT_REQUEST_TIMEOUT as number,
+        maxQueryPaymentHbar: constants.NODE_CLIENT_MAX_QUERY_PAYMENT,
+      });
 
       if (!skipAssignment) {
-        this._nodeClient = nodeClient;
+        this._hederaClient = hederaClient;
       }
 
       // ping the node client to ensure it is working
       if (!constants.SKIP_NODE_PING) {
-        await nodeClient.ping(AccountId.fromString(operatorId));
+        await hederaClient.ping(AccountId.fromString(operatorId));
       }
 
-      return nodeClient;
+      return hederaClient.sdkClient;
     } catch (error) {
       throw new SoloErrors.component.nodeClientSetupFailed(error);
     }
@@ -1015,15 +1006,11 @@ export class AccountManager {
    * @returns the private key of the account
    */
   public async accountInfoQuery(accountId: AccountId | string): Promise<AccountInfo> {
-    if (!this._nodeClient) {
+    if (!this._hederaClient) {
       throw new SoloErrors.validation.missingArgument('node client is not initialized');
     }
 
-    return await new AccountInfoQuery()
-      .setAccountId(accountId)
-      .setMaxAttempts(3)
-      .setMaxBackoff(1000)
-      .execute(this._nodeClient);
+    return await this._hederaClient.getAccountInfo(accountId);
   }
 
   /**
@@ -1064,23 +1051,7 @@ export class AccountManager {
       oldPrivateKey = PrivateKey.fromStringED25519(oldPrivateKey);
     }
 
-    // Create the transaction to update the key on the account
-    const transaction: AccountUpdateTransaction = new AccountUpdateTransaction()
-      .setAccountId(accountId)
-      .setKey(newPrivateKey.publicKey)
-      .freezeWith(this._nodeClient);
-
-    // Sign the transaction with the old key and new key
-    let signedTransaction: AccountUpdateTransaction = await transaction.sign(oldPrivateKey);
-    signedTransaction = await signedTransaction.sign(newPrivateKey);
-
-    // SIgn the transaction with the client operator private key and submit to a Hedera network
-    const txResponse: TransactionResponse = await signedTransaction.execute(this._nodeClient);
-
-    // Request the receipt of the transaction
-    const receipt: TransactionReceipt = await txResponse.getReceipt(this._nodeClient);
-
-    return receipt.status === Status.Success;
+    return await this._hederaClient.updateAccountKey(accountId, newPrivateKey, oldPrivateKey);
   }
 
   /**
@@ -1099,46 +1070,7 @@ export class AccountManager {
     setAlias: boolean = false,
     context: string,
   ): Promise<{accountId: string; privateKey: string; publicKey: string; balance: number; accountAlias?: string}> {
-    const maxAttempts: number = 3;
-    const retryDelayMs: number = 250;
-    let newAccountResponse: TransactionResponse | undefined;
-    let lastError: PrecheckStatusError | undefined;
-
-    for (let attempt: number = 0; attempt < maxAttempts; attempt++) {
-      try {
-        const newAccountTransaction: AccountCreateTransaction = new AccountCreateTransaction()
-          .setKey(privateKey)
-          .setInitialBalance(Hbar.from(amount, HbarUnit.Hbar));
-
-        if (setAlias) {
-          newAccountTransaction.setAlias(privateKey.publicKey.toEvmAddress());
-        }
-
-        newAccountResponse = await newAccountTransaction.execute(this._nodeClient);
-        break;
-      } catch (error) {
-        if (
-          error instanceof PrecheckStatusError &&
-          error.status === Status.DuplicateTransaction &&
-          attempt < maxAttempts - 1
-        ) {
-          this.logger.warn(
-            `Account create returned DUPLICATE_TRANSACTION (attempt ${attempt + 1}/${maxAttempts}), retrying in ${retryDelayMs}ms`,
-          );
-          lastError = error;
-          await sleep(Duration.ofMillis(retryDelayMs));
-          continue;
-        }
-        throw error;
-      }
-    }
-
-    if (!newAccountResponse) {
-      throw lastError!;
-    }
-
-    // Get the new account ID
-    const transactionReceipt: TransactionReceipt = await newAccountResponse.getReceipt(this._nodeClient);
+    const newAccountId: AccountId = await this._hederaClient.createAccount(privateKey, amount, setAlias);
     const accountInfo: {
       accountId: string;
       privateKey: string;
@@ -1146,7 +1078,7 @@ export class AccountManager {
       balance: number;
       accountAlias?: string;
     } = {
-      accountId: transactionReceipt.accountId!.toString(),
+      accountId: newAccountId.toString(),
       privateKey: privateKey.toString(),
       publicKey: privateKey.publicKey.toString(),
       balance: amount,
@@ -1155,8 +1087,8 @@ export class AccountManager {
     // add the account alias if setAlias is true
     if (setAlias) {
       const accountId: string = accountInfo.accountId;
-      const realm: Long = transactionReceipt.accountId!.realm;
-      const shard: Long = transactionReceipt.accountId!.shard;
+      const realm: Long = newAccountId.realm;
+      const shard: Long = newAccountId.shard;
       const accountInfoQueryResult: AccountInfo = await this.accountInfoQuery(accountId);
       accountInfo.accountAlias = entityId(shard, realm, accountInfoQueryResult.contractAccountId);
     }
@@ -1206,20 +1138,7 @@ export class AccountManager {
     hbarAmount: number,
   ): Promise<boolean> {
     try {
-      const transaction: TransferTransaction = new TransferTransaction()
-        .addHbarTransfer(fromAccountId, new Hbar(-1 * hbarAmount))
-        .addHbarTransfer(toAccountId, new Hbar(hbarAmount))
-        .freezeWith(this._nodeClient);
-
-      const txResponse: TransactionResponse = await transaction.execute(this._nodeClient);
-
-      const receipt: TransactionReceipt = await txResponse.getReceipt(this._nodeClient);
-
-      this.logger.debug(
-        `The transfer from account ${fromAccountId} to account ${toAccountId} for amount ${hbarAmount} was ${receipt.status.toString()} `,
-      );
-
-      return receipt.status === Status.Success;
+      return await this._hederaClient.transferHbar(fromAccountId, toAccountId, hbarAmount);
     } catch (error) {
       throw new SoloErrors.component.accountTransferFailed(error);
     }
@@ -1238,44 +1157,15 @@ export class AccountManager {
   ): Promise<string> {
     // fetch AddressBook
     await this.loadNodeClient(namespace, clusterReferences, deployment, forcePortForward);
-    const client: Client = this._nodeClient;
-
     if (operatorId && operatorKey) {
-      client.setOperator(operatorId, operatorKey);
+      this._hederaClient.setOperator(operatorId, operatorKey);
     }
 
     const realm: Realm = this.localConfig.configuration.realmForDeployment(deployment);
     const shard: Shard = this.localConfig.configuration.shardForDeployment(deployment);
     const fileId: FileId = new FileId(shard, realm, FileId.ADDRESS_BOOK.num);
 
-    // The SDK does not retry INVALID_NODE_ACCOUNT for queries (only for transactions), so we
-    // retry here to handle the race where a node's gRPC endpoint is up but its Hedera state
-    // has not finished initializing yet.
-    const maxAttempts: number = 5;
-    const retryDelayMs: number = 5000;
-    let lastError: PrecheckStatusError | undefined;
-
-    for (let attempt: number = 0; attempt < maxAttempts; attempt++) {
-      try {
-        return Buffer.from(await new FileContentsQuery().setFileId(fileId).execute(client)).toString('base64');
-      } catch (error) {
-        if (
-          error instanceof PrecheckStatusError &&
-          error.status === Status.InvalidNodeAccount &&
-          attempt < maxAttempts - 1
-        ) {
-          this.logger.warn(
-            `Address book query returned INVALID_NODE_ACCOUNT (attempt ${attempt + 1}/${maxAttempts}), retrying in ${retryDelayMs}ms`,
-          );
-          lastError = error;
-          await sleep(Duration.ofMillis(retryDelayMs));
-        } else {
-          throw error;
-        }
-      }
-    }
-
-    throw lastError!;
+    return Buffer.from(await this._hederaClient.getFileContents(fileId, true)).toString('base64');
   }
 
   public async getFileContents(
@@ -1286,12 +1176,10 @@ export class AccountManager {
     forcePortForward?: boolean,
   ): Promise<string> {
     await this.loadNodeClient(namespace, clusterReferences, deployment, forcePortForward);
-    const client: Client = this._nodeClient;
     const realm: number | Long = this.localConfig.configuration.realmForDeployment(deployment);
     const shard: number | Long = this.localConfig.configuration.shardForDeployment(deployment);
     const fileId: FileId = FileId.fromString(entityId(shard, realm, fileNumber));
-    const queryFees: FileContentsQuery = new FileContentsQuery().setFileId(fileId);
-    return Buffer.from(await queryFees.execute(client)).toString('hex');
+    return Buffer.from(await this._hederaClient.getFileContents(fileId)).toString('hex');
   }
 
   /**
@@ -1364,9 +1252,9 @@ export class AccountManager {
    * @throws {@link SoloError} if the ping fails
    */
   private async sdkPingNetworkNode(object: Record<SdkNetworkEndpoint, AccountId>, accountId: AccountId): Promise<void> {
-    let nodeClient: Client;
+    let nodeClient: HederaClient;
     try {
-      nodeClient = Client.fromConfig({network: object, scheduleNetworkUpdate: false});
+      nodeClient = this.hederaClientFactory.create({network: object});
       this.logger.debug(`sdk pinging network node: ${Object.keys(object)[0]}`);
 
       if (!constants.SKIP_NODE_PING) {
