@@ -7,24 +7,21 @@ import {container} from 'tsyringe-neo';
 import {CommandHelpers} from '../../../src/commands/command-helpers.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import {ArgumentProcessor} from '../../../src/argument-processor.js';
-import {ConfigManager} from '../../../src/core/config-manager.js';
+import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {InjectTokens} from '../../../src/core/dependency-injection/inject-tokens.js';
 import {type TaskList, type TaskNodeType} from '../../../src/core/task-list/task-list.js';
 import {type ListrContext, type ListrRendererValue} from 'listr2';
-import {BASE_TEST_DIR, getTestLogger} from '../../test-utility.js';
+import {resetTestContainer} from '../../test-container.js';
 import {type AnyObject} from '../../../src/types/aliases.js';
 
 describe('CommandHelpers.subTaskSoloCommand', (): void => {
   let configManager: ConfigManager;
 
   beforeEach((): void => {
-    container.clearInstances();
-    container.register(InjectTokens.LogLevel, {useValue: 'debug'});
-    container.register(InjectTokens.DevelopmentMode, {useValue: true});
-    container.register(InjectTokens.HomeDirectory, {useValue: BASE_TEST_DIR});
-    container.registerInstance(InjectTokens.SoloLogger, getTestLogger());
-    configManager = new ConfigManager(getTestLogger());
-    container.registerInstance(InjectTokens.ConfigManager, configManager);
+    // clearInstances() would break the DI registrations of the unit test files that run after this one
+    resetTestContainer();
+    configManager = container.resolve(InjectTokens.ConfigManager);
+    configManager.reset();
   });
 
   afterEach((): void => {

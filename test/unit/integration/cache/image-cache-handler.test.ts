@@ -40,6 +40,7 @@ const target: {type: CacheArtifactEnum; name: string; version: string; source: s
 function manifestImage(sha256: string = ARCHIVE_HASH): CacheManifestImage {
   return new CacheManifestImage(
     IMAGE_REFERENCE,
+    'linux/amd64',
     TAR_FILE,
     `${TAR_FILE}.sha256`,
     sha256,
@@ -74,6 +75,7 @@ function createEngine(overrides: Partial<ContainerEngineClient> = {}): Container
     removeImage: async (): Promise<void> => undefined,
     listLoadedImagesInCluster: async (): Promise<readonly string[]> => [],
     resumeStoppedClusterNode: async (): Promise<ClusterNodeResumeOutcome> => ClusterNodeResumeOutcome.UNCHANGED,
+    getLinuxPlatform: async (): Promise<string> => 'linux/amd64',
     ...overrides,
   };
 }

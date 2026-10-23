@@ -567,7 +567,7 @@ jobs:
     with:
       version: ${{ needs.prepare-release.outputs.version }}
 
-  # Lists the images a one-shot deploy of the release runs, for the image cache.
+  # Lists the images a one-shot deploy of the release runs and exports them as image cache archives.
   capture-image-cache-cluster-images:
     name: Capture Image Cache Cluster Images
     if: ${{ needs.prepare-release.outputs.need-hl-release == 'true' }}

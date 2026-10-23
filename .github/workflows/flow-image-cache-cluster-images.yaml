@@ -15,7 +15,7 @@
 ##
 
 name: 'Image Cache: Capture Cluster Images'
-# Lists the images a clean one-shot deploy runs; the image source for the image cache.
+# Lists the images a clean one-shot deploy runs and exports each one as an image cache archive.
 
 on:
   workflow_call:
@@ -25,15 +25,9 @@ on:
         type: string
         required: false
         default: ''
+  # Run manually against a branch (gh workflow run flow-image-cache-cluster-images.yaml --ref <branch>) to test
+  # changes; it is too slow to run on every pull request push.
   workflow_dispatch:
-  pull_request:
-    types:
-      - opened
-      - reopened
-      - synchronize
-      - ready_for_review
-    paths:
-      - .github/workflows/flow-image-cache-cluster-images.yaml
 
 defaults:
   run:
@@ -46,15 +40,17 @@ env:
   STEP_TIMEOUT_MINUTES: '5'
   # Kind's own namespaces; their images ship in the Kind node image.
   KIND_SYSTEM_NAMESPACES: 'kube-system local-path-storage'
+  CRANE_VERSION: 'v0.21.4'
+  CRANE_SHA256: '3b6032bcf412e14cf3baf964a4065f2966af906ec947ab22478df5f74705c892'
+  # The platforms the image cache archives are exported for: Linux and Windows hosts run amd64 Kind nodes,
+  # Apple Silicon Macs run arm64 ones.
+  IMAGE_CACHE_PLATFORMS: 'linux/amd64 linux/arm64'
 
 jobs:
   capture-cluster-images:
     name: Capture Cluster Images
     runs-on: hiero-solo-linux-large
     timeout-minutes: 90
-    concurrency:
-      group: image-cache-cluster-images-${{ github.head_ref || github.run_id }}
-      cancel-in-progress: true
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
@@ -126,6 +122,17 @@ jobs:
             | (.spec.initContainers // []) + .spec.containers
             | .[].image
           ' cluster-images/pods.json | sort -u > cluster-images/images.txt
+          # Pair each container's image with the digest the cluster ran, for the archive export.
+          jq -r --arg excluded "${KIND_SYSTEM_NAMESPACES}" '
+            ($excluded | split(" ")) as $excludedNamespaces
+            | .items[]
+            | select(.metadata.namespace as $namespace | $excludedNamespaces | index($namespace) | not)
+            | ((.status.initContainerStatuses // []) + (.status.containerStatuses // [])) as $statuses
+            | (.spec.initContainers // []) + .spec.containers
+            | .[]
+            | . as $container
+            | "\($container.image)\t\(first($statuses[] | select(.name == $container.name) | .imageID) // "")"
+          ' cluster-images/pods.json | sort -u > cluster-images/images.tsv
           rm cluster-images/pods.json
 
           if [[ ! -s cluster-images/images.txt ]]; then
@@ -157,6 +164,34 @@ jobs:
           export PATH=~/.solo/bin:${PATH}
           npm run solo -- one-shot single destroy --quiet-mode --dev || true
 
+      - name: Install Crane
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          set -euo pipefail
+          archive="${RUNNER_TEMP}/go-containerregistry.tar.gz"
+          curl -fsSL --retry 5 --retry-all-errors -o "${archive}" \
+            "https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}/go-containerregistry_Linux_x86_64.tar.gz"
+          echo "${CRANE_SHA256}  ${archive}" | sha256sum -c -
+          mkdir -p "${RUNNER_TEMP}/bin"
+          tar -xzf "${archive}" -C "${RUNNER_TEMP}/bin" crane
+          echo "${RUNNER_TEMP}/bin" >> "${GITHUB_PATH}"
+
+      - name: Export Image Cache Archives
+        timeout-minutes: 30
+        env:
+          KIND_DOCKER_REGISTRY_MIRRORS: ${{ vars.KIND_DOCKER_REGISTRY_MIRRORS }}
+        run: .github/workflows/script/image_cache_export.sh cluster-images/images.tsv image-cache
+
+      - name: Upload Image Cache Index
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          name: image-cache-index
+          path: |
+            image-cache/image-cache-images.json
+            image-cache/*.sha256
+          if-no-files-found: error
+
       - name: Upload Logs
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -166,3 +201,9 @@ jobs:
           path: ~/.solo/logs/*
           overwrite: true
           if-no-files-found: warn
+
+      # Cleanup
+      - name: Remove Image Cache Archives
+        if: always()
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: rm -rf image-cache

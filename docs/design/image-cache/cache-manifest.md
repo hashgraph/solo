@@ -16,7 +16,8 @@ Enhancements). This is the design task [#5742](https://github.com/hiero-ledger/s
   ([#6054](https://github.com/hiero-ledger/solo/pull/6054), B2 to B6).
 
 The schema below was agreed on #5742 and is what the CLI already enforces; the optional `size`
-field was approved there afterwards and is added alongside this document.
+field was approved there afterwards and is added alongside this document. Schema version 2 adds
+`platform`, so one manifest can publish an archive per CPU architecture (§4, §7).
 
 ## 2. Manifest
 
@@ -35,15 +36,24 @@ release asset (staging, testing).
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "soloVersion": "0.86.0",
   "images": [
     {
       "image": "docker.io/library/busybox:1.36.1",
-      "tarFile": "docker.io__library__busybox__1.36.1.tar",
-      "hashFile": "docker.io__library__busybox__1.36.1.tar.sha256",
-      "sha256": "3f57d9401f8d42f986df300f0c69192fc41da28ae8c15f9f5c0a4b1f1d59f7cf",
-      "size": 4116480
+      "platform": "linux/amd64",
+      "tarFile": "docker.io__library__busybox__1.36.1__linux__amd64.tar",
+      "hashFile": "docker.io__library__busybox__1.36.1__linux__amd64.tar.sha256",
+      "sha256": "668b41fcd3b46f3bb1ca39539dcfd81ca4a378b48717bd900a6b0c612780ed29",
+      "size": 2222080
+    },
+    {
+      "image": "docker.io/library/busybox:1.36.1",
+      "platform": "linux/arm64",
+      "tarFile": "docker.io__library__busybox__1.36.1__linux__arm64.tar",
+      "hashFile": "docker.io__library__busybox__1.36.1__linux__arm64.tar.sha256",
+      "sha256": "b7fd5a90a3e8f84c55bc8d7204cfd5b1f45b766f47063d1ebcb8f458a4f961a1",
+      "size": 1904640
     }
   ]
 }
@@ -53,17 +63,23 @@ release asset (staging, testing).
 
 | Field               | Type    | Required | Rule enforced by the CLI                                              |
 | ------------------- | ------- | -------- | --------------------------------------------------------------------- |
-| `schemaVersion`     | integer | yes      | Must be `1`; any other value rejects the manifest.                    |
+| `schemaVersion`     | integer | yes      | Must be `2`; any other value rejects the manifest.                    |
 | `soloVersion`       | string  | yes      | Must equal the requested Solo version, with or without a leading `v`. |
 | `images`            | array   | yes      | Non-empty.                                                            |
 | `images[].image`    | string  | yes      | Non-empty image reference (§3).                                       |
+| `images[].platform` | string  | yes      | `<os>/<arch>[/<variant>]`, for example `linux/arm64`.                 |
 | `images[].tarFile`  | string  | yes      | Bare file name (§4): no `/`, `\` or `..`.                             |
 | `images[].hashFile` | string  | yes      | Bare file name (§4): no `/`, `\` or `..`.                             |
 | `images[].sha256`   | string  | yes      | SHA-256 of the archive, 64 lowercase hex characters.                  |
 | `images[].size`     | integer | no       | Size of the archive in bytes; a non-negative integer when present.    |
 
-A manifest that breaks any rule is rejected as a whole. Without a usable manifest the CLI caches
-nothing, leaves the existing cache untouched, and the cluster pulls images from their registries.
+A manifest that breaks any rule, or lists the same `image` twice for one `platform`, is rejected as
+a whole. Without a usable manifest the CLI caches nothing, leaves the existing cache untouched, and
+the cluster pulls images from their registries.
+
+The CLI uses only the entries whose `platform` is the platform of the local container engine
+(`linux/amd64` or `linux/arm64`), which is the platform of every Kind node it runs. An image with no
+entry for that platform is skipped and left for the cluster to pull.
 
 ## 3. Image References
 
@@ -85,18 +101,18 @@ References must be immutable: an exact version tag or a digest, never a moving t
 
 ## 4. File Names
 
-The archive file name is the image reference with every `/` and `:` replaced by `__`, plus `.tar`.
+The archive file name is `<image>__<platform>` with every `/` and `:` replaced by `__`, plus `.tar`.
 The hash file name is the archive file name plus `.sha256`.
 
-| Image                                          | `tarFile`                                             |
-| ---------------------------------------------- | ----------------------------------------------------- |
-| `docker.io/library/busybox:1.36.1`             | `docker.io__library__busybox__1.36.1.tar`             |
-| `ghcr.io/hiero-ledger/hiero-block-node:0.43.0` | `ghcr.io__hiero-ledger__hiero-block-node__0.43.0.tar` |
-| `docker.io/pgsty/silo@sha256:<digest>`         | `docker.io__pgsty__silo@sha256__<digest>.tar`         |
+| Image                                          | Platform      | `tarFile`                                                           |
+| ---------------------------------------------- | ------------- | ------------------------------------------------------------------- |
+| `docker.io/library/busybox:1.36.1`             | `linux/amd64` | `docker.io__library__busybox__1.36.1__linux__amd64.tar`             |
+| `ghcr.io/hiero-ledger/hiero-block-node:0.43.0` | `linux/arm64` | `ghcr.io__hiero-ledger__hiero-block-node__0.43.0__linux__arm64.tar` |
+| `docker.io/pgsty/silo@sha256:<digest>`         | `linux/amd64` | `docker.io__pgsty__silo@sha256__<digest>__linux__amd64.tar`         |
 
-This is the same rule the CLI uses to name archives in the local cache, so a CDN file and its local
-copy have the same name. Embedding the registry, path and version makes every name unique across
-Solo releases.
+The local cache holds one platform only, so the CLI names its copy without the platform suffix
+(`docker.io__library__busybox__1.36.1.tar`). Embedding the registry, path, version and platform
+makes every CDN name unique across Solo releases.
 
 `hashFile` is carried explicitly in the manifest instead of being derived from `tarFile`, so the
 extension convention can change without a CLI release.
@@ -137,13 +153,33 @@ load with an error instead of loading the archive.
 
 ## 7. Versioning
 
-`schemaVersion` is `1`. Adding an optional field that an older CLI can ignore, such as `size`,
+`schemaVersion` is `2`. Adding an optional field that an older CLI can ignore, such as `size`,
 keeps the version. A change an older CLI would misread (a renamed, retyped or newly required field)
 increments it; an older CLI then rejects the manifest and falls back to registry pulls instead of
 misparsing it.
 
-## 8. Out of Scope
+Version 2 added the required `platform` field. A version 1 CLI would read both entries of an image
+as the same key and could cache an archive the cluster cannot run, so it must reject the manifest
+instead. No version 1 manifest was ever published.
 
-- The contents of the archive (image layout format and platforms it holds): decided by A3
-  ([#5745](https://github.com/hiero-ledger/solo/issues/5745)).
+## 8. Archive Contents
+
+Produced by `.github/workflows/script/image_cache_export.sh` (A3,
+[#5745](https://github.com/hiero-ledger/solo/issues/5745)) from the images a clean
+`one-shot single deploy` runs:
+
+- One archive per image and platform (`linux/amd64` and `linux/arm64`). An image that is not
+  published for a platform gets no archive for it.
+- The archive is an OCI image layout holding that one platform's image, packed as a tar, as
+  `kind load image-archive` expects.
+- The image is pulled by the exact digest the cluster ran; the other platform comes from the same
+  image index.
+- The layout's manifest carries `io.containerd.image.name` set to the `image` reference. Without it
+  containerd imports the image under a name the kubelet does not look up (for example
+  `index.docker.io/…`), and the cluster pulls the image from its registry anyway.
+- The tar is packed reproducibly (sorted entries, zero timestamps and owners, fixed modes), so the
+  same image always produces the same hash (§5).
+
+## 9. Out of Scope
+
 - How CI uploads to the CDN and publishes the manifest: A4 and A5.
