@@ -25,6 +25,14 @@ function assertExecutableInstalled(executable: string): void {
   execFileSync('sh', ['-c', `command -v ${executable}`], {stdio: 'pipe'});
 }
 
+async function runStepAndLogProgress(stepName: string, action: () => Promise<void>): Promise<void> {
+  const startedAtUnixEpochMilliseconds: number = Date.now();
+  process.stdout.write(`[install-validation] starting ${stepName}\n`);
+  await action();
+  const elapsedSeconds: number = Math.round((Date.now() - startedAtUnixEpochMilliseconds) / 1000);
+  process.stdout.write(`[install-validation] completed ${stepName} (${elapsedSeconds}s)\n`);
+}
+
 // eslint-disable-next-line prefer-arrow-callback
 describe('OsPackageManager real install validation', function (this: Mocha.Suite): void {
   before(function (this: Mocha.Context): void {
@@ -39,8 +47,10 @@ describe('OsPackageManager real install validation', function (this: Mocha.Suite
 
   it('installs git and iptables via the distribution package manager', async (): Promise<void> => {
     const packageManager: PackageManager = new OsPackageManager().getPackageManager();
-    await packageManager.update();
-    await packageManager.installPackages(PACKAGES_TO_INSTALL);
+    await runStepAndLogProgress('package manager metadata refresh', async (): Promise<void> => packageManager.update());
+    await runStepAndLogProgress('package install (git, iptables)', async (): Promise<void> =>
+      packageManager.installPackages(PACKAGES_TO_INSTALL),
+    );
 
     for (const executable of PACKAGES_TO_INSTALL) {
       expect((): void => assertExecutableInstalled(executable), `${executable} should be installed`).to.not.throw();
