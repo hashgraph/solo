@@ -315,13 +315,21 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
                 config.networkConfiguration[flags.getFormattedFlagKey(flags.genesisThrottlesFile)] = throttlesFile;
               }
 
-              // For CN >= 0.73.0, cap K8s container memory at 1Gi to prevent unbounded mmap'd state-on-disk page cache growth
+              // Cap MinIO's tenant pool memory (hiero-ledger/solo#5602) unconditionally, and — for CN
+              // >= 0.73.0 — also cap K8s container memory at 1Gi to prevent unbounded mmap'd
+              // state-on-disk page cache growth. Both live in the same --values-file, comma-joined
+              // per cluster-ref, since Helm merges multiple -f files in order.
+              const helmOverrideFiles: string[] = [PathEx.join(overridesDirectory, 'minio-resources.yaml')];
               if (useStateOnDisk) {
-                const helmOverrideFile: string = PathEx.join(stateOnDiskDirectory, 'helm-overrides.yaml');
-                if (fs.existsSync(helmOverrideFile)) {
-                  config.networkConfiguration[flags.getFormattedFlagKey(flags.valuesFile)] =
-                    `${config.clusterRef}=${helmOverrideFile}`;
-                }
+                helmOverrideFiles.push(PathEx.join(stateOnDiskDirectory, 'helm-overrides.yaml'));
+              }
+              const existingHelmOverrideFiles: string[] = helmOverrideFiles.filter((file: string): boolean =>
+                fs.existsSync(file),
+              );
+              if (existingHelmOverrideFiles.length > 0) {
+                config.networkConfiguration[flags.getFormattedFlagKey(flags.valuesFile)] = existingHelmOverrideFiles
+                  .map((file: string): string => `${config.clusterRef}=${file}`)
+                  .join(',');
               }
             }
 

@@ -1,0 +1,44 @@
+# Caps the MinIO tenant pool's memory so it can't grow unbounded at idle (hiero-ledger/solo#5602).
+#
+# Helm deep-merges maps across multiple -f files but replaces list values wholesale, so this must
+# restate every field solo-charts' own solo-deployment/values.yaml sets on `minio-server.tenant.pools`
+# (not just `resources`) or the merge would silently drop storageClassName/labels/tolerations/etc.
+# Keep this in sync with that chart's `minio-server.tenant.pools` default whenever it changes.
+minio-server:
+  tenant:
+    # MinIO is a Go binary; GOMEMLIMIT is a soft memory target (Go >=1.19) that makes the runtime GC
+    # more aggressively as usage approaches it, instead of relying on the GOGC percentage rule alone.
+    # Set comfortably below the hard K8s memory limit below so the GC has room to react before OOM.
+    # This lowers the steady-state footprint the K8s limit has to accommodate — it is not a substitute
+    # for that limit, since GOMEMLIMIT can't force memory below what MinIO's live working set needs.
+    env:
+      - name: GOMEMLIMIT
+        value: "300MiB"
+    pools:
+      - servers: 1
+        name: pool-1
+        storageClassName: "standard"
+        volumesPerServer: 1
+        size: 10Gi
+        nodeSelector: {}
+        labels:
+          solo.hedera.com/testSuiteName: ""
+          solo.hedera.com/testName: ""
+          solo.hedera.com/testRunUID: ""
+          solo.hedera.com/testCreationTimestamp: ""
+          solo.hedera.com/testExpirationTimestamp: ""
+          solo.hedera.com/testRequester: ""
+        tolerations:
+          - key: "solo-scheduling.io/os"
+            operator: "Equal"
+            value: "linux"
+            effect: "NoSchedule"
+          - key: "solo-scheduling.io/role"
+            operator: "Equal"
+            value: "network"
+            effect: "NoSchedule"
+        resources:
+          requests:
+            memory: 128Mi
+          limits:
+            memory: 512Mi
