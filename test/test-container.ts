@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {container} from 'tsyringe-neo';
 import {Container, type InstanceOverrides} from '../src/core/dependency-injection/container-init.js';
+import {type ConfigProvider} from '../src/data/configuration/api/config-provider.js';
 import fs from 'node:fs';
 import {type NamespaceNameAsString} from '../src/types/index.js';
 import * as yaml from 'yaml';
@@ -41,6 +43,17 @@ export function resetTestContainer(
 
   // For the test suites cacheDir === homeDir is acceptable because the data is temporary
   Container.getInstance().reset(cacheDirectory, cacheDirectory, 'debug', true, containerOverrides);
+}
+
+/**
+ * Loads the layered Solo config sources into the already-initialized container.
+ *
+ * `Container.init()` registers the config sources through a synchronous factory and therefore cannot
+ * await them, so tests that assert on values sourced from `resources/config/*.yaml` (or from the
+ * `SOLO_*` config-system environment overrides) must call this first.
+ */
+export async function loadSoloConfigForTest(): Promise<void> {
+  await container.resolve<ConfigProvider>(InjectTokens.ConfigProvider).config().refresh();
 }
 
 export function resetForTest(

@@ -13,6 +13,7 @@ import {
 } from '../dependency-managers/index.js';
 import * as constants from '../constants.js';
 import {ChartManager} from '../chart-manager.js';
+import {ConsensusChartOrchestrator} from '../consensus-chart-orchestrator.js';
 import {ConfigManager} from '../config-manager.js';
 import {LayeredConfigProvider} from '../../data/configuration/impl/layered-config-provider.js';
 import {AccountManager} from '../account-manager.js';
@@ -160,6 +161,7 @@ export class Container {
       new SingletonContainer(InjectTokens.NetavarkDependencyManager, NetavarkDependencyManager),
       new SingletonContainer(InjectTokens.AardvarkDnsDependencyManager, AardvarkDnsDependencyManager),
       new SingletonContainer(InjectTokens.ChartManager, ChartManager),
+      new SingletonContainer(InjectTokens.ConsensusChartOrchestrator, ConsensusChartOrchestrator),
       new SingletonContainer(InjectTokens.ConfigManager, ConfigManager),
       new SingletonContainer(InjectTokens.AccountManager, AccountManager),
       new SingletonContainer(InjectTokens.PlatformInstaller, PlatformInstaller),

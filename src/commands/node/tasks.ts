@@ -15,7 +15,10 @@ import {type HelmClient} from '../../integration/helm/helm-client.js';
 import {ReleaseItem} from '../../integration/helm/model/release/release-item.js';
 import {Zippy} from '../../core/zippy.js';
 import * as constants from '../../core/constants.js';
-import {SoloChartRepository} from '../../core/solo-chart-repository.js';
+import {ConsensusChartOrchestrator} from '../../core/consensus-chart-orchestrator.js';
+import {type ConsensusChartTarget} from '../../core/consensus-chart-target.js';
+import {type ConsensusChartDeltaPlan} from '../../core/consensus-chart-delta-plan.js';
+import {ConsensusChartLayout} from '../../core/consensus-chart-layout.js';
 import {
   CHECK_WRAPS_DIRECTORY_BACKOFF_MS,
   CHECK_WRAPS_DIRECTORY_MAX_ATTEMPTS,
@@ -286,18 +289,26 @@ export class NodeCommandTasks {
     return gossipFqdnRestricted || Helpers.hasMultipleKubernetesContexts(consensusNodes);
   }
 
+  /**
+   * @param owningReleaseName - the Helm release this Service must claim membership of. Solo applies
+   *   this Service by hand, so it has to stamp the ownership metadata Helm would have written;
+   *   naming the wrong release makes the next upgrade of the real owner fail on invalid ownership
+   *   metadata. Under the split layout that owner is the node's own `consensus-node-<alias>`
+   *   release, not the shared one.
+   */
   private static buildNetworkNodeServiceManifest(
     namespace: NamespaceName,
     nodeAlias: NodeAlias,
     nodeId: NodeId,
     accountId: string,
+    owningReleaseName: string,
   ): AnyObject {
     return {
       apiVersion: 'v1',
       kind: 'Service',
       metadata: {
         annotations: {
-          'meta.helm.sh/release-name': constants.SOLO_DEPLOYMENT_CHART,
+          'meta.helm.sh/release-name': owningReleaseName,
           'meta.helm.sh/release-namespace': namespace.name,
         },
         labels: {
@@ -367,6 +378,8 @@ export class NodeCommandTasks {
     @inject(InjectTokens.GitClient) private readonly gitClient: GitClient,
     @inject(InjectTokens.ConfigProvider) configProvider: ConfigProvider,
     @inject(InjectTokens.SoloEventBus) private readonly eventBus: SoloEventBus,
+    @inject(InjectTokens.ConsensusChartOrchestrator)
+    private readonly consensusCharts: ConsensusChartOrchestrator,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.accountManager = patchInject(accountManager, InjectTokens.AccountManager, this.constructor.name);
@@ -385,6 +398,7 @@ export class NodeCommandTasks {
     this.gitClient = patchInject(gitClient, InjectTokens.GitClient, this.constructor.name);
     this.eventBus = patchInject(eventBus, InjectTokens.SoloEventBus, this.constructor.name);
     configProvider = patchInject(configProvider, InjectTokens.ConfigProvider, this.constructor.name);
+    this.consensusCharts = patchInject(consensusCharts, InjectTokens.ConsensusChartOrchestrator, this.constructor.name);
     this.soloConfig = SoloConfig.getConfig(configProvider);
   }
 
@@ -3238,7 +3252,14 @@ export class NodeCommandTasks {
 
         const valuesFiles: Record<ClusterReferenceName, HelmChartValues> = this.prepareHelmChartValuesFilesMap(
           this.remoteConfig.getClusterRefs(),
-          config.chartDirectory,
+          // Deliberately not config.chartDirectory, matching the node add/update/destroy path below.
+          // Passing it prepends the chart's own values.yaml to the --values list, which re-applies
+          // chart defaults over a release upgraded with --reuse-values. A network deployed with
+          // --pvcs then has defaults.volumeClaims.enabled flipped back to the chart default of
+          // false, dropping volumeClaimTemplates from the StatefulSet — an immutable field, so Helm
+          // rejects the upgrade outright. The chart itself is still rendered from the local
+          // directory; that comes from the orchestrator target's chartDirectory, not from here.
+          undefined,
           profileValuesFile,
           config.valuesFile,
         ).chartValuesMap;
@@ -3275,16 +3296,26 @@ export class NodeCommandTasks {
                     MINIMUM_SOLO_CHART_VERSION,
                   );
 
-                  await this.chartManager.upgrade(
-                    config.namespace,
-                    constants.SOLO_DEPLOYMENT_CHART,
-                    constants.SOLO_DEPLOYMENT_CHART,
-                    config.chartDirectory || SoloChartRepository.resolveUrl(config.soloChartVersion),
-                    config.soloChartVersion,
-                    valuesFiles[clusterReference],
-                    context,
-                    true,
-                  );
+                  const target: ConsensusChartTarget = {
+                    namespace: config.namespace,
+                    kubeContext: context,
+                    clusterReference,
+                    chartDirectory: config.chartDirectory,
+                    soloChartVersion: config.soloChartVersion,
+                    cacheDirectory: config.cacheDir,
+                  };
+
+                  const aliasesInCluster: NodeAlias[] = config.consensusNodes
+                    .filter((node: ConsensusNode): boolean => node.cluster === clusterReference)
+                    .map((node: ConsensusNode): NodeAlias => node.name as NodeAlias);
+
+                  // No command converts a deployment between chart layouts. An upgrade re-renders
+                  // whatever is already installed, so a network on the single `solo-deployment`
+                  // chart stays on it for its whole life — `applyDelta` discovers which that is.
+                  await this.consensusCharts.applyDelta(target, valuesFiles[clusterReference], {
+                    shared: 'upgrade',
+                    nodes: aliasesInCluster.map((alias: NodeAlias) => ({alias, action: 'upgrade' as const})),
+                  });
 
                   showVersionBanner(this.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
                 }),
@@ -3879,6 +3910,7 @@ export class NodeCommandTasks {
     k8: K8,
     nodeId: NodeId,
     accountId: string,
+    context: Context,
   ): Promise<void> {
     let serviceList: Service[] = await k8
       .services()
@@ -3896,11 +3928,21 @@ export class NodeCommandTasks {
       return;
     }
 
+    // This Service is applied before the node's own release exists, so the owner has to be the
+    // release that *will* own it rather than whatever owns things today.
+    const layout: ConsensusChartLayout = await this.consensusCharts.discover({
+      namespace: config.namespace,
+      kubeContext: context,
+    });
+
     const manifest: AnyObject = NodeCommandTasks.buildNetworkNodeServiceManifest(
       config.namespace,
       config.nodeAlias,
       nodeId,
       accountId,
+      layout.isSplit()
+        ? ConsensusChartLayout.perNodeReleaseName(config.nodeAlias)
+        : this.consensusCharts.sharedReleaseName,
     );
     const baseDirectory: string = config.stagingDir || config.cacheDir || constants.SOLO_CACHE_DIR;
     fs.mkdirSync(baseDirectory, {recursive: true});
@@ -4013,7 +4055,7 @@ export class NodeCommandTasks {
         const nodeId: NodeId = Templates.nodeIdFromNodeAlias(config.nodeAlias);
 
         if (loadBalancerRequired) {
-          await this.createGeneratedGossipLoadBalancerService(config, k8, nodeId, context_.newNode.accountId);
+          await this.createGeneratedGossipLoadBalancerService(config, k8, nodeId, context_.newNode.accountId, context);
         }
 
         const newConsensusNode: ConsensusNode = new ConsensusNode(
@@ -4556,6 +4598,63 @@ export class NodeCommandTasks {
     };
   }
 
+  /**
+   * Which releases a node-lifecycle operation touches, and in what order.
+   *
+   * Under the umbrella layout this collapses to a single release and the plan is advisory. Under the
+   * split layout the ordering is load-bearing: the shared release carries `hedera.rosterNodes`, which
+   * `dns-validation-script` iterates, so a node must be gone from the per-node side *before* the
+   * roster shrinks, and present in the roster *before* its own pod starts. Getting that backwards
+   * leaves every later pod restart waiting on a DNS name that never resolves.
+   *
+   * Surviving nodes are re-rendered on every operation because the umbrella layout re-rendered them
+   * too — their deltas can change (profile values, `debugNodeAlias`, regenerated extraEnv), and
+   * skipping them would be a behavioural divergence between the two layouts.
+   */
+  private static deltaPlanFor(
+    transactionType: NodeSubcommandType,
+    consensusNodes: ConsensusNode[],
+    clusterReference: ClusterReferenceName,
+    changedNodeAlias: NodeAlias,
+  ): ConsensusChartDeltaPlan {
+    const aliasesInCluster: NodeAlias[] = consensusNodes
+      .filter((node: ConsensusNode): boolean => node.cluster === clusterReference)
+      .map((node: ConsensusNode): NodeAlias => node.name as NodeAlias);
+
+    switch (transactionType) {
+      case NodeSubcommandType.ADD: {
+        return {
+          shared: 'upgrade',
+          nodes: aliasesInCluster.map((alias: NodeAlias) => ({
+            alias,
+            // `consensusNodes` already includes the node being added, which owns no release yet.
+            action: alias === changedNodeAlias ? ('install' as const) : ('upgrade' as const),
+          })),
+        };
+      }
+
+      case NodeSubcommandType.DESTROY: {
+        return {
+          shared: 'upgrade',
+          nodes: [
+            {alias: changedNodeAlias, action: 'uninstall' as const},
+            ...aliasesInCluster
+              .filter((alias: NodeAlias): boolean => alias !== changedNodeAlias)
+              .map((alias: NodeAlias) => ({alias, action: 'upgrade' as const})),
+          ],
+        };
+      }
+
+      default: {
+        // UPDATE: the roster still names every node, but an account-id change lives in it too.
+        return {
+          shared: 'upgrade',
+          nodes: aliasesInCluster.map((alias: NodeAlias) => ({alias, action: 'upgrade' as const})),
+        };
+      }
+    }
+  }
+
   public updateChartWithConfigMap(
     title: string,
     transactionType: NodeSubcommandType,
@@ -4772,15 +4871,23 @@ export class NodeCommandTasks {
               .clone()
               .add(valuesFilesMap[clusterReference]);
 
-            await this.chartManager.upgrade(
-              config.namespace,
-              constants.SOLO_DEPLOYMENT_CHART,
-              constants.SOLO_DEPLOYMENT_CHART,
-              config.chartDirectory || SoloChartRepository.resolveUrl(config.soloChartVersion),
-              config.soloChartVersion,
+            const target: ConsensusChartTarget = {
+              namespace: config.namespace,
+              kubeContext: context,
+              clusterReference,
+              chartDirectory: config.chartDirectory,
+              soloChartVersion: config.soloChartVersion,
+              cacheDirectory: config.cacheDir,
+            };
+
+            // The builders above produce an umbrella-shaped *delta* — only the keys this operation
+            // changes. It stays a delta: `--reuse-values` supplies everything else, and rebuilding a
+            // whole values set from it would have no `defaults.*` or `cloud.*` and would re-render
+            // every node from chart defaults.
+            await this.consensusCharts.applyDelta(
+              target,
               chartValues,
-              context,
-              true,
+              NodeCommandTasks.deltaPlanFor(transactionType, consensusNodes, clusterReference, config.nodeAlias),
             );
             showVersionBanner(this.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
           }),
@@ -4797,6 +4904,15 @@ export class NodeCommandTasks {
    * @param profileValuesFile
    * @param valuesFileInput
    */
+  /**
+   * Name of the consensus-node chart, sourced from `resources/config/helm-chart-config.yaml` so that a
+   * renamed or relocated chart does not require a code change. Falls back to the built-in name when the
+   * layered config has not been loaded.
+   */
+  private get consensusChartName(): string {
+    return Templates.resolveConsensusChartName(this.soloConfig.helmChart.name);
+  }
+
   private prepareHelmChartValuesFilesMap(
     clusterReferences: ClusterReferences,
     chartDirectory?: string,
@@ -4817,7 +4933,7 @@ export class NodeCommandTasks {
     // add the chart's default values file for each cluster-ref if chartDirectory is set
     // this should be the first in the list of values files as it will be overridden by user's input
     if (chartDirectory) {
-      const chartValuesFile: string = PathEx.join(chartDirectory, 'solo-deployment', 'values.yaml');
+      const chartValuesFile: string = PathEx.join(chartDirectory, this.consensusChartName, 'values.yaml');
       for (const clusterReference in chartValuesMap) {
         HelmChartValues.addFileForCluster(chartValuesMap, valueFilePathsMap, clusterReference, chartValuesFile);
       }
@@ -5195,7 +5311,9 @@ export class NodeCommandTasks {
    * The consensus node image ships without zip, unzip and curl, which Solo uses to archive, extract and verify node
    * state and platform archives and to read node metrics, so install them in every node's recreated pod once it is running.
    */
-  public installRootContainerTools(): SoloListrTask<NodeUpdateContext | NodeAddContext | NodeDestroyContext> {
+  public installRootContainerTools(): SoloListrTask<
+    NodeUpdateContext | NodeAddContext | NodeDestroyContext | NodeUpgradeContext
+  > {
     return {
       title: 'Install zip, unzip and curl in the consensus node image',
       skip: (): boolean => !NetworkNodeLifecycle.isConsensusNodeImage(),

@@ -3,6 +3,7 @@
 import {Templates} from '../../../src/core/templates.js';
 import {expect} from 'chai';
 import {type ConsensusNode} from '../../../src/core/model/consensus-node.js';
+import * as constants from '../../../src/core/constants.js';
 
 describe('core/templates', (): void => {
   const consensusNodes: ConsensusNode[] = [
@@ -64,6 +65,18 @@ describe('core/templates', (): void => {
       // eslint-disable-next-line unicorn/prefer-https
       'http://mirror-1-web3.solo.svc.cluster.local',
     );
+  });
+
+  describe('resolveConsensusChartName', (): void => {
+    it('uses the configured chart name', (): void => {
+      expect(Templates.resolveConsensusChartName('my-network')).to.equal('my-network');
+    });
+
+    it('falls back to solo-deployment when the layered config has not been loaded', (): void => {
+      // A unit container that never refreshes the config provider yields an empty name; falling back
+      // is what keeps every release-name lookup consistent instead of resolving to ''.
+      expect(Templates.resolveConsensusChartName('')).to.equal(constants.SOLO_DEPLOYMENT_CHART);
+    });
   });
 
   describe('parseNodeAliasToPortMapping', (): void => {

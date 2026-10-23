@@ -260,6 +260,7 @@ import {SubprocessConfigInvalidValueSoloError} from './classes/validation/subpro
 import {SubprocessConfigUnsafePermissionsSoloError} from './classes/validation/subprocess-config-unsafe-permissions-solo-error.js';
 import {BackupNoLogFilesSoloError} from './classes/validation/backup-no-log-files-solo-error.js';
 import {BackupDatabaseDumpNotFoundSoloError} from './classes/validation/backup-database-dump-not-found-solo-error.js';
+import {ConsensusNodeValuesNodeNotFoundSoloError} from './classes/validation/consensus-node-values-node-not-found-solo-error.js';
 import {FlagInputFailedSoloError} from './classes/validation/flag-input-failed-solo-error.js';
 import {ConfirmationRequiredSoloError} from './classes/validation/confirmation-required-solo-error.js';
 import {ValuesFileNotFoundSoloError} from './classes/validation/values-file-not-found-solo-error.js';
@@ -702,6 +703,7 @@ export class SoloErrors {
     readonly subprocessConfigUnsafePermissions: typeof SubprocessConfigUnsafePermissionsSoloError;
     readonly subprocessConfigInvalidValue: typeof SubprocessConfigInvalidValueSoloError;
     readonly backupDatabaseDumpNotFound: typeof BackupDatabaseDumpNotFoundSoloError;
+    readonly consensusNodeValuesNodeNotFound: typeof ConsensusNodeValuesNodeNotFoundSoloError;
     readonly flagInputFailed: typeof FlagInputFailedSoloError;
     readonly confirmationRequired: typeof ConfirmationRequiredSoloError;
     readonly valuesFileNotFound: typeof ValuesFileNotFoundSoloError;
@@ -791,6 +793,7 @@ export class SoloErrors {
     subprocessConfigUnsafePermissions: SubprocessConfigUnsafePermissionsSoloError,
     subprocessConfigInvalidValue: SubprocessConfigInvalidValueSoloError,
     backupDatabaseDumpNotFound: BackupDatabaseDumpNotFoundSoloError,
+    consensusNodeValuesNodeNotFound: ConsensusNodeValuesNodeNotFoundSoloError,
     flagInputFailed: FlagInputFailedSoloError,
     confirmationRequired: ConfirmationRequiredSoloError,
     valuesFileNotFound: ValuesFileNotFoundSoloError,

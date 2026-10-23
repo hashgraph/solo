@@ -518,6 +518,10 @@ export class NodeCommandHandlers extends CommandHandler {
       this.tasks.stopNodes('existingNodeAliases'),
       this.tasks.downloadNodeUpgradeFiles(),
       this.tasks.upgradeNodeConfigurationFilesWithChart(),
+      // The chart upgrade can recreate every pod — always, when it also converts the chart layout.
+      // The root container's tooling (zip/unzip/curl) lives in the ephemeral writable layer, so it
+      // has to be reinstalled before fetchPlatformSoftware needs it. No-op when already present.
+      this.tasks.installRootContainerTools(),
       this.tasks.fetchPlatformSoftware('nodeAliases'),
       this.tasks.promotePostUpgradeSystemFiles(),
       this.tasks.updateConsensusNodeVersionInRemoteConfig(),

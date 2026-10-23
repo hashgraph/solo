@@ -17,6 +17,7 @@ import {SoloError} from './core/errors/solo-error.js';
 import {FatalErrorReporter} from './core/fatal-error-reporter.js';
 import {SilentBreak} from './core/errors/silent-break.js';
 import {ArgumentProcessor} from './argument-processor.js';
+import {type ConfigProvider} from './data/configuration/api/config-provider.js';
 import {VersionUpdateNotifier} from './core/version-update-notifier.js';
 import {SubprocessEnvironmentBootstrap} from './core/subprocess-environment-bootstrap.js';
 import {HomebrewDeprecationNotifier} from './core/homebrew-deprecation-notifier.js';
@@ -77,6 +78,11 @@ export async function main(argv: string[], context?: {logger: SoloLogger}): Prom
     const developerMode: boolean = argv.includes('--debug') || argv.includes('--dev');
     const soloLogLevel: string = developerMode || constants.SOLO_DEV_OUTPUT ? 'debug' : constants.SOLO_LOG_LEVEL;
     Container.getInstance().init(constants.SOLO_HOME_DIR, constants.SOLO_CACHE_DIR, soloLogLevel);
+
+    // The container registers the layered config sources through a synchronous factory, so it cannot
+    // await them. Without this refresh every `SoloConfigSchema` value falls back to its class default,
+    // leaving `resources/config/*.yaml` and all `SOLO_*` config-system overrides inert.
+    await container.resolve<ConfigProvider>(InjectTokens.ConfigProvider).config().refresh();
   } catch (incomingError) {
     // An already-coded failure (e.g. an unwritable log destination) carries the specific message and
     // remediation; wrapping it would replace its code with the generic one in the rendered error box.

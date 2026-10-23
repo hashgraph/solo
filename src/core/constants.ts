@@ -79,8 +79,20 @@ export const KIND_NODE_IMAGE: string =
 export const PODMAN_MACHINE_NAME: string = 'podman-machine-default';
 export const SOLO_DEV_OUTPUT: boolean = Boolean(getEnvironmentVariable('SOLO_DEV_OUTPUT')) || false;
 
-export const CONFIG: {ENABLE_IMAGE_CACHE: boolean} = {
+export const CONFIG: {ENABLE_IMAGE_CACHE: boolean; EXPERIMENTAL_PER_CONSENSUS_NODE_CHART: boolean} = {
   ENABLE_IMAGE_CACHE: getEnvironmentVariable('ENABLE_IMAGE_CACHE') !== 'false',
+
+  // Deploys each consensus node as its own `consensus-node` Helm release alongside a shared release for
+  // the network-scoped resources, instead of one umbrella `solo-deployment` release holding every node.
+  //
+  // Consulted at first deploy only. An existing deployment is never converted: every later command
+  // discovers the layout from the installed releases and re-renders that, so a network created on the
+  // single chart stays on it whether or not this is set. Teardown likewise sweeps per-node releases
+  // regardless of the flag, so a network deployed with it on stays destroyable with it off.
+  //
+  // Experimental and opt-in; defaults to off.
+  EXPERIMENTAL_PER_CONSENSUS_NODE_CHART:
+    getEnvironmentVariable('EXPERIMENTAL_PER_CONSENSUS_NODE_CHART') === 'true' || false,
 };
 
 export const ROOT_CONTAINER: ContainerName = ContainerName.of('root-container');
@@ -155,6 +167,8 @@ export const SOLO_SETUP_NAMESPACE: NamespaceName = NamespaceName.of('solo-setup'
 
 // TODO: remove after migrated to resources/solo-config.yaml
 export const SOLO_DEPLOYMENT_CHART: string = 'solo-deployment';
+/** Single-consensus-node chart, installed once per node when EXPERIMENTAL_PER_CONSENSUS_NODE_CHART is set. */
+export const CONSENSUS_NODE_CHART: string = 'consensus-node';
 // TODO: remove after migrated to resources/solo-config.yaml
 export const SOLO_CERT_MANAGER_CHART: string = 'solo-cert-manager';
 export const SOLO_SHARED_RESOURCES_CHART: string = 'solo-shared-resources';

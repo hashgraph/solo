@@ -124,6 +124,14 @@ tasks:
         {{ .mocha_bin }} 'test/e2e/commands/block-node.test.ts'
         {{ .reporter_options_prefix }}-e2e-block-node.xml"
 
+  test-e2e-consensus-chart-layout:
+    desc: "Runs the E2E consensus chart layout tests: an existing single-chart deployment is never converted, a new one honours EXPERIMENTAL_PER_CONSENSUS_NODE_CHART; set SOLO_CHARTS_DIR to the solo-charts checkout's charts directory"
+    cmds:
+      - "{{ .test_prefix }}=\"Mocha E2E Consensus Chart Layout Test\"
+        {{ .reporter_prefix }}='coverage/e2e-consensus-chart-layout'
+        {{ .mocha_bin }} 'test/e2e/commands/consensus-chart-layout.test.ts'
+        {{ .reporter_options_prefix }}-e2e-consensus-chart-layout.xml"
+
   test-e2e-dual-cluster-full:
     desc: "Runs E2E Dual Cluster Full tests with coverage and generates reports in coverage/e2e-dual-cluster-full"
     cmds:

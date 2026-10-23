@@ -8,6 +8,7 @@ import {getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../e2e/test-utilit
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
+import {type ConsensusChartOrchestrator} from '../../../src/core/consensus-chart-orchestrator.js';
 import {ROOT_DIR} from '../../../src/core/constants.js';
 import {type ConfigManager} from '../../../src/core/config-manager.js';
 import {type ChartManager} from '../../../src/core/chart-manager.js';
@@ -235,6 +236,8 @@ describe('NetworkCommand unit tests', (): void => {
       options.chartManager.upgrade = sinon.stub().returns(true);
       options.chartManager.install = sinon.stub().returns(true);
       options.chartManager.uninstall = sinon.stub().returns(true);
+      options.chartManager.getInstalledReleases = sinon.stub().resolves([]);
+      container.resolve<ConsensusChartOrchestrator>(InjectTokens.ConsensusChartOrchestrator).invalidateAll();
 
       options.remoteConfig = container.resolve<RemoteConfigRuntimeState>(InjectTokens.RemoteConfigRuntimeState);
       options.remoteConfig.isLoaded = sinon.stub().returns(true);
@@ -283,7 +286,14 @@ describe('NetworkCommand unit tests', (): void => {
         // @ts-expect-error - TS2341: to mock
         networkCommand.ensurePrometheusOperatorCrds = sinon.stub().returns(true);
 
+        // The existing-deployment probe reads the release list rather than probing one release name,
+        // so that a half-finished split install (per-node releases, no shared release) is also
+        // reported as deployed instead of colliding on the next deploy.
         options.chartManager.isChartInstalled = sinon.stub().resolves(true);
+        options.chartManager.getInstalledReleases = sinon
+          .stub()
+          .resolves([{name: constants.SOLO_DEPLOYMENT_CHART, chart: `${constants.SOLO_DEPLOYMENT_CHART}-0.67.0`}]);
+        container.resolve<ConsensusChartOrchestrator>(InjectTokens.ConsensusChartOrchestrator).invalidateAll();
 
         // @ts-expect-error - TS2341: to mock
         networkCommand.componentFactory = {
@@ -425,6 +435,54 @@ describe('NetworkCommand unit tests', (): void => {
         expect(options.chartManager.upgrade.args[0][1]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
         expect(options.chartManager.upgrade.args[0][2]).to.equal(constants.SOLO_DEPLOYMENT_CHART);
         expect(options.chartManager.upgrade.args[0][3]).to.equal(PathEx.join(ROOT_DIR, 'test-directory'));
+      } finally {
+        sinon.restore();
+      }
+    });
+
+    it('Should hand the solo-deployment chart the Helm arguments it assembled, untranslated', async (): Promise<void> => {
+      // The guarantee for every deployment on the single chart: the same input produces the same
+      // values. The per-node chart work introduced a translator that parses these arguments into an
+      // object and re-emits one generated YAML file; that round-trip re-types scalars and re-quotes
+      // strings under YAML 1.2 rules where Helm reads YAML 1.1, so it must never run on this path.
+      try {
+        argv.setArg(flags.force, true);
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'solo-e2e', 'context1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context1']);
+        options.remoteConfig.updateComponentVersion = sinon.stub();
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map([['solo-e2e', 'context1']]));
+        options.remoteConfig.configuration.state = {};
+
+        // @ts-expect-error - TS2341: to mock
+        networkCommand.ensurePodLogsCrd = sinon.stub().returns(true);
+        // @ts-expect-error - TS2341: to mock
+        networkCommand.ensurePrometheusOperatorCrds = sinon.stub().returns(true);
+        // @ts-expect-error - TS2341: to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([]);
+        // @ts-expect-error - TS2341: to mock
+        networkCommand.componentFactory = {
+          createNewEnvoyProxyComponent: sinon.stub(),
+          createNewHaProxyComponent: sinon.stub(),
+        };
+
+        await networkCommand.deploy(argv.build());
+
+        const passed: string[] = options.chartManager.upgrade.args[0][5].toArguments();
+
+        // A translated render collapses everything into exactly ['--values', '…-values.yaml'].
+        expect(passed.some((argument: string): boolean => argument.endsWith('umbrella-values.yaml'))).to.be.false;
+        expect(passed, 'the runtime --set overrides survive').to.include('--set');
+        expect(passed.filter((argument: string): boolean => argument === '--values').length).to.be.greaterThan(0);
+        expect(
+          passed.some((argument: string): boolean => argument.startsWith('hedera.nodes[0].name=')),
+          'per-node names are still passed as --set-literal, not folded into a file',
+        ).to.be.true;
       } finally {
         sinon.restore();
       }

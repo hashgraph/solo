@@ -38,6 +38,17 @@ export class Templates {
     return PodName.of(`network-${nodeAlias}-0`);
   }
 
+  /**
+   * Resolves the consensus network chart name from the layered config, falling back to the built-in
+   * name when that config has not been loaded — which in practice means unit tests that do not refresh
+   * it, since `helm-chart-config.yaml` always supplies a value at runtime.
+   *
+   * @param configuredName - `soloConfig.helmChart.name`, empty when the config is unloaded
+   */
+  public static resolveConsensusChartName(configuredName: string): string {
+    return configuredName || constants.SOLO_DEPLOYMENT_CHART;
+  }
+
   public static renderNetworkSvcName(nodeAlias: NodeAlias): string {
     return `network-${nodeAlias}-svc`;
   }
