@@ -138,7 +138,6 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: 24
-          cache: 'npm'
 
       - name: Install Dependencies
         uses: step-security/retry@38808b4332b98bb36ca031abff0c100231608288 # v4.0.0

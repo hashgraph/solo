@@ -126,7 +126,6 @@ jobs:
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: 24
-          cache: npm
 
       - name: Configure npm registry
         if: ${{ steps.check.outputs.run == 'true' && !cancelled() && !failure() }}
