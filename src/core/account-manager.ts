@@ -311,9 +311,7 @@ export class AccountManager {
         await this.refreshNodeClient(namespace, clusterReferences, deployment, forcePortForward);
       } else {
         try {
-          if (!constants.SKIP_NODE_PING) {
-            await this._nodeClient.ping(this._nodeClient.operatorAccountId);
-          }
+          await AccountManager.pingNodeClient(this._nodeClient);
         } catch {
           this.logger.debug('node client ping failed, refreshing node client');
           await this.refreshNodeClient(namespace, clusterReferences, deployment, forcePortForward);
@@ -478,15 +476,29 @@ export class AccountManager {
         this._nodeClient = nodeClient;
       }
 
-      // ping the node client to ensure it is working
-      if (!constants.SKIP_NODE_PING) {
-        await nodeClient.ping(AccountId.fromString(operatorId));
-      }
+      await AccountManager.pingNodeClient(nodeClient);
 
       return nodeClient;
     } catch (error) {
       throw new SoloErrors.component.nodeClientSetupFailed(error);
     }
+  }
+
+  /**
+   * checks the client with a free cost query, allowing SDK retries to rotate across its configured consensus nodes
+   * @param nodeClient - the node client to check
+   */
+  private static async pingNodeClient(nodeClient: Client): Promise<void> {
+    if (constants.SKIP_NODE_PING) {
+      return;
+    }
+    const nodeAccountIds: AccountId[] = Object.values(nodeClient.network).map(
+      (accountId: string | AccountId): AccountId => AccountId.fromString(accountId.toString()),
+    );
+    await new AccountInfoQuery()
+      .setAccountId(new AccountId(nodeClient.shard, nodeClient.realm, 2))
+      .setNodeAccountIds(nodeAccountIds)
+      .getCost(nodeClient);
   }
 
   private async configureNodeAccess(
