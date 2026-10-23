@@ -48,6 +48,7 @@ import {
   TransactionResponse,
 } from '@hiero-ledger/sdk';
 import fs from 'node:fs';
+import os from 'node:os';
 import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import find from 'find-process';
@@ -137,6 +138,7 @@ import {SubprocessCommandProfile} from '../../core/subprocess-command-profile.js
 import {helmValuesHelper} from '../../core/helm-values-helper.js';
 import {NetworkNodeLifecycle} from '../../core/network-node-lifecycle.js';
 import {type GitClient} from '../../integration/git/git-client.js';
+import {type ConfigMap} from '../../integration/kube/resources/config-map/config-map.js';
 import {type NodeDestroyConfigClass} from './config-interfaces/node-destroy-config-class.js';
 import {type NodeRefreshConfigClass} from './config-interfaces/node-refresh-config-class.js';
 import {type NodeUpdateConfigClass} from './config-interfaces/node-update-config-class.js';
@@ -5137,6 +5139,56 @@ export class NodeCommandTasks {
                 undefined,
                 extractContextFromConsensusNodes(nodeAlias, config.consensusNodes),
               );
+            },
+          }),
+        );
+
+        return task.newListr(subTasks, constants.LISTR_DEFAULT_OPTIONS.WITH_CONCURRENCY);
+      },
+    };
+  }
+
+  /**
+   * The pod's init container copies the shared config map files (application.properties with its bumped
+   * hedera.config.version, etc.) into data/config at pod start. Existing pods are no longer restarted by node
+   * add and delete, so the same files are copied in place; otherwise their platform version no longer matches
+   * the nodes created or updated from the new config map and gossip handshakes are rejected.
+   */
+  public copyConfigMapFilesToNodes(): SoloListrTask<NodeAddContext | NodeDestroyContext> {
+    return {
+      title: 'Copy updated config map files to nodes',
+      task: async (context_, task): Promise<SoloListr<NodeAddContext | NodeDestroyContext>> => {
+        const config: NodeAddConfigClass | NodeDestroyConfigClass = context_.config;
+
+        const subTasks: SoloListrTask<NodeAddContext | NodeDestroyContext>[] = config.allNodeAliases.map(
+          (nodeAlias: NodeAlias): SoloListrTask<NodeAddContext | NodeDestroyContext> => ({
+            title: `Node: ${chalk.yellow(nodeAlias)}`,
+            task: async (): Promise<void> => {
+              const nodeContext: Context = extractContextFromConsensusNodes(nodeAlias, config.consensusNodes);
+              const configMap: ConfigMap = await this.k8Factory
+                .getK8(nodeContext)
+                .configMaps()
+                .read(config.namespace, constants.NETWORK_NODE_SHARED_DATA_CONFIG_MAP_NAME);
+
+              const temporaryDirectory: string = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'solo-config-'));
+              try {
+                const configFiles: string[] = [];
+                for (const [fileName, content] of Object.entries(configMap.data ?? {})) {
+                  const filePath: string = PathEx.join(temporaryDirectory, fileName);
+                  fs.writeFileSync(filePath, content);
+                  configFiles.push(filePath);
+                }
+
+                await this.platformInstaller.copyFiles(
+                  config.podRefs[nodeAlias],
+                  configFiles,
+                  `${constants.HEDERA_HAPI_PATH}/data/config`,
+                  undefined,
+                  nodeContext,
+                );
+              } finally {
+                fs.rmSync(temporaryDirectory, {recursive: true, force: true});
+              }
             },
           }),
         );
