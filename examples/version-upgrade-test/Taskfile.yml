@@ -13,16 +13,16 @@ env:
   # still exercising block node deploy/upgrade.
   BLOCK_STREAM_STREAM_MODE: BOTH
   BLOCK_STREAM_WRITER_MODE: FILE_AND_GRPC
-  DISABLE_IMPORTER_SPRING_PROFILES: "true"
+  DISABLE_IMPORTER_SPRING_PROFILES: 'true'
 
 vars:
-  NODE_IDENTIFIERS: "node1,node2"
-  SOLO_NETWORK_SIZE: "2"
-  DEPLOYMENT: "deployment-version-upgrade-test"
-  NAMESPACE: "namespace-version-upgrade-test"
-  CLUSTER_NAME: "version-upgrade-test-cluster"
-  CONTEXT: "kind-version-upgrade-test-cluster"
-  CLUSTER_REFERENCE: "kind-version-upgrade-test-cluster"
+  NODE_IDENTIFIERS: 'node1,node2'
+  SOLO_NETWORK_SIZE: '2'
+  DEPLOYMENT: 'deployment-version-upgrade-test'
+  NAMESPACE: 'namespace-version-upgrade-test'
+  CLUSTER_NAME: 'version-upgrade-test-cluster'
+  CONTEXT: 'kind-version-upgrade-test-cluster'
+  CLUSTER_REFERENCE: 'kind-version-upgrade-test-cluster'
 
   # Previous versions (current minus one)
   PREV_CN_VERSION:
@@ -37,8 +37,12 @@ vars:
     sh: sed -n "s/.*PREV_BLOCK_NODE_VERSION.*'\([^']*\)'.*/\1/p" "$(git rev-parse --show-toplevel)/version-test.ts"
 
   # Current versions to upgrade to
+  CURRENT_CN_VERSION:
+    sh: sed -n "s/^export const HEDERA_PLATFORM_VERSION.*'\([^']*\)'.*/\1/p" "$(git rev-parse --show-toplevel)/version.ts"
   CURRENT_MIRROR_VERSION:
     sh: sed -n "s/^export const MIRROR_NODE_VERSION.*'\([^']*\)'.*/\1/p" "$(git rev-parse --show-toplevel)/version.ts"
+  CURRENT_BLOCK_VERSION:
+    sh: sed -n "s/^export const BLOCK_NODE_VERSION.*'\([^']*\)'.*/\1/p" "$(git rev-parse --show-toplevel)/version.ts"
   # Local build path for network upgrade
   ROOT_DIR:
     sh: git rev-parse --show-toplevel
@@ -92,7 +96,6 @@ tasks:
           $SOLO_COMMAND deployment cluster attach --deployment {{ .DEPLOYMENT }} --cluster-ref {{ .CLUSTER_REFERENCE }} \
           --num-consensus-nodes {{ .SOLO_NETWORK_SIZE }}
 
-
   deploy-old-versions:
     desc: Deploy network with previous versions of all components
     cmds:
@@ -105,7 +108,8 @@ tasks:
       # Must deploy block node before deploying consensus network due to dependency
       - cmd: |
           $SOLO_COMMAND block node add --deployment {{ .DEPLOYMENT }} --release-tag {{ .PREV_CN_VERSION }} \
-          --chart-version {{ .PREV_BLOCK_VERSION }}
+          --chart-version {{ .PREV_BLOCK_VERSION }} \
+          --consensus-node-version {{ .PREV_CN_VERSION }}
 
       - cmd: |
           $SOLO_COMMAND consensus network deploy --deployment {{ .DEPLOYMENT }} --pvcs true --node-aliases {{ .NODE_IDENTIFIERS }} \
@@ -145,19 +149,28 @@ tasks:
           --pinger
       - cmd: $SOLO_COMMAND ledger account create --deployment {{ .DEPLOYMENT }} --hbar-amount 50
 
-      # Upgrade network to main with local build path
+      # Stage the network upgrade to main with local build path, but leave the consensus nodes
+      # stopped. Consensus node and block node must cross the fixed 16-slot block root hash
+      # boundary (hiero-consensus-node#26918) together: an upgraded consensus node streaming to a
+      # pre-0.41.0 block node is rejected with BAD_BLOCK_PROOF, which saturates the consensus node
+      # block buffer and stalls the network. Upgrading both while no consensus node is producing
+      # removes that window entirely, so no version comparison is needed here.
       - cmd: |
-          export CONSENSUS_NODE_VERSION=$(awk -v RS=';' '/export const HEDERA_PLATFORM_VERSION[[:space:]]*:[[:space:]]*string[[:space:]]*=/ { s=$0; v=""; while (match(s, /'\''[^'\'']*'\''/)) { v=substr(s, RSTART+1, RLENGTH-2); s=substr(s, RSTART+RLENGTH) } if (v!="") { print v; exit } }' ../../version.ts)
-          echo "Upgrading consensus network to version: ${CONSENSUS_NODE_VERSION}"
+          echo "Upgrading consensus network to version: {{ .CURRENT_CN_VERSION }}"
           SOLO_LOG_LEVEL=debug $SOLO_COMMAND consensus network upgrade --node-aliases {{ .NODE_IDENTIFIERS }} \
-          --upgrade-version ${CONSENSUS_NODE_VERSION} \
-          --deployment {{ .DEPLOYMENT }}
+          --upgrade-version {{ .CURRENT_CN_VERSION }} \
+          --deployment {{ .DEPLOYMENT }} \
+          --skip-node-start
 
-      # Upgrade block node
+      # Upgrade block node while the consensus nodes are still stopped
       - cmd: |
-          $SOLO_COMMAND block node upgrade --deployment {{ .DEPLOYMENT }}
-      - cmd: $SOLO_COMMAND ledger account create --deployment {{ .DEPLOYMENT }} --hbar-amount 50
+          $SOLO_COMMAND block node upgrade --deployment {{ .DEPLOYMENT }} \
+          --upgrade-version {{ .CURRENT_BLOCK_VERSION }} \
+          --consensus-node-version {{ .CURRENT_CN_VERSION }}
 
+      # Start the upgraded consensus nodes now that the block node also speaks the new format
+      - cmd: |
+          $SOLO_COMMAND consensus node start --deployment {{ .DEPLOYMENT }} --node-aliases {{ .NODE_IDENTIFIERS }}
 
       - cmd: $SOLO_COMMAND ledger account create --deployment {{ .DEPLOYMENT }} --hbar-amount 50
 
@@ -168,7 +181,6 @@ tasks:
       # Upgrade explorer
       - cmd: |
           $SOLO_COMMAND explorer node upgrade --deployment {{ .DEPLOYMENT }}
-
 
   verify-functionality:
     desc: Verify all components are working correctly
@@ -191,10 +203,10 @@ tasks:
       - cmd: |
           ACCOUNT_ID=$(cat /tmp/first_account_id.txt)
           echo "Checking Explorer API for account: $ACCOUNT_ID"
-          
+
           # Get the explorer service URL (assuming port-forward or ingress)
           EXPLORER_URL="http://localhost:38080"
-          
+
           # Try to access the account via Explorer API
           curl -s "${EXPLORER_URL}/api/v1/accounts/${ACCOUNT_ID}" | jq '.' || echo "Explorer API check completed"
       - echo "Explorer API verification completed"
@@ -203,7 +215,7 @@ tasks:
       - cmd: |
           # Get relay service URL (assuming port-forward or ingress)
           RELAY_URL="http://localhost:37546"
-          
+
           # Make a simple JSON-RPC call to verify relay is working
           curl -X POST "${RELAY_URL}" \
             -H "Content-Type: application/json" \
@@ -213,19 +225,39 @@ tasks:
 
       - echo "All functionality verification completed successfully!"
 
-      # Test Block Node functionality
+      # Test Block Node functionality.
+      # get-block.sh always requests the latest block, so a single SUCCESS response only proves the
+      # block node still serves what it persisted before the upgrade. Sample twice and require the
+      # block number to advance, otherwise a block node that stopped verifying the upgraded
+      # consensus node's proofs (see the 16-slot boundary note in upgrade-components) reports
+      # SUCCESS forever on a stale block and this check false-passes.
       - cmd: |
           kubectl port-forward --namespace {{ .NAMESPACE }} svc/block-node-1 40840:40840 >/tmp/solo-block-node-port-forward.log 2>&1 &
           cd ../../test/data
-          
-          OUTPUT=$(./get-block.sh 1)
-          echo "$OUTPUT"
-          if echo "$OUTPUT" | grep -q '"status": "SUCCESS"'; then
-            echo "✓ Block node test passed - status is SUCCESS"
-          else
-            echo "✗ Block node test failed - status is not SUCCESS"
+
+          latest_block_number() {
+            ./get-block.sh 2>/dev/null | jq -rs 'if any(.[]; .status == "SUCCESS") then [.. | .number? | select(. != null)] | first // empty else empty end'
+          }
+
+          FIRST=$(latest_block_number)
+          if [[ -z "${FIRST}" ]]; then
+            echo "✗ Block node test failed - could not read a SUCCESS block response"
+            ./get-block.sh || true
             exit 1
           fi
+          echo "Block node latest block: ${FIRST}"
+
+          for _ in $(seq 1 12); do
+            sleep 5
+            SECOND=$(latest_block_number)
+            if [[ -n "${SECOND}" ]] && (( SECOND > FIRST )); then
+              echo "✓ Block node test passed - advanced from block ${FIRST} to ${SECOND}"
+              exit 0
+            fi
+          done
+
+          echo "✗ Block node test failed - stuck at block ${FIRST} (last read: ${SECOND:-none})"
+          exit 1
 
   destroy:
     desc: Destroy the Solo network and cleanup

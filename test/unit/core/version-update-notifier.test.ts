@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import fs from 'node:fs';
+import https from 'node:https';
+import {EventEmitter} from 'node:events';
+import {type ClientRequest, type IncomingMessage} from 'node:http';
 import {expect} from 'chai';
 import {describe, it, beforeEach, afterEach} from 'mocha';
 import sinon, {type SinonStub} from 'sinon';
@@ -27,7 +30,7 @@ interface FakeLogger {
 describe('VersionUpdateNotifier', (): void => {
   const originalReadFileSync: typeof fs.readFileSync = fs.readFileSync.bind(fs);
 
-  let fetchStub: SinonStub;
+  let httpsGetStub: SinonStub;
   let writeFileSyncStub: SinonStub;
   let logger: FakeLogger;
   let originalIsTty: boolean;
@@ -40,7 +43,7 @@ describe('VersionUpdateNotifier', (): void => {
     process.stdout.isTTY = true;
     cacheContent = undefined;
 
-    fetchStub = sinon.stub(globalThis, 'fetch' as never);
+    httpsGetStub = sinon.stub(https, 'get');
     writeFileSyncStub = sinon.stub(fs, 'writeFileSync');
     sinon.stub(fs, 'mkdirSync');
 
@@ -74,9 +77,57 @@ describe('VersionUpdateNotifier', (): void => {
     });
   }
 
+  /** A stand-in for the ClientRequest https.get returns; the notifier only listens and destroys. */
+  type FakeRequest = EventEmitter & {destroy: () => void};
+
+  /** A stand-in for the IncomingMessage the notifier reads the registry payload from. */
+  type FakeResponse = EventEmitter & {statusCode: number; setEncoding: () => void; resume: () => void};
+
+  /** Builds the fake ClientRequest https.get hands back. */
+  function createFakeRequest(): FakeRequest {
+    // eslint-disable-next-line unicorn/prefer-event-target
+    return Object.assign(new EventEmitter(), {destroy: (): void => {}});
+  }
+
+  /** Stubs the registry call to answer with the given status code and raw body. */
+  function stubRegistryResponse(statusCode: number, body: string): void {
+    httpsGetStub.callsFake(
+      (_url: string, _options: object, callback: (response: IncomingMessage) => void): ClientRequest => {
+        const request: FakeRequest = createFakeRequest();
+        // eslint-disable-next-line unicorn/prefer-event-target
+        const response: FakeResponse = Object.assign(new EventEmitter(), {
+          statusCode,
+          setEncoding: (): void => {},
+          resume: (): void => {},
+        });
+
+        setImmediate((): void => {
+          callback(response as unknown as IncomingMessage);
+          if (statusCode === 200) {
+            response.emit('data', body);
+            response.emit('end');
+          }
+        });
+
+        return request as unknown as ClientRequest;
+      },
+    );
+  }
+
   /** Stubs a successful registry response returning the given version. */
-  function stubFetchVersion(version: string): void {
-    fetchStub.resolves({ok: true, json: async (): Promise<{version: string}> => ({version})});
+  function stubRegistryVersion(version: string): void {
+    stubRegistryResponse(200, JSON.stringify({version}));
+  }
+
+  /** Stubs the registry call to fail at the transport level, as when offline. */
+  function stubRegistryError(): void {
+    httpsGetStub.callsFake((): ClientRequest => {
+      const request: FakeRequest = createFakeRequest();
+      setImmediate((): void => {
+        request.emit('error', new Error('network failure'));
+      });
+      return request as unknown as ClientRequest;
+    });
   }
 
   /** Concatenates every argument passed to logger.showUser into a single searchable string. */
@@ -96,7 +147,7 @@ describe('VersionUpdateNotifier', (): void => {
 
     await notify();
 
-    expect(fetchStub).to.not.have.been.called;
+    expect(httpsGetStub).to.not.have.been.called;
     expect(logger.showUser).to.not.have.been.called;
   });
 
@@ -105,7 +156,7 @@ describe('VersionUpdateNotifier', (): void => {
 
     await notify();
 
-    expect(fetchStub).to.not.have.been.called;
+    expect(httpsGetStub).to.not.have.been.called;
     expect(logger.showUser).to.have.been.called;
     expect(bannerText()).to.include(NEWER_VERSION);
   });
@@ -125,17 +176,17 @@ describe('VersionUpdateNotifier', (): void => {
 
     await notify();
 
-    expect(fetchStub).to.not.have.been.called;
+    expect(httpsGetStub).to.not.have.been.called;
     expect(logger.showUser).to.not.have.been.called;
   });
 
   it('fetches from the registry, persists the cache, and shows the banner when a cache is absent', async (): Promise<void> => {
-    stubFetchVersion(NEWER_VERSION);
+    stubRegistryVersion(NEWER_VERSION);
 
     await notify();
 
-    expect(fetchStub).to.have.been.calledOnce;
-    const requestedUrl: string = fetchStub.firstCall.args[0] as string;
+    expect(httpsGetStub).to.have.been.calledOnce;
+    const requestedUrl: string = httpsGetStub.firstCall.args[0] as string;
     expect(requestedUrl).to.include('registry.npmjs.org');
     expect(requestedUrl).to.include(PACKAGE_NAME);
 
@@ -148,27 +199,27 @@ describe('VersionUpdateNotifier', (): void => {
 
   it('refreshes from the registry when the cache is stale', async (): Promise<void> => {
     seedCache(OLDER_VERSION, STALE_AGE_MILLISECONDS);
-    stubFetchVersion(NEWER_VERSION);
+    stubRegistryVersion(NEWER_VERSION);
 
     await notify();
 
-    expect(fetchStub).to.have.been.calledOnce;
+    expect(httpsGetStub).to.have.been.calledOnce;
     expect(bannerText()).to.include(NEWER_VERSION);
   });
 
   it('falls back to a stale cached version when the network is unavailable', async (): Promise<void> => {
     seedCache(NEWER_VERSION, STALE_AGE_MILLISECONDS);
-    fetchStub.rejects(new Error('network failure'));
+    stubRegistryError();
 
     await notify();
 
-    expect(fetchStub).to.have.been.calledOnce;
+    expect(httpsGetStub).to.have.been.calledOnce;
     expect(logger.showUser).to.have.been.called;
     expect(bannerText()).to.include(NEWER_VERSION);
   });
 
   it('stays silent when the network fails and there is no cache', async (): Promise<void> => {
-    fetchStub.rejects(new Error('network failure'));
+    stubRegistryError();
 
     await notify();
 
@@ -177,7 +228,7 @@ describe('VersionUpdateNotifier', (): void => {
   });
 
   it('stays silent when the registry responds with a non-OK status', async (): Promise<void> => {
-    fetchStub.resolves({ok: false, status: 500});
+    stubRegistryResponse(500, '');
 
     await notify();
 
@@ -185,15 +236,21 @@ describe('VersionUpdateNotifier', (): void => {
   });
 
   it('never rejects even when the registry returns malformed data', async (): Promise<void> => {
-    fetchStub.resolves({
-      ok: true,
-      json: async (): Promise<never> => {
-        throw new Error('invalid json');
-      },
-    });
+    stubRegistryResponse(200, 'not json at all');
 
     await notify();
 
     expect(logger.showUser).to.not.have.been.called;
+  });
+
+  it('requests its own socket so no pooled connection outlives the command', async (): Promise<void> => {
+    stubRegistryVersion(NEWER_VERSION);
+
+    await notify();
+
+    // A pooled connection is torn down on the libuv thread pool after the response, which aborts the
+    // process on Windows when the CLI calls process.exit() moments later while flushing logs.
+    const requestOptions: {agent?: false} = httpsGetStub.firstCall.args[1] as {agent?: false};
+    expect(requestOptions.agent).to.equal(false);
   });
 });

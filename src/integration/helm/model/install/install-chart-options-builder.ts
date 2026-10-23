@@ -16,6 +16,7 @@ export class InstallChartOptionsBuilder {
   private _password?: string;
   private _repo?: string;
   private _valueArguments: string[] = [];
+  private _environmentVariables: Record<string, string> = {};
   private _skipCrds: boolean = false;
   private _timeout?: string;
   private _username?: string;
@@ -241,6 +242,16 @@ export class InstallChartOptionsBuilder {
   }
 
   /**
+   * set the environment variables of the Helm process.
+   * @param environmentVariables the environment variables.
+   * @returns the current InstallChartOptionsBuilder.
+   */
+  public environmentVariables(environmentVariables: Record<string, string>): InstallChartOptionsBuilder {
+    this._environmentVariables = {...environmentVariables};
+    return this;
+  }
+
+  /**
    * build the InstallChartOptions.
    * @returns the created InstallChartOptions.
    */
@@ -264,6 +275,7 @@ export class InstallChartOptionsBuilder {
       this._waitFor,
       this._kubeContext,
       this._namespace,
+      {...this._environmentVariables},
     );
   }
 }

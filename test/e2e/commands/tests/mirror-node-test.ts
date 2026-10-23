@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import {BaseCommandTest} from './base-command-test.js';
-import {type ClusterReferenceName, type Context, type DeploymentName} from '../../../../src/types/index.js';
+import {type ClusterReferenceName, type DeploymentName} from '../../../../src/types/index.js';
 import {Flags} from '../../../../src/commands/flags.js';
 import {main} from '../../../../src/index.js';
 import {Duration} from '../../../../src/core/time/duration.js';
@@ -17,11 +17,13 @@ import {expect} from 'chai';
 import {container} from 'tsyringe-neo';
 import {type BaseTestOptions} from './base-test-options.js';
 import {MirrorCommandDefinition} from '../../../../src/commands/command-definitions/mirror-command-definition.js';
+import {negatedOptionFromFlag} from '../../../../src/commands/command-helpers.js';
 
 import * as constants from '../../../../src/core/constants.js';
 import fs from 'node:fs';
 import {ShellRunner} from '../../../../src/core/shell-runner.js';
-import {type AnyObject} from '../../../../src/types/aliases.js';
+import {type AnyObject, type NodeAlias} from '../../../../src/types/aliases.js';
+import {Templates} from '../../../../src/core/templates.js';
 import {ConsensusNodeTest} from './consensus-node-test.js';
 import {type HelmClient} from '../../../../src/integration/helm/helm-client.js';
 import {Repository} from '../../../../src/integration/helm/model/repository.js';
@@ -44,6 +46,7 @@ export class MirrorNodeTest extends BaseCommandTest {
     clusterReference: ClusterReferenceName,
     pinger: boolean,
     valuesFile?: string,
+    enableIngress: boolean = true,
   ): string[] {
     const {newArgv, argvPushGlobalFlags, optionFromFlag} = MirrorNodeTest;
 
@@ -56,7 +59,7 @@ export class MirrorNodeTest extends BaseCommandTest {
       deployment,
       optionFromFlag(Flags.clusterRef),
       clusterReference,
-      optionFromFlag(Flags.enableIngress),
+      enableIngress ? optionFromFlag(Flags.enableIngress) : negatedOptionFromFlag(Flags.enableIngress),
     );
 
     if (pinger) {
@@ -427,6 +430,40 @@ export class MirrorNodeTest extends BaseCommandTest {
     }).timeout(Duration.ofMinutes(5).toMillis());
   }
 
+  /**
+   * Deploys the mirror node with `--no-enable-ingress`. Unlike `add()`, this skips
+   * `verifyMirrorNodeDeployWasSuccessful`/`verifyPingerStatus`: both in fact port-forward
+   * to the mirror ingress controller pod, which doesn't exist when ingress is disabled.
+   */
+  public static addWithoutIngress(options: BaseTestOptions, clusterReferenceIndex: number = 1): void {
+    const {testName, deployment, clusterReferenceNameArray, valuesFile} = options;
+    const {soloMirrorNodeDeployArgv} = MirrorNodeTest;
+    const targetClusterReference: ClusterReferenceName =
+      clusterReferenceNameArray[clusterReferenceIndex] || clusterReferenceNameArray[0];
+
+    it(`${testName}: mirror node add without ingress`, async (): Promise<void> => {
+      await main(soloMirrorNodeDeployArgv(testName, deployment, targetClusterReference, false, valuesFile, false));
+    }).timeout(Duration.ofMinutes(10).toMillis());
+  }
+
+  /**
+   * Destroys the mirror node and re-adds it with `--no-enable-ingress`. `mirror node upgrade` can't
+   * do this in place: it only installs the ingress controller when the flag is true, it never
+   * uninstalls one that is already there.
+   */
+  public static redeployWithoutIngress(options: BaseTestOptions, clusterReferenceIndex: number = 1): void {
+    const {testName, deployment, clusterReferenceNameArray} = options;
+    const {addWithoutIngress, soloMirrorNodeDestroyArgv} = MirrorNodeTest;
+    const targetClusterReference: ClusterReferenceName =
+      clusterReferenceNameArray[clusterReferenceIndex] || clusterReferenceNameArray[0];
+
+    it(`${testName}: mirror node destroy (before redeploy without ingress)`, async (): Promise<void> => {
+      await main(soloMirrorNodeDestroyArgv(testName, deployment, targetClusterReference));
+    }).timeout(Duration.ofMinutes(5).toMillis());
+
+    addWithoutIngress(options, clusterReferenceIndex);
+  }
+
   private static postgresPassword: string = 'XXXXXXX';
   private static postgresUsername: string = 'postgres';
 
@@ -450,38 +487,6 @@ export class MirrorNodeTest extends BaseCommandTest {
       );
   }
 
-  /**
-   * Grants the readonly role to mirror_rest so the REST service can SELECT from tables
-   * created by Flyway migrations after V1.0.
-   *
-   * The importer's V1.0__Init.sql creates mirror_rest without the readonly role, so it
-   * has no access to any table added after that migration.  The init.sh script sets default
-   * privileges that automatically grant SELECT on new tables to the readonly role; granting
-   * readonly to mirror_rest propagates those privileges.
-   *
-   * This must be called after main() returns (importer pod ready = migrations complete =
-   * mirror_rest exists) and before verifyMirrorNodeDeployWasSuccessful.
-   */
-  private static async grantReadonlyRoleToMirrorRestUser(k8: K8): Promise<void> {
-    // Use a dollar-quoted block so the grant is safe even if mirror_rest already has the role.
-    const grantSql: string =
-      "DO $grant$ BEGIN IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'readonly') " +
-      "AND EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'mirror_rest') " +
-      'THEN GRANT readonly TO mirror_rest; END IF; END $grant$;';
-    const postgresContainer: Container = MirrorNodeTest.getPostgresContainer(k8);
-    await postgresContainer.execContainer([
-      'env',
-      `PGPASSWORD=${MirrorNodeTest.postgresPassword}`,
-      'psql',
-      '-U',
-      MirrorNodeTest.postgresUsername,
-      '-d',
-      MirrorNodeTest.postgresMirrorNodeDatabaseName,
-      '-c',
-      grantSql,
-    ]);
-  }
-
   public static deployWithExternalDatabase(options: BaseTestOptions): void {
     const {
       testName,
@@ -498,7 +503,6 @@ export class MirrorNodeTest extends BaseCommandTest {
     const {soloMirrorNodeDeployArgv, verifyMirrorNodeDeployWasSuccessful, verifyPingerStatus, optionFromFlag} =
       MirrorNodeTest;
     const targetClusterReference: ClusterReferenceName = clusterReferenceNameArray[1] || clusterReferenceNameArray[0];
-    const targetContext: Context = contexts[1] || contexts[0];
 
     it(`${testName}: mirror node deploy with external database`, async (): Promise<void> => {
       const argv: string[] = soloMirrorNodeDeployArgv(testName, deployment, targetClusterReference, pinger, valuesFile);
@@ -522,13 +526,6 @@ export class MirrorNodeTest extends BaseCommandTest {
       );
 
       await main(argv);
-
-      // The importer's V1.0__Init.sql migration creates the mirror_rest user without the readonly
-      // role, so it lacks SELECT on tables created after V1.0 (e.g. entity, transaction, node).
-      // Grant the readonly role now (after importer pod is ready = migrations are complete).
-      const k8Factory: K8Factory = container.resolve<K8Factory>(InjectTokens.K8Factory);
-      const k8: K8 = k8Factory.getK8(targetContext);
-      await MirrorNodeTest.grantReadonlyRoleToMirrorRestUser(k8);
 
       await verifyMirrorNodeDeployWasSuccessful(
         contexts,
@@ -603,6 +600,37 @@ export class MirrorNodeTest extends BaseCommandTest {
         this.postgresReadonlyUsername,
         this.postgresReadonlyPassword,
       ]);
+    }).timeout(Duration.ofMinutes(2).toMillis());
+  }
+
+  /** Verifies that the mirror node's address book serves each node's service endpoints with its custom domain name. */
+  public static verifyAddressBookServiceEndpoints(options: BaseTestOptions): void {
+    const {testName, contexts, namespace, consensusNodesCount, domainNames} = options;
+
+    it(`${testName}: mirror node address book lists the custom service endpoint domain names`, async (): Promise<void> => {
+      const createdSrv: number = await MirrorNodeTest.forwardMirrorIngressServicePort(contexts, namespace, testName);
+      const srv: number = createdSrv || MIRROR_NODE_PORT;
+
+      try {
+        const stdOut: string[] = await new ShellRunner().run('curl', [`http://localhost:${srv}/api/v1/network/nodes`]);
+        const addressBook: AnyObject = JSON.parse(stdOut.join(''));
+        expect(addressBook.nodes, 'mirror node address book node count').to.have.lengthOf(consensusNodesCount);
+
+        for (const node of addressBook.nodes) {
+          const nodeAlias: NodeAlias = Templates.renderNodeAliasFromNumber(node.node_id + 1);
+          const domainNamesOfNode: string[] = node.service_endpoints.map(
+            (endpoint: AnyObject): string => endpoint.domain_name,
+          );
+          expect(domainNamesOfNode, `${nodeAlias} mirror node service endpoint domain names`).to.deep.equal([
+            domainNames[nodeAlias],
+            domainNames[nodeAlias],
+          ]);
+        }
+      } finally {
+        if (createdSrv) {
+          await MirrorNodeTest.stopPortForward(contexts, createdSrv);
+        }
+      }
     }).timeout(Duration.ofMinutes(2).toMillis());
   }
 

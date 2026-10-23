@@ -13,6 +13,7 @@ export interface NodeSetupConfigClass extends NodeCommonConfigWithNodeAliases {
   debugMode: boolean;
   localBuildPath: string;
   releaseTag: string;
+  force: boolean;
   podRefs: Record<NodeAlias, PodReference>;
   skipStop?: boolean;
   keysDir: string;

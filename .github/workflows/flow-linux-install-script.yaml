@@ -15,10 +15,9 @@
 ##
 
 # Tests the Linux install script (installers/linux/install.sh) on every supported distribution:
-# the script-logic harness with a stand-in binary, then a real install of the linux-x64 SEA binary
-# built in this run, served from a local release directory over file://. A last job installs that
-# binary on a fresh runner with no Node.js, then runs a one-shot deploy, check and destroy.
-# Tracked by hiero-ledger/solo#5725 and hiero-ledger/solo#5731.
+# the script-logic harness with a stand-in binary, then a real install of the SEA binary built in
+# this run for the runner's architecture, served from a local release directory over file://.
+# Tracked by hiero-ledger/solo#5725.
 name: 'Linux Install Script'
 
 on:
@@ -44,11 +43,19 @@ concurrency:
 
 jobs:
   build-sea:
-    name: 'Build SEA (linux-x64)'
-    runs-on: hiero-solo-linux-medium
+    name: 'Build SEA (linux-${{ matrix.arch }})'
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: hiero-solo-linux-medium
+            arch: x64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
@@ -58,7 +65,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           package-manager-cache: false
@@ -73,22 +80,25 @@ jobs:
         run: npx tsx sea/build.ts
 
       - name: Upload SEA Binary
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: solo-linux-x64
-          path: sea/dist/solo-linux-x64
+          name: solo-linux-${{ matrix.arch }}
+          path: sea/dist/solo-linux-${{ matrix.arch }}
           if-no-files-found: error
           retention-days: 1
 
   install-script:
-    name: 'Install Script (${{ matrix.distro }})'
+    name: "Install Script (${{ matrix.distro }}${{ matrix.arch == 'arm64' && ', arm64' || '' }})"
     needs: build-sea
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner || 'ubuntu-latest' }}
+    env:
+      SEA_ASSET: solo-linux-${{ matrix.arch || 'x64' }}
     strategy:
       fail-fast: false
       matrix:
         # Same distributions as flow-install-validation.yaml. `bootstrap` adds what checkout and the
-        # script need; `libc` selects whether the linux-x64 SEA binary is expected to install.
+        # script need; `libc` selects whether the SEA binary is expected to install. Rows without
+        # `arch` and `runner` test x64 on ubuntu-latest.
         include:
           - distro: ubuntu
             image: ubuntu:24.04
@@ -128,6 +138,20 @@ jobs:
             image: alpine:3.21
             bootstrap: 'apk update && apk add git curl ca-certificates tar'
             libc: musl
+          # arm64: the oldest glibc in this set (EL9) and Ubuntu. There is no musl binary yet (#6211),
+          # and the x64 alpine row already covers that rejection.
+          - distro: ubuntu
+            image: ubuntu:24.04
+            bootstrap: 'apt-get update && apt-get install -y git curl ca-certificates'
+            libc: glibc
+            arch: arm64
+            runner: ubuntu-24.04-arm
+          - distro: rocky
+            image: quay.io/rockylinux/rockylinux:9
+            bootstrap: 'dnf install -y --allowerasing git curl ca-certificates tar gzip'
+            libc: glibc
+            arch: arm64
+            runner: ubuntu-24.04-arm
     container:
       # The arch row intentionally uses a floating 'latest' tag; see the comment on that row.
       image: ${{ matrix.image }} # zizmor: ignore[unpinned-images]
@@ -140,7 +164,7 @@ jobs:
         shell: sh
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
@@ -156,9 +180,9 @@ jobs:
         run: sh installers/linux/test-install.sh
 
       - name: Download SEA Binary
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: solo-linux-x64
+          name: ${{ env.SEA_ASSET }}
           path: sea-binary
 
       - name: Stage Local Release
@@ -166,9 +190,9 @@ jobs:
           set -eu
           release_directory="${RUNNER_TEMP}/release/latest/download"
           mkdir -p "${release_directory}"
-          cp sea-binary/solo-linux-x64 "${release_directory}/solo-linux-x64"
+          cp "sea-binary/${SEA_ASSET}" "${release_directory}/${SEA_ASSET}"
           cd "${release_directory}"
-          sha256sum solo-linux-x64 >SHA256SUMS
+          sha256sum "${SEA_ASSET}" >SHA256SUMS
 
       - name: Install SEA Binary
         if: matrix.libc == 'glibc'
@@ -189,7 +213,7 @@ jobs:
             exit 1
           fi
           cat install.log
-          grep -qF 'no Solo binary for this machine (solo-linux-x64-musl)' install.log
+          grep -qF "no Solo binary for this machine (${SEA_ASSET}-musl)" install.log
 
   one-shot:
     name: 'Install and One-Shot (ubuntu)'
@@ -200,7 +224,7 @@ jobs:
     timeout-minutes: 90
     steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
@@ -213,7 +237,7 @@ jobs:
           sparse-checkout-cone-mode: false
 
       - name: Download SEA Binary
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: solo-linux-x64
           path: sea-binary
@@ -244,10 +268,10 @@ jobs:
             exit 1
           fi
 
-      # No --skip-image-cache: the install runs the same `solo cache image pull` a user gets.
+      # Opt into image prefetch so this lane covers cache population as well as installation.
       - name: Install Solo
         run: |
-          sh installers/linux/install.sh --base-url "file://${RUNNER_TEMP}/release"
+          sh installers/linux/install.sh --base-url "file://${RUNNER_TEMP}/release" --with-image-cache
           echo "${HOME}/.solo/bin" >>"${GITHUB_PATH}"
 
       # install.sh only warns when the pull fails, so check the cache here. The pull needs the
@@ -296,7 +320,7 @@ jobs:
 
       - name: Upload Logs
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: linux-installer-one-shot-logs
           path: ~/.solo/logs/*

@@ -27,6 +27,11 @@ on:
         type: string
         required: false
         default: "22"
+      version:
+        description: "Version to embed in the binary, for example 0.92.0 (default: the package.json version)"
+        type: string
+        required: false
+        default: ""
   workflow_dispatch:
     inputs:
       node-version:
@@ -46,13 +51,15 @@ defaults:
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
-
 jobs:
   build-sea:
     name: "SEA / ${{ matrix.os }} (${{ matrix.arch }})"
+    # Keep each platform matrix leg in its own concurrency group. This workflow is also called by
+    # Nightly Extended Tests; a workflow-level group makes all of the caller's matrix legs share
+    # one slot and causes GitHub to cancel the waiting legs before they start.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}-${{ matrix.os }}-${{ matrix.arch }}
+      cancel-in-progress: true
     strategy:
       fail-fast: false
       matrix:
@@ -60,6 +67,10 @@ jobs:
           - os: hiero-solo-linux-medium
             platform: linux
             arch: x64
+          # GitHub-hosted arm64 Linux runner
+          - os: ubuntu-24.04-arm
+            platform: linux
+            arch: arm64
           # Apple Silicon (arm64) runner
           - os: macos-latest
             platform: darwin
@@ -78,7 +89,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
@@ -88,13 +99,19 @@ jobs:
           persist-credentials: false
 
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: ${{ inputs.node-version || '22' }}
           package-manager-cache: false
 
       - name: Install Dependencies
         run: npm ci
+
+      - name: Set Version
+        if: ${{ inputs.version != '' }}
+        env:
+          VERSION: ${{ inputs.version }}
+        run: npm version "${VERSION}" --no-git-tag-version --allow-same-version
 
       - name: Compile TypeScript
         run: npx tsc
@@ -125,8 +142,13 @@ jobs:
           echo "$ACTUAL" | grep -q "$EXPECTED" || { echo "version mismatch: expected $EXPECTED, got: $ACTUAL"; exit 1; }
           echo "✓ Smoke test passed (version $EXPECTED)"
 
+          # The embedded persist port-forward worker prints its usage and exits 2 when given no arguments.
+          RC=0; "$BIN" --internal-persist-port-forward || RC=$?
+          [[ $RC -eq 2 ]] || { echo "embedded persist-port-forward worker failed to start (exit $RC)"; exit 1; }
+          echo "✓ Embedded persist-port-forward worker starts"
+
       - name: Upload Binary Artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: solo-${{ matrix.platform }}-${{ matrix.arch }}-${{ github.sha }}
           path: sea/dist/solo-${{ matrix.platform }}-*

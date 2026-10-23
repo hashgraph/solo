@@ -21,6 +21,7 @@ import {MissingArgumentError} from './classes/validation/missing-argument-error.
 import {ConsensusNodeCountRequiredError} from './classes/validation/consensus-node-count-required-error.js';
 import {InvalidOutputFormatError} from './classes/validation/invalid-output-format-error.js';
 import {InvalidPortNumberError} from './classes/validation/invalid-port-number-error.js';
+import {PodLogsCrdInvalidSoloError} from './classes/validation/pod-logs-crd-invalid-solo-error.js';
 import {ClusterConnectionFailedError} from './classes/system/cluster-connection-failed-error.js';
 import {ClusterUnreachableError} from './classes/system/cluster-unreachable-error.js';
 import {KindClusterStoppedError} from './classes/system/kind-cluster-stopped-error.js';
@@ -84,6 +85,8 @@ import {NonInteractivePromptSoloError} from './classes/validation/non-interactiv
 import {OutputDirectoryNotSpecifiedSoloError} from './classes/validation/output-directory-not-specified-solo-error.js';
 import {PvcFlagNotEnabledSoloError} from './classes/validation/pvc-flag-not-enabled-solo-error.js';
 import {UpgradeVersionNotFoundSoloError} from './classes/validation/upgrade-version-not-found-solo-error.js';
+import {UpgradeSystemFileWithZipFileSoloError} from './classes/validation/upgrade-system-file-with-zip-file-solo-error.js';
+import {PostUpgradeSystemFileVersionUnsupportedSoloError} from './classes/validation/post-upgrade-system-file-version-unsupported-solo-error.js';
 import {WrapsKeyPathNotFoundSoloError} from './classes/validation/wraps-key-path-not-found-solo-error.js';
 import {WrapsVersionConstraintSoloError} from './classes/validation/wraps-version-constraint-solo-error.js';
 import {ClusterReferenceUndeterminedSoloError} from './classes/system/cluster-reference-undetermined-solo-error.js';
@@ -131,6 +134,7 @@ import {OneShotDestroyFailedSoloError} from './classes/component/one-shot-destro
 import {OneShotDeploymentInfoRetrievalFailedSoloError} from './classes/component/one-shot-deployment-info-retrieval-failed-solo-error.js';
 import {FalconValuesPreparationFailedSoloError} from './classes/component/falcon-values-preparation-failed-solo-error.js';
 import {BlockNodeNotInRemoteConfigSoloError} from './classes/system/block-node-not-in-remote-config-solo-error.js';
+import {BlockNodeBlocksUnavailableSoloError} from './classes/system/block-node-blocks-unavailable-solo-error.js';
 import {BlockNodeNotReadySoloError} from './classes/system/block-node-not-ready-solo-error.js';
 import {BlockNodePodNotFoundSoloError} from './classes/system/block-node-pod-not-found-solo-error.js';
 import {BlockNodesJsonEmptySoloError} from './classes/system/block-nodes-json-empty-solo-error.js';
@@ -148,6 +152,7 @@ import {BlockNodeLocalImageNotFoundSoloError} from './classes/validation/block-n
 import {ExplorerInvalidComponentIdSoloError} from './classes/validation/explorer-invalid-component-id-solo-error.js';
 import {RelayInvalidComponentIdSoloError} from './classes/validation/relay-invalid-component-id-solo-error.js';
 import {MirrorNodeInvalidComponentIdSoloError} from './classes/validation/mirror-node-invalid-component-id-solo-error.js';
+import {MirrorNodeBlockNodeSourceUnavailableSoloError} from './classes/validation/mirror-node-block-node-source-unavailable-solo-error.js';
 import {ClusterSetupFailedSoloError} from './classes/deployment/cluster-setup-failed-solo-error.js';
 import {ClusterResetFailedSoloError} from './classes/deployment/cluster-reset-failed-solo-error.js';
 import {MinioInstallFailedSoloError} from './classes/deployment/minio-install-failed-solo-error.js';
@@ -250,6 +255,9 @@ import {BackupOptionsFileNotFoundSoloError} from './classes/validation/backup-op
 import {BackupZipFileRequiredSoloError} from './classes/validation/backup-zip-file-required-solo-error.js';
 import {BackupInputPathNotFoundSoloError} from './classes/validation/backup-input-path-not-found-solo-error.js';
 import {BackupInputMustBeZipSoloError} from './classes/validation/backup-input-must-be-zip-solo-error.js';
+import {SubprocessConfigLoadFailedSoloError} from './classes/validation/subprocess-config-load-failed-solo-error.js';
+import {SubprocessConfigInvalidValueSoloError} from './classes/validation/subprocess-config-invalid-value-solo-error.js';
+import {SubprocessConfigUnsafePermissionsSoloError} from './classes/validation/subprocess-config-unsafe-permissions-solo-error.js';
 import {BackupNoLogFilesSoloError} from './classes/validation/backup-no-log-files-solo-error.js';
 import {BackupDatabaseDumpNotFoundSoloError} from './classes/validation/backup-database-dump-not-found-solo-error.js';
 import {FlagInputFailedSoloError} from './classes/validation/flag-input-failed-solo-error.js';
@@ -257,6 +265,9 @@ import {ConfirmationRequiredSoloError} from './classes/validation/confirmation-r
 import {ValuesFileNotFoundSoloError} from './classes/validation/values-file-not-found-solo-error.js';
 import {ValuesFileParseFailedSoloError} from './classes/validation/values-file-parse-failed-solo-error.js';
 import {InvalidFlagValueSoloError} from './classes/validation/invalid-flag-value-solo-error.js';
+import {InvalidNetworkNodeLifecycleModeSoloError} from './classes/validation/invalid-network-node-lifecycle-mode-solo-error.js';
+import {ComponentVersionIncompatibleSoloError} from './classes/validation/component-version-incompatible-solo-error.js';
+import {ComponentUpgradeRequiresRedeploySoloError} from './classes/validation/component-upgrade-requires-redeploy-solo-error.js';
 import {ComponentImageArchiveTagMismatchSoloError} from './classes/validation/component-image-archive-tag-mismatch-solo-error.js';
 import {TransplantRequiresStateFileSoloError} from './classes/validation/transplant-requires-state-file-solo-error.js';
 import {HelmRepoSetupFailedSoloError} from './classes/system/helm-repo-setup-failed-solo-error.js';
@@ -270,6 +281,7 @@ import {FileNotFoundSoloError} from './classes/system/file-not-found-solo-error.
 import {FileCopyFailedSoloError} from './classes/system/file-copy-failed-solo-error.js';
 import {FileEmptySoloError} from './classes/system/file-empty-solo-error.js';
 import {FileInvalidJsonSoloError} from './classes/system/file-invalid-json-solo-error.js';
+import {CachedFileInaccessibleSoloError} from './classes/system/cached-file-inaccessible-solo-error.js';
 import {DirectoryCreationFailedSoloError} from './classes/system/directory-creation-failed-solo-error.js';
 import {ArchiveUnzipFailedSoloError} from './classes/system/archive-unzip-failed-solo-error.js';
 import {ArchiveTarFailedSoloError} from './classes/system/archive-tar-failed-solo-error.js';
@@ -631,6 +643,8 @@ export class SoloErrors {
     readonly configFileNotFound: typeof ConfigFileNotFoundSoloError;
     readonly nodeVersionMismatch: typeof NodeVersionMismatchSoloError;
     readonly upgradeVersionNotFound: typeof UpgradeVersionNotFoundSoloError;
+    readonly upgradeSystemFileWithZipFile: typeof UpgradeSystemFileWithZipFileSoloError;
+    readonly postUpgradeSystemFileVersionUnsupported: typeof PostUpgradeSystemFileVersionUnsupportedSoloError;
     readonly pvcFlagNotEnabled: typeof PvcFlagNotEnabledSoloError;
     readonly nonInteractivePrompt: typeof NonInteractivePromptSoloError;
     readonly wrapsVersionConstraint: typeof WrapsVersionConstraintSoloError;
@@ -641,6 +655,7 @@ export class SoloErrors {
     readonly explorerInvalidComponentId: typeof ExplorerInvalidComponentIdSoloError;
     readonly relayInvalidComponentId: typeof RelayInvalidComponentIdSoloError;
     readonly mirrorNodeInvalidComponentId: typeof MirrorNodeInvalidComponentIdSoloError;
+    readonly mirrorNodeBlockNodeSourceUnavailable: typeof MirrorNodeBlockNodeSourceUnavailableSoloError;
     readonly invalidHbarAmount: typeof InvalidHbarAmountSoloError;
     readonly invalidFileIdFormat: typeof InvalidFileIdFormatSoloError;
     readonly invalidEndpointFormat: typeof InvalidEndpointFormatSoloError;
@@ -683,13 +698,20 @@ export class SoloErrors {
     readonly backupInputPathNotFound: typeof BackupInputPathNotFoundSoloError;
     readonly backupInputMustBeZip: typeof BackupInputMustBeZipSoloError;
     readonly backupNoLogFiles: typeof BackupNoLogFilesSoloError;
+    readonly subprocessConfigLoadFailed: typeof SubprocessConfigLoadFailedSoloError;
+    readonly subprocessConfigUnsafePermissions: typeof SubprocessConfigUnsafePermissionsSoloError;
+    readonly subprocessConfigInvalidValue: typeof SubprocessConfigInvalidValueSoloError;
     readonly backupDatabaseDumpNotFound: typeof BackupDatabaseDumpNotFoundSoloError;
     readonly flagInputFailed: typeof FlagInputFailedSoloError;
     readonly confirmationRequired: typeof ConfirmationRequiredSoloError;
     readonly valuesFileNotFound: typeof ValuesFileNotFoundSoloError;
     readonly valuesFileParseFailed: typeof ValuesFileParseFailedSoloError;
     readonly invalidFlagValue: typeof InvalidFlagValueSoloError;
+    readonly invalidNetworkNodeLifecycleMode: typeof InvalidNetworkNodeLifecycleModeSoloError;
+    readonly componentVersionIncompatible: typeof ComponentVersionIncompatibleSoloError;
+    readonly componentUpgradeRequiresRedeploy: typeof ComponentUpgradeRequiresRedeploySoloError;
     readonly componentImageArchiveTagMismatch: typeof ComponentImageArchiveTagMismatchSoloError;
+    readonly podLogsCrdInvalid: typeof PodLogsCrdInvalidSoloError;
     readonly transplantRequiresStateFile: typeof TransplantRequiresStateFileSoloError;
   } = Object.freeze({
     blockNodeLocalImageNotFound: BlockNodeLocalImageNotFoundSoloError,
@@ -710,6 +732,8 @@ export class SoloErrors {
     configFileNotFound: ConfigFileNotFoundSoloError,
     nodeVersionMismatch: NodeVersionMismatchSoloError,
     upgradeVersionNotFound: UpgradeVersionNotFoundSoloError,
+    upgradeSystemFileWithZipFile: UpgradeSystemFileWithZipFileSoloError,
+    postUpgradeSystemFileVersionUnsupported: PostUpgradeSystemFileVersionUnsupportedSoloError,
     pvcFlagNotEnabled: PvcFlagNotEnabledSoloError,
     nonInteractivePrompt: NonInteractivePromptSoloError,
     wrapsVersionConstraint: WrapsVersionConstraintSoloError,
@@ -720,6 +744,7 @@ export class SoloErrors {
     explorerInvalidComponentId: ExplorerInvalidComponentIdSoloError,
     relayInvalidComponentId: RelayInvalidComponentIdSoloError,
     mirrorNodeInvalidComponentId: MirrorNodeInvalidComponentIdSoloError,
+    mirrorNodeBlockNodeSourceUnavailable: MirrorNodeBlockNodeSourceUnavailableSoloError,
     invalidHbarAmount: InvalidHbarAmountSoloError,
     invalidFileIdFormat: InvalidFileIdFormatSoloError,
     invalidEndpointFormat: InvalidEndpointFormatSoloError,
@@ -762,19 +787,27 @@ export class SoloErrors {
     backupInputPathNotFound: BackupInputPathNotFoundSoloError,
     backupInputMustBeZip: BackupInputMustBeZipSoloError,
     backupNoLogFiles: BackupNoLogFilesSoloError,
+    subprocessConfigLoadFailed: SubprocessConfigLoadFailedSoloError,
+    subprocessConfigUnsafePermissions: SubprocessConfigUnsafePermissionsSoloError,
+    subprocessConfigInvalidValue: SubprocessConfigInvalidValueSoloError,
     backupDatabaseDumpNotFound: BackupDatabaseDumpNotFoundSoloError,
     flagInputFailed: FlagInputFailedSoloError,
     confirmationRequired: ConfirmationRequiredSoloError,
     valuesFileNotFound: ValuesFileNotFoundSoloError,
     valuesFileParseFailed: ValuesFileParseFailedSoloError,
     invalidFlagValue: InvalidFlagValueSoloError,
+    invalidNetworkNodeLifecycleMode: InvalidNetworkNodeLifecycleModeSoloError,
+    componentVersionIncompatible: ComponentVersionIncompatibleSoloError,
+    componentUpgradeRequiresRedeploy: ComponentUpgradeRequiresRedeploySoloError,
     componentImageArchiveTagMismatch: ComponentImageArchiveTagMismatchSoloError,
+    podLogsCrdInvalid: PodLogsCrdInvalidSoloError,
     transplantRequiresStateFile: TransplantRequiresStateFileSoloError,
   });
 
   // 5xxx — System / Environment: kubectl, DNS, permissions, timeouts
   public static readonly system: {
     readonly blockNodePodNotFound: typeof BlockNodePodNotFoundSoloError;
+    readonly blockNodeBlocksUnavailable: typeof BlockNodeBlocksUnavailableSoloError;
     readonly blockNodeNotReady: typeof BlockNodeNotReadySoloError;
     readonly blockNodeNotInRemoteConfig: typeof BlockNodeNotInRemoteConfigSoloError;
     readonly blockNodesJsonEmpty: typeof BlockNodesJsonEmptySoloError;
@@ -826,6 +859,7 @@ export class SoloErrors {
     readonly fileCopyFailed: typeof FileCopyFailedSoloError;
     readonly fileEmpty: typeof FileEmptySoloError;
     readonly fileInvalidJson: typeof FileInvalidJsonSoloError;
+    readonly cachedFileInaccessible: typeof CachedFileInaccessibleSoloError;
     readonly directoryCreationFailed: typeof DirectoryCreationFailedSoloError;
     readonly archiveUnzipFailed: typeof ArchiveUnzipFailedSoloError;
     readonly archiveTarFailed: typeof ArchiveTarFailedSoloError;
@@ -867,6 +901,7 @@ export class SoloErrors {
   } = Object.freeze({
     minioOperatorCrdsOrphaned: MinioOperatorCrdsOrphanedSoloError,
     blockNodePodNotFound: BlockNodePodNotFoundSoloError,
+    blockNodeBlocksUnavailable: BlockNodeBlocksUnavailableSoloError,
     blockNodeNotReady: BlockNodeNotReadySoloError,
     blockNodeNotInRemoteConfig: BlockNodeNotInRemoteConfigSoloError,
     blockNodesJsonEmpty: BlockNodesJsonEmptySoloError,
@@ -918,6 +953,7 @@ export class SoloErrors {
     fileCopyFailed: FileCopyFailedSoloError,
     fileEmpty: FileEmptySoloError,
     fileInvalidJson: FileInvalidJsonSoloError,
+    cachedFileInaccessible: CachedFileInaccessibleSoloError,
     directoryCreationFailed: DirectoryCreationFailedSoloError,
     archiveUnzipFailed: ArchiveUnzipFailedSoloError,
     archiveTarFailed: ArchiveTarFailedSoloError,

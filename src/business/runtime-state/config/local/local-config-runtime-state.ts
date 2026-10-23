@@ -21,12 +21,20 @@ import {type ConfigManager} from '../../../../core/config-manager.js';
 import {type SoloLogger} from '../../../../core/logging/solo-logger.js';
 import {Flags as flags} from '../../../../commands/flags.js';
 
+/**
+ * Runtime state of the local configuration file (`local-config.yaml` in the Solo home directory).
+ *
+ * Loading is explicit and per command: the `initSystemFiles` middleware only creates the file when it is
+ * missing ({@link createIfMissing}), and each command calls {@link load} when it needs the configuration.
+ * The middleware must not load an existing file, because a corrupt or partial file would then block every
+ * command, including `solo deployment config import`, the recovery path for that file.
+ */
 @injectable()
 export class LocalConfigRuntimeState {
   private readonly source: LocalConfigSource;
   private readonly backend: YamlFileStorageBackend;
   private readonly objectMapper: ObjectMapper;
-  public isLoaded: boolean = false;
+  private loaded: boolean = false;
 
   private _localConfig: LocalConfig;
 
@@ -51,12 +59,29 @@ export class LocalConfigRuntimeState {
     );
   }
 
+  public isLoaded(): boolean {
+    return this.loaded;
+  }
+
   public get configuration(): LocalConfig {
-    if (!this.isLoaded) {
+    if (!this.loaded) {
       throw new Error('configuration: Local configuration is not loaded yet. Please call load() first.');
     }
 
     return this._localConfig;
+  }
+
+  /**
+   * Creates the local configuration file (migrating a legacy one when present) if it does not exist yet.
+   * An existing file is left untouched and not validated.
+   * @returns true when the file was created, false when it already existed
+   */
+  public async createIfMissing(): Promise<boolean> {
+    if (this.configFileExists()) {
+      return false;
+    }
+    await this.load();
+    return true;
   }
 
   // Loads the source data and writes it back in case of migrations.
@@ -100,7 +125,7 @@ export class LocalConfigRuntimeState {
     }
 
     await this.migrateCacheDirectories();
-    this.isLoaded = true;
+    this.loaded = true;
   }
 
   /**
@@ -175,9 +200,6 @@ export class LocalConfigRuntimeState {
    * It will look for directories in the format 'v0.58/staging/v0.58.10' and move them to current staging directory.
    */
   private async migrateCacheDirectories(): Promise<void> {
-    if (!this.isLoaded) {
-      throw new Error('migrateCacheDirectories: Local configuration is not loaded yet. Please call load() first.');
-    }
     const cacheDirectory: string = PathEx.join(this.basePath, 'cache').toString();
     const releaseTag: string = this.configManager.getFlag(flags.consensusNodeVersion);
     const currentStagingDirectory: string = Templates.renderStagingDir(cacheDirectory, releaseTag);
@@ -205,11 +227,6 @@ export class LocalConfigRuntimeState {
   }
 
   private async findMatchingSoloCacheDirectories(baseDirectory: string): Promise<string[]> {
-    if (!this.isLoaded) {
-      throw new Error(
-        'findMatchingSoloCacheDirectories: Local configuration is not loaded yet. Please call load() first.',
-      );
-    }
     // Regex to match directory names like 'v0.58' or 'v0.60'
     // This will capture the version number.
     const versionDirectionRegex: RegExp = /^v(\d+\.\d+)$/;
@@ -256,7 +273,7 @@ export class LocalConfigRuntimeState {
   public async persist(): Promise<void> {
     try {
       await this.source.persist();
-      this.isLoaded = true;
+      this.loaded = true;
     } catch (error) {
       throw new SoloErrors.config.writeLocalConfig(error);
     }
@@ -266,7 +283,7 @@ export class LocalConfigRuntimeState {
     this._localConfig = new LocalConfig(this.source.modelData);
   }
 
-  public configFileExists(): boolean {
+  private configFileExists(): boolean {
     try {
       return fs.existsSync(PathEx.join(this.basePath, this.fileName));
     } catch {

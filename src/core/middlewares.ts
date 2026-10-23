@@ -94,9 +94,10 @@ export class Middlewares {
           },
           {
             title: 'Create local configuration',
-            skip: (): boolean => this.localConfig.configFileExists(),
-            task: async (): Promise<void> => {
-              await this.localConfig.load();
+            task: async (_, task): Promise<void> => {
+              if (!(await this.localConfig.createIfMissing())) {
+                task.skip();
+              }
             },
           },
           {
@@ -267,6 +268,25 @@ export class Middlewares {
 
       if (match) {
         logger.showUser(chalk.yellow(`⚠ ${Deprecations.formatDeprecationMessage(match.feature, match.deprecation)}`));
+      }
+
+      return argv;
+    };
+  }
+
+  /**
+   * Warns the user, once per invocation, for every deprecated environment variable that is set. The variables
+   * come from the {@link DeprecationRegistry}, which collects them from `DeprecatedEnvironmentVariables`.
+   */
+  public warnDeprecatedEnvironmentVariables(): (argv: ArgvStruct) => AnyObject {
+    const logger: SoloLogger = this.logger;
+    const deprecationRegistry: DeprecationRegistry = this.deprecationRegistry;
+
+    return (argv: ArgvStruct): AnyObject => {
+      for (const entry of deprecationRegistry.list()) {
+        if (entry.kind === 'environment-variable' && constants.getEnvironmentVariable(entry.feature) !== undefined) {
+          logger.showUser(chalk.yellow(`⚠ ${Deprecations.formatDeprecationMessage(entry.feature, entry.deprecation)}`));
+        }
       }
 
       return argv;

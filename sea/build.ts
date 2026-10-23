@@ -7,7 +7,8 @@
  *   1. esbuild bundles dist/src/index.js (exports main(), no top-level await) into a CJS file
  *   2. A generated CJS SEA entry (sea-main.cjs) bootstraps synchronously, then dynamically
  *      imports the bundle
- *   3. All files under resources/, persist-port-forward.js, and solo-src-bundle.cjs are SEA assets
+ *   3. All files under resources/, the persist-port-forward.cjs worker bundle, and
+ *      solo-src-bundle.cjs are SEA assets
  *   4. node --experimental-sea-config generates the SEA blob from sea-main.cjs
  *   5. The current node binary is copied and the blob is injected via postject's programmatic
  *      API (not its CLI — `npx postject` resolves to npx.cmd on Windows, which execFileSync
@@ -136,18 +137,23 @@ for (const relativePath of collectFiles(RESOURCES_DIR, ROOT)) {
   seaAssets[relativePath] = path.join(ROOT, relativePath);
 }
 
-// persist-port-forward.js is spawned as a detached child process. k8-client-pod.ts
-// uses SOLO_SEA_ROOT_DIR to locate it in SEA mode.
-seaAssets['scripts/persist-port-forward.js'] = path.join(
-  DIST_DIR,
-  'src',
-  'integration',
-  'kube',
-  'k8-client',
-  'resources',
-  'pod',
-  'persist-port-forward.js',
-);
+// persist-port-forward runs as a detached child process. In SEA mode k8-client-pod.ts re-runs this
+// binary with --internal-persist-port-forward and sea-main.cjs imports this worker bundle, so
+// Node.js does not need to be on PATH. It is bundled on its own (not copied from dist/) because
+// the compiled script imports sibling modules that are not SEA assets.
+const persistPortForwardBundlePath: string = path.join(BUILD_DIR, 'scripts', 'persist-port-forward.cjs');
+await esbuild.build({
+  entryPoints: [
+    path.join(DIST_DIR, 'src', 'integration', 'kube', 'k8-client', 'resources', 'pod', 'persist-port-forward.js'),
+  ],
+  bundle: true,
+  platform: 'node',
+  target: 'node22',
+  format: 'cjs',
+  outfile: persistPortForwardBundlePath,
+  logLevel: 'warning',
+});
+seaAssets['scripts/persist-port-forward.cjs'] = persistPortForwardBundlePath;
 
 // package.json — embedded so getSoloVersion() can fall back to it if needed.
 seaAssets['package.json'] = path.join(ROOT, 'package.json');

@@ -29,11 +29,13 @@ import {type ClusterChecks} from '../core/cluster-checks.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {KeyManager} from '../core/key-manager.js';
+import {UserInput} from '../core/user-input.js';
 import {EXPLORER_VERSION, INGRESS_CONTROLLER_VERSION, MINIMUM_SOLO_CHART_VERSION} from '../../version.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {Lock} from '../core/lock/lock.js';
 import {IngressClass} from '../integration/kube/resources/ingress-class/ingress-class.js';
+import {type Service} from '../integration/kube/resources/service/service.js';
 import {CommandFlag, CommandFlags} from '../types/flag-types.js';
 import {Templates} from '../core/templates.js';
 import {PodReference} from '../integration/kube/resources/pod/pod-reference.js';
@@ -49,6 +51,12 @@ import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
 import {optionFromFlag} from './command-helpers.js';
 import {HelmChartValues} from '../integration/helm/model/values.js';
 import {HelmSchedulingValues} from '../core/util/helm-scheduling-values.js';
+
+type MirrorNodeServiceUrls = {
+  rest: string;
+  restjava: string;
+  web3: string;
+};
 
 interface ExplorerDeployConfigClass {
   cacheDir: string;
@@ -84,6 +92,7 @@ interface ExplorerDeployConfigClass {
   mirrorNodeId: ComponentId;
   mirrorNamespace: NamespaceNameAsString;
   mirrorNodeReleaseName: string;
+  mirrorNodeIngressControllerName: string;
   isMirrorNodeLegacyChartInstalled: boolean;
 }
 
@@ -125,7 +134,13 @@ interface ExplorerUpgradeConfigClass {
   mirrorNodeId: ComponentId;
   mirrorNamespace: NamespaceNameAsString;
   mirrorNodeReleaseName: string;
+  mirrorNodeIngressControllerName: string;
   isMirrorNodeLegacyChartInstalled: boolean;
+
+  // Populated right before the post-upgrade Deployment restart annotation is patched, so the
+  // subsequent pod-ready check can use it as a createdAfter cutoff and wait for the new pod
+  // instead of the still-running old one (see restartExplorerDeploymentTask()).
+  explorerRestartTime?: Date;
 }
 
 interface ExplorerUpgradeContext {
@@ -258,13 +273,19 @@ export class ExplorerCommand extends BaseCommand {
     }
     chartValues.setLiteral('fullnameOverride', `${config.releaseName}-${config.namespace.name}`);
 
-    chartValues.setLiteral(
-      'proxyPass./api',
-      Templates.renderMirrorNodeRestServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
-    );
+    // The path-based proxy routing lives in EXPLORER_VALUES_FILE: the location keys are static, while
+    // the backend URLs depend on deploy-time facts (mirror release name and namespace, and whether the
+    // mirror ingress controller is installed), so only those are injected here.
+    const mirrorNodeServices: MirrorNodeServiceUrls = await this.resolveMirrorNodeServices(config);
+    chartValues
+      .setLiteral('mirrorNodeServices.rest', mirrorNodeServices.rest)
+      .setLiteral('mirrorNodeServices.restjava', mirrorNodeServices.restjava)
+      .setLiteral('mirrorNodeServices.web3', mirrorNodeServices.web3);
 
     if (config.domainName) {
-      chartValues.set('ingress.enabled', true).setLiteral('ingress.hosts[0].host', config.domainName);
+      chartValues
+        .set('ingress.enabled', true)
+        .setLiteral('ingress.hosts[0].host', UserInput.escapeHelmTemplate(config.domainName));
 
       if (config.tlsClusterIssuerType === 'self-signed') {
         // Create TLS secret for Explorer
@@ -277,11 +298,44 @@ export class ExplorerCommand extends BaseCommand {
         );
 
         if (config.enableIngress) {
-          chartValues.setLiteral('ingress.tls[0].hosts[0]', config.domainName);
+          chartValues.setLiteral('ingress.tls[0].hosts[0]', UserInput.escapeHelmTemplate(config.domainName));
         }
       }
     }
     return chartValues;
+  }
+
+  // When the mirror node ingress controller is installed it already routes the API paths to the
+  // correct mirror services (routing rules maintained by the mirror node chart), so every backend
+  // points at it: Solo does not duplicate a routing table that upstream keeps changing.
+  private async resolveMirrorNodeServices(
+    config: ExplorerDeployConfigClass | ExplorerUpgradeConfigClass,
+  ): Promise<MirrorNodeServiceUrls> {
+    if (await this.mirrorIngressControllerServiceExists(config)) {
+      const ingressControllerUrl: string = Templates.renderMirrorNodeIngressControllerUrl(
+        config.mirrorNamespace,
+        config.mirrorNodeIngressControllerName,
+      );
+      return {rest: ingressControllerUrl, restjava: ingressControllerUrl, web3: ingressControllerUrl};
+    }
+
+    return {
+      rest: Templates.renderMirrorNodeRestServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
+      restjava: Templates.renderMirrorNodeRestJavaServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
+      web3: Templates.renderMirrorNodeWeb3ServiceUrl(config.mirrorNodeReleaseName, config.mirrorNamespace),
+    };
+  }
+
+  private async mirrorIngressControllerServiceExists(
+    config: ExplorerDeployConfigClass | ExplorerUpgradeConfigClass,
+  ): Promise<boolean> {
+    const ingressControllerServiceName: string = config.mirrorNodeIngressControllerName;
+    const mirrorServices: Service[] = await this.k8Factory
+      .getK8(config.clusterContext)
+      .services()
+      .list(NamespaceName.of(config.mirrorNamespace));
+
+    return mirrorServices.some((service: Service): boolean => service.metadata.name === ingressControllerServiceName);
   }
 
   private async prepareCertManagerChartValues(
@@ -556,6 +610,10 @@ export class ExplorerCommand extends BaseCommand {
     return {
       title: 'Check explorer pod is ready',
       task: async ({config}: ExplorerDeployContext | ExplorerUpgradeContext): Promise<void> => {
+        // Only set on upgrade (see restartExplorerDeploymentTask()); undefined on add, where there
+        // is no stale pod to wait out.
+        const createdAfter: Optional<Date> = (config as ExplorerUpgradeConfigClass).explorerRestartTime;
+
         await this.k8Factory
           .getK8(config.clusterContext)
           .pods()
@@ -564,7 +622,34 @@ export class ExplorerCommand extends BaseCommand {
             Templates.renderExplorerLabels(config.id, config.isLegacyChartInstalled ? config.releaseName : undefined),
             constants.PODS_READY_MAX_ATTEMPTS,
             constants.PODS_READY_DELAY,
+            createdAfter,
           );
+      },
+    };
+  }
+
+  /**
+   * Force the explorer Deployment to roll after `explorer node upgrade`.
+   *
+   * The explorer chart mounts nginx.conf (and core-config.json/networks-config.json) via
+   * `subPath`, which kubelet never live-refreshes in a running pod, and the Deployment's pod
+   * template carries no checksum/restart annotation tied to the ConfigMap content. So a Helm
+   * upgrade that only changes the ConfigMap (e.g. a new mirror node backend URL) leaves the
+   * already-running pod serving stale routing forever (see issue #6118). Patching a timestamp
+   * annotation onto the pod template triggers a rollout unconditionally, since there is no cheap
+   * way to know in advance whether the rendered config actually changed.
+   */
+  private restartExplorerDeploymentTask(): SoloListrTask<ExplorerUpgradeContext> {
+    return {
+      title: 'Restart explorer deployment',
+      task: async ({config}: ExplorerUpgradeContext): Promise<void> => {
+        config.explorerRestartTime = new Date();
+
+        // Matches the `fullnameOverride` set in prepareHederaExplorerChartValues(), which the
+        // explorer chart truncates to 63 chars and strips a trailing '-' from.
+        const deploymentName: string = `${config.releaseName}-${config.namespace.name}`.slice(0, 63).replace(/-$/, '');
+
+        await this.patchDeploymentRestartAnnotation(config.clusterContext, config.namespace, deploymentName);
       },
     };
   }
@@ -757,14 +842,13 @@ export class ExplorerCommand extends BaseCommand {
             config.releaseName = this.getReleaseName();
             config.ingressReleaseName = this.getIngressReleaseName(config.namespace);
 
-            const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName} = await this.inferMirrorNodeData(
-              config.namespace,
-              config.clusterContext,
-            );
+            const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName, mirrorNodeIngressControllerName} =
+              await this.inferMirrorNodeData(config.namespace, config.clusterContext);
 
             config.mirrorNodeId = mirrorNodeId;
             config.mirrorNamespace = mirrorNamespace;
             config.mirrorNodeReleaseName = mirrorNodeReleaseName;
+            config.mirrorNodeIngressControllerName = mirrorNodeIngressControllerName;
 
             config.newExplorerComponent = this.componentFactory.createNewExplorerComponent(
               config.clusterRef,
@@ -874,14 +958,13 @@ export class ExplorerCommand extends BaseCommand {
             config.isChartInstalled = isChartInstalled;
             config.isLegacyChartInstalled = isLegacyChartInstalled;
 
-            const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName} = await this.inferMirrorNodeData(
-              config.namespace,
-              config.clusterContext,
-            );
+            const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName, mirrorNodeIngressControllerName} =
+              await this.inferMirrorNodeData(config.namespace, config.clusterContext);
 
             config.mirrorNodeId = mirrorNodeId;
             config.mirrorNamespace = mirrorNamespace;
             config.mirrorNodeReleaseName = mirrorNodeReleaseName;
+            config.mirrorNodeIngressControllerName = mirrorNodeIngressControllerName;
 
             const currentExplorerVersion: SemanticVersion<string> = this.remoteConfig.getComponentVersion(
               ComponentTypes.Explorer,
@@ -913,6 +996,7 @@ export class ExplorerCommand extends BaseCommand {
         this.loadRemoteConfigTask(argv),
         this.installCertManagerTask(ExplorerCommandType.UPGRADE),
         this.installExplorerTask(ExplorerCommandType.UPGRADE),
+        this.restartExplorerDeploymentTask(),
         this.installExplorerIngressControllerTask(),
         this.checkExplorerPodIsReadyTask(),
         this.checkExplorerIngressControllerPodIsReadyTask(),

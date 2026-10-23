@@ -36,7 +36,10 @@ describe('ChartManager cached-chart consumption', (): void => {
     error: (): void => undefined,
   } as unknown as SoloLogger;
 
-  const chartValues: HelmChartValues = {toArguments: (): string[] => []} as unknown as HelmChartValues;
+  const chartValues: HelmChartValues = {
+    toArguments: (): string[] => [],
+    toEnvironment: (): Record<string, string> => ({}),
+  } as unknown as HelmChartValues;
 
   let installChartStub: SinonStub;
   let helm: HelmClient;
@@ -92,6 +95,30 @@ describe('ChartManager cached-chart consumption', (): void => {
     expect(chart.repoName).to.equal(repositoryUrl);
     expect(options.version).to.equal(chartVersion);
   });
+
+  it('passes --skip-crds only when requested', async (): Promise<void> => {
+    const manager: ChartManager = buildManager(inspectorReturning(false));
+    await manager.install(
+      undefined as unknown as NamespaceName,
+      'release-name',
+      chartName,
+      repositoryUrl,
+      chartVersion,
+      chartValues,
+      'kube-context',
+      false,
+      false,
+      false,
+      true,
+    );
+    expect((installChartStub.firstCall.args[2] as InstallChartOptions).skipCrds).to.be.true;
+
+    const defaultOptions: InstallChartOptions = await (async (): Promise<InstallChartOptions> => {
+      installChartStub.resetHistory();
+      return runInstall(manager);
+    })();
+    expect(defaultOptions.skipCrds).to.be.false;
+  });
 });
 
 describe('ChartManager installed-release lookup', (): void => {
@@ -130,6 +157,13 @@ describe('ChartManager installed-release lookup', (): void => {
       'absent-release',
     );
     expect(release).to.be.undefined;
+  });
+
+  it('returns every installed release, not just one matched by name', async (): Promise<void> => {
+    const installedReleases: ReleaseItem[] = await buildManager().getInstalledReleases(
+      undefined as unknown as NamespaceName,
+    );
+    expect(installedReleases).to.deep.equal(releases);
   });
 
   it('keeps isChartInstalled consistent with the release lookup', async (): Promise<void> => {

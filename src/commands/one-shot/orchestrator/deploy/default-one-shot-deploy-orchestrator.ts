@@ -14,7 +14,6 @@ import {
 import {ListrInquirerPromptAdapter} from '@listr2/prompt-adapter-inquirer';
 import {confirm as confirmPrompt} from '@inquirer/prompts';
 import {InjectTokens} from '../../../../core/dependency-injection/inject-tokens.js';
-import {UserInput} from '../../../../core/user-input.js';
 import {patchInject} from '../../../../core/dependency-injection/container-helper.js';
 import {type TaskList} from '../../../../core/task-list/task-list.js';
 import {type SoloEventBus} from '../../../../core/events/solo-event-bus.js';
@@ -93,6 +92,7 @@ import chalk from 'chalk';
 import fs from 'node:fs';
 import path from 'node:path';
 import {DeployArgvBuilders} from './deploy-argv-builders.js';
+import {ComponentCompatibility} from '../../../../business/compatibility/component-compatibility.js';
 import {OrchestratorPipeline} from '../orchestrator-pipeline.js';
 import {SINGLE_DESTROY_COMMAND} from '../../one-shot-command-paths.js';
 import {MINIMUM_CN_VERSION_FOR_SMALL_MEMORY, MINIMUM_CN_VERSION_FOR_STATE_ON_DISK} from '../../../../../version.js';
@@ -196,13 +196,13 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             configReference.value = config;
             config.argv = argv;
 
-            config.consensusNodeConfiguration = {};
-            config.mirrorNodeConfiguration = {};
-            config.blockNodeConfiguration = {};
-            config.explorerNodeConfiguration = {};
-            config.relayNodeConfiguration = {};
-            config.networkConfiguration = {};
-            config.setupConfiguration = {};
+            config.consensusNodeConfiguration ??= {};
+            config.mirrorNodeConfiguration ??= {};
+            config.blockNodeConfiguration ??= {};
+            config.explorerNodeConfiguration ??= {};
+            config.relayNodeConfiguration ??= {};
+            config.networkConfiguration ??= {};
+            config.setupConfiguration ??= {};
             config.versions = versions;
             // The dependency-install preamble ran before this pipeline; if it created the Kind
             // cluster, the one-shot extraPortMappings exist and port-forwards can be skipped.
@@ -329,6 +329,13 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
             config.deployExplorer = config.deployExplorer === undefined ? true : config.deployExplorer;
             config.deployRelay = config.deployRelay === undefined ? true : config.deployRelay;
             config.pinger = config.pinger === undefined ? true : config.pinger;
+
+            ComponentCompatibility.assertCompatible(
+              DeployArgvBuilders.buildComponentVersionTuple(config),
+              undefined,
+              config.force,
+              this.logger,
+            );
 
             context_.createdAccounts = [];
           },
@@ -853,7 +860,7 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
   }
 
   private getOneShotOutputDirectory(deploymentName: string): string {
-    return PathEx.join(constants.SOLO_HOME_DIR, `one-shot-${UserInput.safeFilenameComponent(deploymentName)}`);
+    return Templates.renderOneShotOutputDirectory(deploymentName);
   }
 
   /**
@@ -1287,9 +1294,14 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
 
   /** Loads the per-component sections from `--values-file`; without one, the one-shot single defaults stay in place. */
   private applyValuesFileOverrides(config: OneShotSingleDeployConfigClass): void {
-    if (!config.valuesFile) {
+    // The command-line profile path is authoritative for this invocation. ConfigManager can
+    // retain a previously persisted value, which otherwise prevents a newly supplied profile
+    // from being loaded and drops its nested component overrides.
+    const profileValuesFile: string = `${config.argv[flags.valuesFile.name] ?? config.valuesFile ?? ''}`;
+    if (!profileValuesFile) {
       return;
     }
+    config.valuesFile = PathEx.resolve(profileValuesFile);
     if (!fs.existsSync(config.valuesFile)) {
       throw new ValuesFileNotFoundSoloError(config.valuesFile);
     }
@@ -1297,26 +1309,45 @@ export class DefaultOneShotDeployOrchestrator implements OneShotDeployOrchestrat
     const profileItems: Record<string, object> =
       (ValuesFileParser.parse(config.valuesFile, valuesFileContent) as Record<string, object>) ?? {};
 
+    // Merge profile values with existing defaults: overwrite matching keys, append new keys,
+    // and preserve existing keys that are not defined by the profile.
     if (profileItems.network) {
-      config.networkConfiguration = profileItems.network as object;
+      config.networkConfiguration = {...config.networkConfiguration, ...(profileItems.network as object)};
+      const networkValuesFileKey: string = flags.getFormattedFlagKey(flags.valuesFile);
+      const networkValuesFile: unknown = config.networkConfiguration[networkValuesFileKey];
+      if (typeof networkValuesFile === 'string' && networkValuesFile) {
+        // Relative to the directory containing the outer --values-file, not the process cwd:
+        // npm run-script executes with cwd set to the package root, not the caller's directory,
+        // which otherwise silently resolves this against the wrong base.
+        config.networkConfiguration[networkValuesFileKey] = PathEx.resolve(
+          PathEx.dirname(config.valuesFile),
+          networkValuesFile,
+        );
+      }
     }
     if (profileItems.setup) {
-      config.setupConfiguration = profileItems.setup as object;
+      config.setupConfiguration = {...config.setupConfiguration, ...(profileItems.setup as object)};
     }
     if (profileItems.consensusNode) {
-      config.consensusNodeConfiguration = profileItems.consensusNode as object;
+      config.consensusNodeConfiguration = {
+        ...config.consensusNodeConfiguration,
+        ...(profileItems.consensusNode as object),
+      };
     }
     if (profileItems.mirrorNode) {
-      config.mirrorNodeConfiguration = profileItems.mirrorNode as object;
+      config.mirrorNodeConfiguration = {...config.mirrorNodeConfiguration, ...(profileItems.mirrorNode as object)};
     }
     if (profileItems.blockNode) {
-      config.blockNodeConfiguration = profileItems.blockNode as object;
+      config.blockNodeConfiguration = {...config.blockNodeConfiguration, ...(profileItems.blockNode as object)};
     }
     if (profileItems.explorerNode) {
-      config.explorerNodeConfiguration = profileItems.explorerNode as object;
+      config.explorerNodeConfiguration = {
+        ...config.explorerNodeConfiguration,
+        ...(profileItems.explorerNode as object),
+      };
     }
     if (profileItems.relayNode) {
-      config.relayNodeConfiguration = profileItems.relayNode as object;
+      config.relayNodeConfiguration = {...config.relayNodeConfiguration, ...(profileItems.relayNode as object)};
     }
   }
 

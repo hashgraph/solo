@@ -2,6 +2,8 @@
 
 import {SoloErrors} from '../errors/solo-errors.js';
 import {type K8Factory} from '../../integration/kube/k8-factory.js';
+import {type K8} from '../../integration/kube/k8.js';
+import {type Context} from '../../types/index.js';
 import {LockHolder} from './lock-holder.js';
 import {DEFAULT_LEASE_DURATION, DEFAULT_SOLO_NAMESPACE_LABELS} from '../constants.js';
 import {sleep} from '../helpers.js';
@@ -35,6 +37,9 @@ export class IntervalLock implements Lock {
   /** The name of the lease. */
   private readonly _leaseName: string;
 
+  /** The kube context of the cluster which holds the lease. */
+  private readonly _context: Context;
+
   /** The duration in seconds for which the lease is to be held. */
   private readonly _durationSeconds: number;
 
@@ -48,6 +53,7 @@ export class IntervalLock implements Lock {
    * @param namespace - The namespace in which the lease is to be acquired.
    * @param leaseName - The name of the lease to be acquired; if not provided, the namespace is used.
    * @param durationSeconds - The duration in seconds for which the lock is to be held; if not provided, the default value is used.
+   * @param context - The kube context of the cluster which holds the lease; if not provided, the kube current context is used.
    */
   public constructor(
     readonly k8Factory: K8Factory,
@@ -56,6 +62,7 @@ export class IntervalLock implements Lock {
     namespace: NamespaceName,
     leaseName: string | null = null,
     durationSeconds: number | null = null,
+    context: Context | null = null,
   ) {
     if (!k8Factory) {
       throw new SoloErrors.validation.missingArgument('k8Factory is required');
@@ -72,6 +79,9 @@ export class IntervalLock implements Lock {
 
     this._lockHolder = lockHolder;
     this._namespace = namespace;
+    // Pin the cluster once, so acquire, renew and release always use the same cluster,
+    // even when the kube current context changes while the lock is held.
+    this._context = context ?? k8Factory.default().contexts().readCurrent();
 
     if (!leaseName) {
       this._leaseName = this._namespace.name;
@@ -86,6 +96,13 @@ export class IntervalLock implements Lock {
    */
   public get leaseName(): string {
     return this._leaseName;
+  }
+
+  /**
+   * The kube context of the cluster which holds the lease.
+   */
+  public get context(): Context {
+    return this._context;
   }
 
   /**
@@ -343,6 +360,13 @@ export class IntervalLock implements Lock {
   }
 
   /**
+   * The client for the cluster which holds the lease.
+   */
+  private k8(): K8 {
+    return this.k8Factory.getK8(this._context);
+  }
+
+  /**
    * Retrieves the lease from the Kubernetes API server.
    *
    * @returns the Kubernetes lease object if it exists; otherwise, null.
@@ -350,7 +374,7 @@ export class IntervalLock implements Lock {
    */
   private async retrieveLease(): Promise<Lease> {
     try {
-      return await this.k8Factory.default().leases().read(this.namespace, this.leaseName);
+      return await this.k8().leases().read(this.namespace, this.leaseName);
     } catch (error) {
       if (IntervalLock.hasStatusCode(error, StatusCodes.NOT_FOUND)) {
         return null;
@@ -370,23 +394,20 @@ export class IntervalLock implements Lock {
    */
   private async createOrRenewLease(lease: Lease): Promise<void> {
     try {
-      if (!(await this.k8Factory.default().namespaces().has(this.namespace))) {
+      if (!(await this.k8().namespaces().has(this.namespace))) {
         // handles the condition for creating a lease on cluster setup which may not have a namespace created yet
-        await this.k8Factory.default().namespaces().create(this.namespace, DEFAULT_SOLO_NAMESPACE_LABELS);
+        await this.k8().namespaces().create(this.namespace, DEFAULT_SOLO_NAMESPACE_LABELS);
       }
       if (lease) {
         try {
-          await this.k8Factory.default().leases().renew(this.namespace, this.leaseName, lease);
+          await this.k8().leases().renew(this.namespace, this.leaseName, lease);
         } catch (error) {
           if (!(await this.shouldIgnoreRenewConflict(error))) {
             throw error;
           }
         }
       } else {
-        await this.k8Factory
-          .default()
-          .leases()
-          .create(this.namespace, this.leaseName, this.lockHolder.toJson(), this.durationSeconds);
+        await this.k8().leases().create(this.namespace, this.leaseName, this.lockHolder.toJson(), this.durationSeconds);
       }
 
       if (!this.scheduleId) {
@@ -463,7 +484,7 @@ export class IntervalLock implements Lock {
    */
   private async transferLease(lease: Lease): Promise<void> {
     try {
-      await this.k8Factory.default().leases().transfer(lease, this.lockHolder.toJson());
+      await this.k8().leases().transfer(lease, this.lockHolder.toJson());
 
       if (!this.scheduleId) {
         this.scheduleId = await this.renewalService.schedule(this);
@@ -481,7 +502,7 @@ export class IntervalLock implements Lock {
    */
   private async deleteLease(): Promise<void> {
     try {
-      await this.k8Factory.default().leases().delete(this.namespace, this.leaseName);
+      await this.k8().leases().delete(this.namespace, this.leaseName);
     } catch (error) {
       throw new LockRelinquishmentError(
         `failed to delete the lease named '${this.leaseName}' in the ` + `'${this.namespace}' namespace`,

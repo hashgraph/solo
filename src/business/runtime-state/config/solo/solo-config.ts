@@ -5,6 +5,7 @@ import {type Facade} from '../../facade/facade.js';
 import {SoloConfigSchema} from '../../../../data/schema/model/solo/solo-config-schema.js';
 import {HelmChart} from '../common/helm-chart.js';
 import {Tss} from './tss.js';
+import {Subprocess} from './subprocess.js';
 import {type ConfigProvider} from '../../../../data/configuration/api/config-provider.js';
 
 export class SoloConfig implements Facade<SoloConfigSchema> {
@@ -15,6 +16,7 @@ export class SoloConfig implements Facade<SoloConfigSchema> {
   private readonly _clusterSetupHelmChart: HelmChart;
   private readonly _certManagerHelmChart: HelmChart;
   private readonly _tss: Tss;
+  private readonly _subprocess: Subprocess;
 
   public constructor(schema: SoloConfigSchema) {
     // Deep copy for immutability — prevents callers from mutating projected config through the schema ref
@@ -24,6 +26,7 @@ export class SoloConfig implements Facade<SoloConfigSchema> {
     this._clusterSetupHelmChart = new HelmChart(this.encapsulatedObject.clusterSetupHelmChart);
     this._certManagerHelmChart = new HelmChart(this.encapsulatedObject.certManagerHelmChart);
     this._tss = new Tss(this.encapsulatedObject.tss);
+    this._subprocess = new Subprocess(this.encapsulatedObject.subprocess);
   }
 
   public static getConfig(configProvider: ConfigProvider): SoloConfig {
@@ -48,5 +51,9 @@ export class SoloConfig implements Facade<SoloConfigSchema> {
 
   public get tss(): Tss {
     return this._tss;
+  }
+
+  public get subprocess(): Subprocess {
+    return this._subprocess;
   }
 }

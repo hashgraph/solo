@@ -36,6 +36,8 @@ import {Pod} from '../integration/kube/resources/pod/pod.js';
 import {type Pods} from '../integration/kube/resources/pod/pods.js';
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
 import {type Container} from '../integration/kube/resources/container/container.js';
+import {ContainerName} from '../integration/kube/resources/container/container-name.js';
+import {PodName} from '../integration/kube/resources/pod/pod-name.js';
 import {KubePodNotFoundError} from '../integration/kube/errors/kube-pod-not-found-error.js';
 import {KubePodNotReadyError} from '../integration/kube/errors/kube-pod-not-ready-error.js';
 import chalk from 'chalk';
@@ -43,11 +45,13 @@ import {type CommandFlag, type CommandFlags} from '../types/flag-types.js';
 import {PvcReference} from '../integration/kube/resources/pvc/pvc-reference.js';
 import {PvcName} from '../integration/kube/resources/pvc/pvc-name.js';
 import {KeyManager} from '../core/key-manager.js';
+import {UserInput} from '../core/user-input.js';
 import {PathEx} from '../business/utils/path-ex.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {InjectTokens} from '../core/dependency-injection/inject-tokens.js';
 import {patchInject} from '../core/dependency-injection/container-helper.js';
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
+import {ComponentCompatibility} from '../business/compatibility/component-compatibility.js';
 import {MirrorNodeStateSchema} from '../data/schema/model/remote/state/mirror-node-state-schema.js';
 import {Lock} from '../core/lock/lock.js';
 import {Base64} from 'js-base64';
@@ -56,6 +60,7 @@ import {assertUpgradeVersionNotOlder} from '../core/upgrade-version-guard.js';
 import {UpgradeVersionResolver} from '../core/upgrade-version-resolver.js';
 import {IngressClass} from '../integration/kube/resources/ingress-class/ingress-class.js';
 import {Secret} from '../integration/kube/resources/secret/secret.js';
+import {SecretType} from '../integration/kube/resources/secret/secret-type.js';
 import {BlockNodeStateSchema} from '../data/schema/model/remote/state/block-node-state-schema.js';
 import {PostgresStateSchema} from '../data/schema/model/remote/state/postgres-state-schema.js';
 import {RedisStateSchema} from '../data/schema/model/remote/state/redis-state-schema.js';
@@ -65,11 +70,16 @@ import {ClusterSchema} from '../data/schema/model/common/cluster-schema.js';
 import yaml from 'yaml';
 import {DeploymentPhase} from '../data/schema/model/remote/deployment-phase.js';
 import {PostgresSharedResource} from '../core/shared-resources/postgres.js';
+import {MirrorNodeResourceNames, type MirrorNodeDatabaseUser} from '../core/mirror-node-resource-names.js';
+import {HelmPostRenderer} from '../integration/helm/helm-post-renderer.js';
+import crypto from 'node:crypto';
 import {SharedResourceManager} from '../core/shared-resources/shared-resource-manager.js';
 import {MirrorNodeDeployedEvent} from '../core/events/event-types/mirror-node-deployed-event.js';
 import {type SoloEventBus} from '../core/events/solo-event-bus.js';
 import {optionFromFlag} from './command-helpers.js';
 import {ImageReference, type ParsedImageReference} from '../business/utils/image-reference.js';
+import {MirrorNodeModuleImages} from './mirror-node-module-images.js';
+import {type MirrorNodeModuleImageReference} from './mirror-node-module-image-reference.js';
 import {HelmChartValues} from '../integration/helm/model/values.js';
 import {K8} from '../integration/kube/k8.js';
 import {HelmSchedulingValues} from '../core/util/helm-scheduling-values.js';
@@ -90,6 +100,7 @@ interface MirrorNodeDeployConfigClass {
   chartValues: HelmChartValues;
   quiet: boolean;
   mirrorNodeVersion: string;
+  force: boolean;
   componentImage: string;
   componentImageArchive: string;
   pinger: boolean;
@@ -110,14 +121,18 @@ interface MirrorNodeDeployConfigClass {
   externalDatabaseReadonlyPassword: Optional<string>;
   domainName: Optional<string>;
   forcePortForward: Optional<boolean>;
+  debugMirrorNodeComponent: Optional<string>;
   releaseName: string;
   ingressReleaseName: string;
+  resourceNames: MirrorNodeResourceNames;
+  databasePasswords?: Record<string, string>;
   newMirrorNodeComponent: MirrorNodeStateSchema;
   isLegacyChartInstalled: boolean;
   id: number;
   soloChartVersion: string;
   deployment: DeploymentName;
   forceBlockNodeIntegration: boolean; // Used to bypass version requirements for block node integration
+  mirrorNodeSource: string;
   installSharedResources: boolean;
   parallelDeploy: boolean;
 }
@@ -142,6 +157,7 @@ interface MirrorNodeUpgradeConfigClass {
   chartValues: HelmChartValues;
   quiet: boolean;
   mirrorNodeVersion: string;
+  force: boolean;
   componentImage: string;
   componentImageArchive: string;
   pinger: boolean;
@@ -162,13 +178,17 @@ interface MirrorNodeUpgradeConfigClass {
   externalDatabaseReadonlyPassword: Optional<string>;
   domainName: Optional<string>;
   forcePortForward: Optional<boolean>;
+  debugMirrorNodeComponent: Optional<string>;
   releaseName: string;
   ingressReleaseName: string;
+  resourceNames: MirrorNodeResourceNames;
+  databasePasswords?: Record<string, string>;
   isLegacyChartInstalled: boolean;
   id: number;
   soloChartVersion: string;
   installSharedResources: boolean;
   forceBlockNodeIntegration: boolean; // Used to bypass version requirements for block node integration
+  mirrorNodeSource: string;
   deployment: DeploymentName;
 }
 
@@ -185,6 +205,7 @@ interface MirrorNodeDestroyConfigClass {
   id: ComponentId;
   releaseName: string;
   ingressReleaseName: string;
+  resourceNames: MirrorNodeResourceNames;
   isLegacyChartInstalled: boolean;
 }
 
@@ -250,6 +271,22 @@ export class MirrorNodeCommand extends BaseCommand {
 
   private static readonly UPGRADE_CONFIGS_NAME: string = 'upgradeConfigs';
 
+  /** Where each database user is configured in the chart, and which key of the passwords secret holds its password. */
+  private static readonly DATABASE_USER_CHART_VALUES: readonly {
+    user: MirrorNodeDatabaseUser;
+    chartPath: string;
+    secretKey: string;
+  }[] = [
+    {user: 'owner', chartPath: 'db.owner', secretKey: 'PREFIX_MIRROR_IMPORTER_DB_OWNERPASSWORD'},
+    {user: 'importer', chartPath: 'importer.db', secretKey: 'PREFIX_MIRROR_IMPORTER_DB_PASSWORD'},
+    {user: 'rest', chartPath: 'rest.db', secretKey: 'PREFIX_MIRROR_REST_DB_PASSWORD'},
+    {user: 'restjava', chartPath: 'restjava.db', secretKey: 'PREFIX_MIRROR_RESTJAVA_DB_PASSWORD'},
+    {user: 'grpc', chartPath: 'grpc.db', secretKey: 'PREFIX_MIRROR_GRPC_DB_PASSWORD'},
+    {user: 'graphql', chartPath: 'graphql.db', secretKey: 'PREFIX_MIRROR_GRAPHQL_DB_PASSWORD'},
+    {user: 'rosetta', chartPath: 'rosetta.db', secretKey: 'PREFIX_MIRROR_ROSETTA_DB_PASSWORD'},
+    {user: 'web3', chartPath: 'web3.db', secretKey: 'PREFIX_MIRROR_WEB3_DB_PASSWORD'},
+  ];
+
   private static readonly COLLECT_JFR_CONFIGS_NAME: string = 'collectJfrConfigs';
 
   // Sentinel printed by the in-pod consolidation script when no JFR recording is present.
@@ -289,10 +326,13 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.externalDatabaseReadonlyPassword,
       flags.domainName,
       flags.forcePortForward,
+      flags.debugMirrorNodeComponent,
       flags.externalAddress,
       flags.soloChartVersion,
       flags.forceBlockNodeIntegration, // Used to bypass version requirements for block node integration
+      flags.mirrorNodeSource,
       flags.parallelDeploy,
+      flags.force,
     ],
   };
 
@@ -330,10 +370,13 @@ export class MirrorNodeCommand extends BaseCommand {
       flags.externalDatabaseReadonlyPassword,
       flags.domainName,
       flags.forcePortForward,
+      flags.debugMirrorNodeComponent,
       flags.externalAddress,
       flags.id,
       flags.soloChartVersion,
       flags.forceBlockNodeIntegration, // Used to bypass version requirements for block node integration
+      flags.mirrorNodeSource,
+      flags.force,
     ],
   };
 
@@ -355,7 +398,29 @@ export class MirrorNodeCommand extends BaseCommand {
     optional: [flags.clusterRef, flags.debugMode, flags.quiet, flags.id],
   };
 
+  /**
+   * Chart values that make the mirror node import from a block node, or none when it imports from the bucket.
+   * `--mirror-node-source` overrides the automatic choice, so that mirror nodes of one deployment can import
+   * from different sources.
+   */
   private prepareBlockNodeIntegrationValues(
+    config: MirrorNodeUpgradeConfigClass | MirrorNodeDeployConfigClass,
+  ): HelmChartValues {
+    if (config.mirrorNodeSource === 'bucket') {
+      this.logger.info(
+        `Mirror node will pull from the consensus node record files; ${optionFromFlag(flags.mirrorNodeSource)} is bucket`,
+      );
+      return new HelmChartValues();
+    }
+
+    const chartValues: HelmChartValues = this.resolveBlockNodeIntegrationValues(config);
+    if (config.mirrorNodeSource === 'block-node' && chartValues.isEmpty()) {
+      throw new SoloErrors.validation.mirrorNodeBlockNodeSourceUnavailable(config.clusterReference);
+    }
+    return chartValues;
+  }
+
+  private resolveBlockNodeIntegrationValues(
     config: MirrorNodeUpgradeConfigClass | MirrorNodeDeployConfigClass,
   ): HelmChartValues {
     const configuration: RemoteConfig = this.remoteConfig.configuration;
@@ -550,6 +615,61 @@ export class MirrorNodeCommand extends BaseCommand {
     return new HelmChartValues().file(valuesFilePath);
   }
 
+  /**
+   * Chart values that keep this mirror node's resources apart from other mirror nodes in the same namespace.
+   *
+   * Nothing is needed for the primary mirror node. Any other mirror node renders the chart's passwords
+   * secret under its own name (the chart hardcodes `mirror-passwords`, so a post-renderer renames it) and gets
+   * its own database users with their own passwords. The passwords are passed explicitly because the chart
+   * would otherwise look up and reuse the primary mirror node's `mirror-passwords` secret.
+   */
+  private async prepareResourceNameChartValues(
+    config: MirrorNodeDeployConfigClass | MirrorNodeUpgradeConfigClass,
+  ): Promise<HelmChartValues> {
+    const chartValues: HelmChartValues = new HelmChartValues();
+    const names: MirrorNodeResourceNames = config.resourceNames;
+    if (names.isPrimary) {
+      return chartValues;
+    }
+
+    chartValues.add(
+      HelmPostRenderer.replacer(
+        PathEx.join(constants.SOLO_CACHE_DIR, 'post-renderers'),
+        await this.chartManager.getHelmMajorVersion(),
+        MirrorNodeResourceNames.CHART_PASSWORDS_SECRET_NAME,
+        names.passwordsSecretName,
+      ),
+    );
+
+    if (config.useExternalDatabase) {
+      return chartValues;
+    }
+
+    const existingSecret: Optional<Secret> = (await this.k8Factory
+      .getK8(config.clusterContext)
+      .secrets()
+      .exists(config.namespace, names.passwordsSecretName))
+      ? await this.k8Factory.getK8(config.clusterContext).secrets().read(config.namespace, names.passwordsSecretName)
+      : undefined;
+
+    for (const {user, chartPath, secretKey} of MirrorNodeCommand.DATABASE_USER_CHART_VALUES) {
+      const existingPassword: Optional<string> =
+        existingSecret?.data?.[secretKey.replace('PREFIX', MirrorNodeCommand.MIRROR_ENVIRONMENT_VARIABLE_PREFIX)];
+      // Passwords generated for a new mirror node are kept on the config: the secret is primed with them before
+      // the database users are created, and the full install must render the very same passwords.
+      config.databasePasswords ??= {};
+      config.databasePasswords[user] ??= crypto.randomBytes(20).toString('hex');
+      chartValues
+        .setLiteral(`${chartPath}.username`, names.databaseUsername(user))
+        .setLiteral(
+          `${chartPath}.password`,
+          existingPassword ? Base64.decode(existingPassword) : config.databasePasswords[user],
+        );
+    }
+
+    return chartValues;
+  }
+
   private async prepareHelmChartValues(
     config: MirrorNodeDeployConfigClass | MirrorNodeUpgradeConfigClass,
   ): Promise<HelmChartValues> {
@@ -568,35 +688,28 @@ export class MirrorNodeCommand extends BaseCommand {
     const environmentVariablePrefix: string = MirrorNodeCommand.MIRROR_ENVIRONMENT_VARIABLE_PREFIX;
 
     if (config.componentImage) {
-      const parsedImageReference: ParsedImageReference = ImageReference.parseImageReference(config.componentImage);
-      chartValues
-        .setLiteral('importer.image.registry', parsedImageReference.registry)
-        .setLiteral('grpc.image.registry', parsedImageReference.registry)
-        .setLiteral('rest.image.registry', parsedImageReference.registry)
-        .setLiteral('restjava.image.registry', parsedImageReference.registry)
-        .setLiteral('web3.image.registry', parsedImageReference.registry)
-        .setLiteral('monitor.image.registry', parsedImageReference.registry)
-        .setLiteral('importer.image.repository', parsedImageReference.repository)
-        .setLiteral('grpc.image.repository', parsedImageReference.repository)
-        .setLiteral('rest.image.repository', parsedImageReference.repository)
-        .setLiteral('restjava.image.repository', parsedImageReference.repository)
-        .setLiteral('web3.image.repository', parsedImageReference.repository)
-        .setLiteral('monitor.image.repository', parsedImageReference.repository)
-        .setLiteral('importer.image.tag', parsedImageReference.tag)
-        .setLiteral('grpc.image.tag', parsedImageReference.tag)
-        .setLiteral('rest.image.tag', parsedImageReference.tag)
-        .setLiteral('restjava.image.tag', parsedImageReference.tag)
-        .setLiteral('web3.image.tag', parsedImageReference.tag)
-        .setLiteral('monitor.image.tag', parsedImageReference.tag);
+      const moduleImages: MirrorNodeModuleImageReference[] = MirrorNodeModuleImages.expand(config.componentImage);
 
-      if (this.isComponentImageAvailableForKind(config.componentImage, config.componentImageArchive)) {
+      for (const {chartKey, imageReference} of moduleImages) {
+        const parsedImageReference: ParsedImageReference = ImageReference.parseImageReference(imageReference);
         chartValues
-          .setLiteral('importer.image.pullPolicy', 'Never')
-          .setLiteral('grpc.image.pullPolicy', 'Never')
-          .setLiteral('rest.image.pullPolicy', 'Never')
-          .setLiteral('restjava.image.pullPolicy', 'Never')
-          .setLiteral('web3.image.pullPolicy', 'Never')
-          .setLiteral('monitor.image.pullPolicy', 'Never');
+          .setLiteral(`${chartKey}.image.registry`, parsedImageReference.registry)
+          .setLiteral(`${chartKey}.image.repository`, parsedImageReference.repository)
+          .setLiteral(`${chartKey}.image.tag`, parsedImageReference.tag);
+      }
+
+      if (this.hasComponentImageArchiveValue(config.componentImageArchive)) {
+        this.validateComponentImageArchive(
+          moduleImages.map(({imageReference}: MirrorNodeModuleImageReference): string => imageReference),
+          config.componentImageArchive,
+        );
+        for (const {chartKey} of moduleImages) {
+          chartValues.setLiteral(`${chartKey}.image.pullPolicy`, 'Never');
+        }
+      } else {
+        for (const {chartKey} of this.getLocallyAvailableModuleImages(moduleImages)) {
+          chartValues.setLiteral(`${chartKey}.image.pullPolicy`, 'Never');
+        }
       }
     } else if (this.shouldApplyMirrorNodeImageTagOverrides(config.mirrorNodeChartDirectory)) {
       this.addMirrorNodeImageTagOverrides(chartValues, config.mirrorNodeVersion);
@@ -661,7 +774,7 @@ export class MirrorNodeCommand extends BaseCommand {
       chartValues
         .set('ingress.enabled', true)
         .set('ingress.tls.enabled', false)
-        .setLiteral('ingress.hosts[0].host', config.domainName);
+        .setLiteral('ingress.hosts[0].host', UserInput.escapeHelmTemplate(config.domainName));
     }
 
     // if the useExternalDatabase populate all the required values before installing the chart
@@ -670,7 +783,7 @@ export class MirrorNodeCommand extends BaseCommand {
       // Disable default database deployment
       .set('stackgres.enabled', false)
       .set('postgresql.enabled', false)
-      .setLiteral('db.name', 'mirror_node');
+      .setLiteral('db.name', config.resourceNames.databaseName);
 
     if (config.useExternalDatabase) {
       host = config.externalDatabaseHost;
@@ -706,9 +819,61 @@ export class MirrorNodeCommand extends BaseCommand {
       chartValues.setLiteral('db.host', `solo-shared-resources-postgres.${config.namespace.name}.svc.cluster.local`);
     }
 
+    chartValues.add(await this.prepareResourceNameChartValues(config));
+
     chartValues.add(this.prepareBlockNodeIntegrationValues(config));
 
+    // The flag only accepts `importer` for now, and the overlay is importer-only.
+    if (config.debugMirrorNodeComponent === 'importer') {
+      chartValues.file(constants.MIRROR_NODE_DEBUG_VALUES_FILE);
+    }
+
+    await this.backupMirrorNodeSecrets(config);
+
     return chartValues;
+  }
+
+  /**
+   * Keeps a cluster copy of the secrets passed to Helm as values, so they can be recovered if a
+   * `helm upgrade` with the wrong values overwrites them. See issue #1100.
+   */
+  private async backupMirrorNodeSecrets(
+    config: MirrorNodeDeployConfigClass | MirrorNodeUpgradeConfigClass,
+  ): Promise<void> {
+    const secretData: Record<string, string> = {};
+    const candidates: Record<string, Optional<string>> = {
+      STORAGE_READ_ACCESS_KEY: config.storageReadAccessKey,
+      STORAGE_READ_SECRETS: config.storageReadSecrets,
+      EXTERNAL_DATABASE_OWNER_PASSWORD: config.externalDatabaseOwnerPassword,
+      EXTERNAL_DATABASE_READONLY_PASSWORD: config.externalDatabaseReadonlyPassword,
+    };
+    for (const [key, value] of Object.entries(candidates)) {
+      if (value) {
+        secretData[key] = Base64.encode(value);
+      }
+    }
+
+    if (Object.keys(secretData).length === 0) {
+      return;
+    }
+
+    const k8: K8 = this.k8Factory.getK8(config.clusterContext);
+    const secretName: string = constants.MIRROR_NODE_SECRETS_BACKUP_NAME;
+    let existingData: Record<string, string> = {};
+    if (await k8.secrets().exists(config.namespace, secretName)) {
+      const existingSecret: Secret = await k8.secrets().read(config.namespace, secretName);
+      existingData = existingSecret.data;
+    }
+
+    const isCreated: boolean = await k8
+      .secrets()
+      .createOrReplace(config.namespace, secretName, SecretType.OPAQUE, {...existingData, ...secretData});
+
+    if (!isCreated) {
+      throw new SoloErrors.system.k8sSecretCreateFailed(
+        `failed to create mirror node secrets backup using context: ${config.clusterContext}`,
+      );
+    }
   }
 
   /**
@@ -719,6 +884,21 @@ export class MirrorNodeCommand extends BaseCommand {
    */
   private shouldApplyMirrorNodeImageTagOverrides(mirrorNodeChartDirectory: string): boolean {
     return !mirrorNodeChartDirectory || this.configManager.wasFlagProvidedByUser(flags.mirrorNodeVersion);
+  }
+
+  /**
+   * Rejects a mirror node version that cannot ingest the output of the deployed consensus node.
+   */
+  private assertMirrorNodeCompatibility(mirrorNodeVersion: string, force: boolean): void {
+    ComponentCompatibility.assertCompatible(
+      {
+        ...ComponentCompatibility.deployedVersions(this.remoteConfig),
+        [ComponentTypes.MirrorNode]: mirrorNodeVersion,
+      },
+      ComponentTypes.MirrorNode,
+      force,
+      this.logger,
+    );
   }
 
   private addMirrorNodeImageTagOverrides(chartValues: HelmChartValues, mirrorNodeVersion: string): void {
@@ -831,7 +1011,11 @@ export class MirrorNodeCommand extends BaseCommand {
       commandType,
     );
 
-    await this.loadComponentImage(config.componentImage, config.componentImageArchive, config.clusterContext);
+    await this.loadMirrorNodeComponentImages(
+      config.componentImage,
+      config.componentImageArchive,
+      config.clusterContext,
+    );
 
     await this.upgradeMirrorNodeChart(config, shouldReuseValues);
 
@@ -872,7 +1056,7 @@ export class MirrorNodeCommand extends BaseCommand {
       let mirrorIngressClassExists: boolean = false;
       for (const ingressClass of existingIngressClasses) {
         this.logger.debug(`Found existing IngressClass [${ingressClass.name}]`);
-        if (ingressClass.name === constants.MIRROR_INGRESS_CLASS_NAME) {
+        if (ingressClass.name === config.resourceNames.ingressClassName) {
           mirrorIngressClassExists = true;
           break;
         }
@@ -885,18 +1069,18 @@ export class MirrorNodeCommand extends BaseCommand {
         config.namespace,
         config.domainName,
         config.cacheDir,
-        constants.MIRROR_INGRESS_TLS_SECRET_NAME,
+        config.resourceNames.tlsSecretName,
       );
 
       // patch ingressClassName of mirror ingress, so it can be recognized by haproxy ingress controller
       const k8: K8 = this.k8Factory.getK8(config.clusterContext);
       const tlsSpec: object = {
         spec: {
-          ingressClassName: `${constants.MIRROR_INGRESS_CLASS_NAME}`,
+          ingressClassName: config.resourceNames.ingressClassName,
           tls: [
             {
               hosts: [config.domainName || 'localhost'],
-              secretName: constants.MIRROR_INGRESS_TLS_SECRET_NAME,
+              secretName: config.resourceNames.tlsSecretName,
             },
           ],
         },
@@ -904,14 +1088,14 @@ export class MirrorNodeCommand extends BaseCommand {
 
       // First pass: set ingressClassName, TLS, and path-type 'prefix' on all mirror ingresses.
       // 'prefix' puts the Node.js REST catch-all path /api/v1 into HAProxy's prefix map.
-      await k8.ingresses().update(config.namespace, constants.MIRROR_NODE_RELEASE_NAME, {
+      await k8.ingresses().update(config.namespace, config.releaseName, {
         ...tlsSpec,
         metadata: {annotations: {'haproxy-ingress.github.io/path-type': 'prefix'}},
       });
 
       // Second pass: override path-type back to 'regex' for ingresses that have complex
       for (const suffix of ['-restjava', '-web3']) {
-        await k8.ingresses().update(config.namespace, suffix, {
+        await k8.ingresses().update(config.namespace, `${config.releaseName}${suffix}`, {
           metadata: {annotations: {'haproxy-ingress.github.io/path-type': 'regex'}},
         });
       }
@@ -921,10 +1105,57 @@ export class MirrorNodeCommand extends BaseCommand {
           .getK8(config.clusterContext)
           .ingressClasses()
           .create(
-            constants.MIRROR_INGRESS_CLASS_NAME,
-            constants.INGRESS_CONTROLLER_PREFIX + constants.MIRROR_INGRESS_CONTROLLER,
+            config.resourceNames.ingressClassName,
+            constants.INGRESS_CONTROLLER_PREFIX + config.resourceNames.ingressControllerClass,
           );
       }
+    }
+  }
+
+  /**
+   * Filters the given Mirror Node module images down to those found in the local Docker daemon.
+   * Shared by `prepareHelmChartValues` (deciding `pullPolicy: Never` per chart key) and
+   * `loadMirrorNodeComponentImages` (deciding which images to Kind-load), so the two call sites
+   * cannot drift on what "locally available" means.
+   */
+  private getLocallyAvailableModuleImages(
+    moduleImages: MirrorNodeModuleImageReference[],
+  ): MirrorNodeModuleImageReference[] {
+    return moduleImages.filter(({imageReference}: MirrorNodeModuleImageReference): boolean =>
+      this.isLocalImageAvailableInDocker(imageReference),
+    );
+  }
+
+  /**
+   * Loads the six Mirror Node module images derived from `--component-image` into the target Kind
+   * clusters. An archive is loaded as a whole (it may already contain all six images), while the
+   * live-Docker path loads each module image only if that specific image was found locally, mirroring
+   * `BaseCommand.loadComponentImage`'s single-image semantics.
+   */
+  private async loadMirrorNodeComponentImages(
+    componentImage: Optional<string>,
+    componentImageArchive: Optional<string>,
+    clusterContext: Context,
+  ): Promise<void> {
+    if (this.hasComponentImageArchiveValue(componentImageArchive)) {
+      const expectedImages: Optional<string | string[]> = componentImage
+        ? MirrorNodeModuleImages.expand(componentImage).map(
+            ({imageReference}: MirrorNodeModuleImageReference): string => imageReference,
+          )
+        : componentImage;
+      this.validateComponentImageArchive(expectedImages, componentImageArchive);
+      await this.kindLoadComponentImageArchive(componentImageArchive, clusterContext, this.remoteConfig.getContexts());
+      return;
+    }
+
+    if (!componentImage) {
+      return;
+    }
+
+    for (const {imageReference} of this.getLocallyAvailableModuleImages(
+      MirrorNodeModuleImages.expand(componentImage),
+    )) {
+      await this.kindLoadComponentImage(imageReference, clusterContext, this.remoteConfig.getContexts());
     }
   }
 
@@ -1073,6 +1304,7 @@ export class MirrorNodeCommand extends BaseCommand {
           context_.config.namespace,
           context_.config.clusterContext,
           MirrorNodeCommand.MIRROR_ENVIRONMENT_VARIABLE_PREFIX,
+          context_.config.resourceNames,
         );
       },
       skip: ({config}: MirrorNodeDeployContext): boolean => config.useExternalDatabase,
@@ -1114,7 +1346,7 @@ export class MirrorNodeCommand extends BaseCommand {
         const secretExists: boolean = await this.k8Factory
           .getK8(context_.config.clusterContext)
           .secrets()
-          .exists(context_.config.namespace, 'mirror-passwords');
+          .exists(context_.config.namespace, context_.config.resourceNames.passwordsSecretName);
         if (secretExists) {
           return;
         }
@@ -1133,7 +1365,7 @@ export class MirrorNodeCommand extends BaseCommand {
           .set('postgresql.enabled', false)
           .set('redis.enabled', false)
           .setLiteral('db.host', `solo-shared-resources-postgres.${context_.config.namespace.name}.svc.cluster.local`)
-          .setLiteral('db.name', 'mirror_node')
+          .setLiteral('db.name', context_.config.resourceNames.databaseName)
           .set('importer.enabled', false)
           .set('grpc.enabled', false)
           .set('rest.enabled', false)
@@ -1141,7 +1373,8 @@ export class MirrorNodeCommand extends BaseCommand {
           .set('web3.enabled', false)
           .set('rosetta.enabled', false)
           .set('graphql.enabled', false)
-          .set('monitor.enabled', false);
+          .set('monitor.enabled', false)
+          .add(await this.prepareResourceNameChartValues(context_.config));
 
         await this.chartManager.upgrade(
           context_.config.namespace,
@@ -1207,9 +1440,9 @@ export class MirrorNodeCommand extends BaseCommand {
                   );
                 }
                 mirrorIngressControllerChartValues
-                  .setLiteral('fullnameOverride', `${constants.MIRROR_INGRESS_CONTROLLER}-${config.namespace.name}`)
-                  .setLiteral('controller.ingressClass', constants.MIRROR_INGRESS_CLASS_NAME)
-                  .setLiteral('controller.extraArgs.controller-class', constants.MIRROR_INGRESS_CONTROLLER)
+                  .setLiteral('fullnameOverride', config.resourceNames.ingressControllerName(config.namespace.name))
+                  .setLiteral('controller.ingressClass', config.resourceNames.ingressClassName)
+                  .setLiteral('controller.extraArgs.controller-class', config.resourceNames.ingressControllerClass)
                   .filesFromCommaSeparatedInput(config.ingressControllerValueFile);
 
                 await this.chartManager.upgrade(
@@ -1235,6 +1468,7 @@ export class MirrorNodeCommand extends BaseCommand {
               },
             },
             this.waitForMirrorNodeSchemaTask(),
+            this.grantExternalDatabaseReadonlyRoleTask(),
           ],
           constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
         ),
@@ -1294,6 +1528,83 @@ export class MirrorNodeCommand extends BaseCommand {
           constants.MIRROR_NODE_SCHEMA_READY_MAX_ATTEMPTS,
           constants.MIRROR_NODE_SCHEMA_READY_DELAY,
         );
+      },
+    };
+  }
+
+  /**
+   * The importer's V1.0__Init.sql migration creates mirror_rest without the readonly role, so on an
+   * external database it lacks SELECT on every table added by a later migration. Solo cannot exec
+   * into a database it does not own, so it starts a short-lived psql pod in the mirror node
+   * namespace, grants the role over the network with the owner credentials, and deletes the pod.
+   * The DO block is idempotent and a no-op when either role is missing.
+   *
+   * A failed grant only warns: REST still starts without it, as it did before Solo ran the grant,
+   * and on PostgreSQL 16+ a non-superuser owner needs ADMIN OPTION on readonly, which only the
+   * database administrator can give.
+   */
+  private grantExternalDatabaseReadonlyRoleTask(): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Grant readonly role to mirror_rest on external database',
+      skip: (context_): boolean => !context_.config.useExternalDatabase,
+      task: async (context_, task): Promise<void> => {
+        const config: MirrorNodeDeployConfigClass | MirrorNodeUpgradeConfigClass = context_.config;
+        const pods: Pods = this.k8Factory.getK8(config.clusterContext).pods();
+        const podName: string = `${config.releaseName}-external-db-client-${Date.now().toString(36)}`;
+        const podReference: PodReference = PodReference.of(config.namespace, PodName.of(podName));
+        const containerName: ContainerName = ContainerName.of('psql');
+        const grantSql: string =
+          "DO $grant$ BEGIN IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'readonly') " +
+          "AND EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'mirror_rest') " +
+          'THEN GRANT readonly TO mirror_rest; END IF; END $grant$;';
+
+        try {
+          // The password goes in the pod env, not the exec command, which execContainer writes to solo.log.
+          await pods.create(
+            podReference,
+            {'solo.hedera.com/type': 'external-db-client', 'solo.hedera.com/pod': podName},
+            containerName,
+            constants.MIRROR_EXTERNAL_DATABASE_CLIENT_IMAGE,
+            ['sleep', 'infinity'],
+            ['psql', '--version'],
+            {PGPASSWORD: config.externalDatabaseOwnerPassword},
+          );
+          try {
+            await pods.waitForReadyStatus(
+              config.namespace,
+              [`solo.hedera.com/pod=${podName}`],
+              constants.PODS_READY_MAX_ATTEMPTS,
+              constants.PODS_READY_DELAY,
+            );
+            await this.k8Factory
+              .getK8(config.clusterContext)
+              .containers()
+              .readByRef(ContainerReference.of(podReference, containerName))
+              .execContainer([
+                'psql',
+                '-h',
+                config.externalDatabaseHost,
+                '-U',
+                config.externalDatabaseOwnerUsername,
+                '-d',
+                'mirror_node',
+                '-v',
+                'ON_ERROR_STOP=1',
+                '-c',
+                grantSql,
+              ]);
+          } finally {
+            await pods.delete(podReference);
+          }
+        } catch (error) {
+          // Warn instead of failing: the mirror node is already deployed and REST starts without the
+          // grant, so the worst case matches the old manual step. The reason names the SQL to run.
+          const reason: string =
+            'could not grant readonly to mirror_rest; REST may fail to read tables added after the first migration. ' +
+            `Run as a database administrator: GRANT readonly TO mirror_rest; (or GRANT readonly TO ${config.externalDatabaseOwnerUsername} WITH ADMIN OPTION; and re-run)`;
+          this.logger.warn(reason, error);
+          task.skip(`${task.title} ${chalk.yellow('[SKIPPING]')} ${chalk.grey(reason)}`);
+        }
       },
     };
   }
@@ -1493,6 +1804,38 @@ export class MirrorNodeCommand extends BaseCommand {
     };
   }
 
+  private enableDebuggerPortForwardingTask(): SoloListrTask<AnyListrContext> {
+    return {
+      title: 'Enable port forwarding for mirror node JVM debugger',
+      skip: ({config}: MirrorNodeDeployContext | MirrorNodeUpgradeContext): boolean => !config.debugMirrorNodeComponent,
+      task: async ({config}: MirrorNodeDeployContext | MirrorNodeUpgradeContext): Promise<void> => {
+        const externalAddress: string = this.configManager.getFlag<string>(flags.externalAddress);
+        const [debugPod]: Pod[] = await this.k8Factory
+          .getK8(config.clusterContext)
+          .pods()
+          .list(config.namespace, [
+            `app.kubernetes.io/component=${config.debugMirrorNodeComponent}`,
+            `app.kubernetes.io/instance=${config.releaseName}`,
+          ]);
+        if (!debugPod) {
+          throw new SoloErrors.system.mirrorNodePodsNotFound(config.releaseName, config.namespace.name);
+        }
+
+        // Not tracked in remote config, same as the consensus node --debug-node-alias forward
+        const localPort: number = await debugPod.portForward(
+          constants.JVM_DEBUG_PORT,
+          constants.JVM_DEBUG_PORT,
+          true,
+          true,
+          externalAddress,
+        );
+        this.logger.showUser(
+          `Mirror node ${config.debugMirrorNodeComponent} JVM debugger is available on localhost:${localPort}`,
+        );
+      },
+    };
+  }
+
   public async add(argv: ArgvStruct): Promise<boolean> {
     let lease: Lock;
 
@@ -1525,6 +1868,8 @@ export class MirrorNodeCommand extends BaseCommand {
 
             context_.config = config;
 
+            this.assertMirrorNodeCompatibility(config.mirrorNodeVersion, config.force);
+
             const hasMirrorNodeMemoryImprovements: boolean = new SemanticVersion<string>(
               config.mirrorNodeVersion,
             ).greaterThanOrEqual(versions.MEMORY_ENHANCEMENTS_MIRROR_NODE_VERSION);
@@ -1556,6 +1901,14 @@ export class MirrorNodeCommand extends BaseCommand {
               config.namespace,
               config.releaseName,
               config.clusterContext,
+            );
+
+            config.resourceNames = await MirrorNodeResourceNames.resolveForDeploy(
+              this.k8Factory.getK8(config.clusterContext),
+              config.namespace,
+              config.id,
+              config.isChartInstalled,
+              this.hasOtherMirrorNodes(config.id, config.clusterReference, config.namespace),
             );
 
             context_.config.soloChartVersion = SemanticVersion.getValidSemanticVersion(
@@ -1732,6 +2085,7 @@ export class MirrorNodeCommand extends BaseCommand {
         },
         this.checkPodsAreReadyNodeTask(),
         this.enablePortForwardingTask(),
+        this.enableDebuggerPortForwardingTask(),
         {
           title: 'Show user messages',
           skip: (): boolean => this.oneShotState.isActive(),
@@ -1826,6 +2180,11 @@ export class MirrorNodeCommand extends BaseCommand {
             config.ingressReleaseName = ingressReleaseName;
             config.isLegacyChartInstalled = isLegacyChartInstalled;
             config.installSharedResources = false;
+            config.resourceNames = await MirrorNodeResourceNames.resolveExisting(
+              this.k8Factory.getK8(config.clusterContext),
+              config.namespace,
+              config.id,
+            );
 
             assertUpgradeVersionNotOlder(
               'Mirror node',
@@ -1833,6 +2192,8 @@ export class MirrorNodeCommand extends BaseCommand {
               this.remoteConfig.getComponentVersion(ComponentTypes.MirrorNode),
               optionFromFlag(flags.mirrorNodeVersion),
             );
+
+            this.assertMirrorNodeCompatibility(config.mirrorNodeVersion, config.force);
 
             context_.config.soloChartVersion = SemanticVersion.getValidSemanticVersion(
               context_.config.soloChartVersion,
@@ -2003,6 +2364,7 @@ export class MirrorNodeCommand extends BaseCommand {
         this.enableMirrorNodeTask(MirrorNodeCommandType.UPGRADE),
         this.checkPodsAreReadyNodeTask(),
         this.enablePortForwardingTask(),
+        this.enableDebuggerPortForwardingTask(),
         // TODO only show this if we are not running in quick-start mode
         // {
         //   title: 'Show user messages',
@@ -2167,6 +2529,11 @@ export class MirrorNodeCommand extends BaseCommand {
               isChartInstalled,
               releaseName,
               ingressReleaseName,
+              resourceNames: await MirrorNodeResourceNames.resolveExisting(
+                this.k8Factory.getK8(clusterContext),
+                namespace,
+                id,
+              ),
               isLegacyChartInstalled,
             };
 
@@ -2209,7 +2576,19 @@ export class MirrorNodeCommand extends BaseCommand {
           skip: (context_): boolean => !context_.config.isChartInstalled,
         },
         {
+          title: 'Drop mirror node database',
+          task: async (context_): Promise<void> => {
+            await this.postgresSharedResource.dropMirrorNode(
+              context_.config.namespace,
+              context_.config.clusterContext,
+              context_.config.resourceNames,
+            );
+          },
+          skip: (context_): boolean => !this.hasOtherMirrorNodesInDestroy(context_.config),
+        },
+        {
           title: 'Destroy shared resources',
+          skip: (context_): boolean => this.hasOtherMirrorNodesInDestroy(context_.config),
           task: async (context_): Promise<void> => {
             await this.sharedResourceManager.uninstallChart(context_.config.namespace, context_.config.clusterContext);
 
@@ -2242,12 +2621,12 @@ export class MirrorNodeCommand extends BaseCommand {
               await this.k8Factory
                 .getK8(context_.config.clusterContext)
                 .configMaps()
-                .exists(context_.config.namespace, 'ingress-controller-leader-' + constants.MIRROR_INGRESS_CLASS_NAME)
+                .exists(context_.config.namespace, context_.config.resourceNames.ingressLeaderConfigMapName)
             ) {
               await this.k8Factory
                 .getK8(context_.config.clusterContext)
                 .configMaps()
-                .delete(context_.config.namespace, 'ingress-controller-leader-' + constants.MIRROR_INGRESS_CLASS_NAME);
+                .delete(context_.config.namespace, context_.config.resourceNames.ingressLeaderConfigMapName);
             }
 
             await this.chartManager.uninstall(
@@ -2263,11 +2642,11 @@ export class MirrorNodeCommand extends BaseCommand {
                 .ingressClasses()
                 .list();
               for (const ingressClass of existingIngressClasses) {
-                if (ingressClass.name === constants.MIRROR_INGRESS_CLASS_NAME) {
+                if (ingressClass.name === context_.config.resourceNames.ingressClassName) {
                   await this.k8Factory
                     .getK8(context_.config.clusterContext)
                     .ingressClasses()
-                    .delete(constants.MIRROR_INGRESS_CLASS_NAME);
+                    .delete(context_.config.resourceNames.ingressClassName);
                 }
               }
             }
@@ -2276,7 +2655,13 @@ export class MirrorNodeCommand extends BaseCommand {
             await this.k8Factory
               .getK8(context_.config.clusterContext)
               .secrets()
-              .delete(context_.config.namespace, constants.MIRROR_INGRESS_TLS_SECRET_NAME);
+              .delete(context_.config.namespace, context_.config.resourceNames.tlsSecretName);
+
+            // Delete the secrets backup created on add/upgrade so stale credentials don't outlive the mirror node
+            await this.k8Factory
+              .getK8(context_.config.clusterContext)
+              .secrets()
+              .delete(context_.config.namespace, constants.MIRROR_NODE_SECRETS_BACKUP_NAME);
           },
         },
         this.disableMirrorNodeComponents(),
@@ -2461,7 +2846,7 @@ export class MirrorNodeCommand extends BaseCommand {
   public disableSharedResourceComponents(): SoloListrTask<MirrorNodeDestroyContext> {
     return {
       title: 'Remove shared resource components from remote config',
-      skip: (): boolean => !this.remoteConfig.isLoaded(),
+      skip: (context_): boolean => !this.remoteConfig.isLoaded() || this.hasOtherMirrorNodesInDestroy(context_.config),
       task: async (): Promise<void> => {
         const postgresComponents: PostgresStateSchema[] =
           this.remoteConfig.configuration.components.getComponentByType<PostgresStateSchema>(ComponentTypes.Postgres);
@@ -2514,6 +2899,28 @@ export class MirrorNodeCommand extends BaseCommand {
     return id === 1
       ? await this.chartManager.isChartInstalled(namespace, constants.MIRROR_NODE_RELEASE_NAME, context)
       : false;
+  }
+
+  /** Whether other mirror nodes keep using the shared resources (Postgres, Redis) when the given one is destroyed. */
+  private hasOtherMirrorNodesInDestroy(config: MirrorNodeDestroyConfigClass): boolean {
+    return this.hasOtherMirrorNodes(config.id, config.clusterReference, config.namespace);
+  }
+
+  /** Whether another mirror node is registered in the same cluster and namespace as the given one. */
+  private hasOtherMirrorNodes(
+    id: ComponentId,
+    clusterReference: ClusterReferenceName,
+    namespace: NamespaceName,
+  ): boolean {
+    return (
+      this.remoteConfig.isLoaded() &&
+      this.remoteConfig.configuration.components.state.mirrorNodes.some(
+        (mirrorNode: MirrorNodeStateSchema): boolean =>
+          mirrorNode.metadata.id !== id &&
+          mirrorNode.metadata.cluster === clusterReference &&
+          mirrorNode.metadata.namespace === namespace.name,
+      )
+    );
   }
 
   private inferMirrorNodeId(): ComponentId {
@@ -2579,10 +2986,10 @@ export class MirrorNodeCommand extends BaseCommand {
 
   private async adoptMirrorIngressControllerRbacOwnership(config: MirrorNodeDeployConfigClass): Promise<void> {
     const rbac: Rbacs = this.k8Factory.getK8(config.clusterContext).rbac();
-    const rbacNames: Set<string> = new Set([
-      constants.MIRROR_INGRESS_CONTROLLER,
-      `${constants.MIRROR_INGRESS_CONTROLLER}-${config.namespace.name}`,
-    ]);
+    const rbacNames: Set<string> = new Set([config.resourceNames.ingressControllerName(config.namespace.name)]);
+    if (config.resourceNames.isPrimary) {
+      rbacNames.add(constants.MIRROR_INGRESS_CONTROLLER);
+    }
 
     for (const rbacName of rbacNames) {
       await rbac.setHelmOwnership(rbacName, config.ingressReleaseName, config.namespace.name);

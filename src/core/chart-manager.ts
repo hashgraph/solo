@@ -15,6 +15,7 @@ import {UpgradeChartOptionsBuilder} from '../integration/helm/model/upgrade/upgr
 import {Chart} from '../integration/helm/model/chart.js';
 import {type InstallChartOptions} from '../integration/helm/model/install/install-chart-options.js';
 import {InstallChartOptionsBuilder} from '../integration/helm/model/install/install-chart-options-builder.js';
+import {type SemanticVersion} from '../business/utils/semantic-version.js';
 import {type HelmClient} from '../integration/helm/helm-client.js';
 import {UnInstallChartOptionsBuilder} from '../integration/helm/model/install/un-install-chart-options-builder.js';
 import {AddRepoOptionsBuilder} from '../integration/helm/model/add/add-repo-options-builder.js';
@@ -177,6 +178,7 @@ export class ChartManager {
     atomic: boolean = false,
     waitFor: boolean = false,
     dependencyUpdate: boolean = false,
+    skipCrds: boolean = false,
   ): Promise<boolean> {
     try {
       const isInstalled: boolean = await this.isChartInstalled(namespaceName, chartReleaseName, kubeContext);
@@ -192,7 +194,9 @@ export class ChartManager {
           .atomic(atomic)
           .waitFor(waitFor)
           .valueArguments(chartValues.toArguments())
-          .dependencyUpdate(dependencyUpdate);
+          .environmentVariables(chartValues.toEnvironment())
+          .dependencyUpdate(dependencyUpdate)
+          .skipCrds(skipCrds);
 
         // A local chart tarball is self-describing; `helm install` rejects `--version` for a local chart.
         if (version && !cachedChartPath) {
@@ -223,12 +227,33 @@ export class ChartManager {
     return true;
   }
 
+  /** The major version of the Helm CLI in use; Helm 3 and Helm 4 take different kinds of post-renderers. */
+  public async getHelmMajorVersion(): Promise<number> {
+    const version: SemanticVersion<string> = await this.helm.version();
+    return version.major;
+  }
+
   public async isChartInstalled(
     namespaceName: NamespaceName,
     chartReleaseName: string,
     kubeContext?: string,
   ): Promise<boolean> {
     return (await this.getInstalledRelease(namespaceName, chartReleaseName, kubeContext)) !== undefined;
+  }
+
+  /**
+   * Returns every installed Helm release. Pass `undefined` for `namespaceName` to search across all namespaces.
+   */
+  public async getInstalledReleases(
+    namespaceName: NamespaceName | undefined,
+    kubeContext?: string,
+  ): Promise<ReleaseItem[]> {
+    try {
+      return await this.helm.listReleases(!namespaceName, namespaceName?.name, kubeContext);
+    } catch (error) {
+      this.logger.showUserError(error);
+      throw new SoloErrors.system.helmChartListFailed(error);
+    }
   }
 
   /**
@@ -243,13 +268,8 @@ export class ChartManager {
     this.logger.debug(
       `> checking if chart is installed [ chart: ${chartReleaseName}, namespace: ${namespaceName}, kubeContext: ${kubeContext} ]`,
     );
-    try {
-      const releases: ReleaseItem[] = await this.helm.listReleases(!namespaceName, namespaceName?.name, kubeContext);
-      return releases.find((release: ReleaseItem): boolean => release.name === chartReleaseName);
-    } catch (error) {
-      this.logger.showUserError(error);
-      throw new SoloErrors.system.helmChartListFailed(error);
-    }
+    const releases: ReleaseItem[] = await this.getInstalledReleases(namespaceName, kubeContext);
+    return releases.find((release: ReleaseItem): boolean => release.name === chartReleaseName);
   }
 
   public async uninstall(
@@ -302,6 +322,7 @@ export class ChartManager {
         .namespace(namespaceName.name)
         .kubeContext(kubeContext)
         .valueArguments(chartValues.toArguments())
+        .environmentVariables(chartValues.toEnvironment())
         .dependencyUpdate(dependencyUpdate);
 
       // A local chart tarball is self-describing; `helm upgrade` rejects `--version` for a local chart.

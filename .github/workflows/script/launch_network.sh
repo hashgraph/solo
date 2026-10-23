@@ -582,6 +582,19 @@ if [[ -z "${fromSoloVersion}" ]]; then
   exit 1
 fi
 
+if [[ -n "${toConsensusNodeVersion}" ]]; then
+  fromConsensusNodeVersion="$(extract_version TEST_UPGRADE_FROM_VERSION version-test.ts)"
+  normalizedFromConsensusNodeVersion="${fromConsensusNodeVersion#v}"
+  normalizedToConsensusNodeVersion="${toConsensusNodeVersion#v}"
+
+  if [[ "${normalizedFromConsensusNodeVersion}" == "${normalizedToConsensusNodeVersion}" ]] ||
+    [[ "$(printf '%s\n' "${normalizedFromConsensusNodeVersion}" "${normalizedToConsensusNodeVersion}" | sort -V | head -n 1)" != "${normalizedFromConsensusNodeVersion}" ]]; then
+    echo "Invalid consensus node migration: target ${toConsensusNodeVersion} must be newer than source ${fromConsensusNodeVersion}."
+    echo "Usage: $0 <fromSoloVersion> [toConsensusNodeVersion]"
+    exit 1
+  fi
+fi
+
 # check if yq is installed
 if ! command -v yq &> /dev/null
 then
@@ -691,15 +704,23 @@ TEMP_SOURCE_APPLICATION_PROPERTIES_FILE="$(mktemp -t source-application-properti
 TEMP_SOURCE_RELAY_VALUES_FILE="$(mktemp -t source-relay-values-XXXX.yaml)"
 
 cat > "${TEMP_SOURCE_RELAY_VALUES_FILE}" <<'EOF'
-# The source deployment uses a prior Solo release, so its bundled relay values may
-# predate the keep-alive fix in the current checkout. Keep migration smoke requests
-# from reusing connections across Mirror Web3 pod replacement.
+# Passed to both the source deploy and the later `relay node upgrade` (see below),
+# since upgrade does not reuse this file. The source deployment uses a prior Solo
+# release, so its bundled relay values may predate the keep-alive fix in the current
+# checkout. Keep migration smoke requests from reusing connections across Mirror Web3
+# pod replacement. The bundled defaults also set LOG_LEVEL=error, which omits
+# per-request logs entirely; raise it to debug here so a request that silently stalls
+# (e.g. the ERC-20 smoke test's transferFrom() polling a receipt that never arrives)
+# leaves a trail instead of just running out the mocha timeout with nothing to
+# diagnose from.
 relay:
   config:
     MIRROR_NODE_HTTP_KEEP_ALIVE: false
+    LOG_LEVEL: debug
 ws:
   config:
     MIRROR_NODE_HTTP_KEEP_ALIVE: false
+    LOG_LEVEL: debug
 EOF
 
 cp resources/templates/application.properties "${TEMP_SOURCE_APPLICATION_PROPERTIES_FILE}"
@@ -710,16 +731,17 @@ CURRENT_BLOCK_VERSION="${CURRENT_BLOCK_VERSION#v}"
 PREV_BLOCK_VERSION_NO_V="${PREV_BLOCK_VERSION#v}"
 
 # TEMPORARY WORKAROUND:
-#   Keep the migration source network in BOTH mode while hiero-block-node#3150 is open.
-#   Pure BLOCKS mode makes mirror importer depend entirely on BN live-subscriber streaming.
-#   That path can send batches starting with ROUND_HEADER, causing mirror to reconnect and
-#   contract-result ingestion to stall. BOTH keeps native block streaming enabled for BN while
-#   also preserving record streams/MinIO for mirror smoke coverage.
-MIGRATION_BLOCK_STREAM_MODE="BOTH"
+#   Keep the migration source network in RECORDS mode while the CN upgrade is bypassed.
+#   The source CN is pre-0.77 and the source BN is pre-0.41, but the live block-proof stream
+#   can still fail with BAD_BLOCK_PROOF when the legacy BN is attached after the network starts.
+#   RECORDS keeps mirror/relay smoke coverage on MinIO without sending incompatible block proofs
+#   to the legacy BN. The block node is still deployed for component coverage and upgraded only
+#   after a coordinated consensus transition is available.
+MIGRATION_BLOCK_STREAM_MODE="RECORDS"
 
 set_application_property "${TEMP_SOURCE_APPLICATION_PROPERTIES_FILE}" "blockStream.streamMode" "${MIGRATION_BLOCK_STREAM_MODE}"
 set_application_property "${TEMP_SOURCE_APPLICATION_PROPERTIES_FILE}" "blockStream.streamWrappedRecordBlocks" "false"
-set_application_property "${TEMP_SOURCE_APPLICATION_PROPERTIES_FILE}" "blockStream.writerMode" "FILE_AND_GRPC"
+set_application_property "${TEMP_SOURCE_APPLICATION_PROPERTIES_FILE}" "blockStream.writerMode" "FILE"
 set_application_property "${TEMP_SOURCE_APPLICATION_PROPERTIES_FILE}" "blockStream.buffer.isBufferPersistenceEnabled" "true"
 # Keep enough blocks so the BN pod replacement (50s) + gRPC reconnect delay still finds block 96
 # in CN's in-memory buffer. Default 150 is too small: at 2s/block CN evicts block 96 after ~300s.
@@ -766,7 +788,7 @@ EOF
 #   Solo below so the BN upgrade path is still covered while mirror smoke avoids BN #3150.
 export ONE_SHOT_WITH_BLOCK_NODE=false
 export BLOCK_STREAM_STREAM_MODE="${MIGRATION_BLOCK_STREAM_MODE}"
-export BLOCK_STREAM_WRITER_MODE="FILE_AND_GRPC"
+export BLOCK_STREAM_WRITER_MODE="FILE"
 export DISABLE_IMPORTER_SPRING_PROFILES="true"
 
 solo one-shot falcon deploy \
@@ -786,6 +808,7 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') - Deploying source block node ${PREV_BLOCK_VE
 npm run solo -- block node add \
   --deployment "${SOLO_DEPLOYMENT}" \
   --block-node-version "${PREV_BLOCK_VERSION_NO_V}" \
+  --consensus-node-version "${FROM_CONSENSUS_NODE_VERSION}" \
   --block-node-tss-overlay \
   -q --dev
 echo "$(date '+%Y-%m-%d %H:%M:%S') - Source block node ${PREV_BLOCK_VERSION_NO_V} deployed"
@@ -828,6 +851,44 @@ SKIP_BLOCK_NODE_UPGRADE_UNTIL_BN_3150_FIXED=false
 #  4. Skip CN upgrade — leave consensus nodes on the source version and continue covering
 #                      Solo/component migration behavior until CN issue #26498 is fixed.
 
+# hiero-consensus-node#26918 replaced the block root hash with a fixed 16-slot merkle tree. The
+# consensus node produces that shape from the v0.77 line and the block node verifies it from 0.41.0.
+# A pre-boundary producer streaming to a post-boundary verifier (or the reverse) is rejected with
+# BAD_BLOCK_PROOF, which saturates the consensus node block buffer and stalls the network. Because
+# blockStream.writerMode is FILE here during the CN-upgrade bypass, so the legacy block node is
+# not sent live proofs until a coordinated cross-boundary transition is implemented.
+cn_uses_16_slot_block_proof() {
+  local version="${1#v}"
+  local major="${version%%.*}"
+  local minor="${version#*.}"
+  minor="${minor%%.*}"
+
+  (( major > 0 )) || (( minor >= 77 ))
+}
+
+bn_uses_16_slot_block_proof() {
+  local version="${1#v}"
+  local major="${version%%.*}"
+  local minor="${version#*.}"
+  minor="${minor%%.*}"
+
+  (( major > 0 )) || (( minor >= 41 ))
+}
+
+# The consensus node the block node has to interoperate with for the rest of this run.
+if [[ "${SKIP_CONSENSUS_NODE_UPGRADE_UNTIL_CN_26498_FIXED}" == "true" ]]; then
+  EFFECTIVE_CONSENSUS_NODE_VERSION="${FROM_CONSENSUS_NODE_VERSION}"
+else
+  EFFECTIVE_CONSENSUS_NODE_VERSION="${TO_CONSENSUS_NODE_VERSION}"
+fi
+echo "Effective consensus node version for block node compatibility: ${EFFECTIVE_CONSENSUS_NODE_VERSION}"
+
+BLOCK_NODE_UPGRADE_CROSSES_PROOF_BOUNDARY=false
+if bn_uses_16_slot_block_proof "${CURRENT_BLOCK_VERSION}" &&
+  ! cn_uses_16_slot_block_proof "${EFFECTIVE_CONSENSUS_NODE_VERSION}"; then
+  BLOCK_NODE_UPGRADE_CROSSES_PROOF_BOUNDARY=true
+fi
+
 # Step 1: Upgrade BN while CN source version is running, unless the BN bypass is re-enabled.
 ACTIVE_BLOCK_NODE_VERSION="${PREV_BLOCK_VERSION_NO_V}"
 if [[ "${SKIP_BLOCK_NODE_UPGRADE_UNTIL_BN_3150_FIXED}" == "true" ]]; then
@@ -835,6 +896,18 @@ if [[ "${SKIP_BLOCK_NODE_UPGRADE_UNTIL_BN_3150_FIXED}" == "true" ]]; then
   echo "Reason: hiero-block-node#3150 can make mirror importer reject live-stream batches starting with ROUND_HEADER."
   echo "Block node remains on ${PREV_BLOCK_VERSION_NO_V}; continuing component migration coverage."
   dump_bn_log "BN upgrade skipped due to hiero-block-node#3150"
+elif [[ "${BLOCK_NODE_UPGRADE_CROSSES_PROOF_BOUNDARY}" == "true" ]]; then
+  # Skipping keeps the block node on the same side of the boundary as the consensus node that will
+  # actually be running. Once the CN #26498 bypass above is lifted, do not simply re-enable this
+  # branch: move the BN upgrade into the CN stop/start seam below (between `consensus network
+  # upgrade --skip-node-start` and `consensus node start`) so both cross the boundary together
+  # while no consensus node is producing blocks.
+  echo "$(date '+%Y-%m-%d %H:%M:%S') - Skipping BN upgrade to ${CURRENT_BLOCK_VERSION}"
+  echo "Reason: BN ${CURRENT_BLOCK_VERSION} expects the 16-slot block root hash (hiero-consensus-node#26918)"
+  echo "but the consensus node stays on ${EFFECTIVE_CONSENSUS_NODE_VERSION}, which still produces the old shape."
+  echo "Upgrading would make BN reject every block with BAD_BLOCK_PROOF and stall the consensus node."
+  echo "Block node remains on ${PREV_BLOCK_VERSION_NO_V}; continuing component migration coverage."
+  dump_bn_log "BN upgrade skipped due to the 16-slot block proof boundary"
 elif [[ "${PREV_BLOCK_VERSION_NO_V}" != "${CURRENT_BLOCK_VERSION}" ]]; then
   TEMP_BN_UPGRADE_VALUES_FILE="$(mktemp -t bn-upgrade-values-XXXX.yaml)"
   cat > "${TEMP_BN_UPGRADE_VALUES_FILE}" <<'VALS'
@@ -997,7 +1070,8 @@ echo "$(date '+%Y-%m-%d %H:%M:%S') - Target mirror block before post-upgrade acc
 npm run solo -- ledger account create --deployment "${SOLO_DEPLOYMENT}" --hbar-amount 100 --dev
 wait_for_mirror_block_count_progress "target deployment after component upgrades" "${target_block_before_final_wait}" 1 180 2 > /dev/null
 
-npm run solo -- relay node upgrade -i node1,node2 --deployment "${SOLO_DEPLOYMENT}" -q --dev
+# Re-pass the relay override, see TEMP_SOURCE_RELAY_VALUES_FILE above.
+npm run solo -- relay node upgrade -i node1,node2 --deployment "${SOLO_DEPLOYMENT}" --values-file "${TEMP_SOURCE_RELAY_VALUES_FILE}" -q --dev
 # Restart relay and refresh forwards after upgrade to reduce stale-connection windows.
 refresh_relay_network_config "${SOLO_NAMESPACE}" "${SOLO_DEPLOYMENT}"
 

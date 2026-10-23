@@ -11,7 +11,7 @@ import {
   type BootstrapResponse,
   getNodeAliasesPrivateKeysHash,
   getTemporaryDirectory,
-} from '../../test-utility.js';
+} from '../test-utility.js';
 import {Duration} from '../../../src/core/time/duration.js';
 import {type NamespaceName} from '../../../src/types/namespace/namespace-name.js';
 import {type Argv} from '../../helpers/argv-wrapper.js';

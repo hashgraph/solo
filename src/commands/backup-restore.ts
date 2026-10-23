@@ -8,7 +8,6 @@ import {type CommandFlags} from '../types/flag-types.js';
 import chalk from 'chalk';
 import yaml from 'yaml';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import {type ConfigMap} from '../integration/kube/resources/config-map/config-map.js';
@@ -28,7 +27,7 @@ import {
 import {Listr} from 'listr2';
 import * as constants from '../core/constants.js';
 import {NetworkNodes} from '../core/network-nodes.js';
-import {extractContextFromConsensusNodes, sleep} from '../core/helpers.js';
+import {extractContextFromConsensusNodes, Helpers, sleep} from '../core/helpers.js';
 import {Duration} from '../core/time/duration.js';
 import {type ConsensusNode} from '../core/model/consensus-node.js';
 import {ContainerReference} from '../integration/kube/resources/container/container-reference.js';
@@ -76,6 +75,7 @@ import {type Service} from '../integration/kube/resources/service/service.js';
 import {Templates} from '../core/templates.js';
 import * as Base64 from 'js-base64';
 import {K8Helper} from '../business/utils/k8-helper.js';
+import {NetworkNodeLifecycle} from '../core/network-node-lifecycle.js';
 
 interface ExpectedLbIpAssignment {
   context: Context;
@@ -843,6 +843,10 @@ export class BackupRestoreCommand extends BaseCommand {
 
         // Unzip the log file
         this.logger.showUser(chalk.gray(`    Extracting log file in pod: ${podName}`));
+        if (NetworkNodeLifecycle.isConsensusNodeImage()) {
+          // pods deployed by restore-network are not covered by the network deploy install step
+          await NetworkNodeLifecycle.installToolsInContainer(container);
+        }
         await container.execContainer([
           'unzip',
           '-o',
@@ -853,7 +857,11 @@ export class BackupRestoreCommand extends BaseCommand {
 
         // Fix ownership of extracted files to hedera user
         this.logger.showUser(chalk.gray(`    Setting ownership for extracted files in pod: ${podName}`));
-        await container.execContainer(['bash', '-c', `chown -R hedera:hedera ${constants.HEDERA_HAPI_PATH}`]);
+        await container.execContainer([
+          'bash',
+          '-c',
+          NetworkNodeLifecycle.buildChangeOwnerCommand(constants.HEDERA_HAPI_PATH),
+        ]);
 
         this.logger.showUser(chalk.green(`    ✓ Restored log for pod: ${podName}`));
       }
@@ -919,41 +927,6 @@ export class BackupRestoreCommand extends BaseCommand {
         undefined,
         true,
       );
-  }
-
-  /**
-   * Resolve mirror release name while supporting legacy release naming.
-   * Mirror node id=1 may still be installed under the old fixed release name.
-   */
-  /**
-   * Trigger a deployment rollout by patching a restart annotation.
-   * This avoids delete/recreate and keeps restart behavior explicit.
-   */
-  private async patchDeploymentRestartAnnotation(
-    context: Context,
-    namespace: NamespaceName,
-    deploymentName: string,
-  ): Promise<void> {
-    await this.k8Factory
-      .getK8(context)
-      .manifests()
-      .patchObject({
-        apiVersion: 'apps/v1',
-        kind: 'Deployment',
-        metadata: {
-          name: deploymentName,
-          namespace: namespace.name,
-        },
-        spec: {
-          template: {
-            metadata: {
-              annotations: {
-                'solo.hedera.com/restartedAt': new Date().toISOString(),
-              },
-            },
-          },
-        },
-      });
   }
 
   /**
@@ -1487,11 +1460,7 @@ export class BackupRestoreCommand extends BaseCommand {
       .containers()
       .readByRef(ContainerReference.of(pods[0].podReference, constants.BLOCK_NODE_CONTAINER_NAME));
 
-    const firstAvailableAbove: number = await this.findLowestAvailableBlockAbove(blockNodeContainer, importerMax);
-    if (firstAvailableAbove < 0) {
-      // No future blocks available yet; nothing to bridge.
-      return false;
-    }
+    const firstAvailableAbove: number = await this.waitForLowestAvailableBlockAbove(blockNodeContainer, importerMax);
 
     const boundaryHash: string | undefined = await this.extractPreviousBlockRootHash(
       blockNodeContainer,
@@ -1619,6 +1588,25 @@ export class BackupRestoreCommand extends BaseCommand {
       this.logger.info(`Failed to read importer record_file MAX: ${BackupRestoreCommand.getErrorMessage(error)}`);
       return -1;
     }
+  }
+
+  /**
+   * Wait for the block node to expose a block strictly above `floor`. A restored block node restarts
+   * shortly before this runs, so the first post-restore block may not be on disk yet; checking once
+   * would silently skip the boundary patch and leave the importer stuck on a previous-hash mismatch.
+   */
+  private async waitForLowestAvailableBlockAbove(blockNodeContainer: Container, floor: number): Promise<number> {
+    const maxAttempts: number = 60;
+    const intervalSeconds: number = 5;
+    for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
+      const available: number = await this.findLowestAvailableBlockAbove(blockNodeContainer, floor);
+      if (available >= 0) {
+        return available;
+      }
+      this.logger.info(`Waiting for a block above ${floor} on block node (attempt ${attempt}/${maxAttempts})`);
+      await sleep(Duration.ofSeconds(intervalSeconds));
+    }
+    throw new SoloErrors.system.blockNodeBlocksUnavailable(floor, maxAttempts * intervalSeconds);
   }
 
   /**
@@ -1874,12 +1862,13 @@ export class BackupRestoreCommand extends BaseCommand {
         [applicationPropertiesFileName]: updated,
       });
 
-      const temporaryFile: string = path.join(os.tmpdir(), applicationPropertiesFileName);
-      fs.writeFileSync(temporaryFile, updated);
+      const temporaryDirectory: string = Helpers.getTemporaryDirectory();
       try {
+        const temporaryFile: string = path.join(temporaryDirectory, applicationPropertiesFileName);
+        fs.writeFileSync(temporaryFile, updated);
         await container.copyTo(temporaryFile, targetDirectory);
       } finally {
-        fs.unlinkSync(temporaryFile);
+        fs.rmSync(temporaryDirectory, {recursive: true, force: true});
       }
 
       this.logger.info(`Reset blockStream.writerMode to FILE_AND_GRPC for ${consensusNode.name}`);

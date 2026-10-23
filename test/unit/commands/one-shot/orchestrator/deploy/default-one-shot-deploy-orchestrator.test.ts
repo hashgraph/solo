@@ -760,8 +760,8 @@ describe('DefaultOneShotDeployOrchestrator reconcileEffectiveVersions', (): void
     // reflected in the printed "Versions Used" summary, not just in the actual deployment.
     const orchestrator: DefaultOneShotDeployOrchestrator = makeOrchestrator();
     const config: OneShotSingleDeployConfigClass = makeConfig({
-      networkConfiguration: {[releaseTagKey]: 'v0.77.0-rc.2'},
-      setupConfiguration: {[releaseTagKey]: 'v0.77.0-rc.2'},
+      networkConfiguration: {[releaseTagKey]: 'v0.77.2'},
+      setupConfiguration: {[releaseTagKey]: 'v0.77.2'},
       versions: {
         soloChart: '0.64.0',
         consensus: 'v0.74.0',
@@ -775,7 +775,7 @@ describe('DefaultOneShotDeployOrchestrator reconcileEffectiveVersions', (): void
     // @ts-expect-error - to access private method
     orchestrator.reconcileEffectiveVersions(config);
 
-    expect(config.versions.consensus).to.equal('v0.77.0-rc.2');
+    expect(config.versions.consensus).to.equal('v0.77.2');
   });
 
   it('reflects per-component version overrides for block, mirror, explorer, and relay nodes', (): void => {
@@ -875,5 +875,55 @@ describe('DefaultOneShotDeployOrchestrator applyValuesFileOverrides', (): void =
     expect(config.blockNodeConfiguration).to.deep.equal({});
     expect(config.explorerNodeConfiguration).to.deep.equal({});
     expect(config.relayNodeConfiguration).to.deep.equal({});
+  });
+
+  it('loads the command-line profile and resolves its nested network values file', (): void => {
+    const valuesFile: string = PathEx.resolve('test/fixtures/one-shot-falcon/silo-values.yaml');
+    const config: OneShotSingleDeployConfigClass = makeConfig({valuesFile});
+
+    invokeApplyValuesFileOverrides(config);
+
+    expect(config.valuesFile).to.equal(PathEx.resolve(valuesFile));
+    expect(config.networkConfiguration).to.deep.equal({
+      [Flags.getFormattedFlagKey(Flags.valuesFile)]: PathEx.resolve(
+        'test/fixtures/one-shot-falcon/silo-helm-values.yaml',
+      ),
+    });
+  });
+
+  it('merges profile values over existing defaults and preserves unspecified values', (): void => {
+    const nestedValuesFile: string = PathEx.resolve('test/fixtures/one-shot-falcon/silo-helm-values.yaml');
+    const valuesFile: string = writeValuesFile(
+      `network:\n  --values-file: ${nestedValuesFile}\n  --application-env: custom.env\n`,
+    );
+    const releaseTagKey: string = Flags.getFormattedFlagKey(Flags.releaseTag);
+    const valuesFileKey: string = Flags.getFormattedFlagKey(Flags.valuesFile);
+    const config: OneShotSingleDeployConfigClass = makeConfig({
+      valuesFile,
+      networkConfiguration: {
+        [releaseTagKey]: 'v0.84.1',
+        [valuesFileKey]: 'default-values.yaml',
+      },
+    });
+
+    invokeApplyValuesFileOverrides(config);
+
+    expect(config.networkConfiguration[releaseTagKey]).to.equal('v0.84.1');
+    expect(config.networkConfiguration[valuesFileKey]).to.equal(nestedValuesFile);
+    expect(config.networkConfiguration[Flags.getFormattedFlagKey(Flags.applicationEnv)]).to.equal('custom.env');
+  });
+
+  // Covers the real on-disk layout: the Falcon example's nested --values-file is a bare filename
+  // resolved next to falcon-values.yaml, not relative to the process cwd (npm run-script executes
+  // with cwd set to the package root, not the caller's directory).
+  it('propagates the nested values file using the real one-shot Falcon example layout', (): void => {
+    const examplePath: string = PathEx.resolve('examples/one-shot-falcon/falcon-values.yaml');
+    const config: OneShotSingleDeployConfigClass = makeConfig({valuesFile: examplePath});
+
+    invokeApplyValuesFileOverrides(config);
+
+    expect(config.networkConfiguration[Flags.getFormattedFlagKey(Flags.valuesFile)]).to.equal(
+      PathEx.resolve('examples/one-shot-falcon/silo-helm-values.yaml'),
+    );
   });
 });

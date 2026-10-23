@@ -4,6 +4,7 @@ import {SoloErrors} from '../core/errors/solo-errors.js';
 import {Listr} from 'listr2';
 import {parseNodeAliases, showVersionBanner, sleep} from '../core/helpers.js';
 import * as constants from '../core/constants.js';
+import {UserInput} from '../core/user-input.js';
 import {type AccountManager} from '../core/account-manager.js';
 import {BaseCommand} from './base.js';
 import {Flags as flags} from './flags.js';
@@ -105,6 +106,7 @@ interface RelayDeployConfigClass {
   mirrorNodeId: ComponentId;
   mirrorNamespace: NamespaceNameAsString;
   mirrorNodeReleaseName: string;
+  mirrorNodeIngressControllerName: string;
   isMirrorNodeLegacyChartInstalled: boolean;
 }
 
@@ -144,6 +146,7 @@ interface RelayUpgradeConfigClass {
   mirrorNodeId: ComponentId;
   mirrorNamespace: NamespaceNameAsString;
   mirrorNodeReleaseName: string;
+  mirrorNodeIngressControllerName: string;
   isMirrorNodeLegacyChartInstalled: boolean;
 }
 
@@ -280,10 +283,14 @@ export class RelayCommand extends BaseCommand {
       deployment,
       mirrorNamespace,
       mirrorNodeReleaseName,
+      mirrorNodeIngressControllerName,
     }: RelayDeployConfigClass | RelayUpgradeConfigClass = config;
     let relayReleaseTag: string = config.relayReleaseTag;
 
-    const mirrorNodeUrl: string = Templates.renderMirrorNodeIngressControllerUrl(mirrorNamespace);
+    const mirrorNodeUrl: string = Templates.renderMirrorNodeIngressControllerUrl(
+      mirrorNamespace,
+      mirrorNodeIngressControllerName,
+    );
     const mirrorNodeWeb3Url: string = Templates.renderMirrorNodeWeb3ServiceUrl(mirrorNodeReleaseName, mirrorNamespace);
 
     const chartValues: HelmChartValues = new HelmChartValues()
@@ -354,7 +361,7 @@ export class RelayCommand extends BaseCommand {
     if (domainName) {
       chartValues
         .set('relay.ingress.enabled', true)
-        .set('relay.ingress.hosts[0].host', domainName)
+        .set('relay.ingress.hosts[0].host', UserInput.escapeHelmTemplate(domainName))
         .set('relay.ingress.hosts[0].paths[0].path', '/')
         .set('relay.ingress.hosts[0].paths[0].pathType', 'ImplementationSpecific');
     }
@@ -770,14 +777,13 @@ export class RelayCommand extends BaseCommand {
                 Templates.nodeIdFromNodeAlias(nodeAlias),
               );
 
-              const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName} = await this.inferMirrorNodeData(
-                config.namespace,
-                config.context,
-              );
+              const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName, mirrorNodeIngressControllerName} =
+                await this.inferMirrorNodeData(config.namespace, config.context);
 
               config.mirrorNodeId = mirrorNodeId;
               config.mirrorNamespace = mirrorNamespace;
               config.mirrorNodeReleaseName = mirrorNodeReleaseName;
+              config.mirrorNodeIngressControllerName = mirrorNodeIngressControllerName;
 
               config.newRelayComponent = this.componentFactory.createNewRelayComponent(
                 config.clusterRef,
@@ -902,14 +908,13 @@ export class RelayCommand extends BaseCommand {
               config.releaseName = releaseName;
               config.nodeAliases = nodeAliases;
 
-              const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName} = await this.inferMirrorNodeData(
-                config.namespace,
-                config.context,
-              );
+              const {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName, mirrorNodeIngressControllerName} =
+                await this.inferMirrorNodeData(config.namespace, config.context);
 
               config.mirrorNodeId = mirrorNodeId;
               config.mirrorNamespace = mirrorNamespace;
               config.mirrorNodeReleaseName = mirrorNodeReleaseName;
+              config.mirrorNodeIngressControllerName = mirrorNodeIngressControllerName;
 
               const currentRelayVersion: SemanticVersion<string> = this.remoteConfig.getComponentVersion(
                 ComponentTypes.RelayNodes,

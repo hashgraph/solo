@@ -40,6 +40,10 @@ export class SoloPinoLogger implements SoloLogger {
   // Streams that pino.multistream writes to when file rotation is active; flush() ends them to
   // drain their asynchronous buffers to disk before the process exits. Empty on the CI path.
   private readonly rotatingStreams: Writable[] = [];
+  // The underlying rotating-file destinations behind the streams above. A pino-pretty transform
+  // closes as soon as its own side ends, while its destination is still writing and closing its
+  // file descriptor, so flush() waits on these to know every record actually reached disk.
+  private readonly rotatingDestinations: Writable[] = [];
   private readonly MINOR_LINE_SEPARATOR: string =
     '-------------------------------------------------------------------------------';
 
@@ -188,8 +192,10 @@ export class SoloPinoLogger implements SoloLogger {
       // listeners such a failure surfaces asynchronously as an unactionable internal error.
       SoloPinoLogger.reportStreamFailures(ndjsonStream, PathEx.join(logsDirectory, ndjsonFileName));
       SoloPinoLogger.reportStreamFailures(prettyDestination, PathEx.join(logsDirectory, prettyFileName));
-      // Track the streams multistream writes to so flush() can drain them before the process exits.
+      // Track the streams multistream writes to so flush() can drain them before the process exits,
+      // and their file-backed destinations so flush() can wait until those writes land on disk.
       this.rotatingStreams.push(ndjsonStream, prettyStream);
+      this.rotatingDestinations.push(ndjsonStream, prettyDestination);
       this.pinoLogger = pino(
         baseOptions,
         pino.multistream([
@@ -643,10 +649,12 @@ export class SoloPinoLogger implements SoloLogger {
     }
 
     // pino.multistream exposes no flush(), and rotating-file-stream writes asynchronously. Ending each
-    // stream drains its buffer to disk (the pretty stream flushes through to, and closes, its rotating
-    // destination). Wait for every stream to close before invoking the callback, with a safety timeout
-    // so the CLI can never hang on exit if a 'close' event is missed.
-    let pending: number = this.rotatingStreams.length;
+    // stream drains its buffer through to its file-backed destination. Wait on the destinations rather
+    // than the streams: a pino-pretty transform emits 'close' as soon as its own side ends, while the
+    // rotating destination behind it is still writing and has yet to close its file descriptor, so
+    // waiting on the transform lets the caller exit with the tail of solo.log still unwritten. A safety
+    // timeout keeps the CLI from hanging on exit if a 'close' event is never emitted.
+    let pending: number = this.rotatingDestinations.length;
     let settled: boolean = false;
     const settle: () => void = (): void => {
       if (settled) {
@@ -655,17 +663,19 @@ export class SoloPinoLogger implements SoloLogger {
       settled = true;
       callback();
     };
-    const onStreamClosed: () => void = (): void => {
+    const onDestinationClosed: () => void = (): void => {
       pending -= 1;
       if (pending === 0) {
         settle();
       }
     };
     // unref() so the timer alone never keeps the process alive; the settled guard prevents a
-    // double callback if a stream closes after the timeout has already fired.
+    // double callback if a destination closes after the timeout has already fired.
     setTimeout(settle, 2000).unref();
+    for (const destination of this.rotatingDestinations) {
+      destination.once('close', onDestinationClosed);
+    }
     for (const stream of this.rotatingStreams) {
-      stream.once('close', onStreamClosed);
       stream.end();
     }
   }

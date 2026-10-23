@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
+import {MirrorNodeResourceNames} from '../core/mirror-node-resource-names.js';
 import {SoloErrors} from '../core/errors/solo-errors.js';
 import {SoloError} from '../core/errors/solo-error.js';
 import {ShellRunner} from '../core/shell-runner.js';
@@ -326,14 +327,17 @@ export abstract class BaseCommand extends ShellRunner {
   }
 
   protected validateComponentImageArchive(
-    componentImage: Optional<string>,
+    componentImage: Optional<string | string[]>,
     componentImageArchive: Optional<string>,
   ): void {
     if (!this.hasComponentImageArchiveValue(componentImageArchive)) {
       return;
     }
 
-    if (!componentImage?.trim()) {
+    const expectedImages: string[] = (Array.isArray(componentImage) ? componentImage : [componentImage]).filter(
+      (image: Optional<string>): boolean => Boolean(image?.trim()),
+    );
+    if (expectedImages.length === 0) {
       throw new SoloErrors.validation.illegalArgument(
         `--${flags.componentImageArchive.name} requires --${flags.componentImage.name} to identify the image in the archive.`,
         componentImageArchive,
@@ -345,8 +349,10 @@ export abstract class BaseCommand extends ShellRunner {
     }
 
     const repoTags: Optional<string[]> = this.readComponentImageArchiveRepoTags(componentImageArchive);
-    if (repoTags !== undefined && !repoTags.includes(componentImage)) {
-      throw new SoloErrors.validation.componentImageArchiveTagMismatch(componentImage, componentImageArchive, repoTags);
+    const missingImages: string[] =
+      repoTags === undefined ? [] : expectedImages.filter((image: string): boolean => !repoTags.includes(image));
+    if (missingImages.length > 0) {
+      throw new SoloErrors.validation.componentImageArchiveTagMismatch(missingImages, componentImageArchive, repoTags);
     }
   }
 
@@ -532,6 +538,39 @@ export abstract class BaseCommand extends ShellRunner {
     }
   }
 
+  /**
+   * Trigger a Deployment rollout by patching a restart annotation onto its pod template.
+   * This avoids delete/recreate and keeps restart behavior explicit; it is used whenever a
+   * Deployment's ConfigMap-backed configuration may have changed but the pod template itself
+   * was left byte-identical by Helm, so Kubernetes would otherwise never recreate the pod.
+   */
+  protected async patchDeploymentRestartAnnotation(
+    context: Context,
+    namespace: NamespaceName,
+    deploymentName: string,
+  ): Promise<void> {
+    await this.k8Factory
+      .getK8(context)
+      .manifests()
+      .patchObject({
+        apiVersion: 'apps/v1',
+        kind: 'Deployment',
+        metadata: {
+          name: deploymentName,
+          namespace: namespace.name,
+        },
+        spec: {
+          template: {
+            metadata: {
+              annotations: {
+                'solo.hedera.com/restartedAt': new Date().toISOString(),
+              },
+            },
+          },
+        },
+      });
+  }
+
   private inferMirrorNodeDataFromRemoteConfig(namespace: NamespaceName): {
     mirrorNodeId: ComponentId;
     mirrorNamespace: NamespaceNameAsString;
@@ -560,12 +599,41 @@ export abstract class BaseCommand extends ShellRunner {
     mirrorNodeId: ComponentId;
     mirrorNamespace: NamespaceNameAsString;
     mirrorNodeReleaseName: string;
+    mirrorNodeIngressControllerName: string;
   }> {
     const {mirrorNodeId, mirrorNamespace} = this.inferMirrorNodeDataFromRemoteConfig(namespace);
 
     const mirrorNodeReleaseName: string = await this.inferMirrorNodeReleaseName(mirrorNodeId, mirrorNamespace, context);
 
-    return {mirrorNodeId, mirrorNamespace, mirrorNodeReleaseName};
+    const mirrorNodeResourceNames: MirrorNodeResourceNames = await MirrorNodeResourceNames.resolveExisting(
+      this.k8Factory.getK8(this.resolveMirrorNodeContext(mirrorNodeId, context)),
+      NamespaceName.of(mirrorNamespace),
+      mirrorNodeId,
+    );
+
+    return {
+      mirrorNodeId,
+      mirrorNamespace,
+      mirrorNodeReleaseName,
+      mirrorNodeIngressControllerName: mirrorNodeResourceNames.ingressControllerName(mirrorNamespace),
+    };
+  }
+
+  /** The kube context of the cluster the mirror node runs in, falling back to the given context. */
+  private resolveMirrorNodeContext(mirrorNodeId: ComponentId, context: Context): Context {
+    try {
+      const mirrorNodeComponent: BaseStateSchema = this.remoteConfig.configuration.components.getComponentById(
+        ComponentTypes.MirrorNode,
+        mirrorNodeId,
+      );
+
+      if (mirrorNodeComponent) {
+        return this.getClusterContext(mirrorNodeComponent.metadata.cluster);
+      }
+    } catch {
+      // best-effort: the mirror node may not be in remote config, so keep the given context
+    }
+    return context;
   }
 
   private async inferMirrorNodeReleaseName(
@@ -577,19 +645,7 @@ export abstract class BaseCommand extends ShellRunner {
       return Templates.renderMirrorNodeName(mirrorNodeId);
     }
 
-    // Try to get the component and use the precise cluster context
-    try {
-      const mirrorNodeComponent: BaseStateSchema = this.remoteConfig.configuration.components.getComponentById(
-        ComponentTypes.MirrorNode,
-        mirrorNodeId,
-      );
-
-      if (mirrorNodeComponent) {
-        context = this.getClusterContext(mirrorNodeComponent.metadata.cluster);
-      }
-    } catch {
-      // Guard
-    }
+    context = this.resolveMirrorNodeContext(mirrorNodeId, context);
 
     const isLegacyChartInstalled: boolean = await this.chartManager.isChartInstalled(
       NamespaceName.of(mirrorNodeNamespace),

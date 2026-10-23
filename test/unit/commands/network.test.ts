@@ -4,7 +4,7 @@ import sinon, {type SinonSpyCall, type SinonStub} from 'sinon';
 import {before, beforeEach, describe, it} from 'mocha';
 import {expect} from 'chai';
 
-import {getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../test-utility.js';
+import {getTestCluster, HEDERA_PLATFORM_VERSION_TAG} from '../../e2e/test-utility.js';
 import {Flags as flags} from '../../../src/commands/flags.js';
 import * as version from '../../../version.js';
 import * as constants from '../../../src/core/constants.js';
@@ -34,6 +34,8 @@ import {PathEx} from '../../../src/business/utils/path-ex.js';
 import {type CertificateManager} from '../../../src/core/certificate-manager.js';
 import {type PlatformInstaller} from '../../../src/core/platform-installer.js';
 import fs from 'node:fs';
+import * as os from 'node:os';
+import {FilePermissions} from '../../../src/business/utils/file-permissions.js';
 import {type InstanceOverrides} from '../../../src/core/dependency-injection/container-init.js';
 import {ValueContainer} from '../../../src/core/dependency-injection/value-container.js';
 import {type LocalConfigRuntimeState} from '../../../src/business/runtime-state/config/local/local-config-runtime-state.js';
@@ -62,6 +64,16 @@ argv.setArg(flags.chartDirectory, undefined);
 if (new SemanticVersion<string>(version.HEDERA_PLATFORM_VERSION).lessThan('v0.61.0')) {
   argv.setArg(flags.releaseTag, 'v0.61.0');
 }
+
+// Typed view over the private cache writer, so the tests exercise the real implementation.
+const writeCacheFile: (destinationPath: string, content: string) => void = (
+  NetworkCommand as unknown as {writeCacheFile: (destinationPath: string, content: string) => void}
+).writeCacheFile;
+
+// Typed view over the private CRD validator, exercised directly so nothing has to hit the network.
+const validatePodLogsCrdYaml: (sourceUrl: string, crdYaml: string) => void = (
+  NetworkCommand as unknown as {validatePodLogsCrdYaml: (sourceUrl: string, crdYaml: string) => void}
+).validatePodLogsCrdYaml;
 
 describe('NetworkCommand unit tests', (): void => {
   before(async (): Promise<void> => {
@@ -230,6 +242,7 @@ describe('NetworkCommand unit tests', (): void => {
       options.remoteConfig.persist = sinon.stub();
       options.remoteConfig.loadAndValidate = sinon.stub();
       options.remoteConfig.getNamespace = sinon.stub();
+      options.remoteConfig.getComponentPhasesMap = sinon.stub().returns(new Map());
 
       options.remoteConfig.configuration = {
         components: {changeNodePhase: sinon.stub(), getNewComponentId: sinon.stub(), addNewComponent: sinon.stub()},
@@ -634,6 +647,277 @@ describe('NetworkCommand unit tests', (): void => {
       }
     });
 
+    it('keeps MinIO enabled for CN 0.74+ with block nodes when a values file explicitly sets cloud.minio.enabled: true, but keeps uploaders disabled in BLOCKS mode', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const temporaryFile: string = PathEx.join(os.tmpdir(), `cloud-minio-${Date.now()}.yaml`);
+      fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: true\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, temporaryFile);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(true);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=true');
+        expect(chartValueArguments).to.not.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(temporaryFile)) {
+          fs.unlinkSync(temporaryFile);
+        }
+        sinon.restore();
+      }
+    });
+
+    it('disables MinIO for CN 0.74+ with block nodes when a values file has only minio-server overrides', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const temporaryFile: string = PathEx.join(os.tmpdir(), `silo-minio-${Date.now()}.yaml`);
+      fs.writeFileSync(temporaryFile, 'minio-server:\n  tenant:\n    buckets:\n      - name: falcon-bucket\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, temporaryFile);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(false);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(temporaryFile)) {
+          fs.unlinkSync(temporaryFile);
+        }
+        sinon.restore();
+      }
+    });
+
+    it('disables MinIO for CN 0.74+ with block nodes when a values file has only non-MinIO configuration', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const temporaryFile: string = PathEx.join(os.tmpdir(), `non-minio-${Date.now()}.yaml`);
+      fs.writeFileSync(temporaryFile, 'hedera:\n  nodes:\n    - name: node1\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, temporaryFile);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(false);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(temporaryFile)) {
+          fs.unlinkSync(temporaryFile);
+        }
+        sinon.restore();
+      }
+    });
+
+    it('disables MinIO for CN 0.74+ with block nodes when multiple values files are provided and the last defined value is cloud.minio.enabled: false', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const fileTrue: string = PathEx.join(os.tmpdir(), `cloud-minio-true-${Date.now()}.yaml`);
+      const fileFalse: string = PathEx.join(os.tmpdir(), `cloud-minio-false-${Date.now()}.yaml`);
+      fs.writeFileSync(fileTrue, 'cloud:\n  minio:\n    enabled: true\n');
+      fs.writeFileSync(fileFalse, 'cloud:\n  minio:\n    enabled: false\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, `${fileTrue},${fileFalse}`);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(false);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(fileTrue)) {
+          fs.unlinkSync(fileTrue);
+        }
+        if (fs.existsSync(fileFalse)) {
+          fs.unlinkSync(fileFalse);
+        }
+        sinon.restore();
+      }
+    });
+
+    it('keeps MinIO enabled for CN 0.74+ with block nodes when multiple values files are provided and the last defined value is cloud.minio.enabled: true', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalValuesFile: string = argv.getArg<string>(flags.valuesFile);
+      const fileFalse: string = PathEx.join(os.tmpdir(), `cloud-minio-false-${Date.now()}.yaml`);
+      const fileTrue: string = PathEx.join(os.tmpdir(), `cloud-minio-true-${Date.now()}.yaml`);
+      fs.writeFileSync(fileFalse, 'cloud:\n  minio:\n    enabled: false\n');
+      fs.writeFileSync(fileTrue, 'cloud:\n  minio:\n    enabled: true\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.valuesFile, `${fileFalse},${fileTrue}`);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(true);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=true');
+        expect(chartValueArguments).to.not.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.valuesFile, originalValuesFile);
+        if (fs.existsSync(fileFalse)) {
+          fs.unlinkSync(fileFalse);
+        }
+        if (fs.existsSync(fileTrue)) {
+          fs.unlinkSync(fileTrue);
+        }
+        sinon.restore();
+      }
+    });
+
+    it('keeps MinIO enabled for CN 0.74+ with block nodes when networkDeploymentValuesFile defines cloud.minio.enabled: true', async (): Promise<void> => {
+      const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
+      const originalNetworkDeploymentValuesFile: string = argv.getArg<string>(flags.networkDeploymentValuesFile);
+      const temporaryFile: string = PathEx.join(os.tmpdir(), `network-deploy-minio-${Date.now()}.yaml`);
+      fs.writeFileSync(temporaryFile, 'cloud:\n  minio:\n    enabled: true\n');
+
+      try {
+        argv.setArg(flags.consensusNodeVersion, 'v0.74.0');
+        argv.setArg(flags.networkDeploymentValuesFile, temporaryFile);
+
+        const task: SinonStub = sinon.stub();
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'cluster', 'context-1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context-1']);
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map<string, string>([['cluster', 'context1']]));
+
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // @ts-expect-error - to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([{}]);
+        networkCommand.configManager.update(argv.build());
+
+        // @ts-expect-error - to access private method
+        const config: NetworkDeployConfigClass = await networkCommand.prepareConfig(task, argv.build());
+        const chartValueArguments: string[] = config.chartValuesMap['cluster'].toArguments();
+
+        expect(config.minioEnabled).to.equal(true);
+        expect(chartValueArguments).to.include('cloud.minio.enabled=true');
+        expect(chartValueArguments).to.not.include('cloud.minio.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.recordStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.eventStreamUploader.enabled=false');
+        expect(chartValueArguments).to.include('defaults.sidecars.blockstreamUploader.enabled=false');
+      } finally {
+        argv.setArg(flags.consensusNodeVersion, originalConsensusNodeVersion);
+        argv.setArg(flags.networkDeploymentValuesFile, originalNetworkDeploymentValuesFile);
+        if (fs.existsSync(temporaryFile)) {
+          fs.unlinkSync(temporaryFile);
+        }
+        sinon.restore();
+      }
+    });
+
     it('keeps MinIO enabled for CN 0.74+ with block nodes when TSS is disabled', async (): Promise<void> => {
       const originalConsensusNodeVersion: string = argv.getArg<string>(flags.consensusNodeVersion);
       const originalTssEnabled: boolean = argv.getArg<boolean>(flags.tssEnabled);
@@ -712,6 +996,139 @@ describe('NetworkCommand unit tests', (): void => {
         }
         sinon.restore();
       }
+    });
+
+    describe('ensurePodLogsCrd cached-file error wrapping', (): void => {
+      // #5302: a cache file an older solo left unreadable must surface as CachedFileInaccessibleSoloError,
+      // with repair steps, rather than the bare EACCES/EPERM that removing it under the hood raises.
+      it('wraps a failure to remove an unreadable cache file', async (): Promise<void> => {
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        // The PodLogs CRD itself must look missing so ensurePodLogsCrd attempts to (re)install it
+        // instead of short-circuiting on the happy path exercised by the tests above.
+        options.k8Factory.getK8().crds = sinon.stub().returns({readLabels: sinon.stub().resolves()});
+        sinon.stub(FilePermissions, 'isReadable').returns(false);
+        sinon.stub(fs, 'rmSync').throws(Object.assign(new Error('access denied'), {code: 'EACCES'}));
+
+        const config: NetworkDeployConfigClass = {contexts: ['context-1']} as unknown as NetworkDeployConfigClass;
+
+        await expect(
+          // @ts-expect-error - to access private method
+          networkCommand.ensurePodLogsCrd(config),
+        )
+          .to.be.rejectedWith(/Cached file is not accessible/)
+          .and.eventually.have.property('code', 'SOLO-5089');
+      });
+
+      // The same cache file surfaces its inaccessibility at apply time instead, when the readability probe
+      // and the removal it would gate both happen to succeed but the file still cannot be used by kubectl.
+      it('wraps an EPERM from applying the cached manifest', async (): Promise<void> => {
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+        options.k8Factory.getK8().crds = sinon.stub().returns({readLabels: sinon.stub().resolves()});
+        sinon.stub(FilePermissions, 'isReadable').returns(true);
+        options.k8Factory.getK8().manifests = sinon.stub().returns({
+          applyManifest: sinon.stub().rejects(Object.assign(new Error('operation not permitted'), {code: 'EPERM'})),
+        });
+
+        const config: NetworkDeployConfigClass = {contexts: ['context-1']} as unknown as NetworkDeployConfigClass;
+
+        await expect(
+          // @ts-expect-error - to access private method
+          networkCommand.ensurePodLogsCrd(config),
+        )
+          .to.be.rejectedWith(/Cached file is not accessible/)
+          .and.eventually.have.property('code', 'SOLO-5089');
+      });
+    });
+  });
+  // #5302: a cache file left unreadable by an older solo still satisfies existsSync, so the deploy would
+  // reuse it and fail at apply time. writeCacheFile is the replacement path; it stages the content under a
+  // unique name and renames it into place, so nothing tests the destination before writing to it.
+  describe('writeCacheFile', (): void => {
+    // chmod does not deny the owner on Windows, and root ignores mode bits, so the poisoned case can only
+    // be staged as an unprivileged POSIX user.
+    const canDenyReads: boolean = process.platform !== 'win32' && process.getuid?.() !== 0;
+    let cacheRoot: string;
+    let cachedFile: string;
+
+    beforeEach((): void => {
+      cacheRoot = fs.mkdtempSync(PathEx.join(os.tmpdir(), 'network-cache-'));
+      cachedFile = PathEx.join(cacheRoot, 'podlogs-crd-v1.11.3.yaml');
+    });
+
+    afterEach((): void => {
+      fs.rmSync(cacheRoot, {recursive: true, force: true});
+    });
+
+    it('writes the content and leaves no staging file behind', (): void => {
+      writeCacheFile(cachedFile, 'kind: CustomResourceDefinition\n');
+
+      expect(fs.readFileSync(cachedFile, 'utf8')).to.equal('kind: CustomResourceDefinition\n');
+      expect(fs.readdirSync(cacheRoot).filter((entry: string): boolean => entry.includes('partial'))).to.be.empty;
+    });
+
+    it('replaces an existing cache file rather than checking it first', (): void => {
+      fs.writeFileSync(cachedFile, 'stale content');
+
+      writeCacheFile(cachedFile, 'fresh content');
+
+      expect(fs.readFileSync(cachedFile, 'utf8')).to.equal('fresh content');
+    });
+
+    (canDenyReads ? it : it.skip)('recovers a cache file that can no longer be read', (): void => {
+      fs.writeFileSync(cachedFile, 'poisoned by an older solo');
+      fs.chmodSync(cachedFile, 0o000);
+
+      // The reuse decision the deploy makes: unreadable means discard and re-create.
+      expect(FilePermissions.isReadable(cachedFile), 'the poisoned file must not look reusable').to.be.false;
+      fs.rmSync(cachedFile, {force: true});
+      writeCacheFile(cachedFile, 'kind: CustomResourceDefinition\n');
+
+      expect(FilePermissions.isReadable(cachedFile)).to.be.true;
+      expect(fs.readFileSync(cachedFile, 'utf8')).to.equal('kind: CustomResourceDefinition\n');
+    });
+  });
+
+  // #5302 follow-up: the response fed to writeCacheFile comes from a network fetch, so a proxy error
+  // page or an upstream file move must not be cached and applied. Shape check the payload first.
+  describe('validatePodLogsCrdYaml', (): void => {
+    const sourceUrl: string = 'https://example.invalid/podlogs.yaml';
+
+    const validCrd: string = [
+      'apiVersion: apiextensions.k8s.io/v1',
+      'kind: CustomResourceDefinition',
+      'metadata:',
+      '  name: podlogs.monitoring.grafana.com',
+      'spec: {}',
+      '',
+    ].join('\n');
+
+    it('accepts the pinned PodLogs CRD', (): void => {
+      expect((): void => validatePodLogsCrdYaml(sourceUrl, validCrd)).to.not.throw();
+    });
+
+    it('rejects a wrong kind', (): void => {
+      const wrongKind: string = validCrd.replace('CustomResourceDefinition', 'ConfigMap');
+
+      expect((): void => validatePodLogsCrdYaml(sourceUrl, wrongKind))
+        .to.throw()
+        .with.property('code', 'SOLO-5090');
+    });
+
+    it('rejects a wrong metadata.name', (): void => {
+      const wrongName: string = validCrd.replace(
+        'podlogs.monitoring.grafana.com',
+        'something-else.monitoring.grafana.com',
+      );
+
+      expect((): void => validatePodLogsCrdYaml(sourceUrl, wrongName))
+        .to.throw()
+        .with.property('code', 'SOLO-5090');
+    });
+
+    it('rejects malformed YAML', (): void => {
+      expect((): void => validatePodLogsCrdYaml(sourceUrl, ':::not-yaml:::\n  - [unterminated'))
+        .to.throw()
+        .with.property('code', 'SOLO-5090');
     });
   });
 });

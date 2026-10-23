@@ -61,7 +61,9 @@ on:
       - main
       - 'release/*'
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  # Called workflows inherit the caller's workflow name and run ID. Include this workflow's
+  # identity so it does not compete with other reusable jobs in Nightly Extended Tests.
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-performance-test
   cancel-in-progress: true
 
 defaults:
@@ -87,7 +89,7 @@ jobs:
     runs-on: hiero-solo-linux-large
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           egress-policy: audit
@@ -112,7 +114,7 @@ jobs:
       # (issue #5957): no release artifact is produced here, so the impact is a corrupted
       # performance run rather than anything shipped.
       - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0 # zizmor: ignore[cache-poisoning]
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.0.0 # zizmor: ignore[cache-poisoning]
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           node-version: 24
@@ -177,6 +179,7 @@ jobs:
           export PATH=~/.solo/bin:${PATH}
           echo SOLO_TEST_CLUSTER=solo-e2e > .env
           echo ONE_SHOT_WITH_BLOCK_NODE=true >> .env
+          echo BLOCK_STREAM_STREAM_MODE=BLOCKS >> .env
           CN_EDGE_VERSION="${CN_EDGE_VERSION_INPUT}"
           if [[ -n "${CN_EDGE_VERSION}" ]]; then
             echo "Using consensus node edge version: ${CN_EDGE_VERSION}"
@@ -196,7 +199,11 @@ jobs:
           fi
           echo MIRROR_NODE_PINGER_TPS=10 >> .env
           echo ONE_SHOT_METRICS_TEST_DURATION_IN_MINUTES=5 >> .env
-          echo ONE_SHOT_BLOCK_NODE_PERF=false >> .env
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            echo PERFORMANCE_TEST_CONCISE_MODE=true >> .env
+          else
+            echo PERFORMANCE_TEST_CONCISE_MODE=false >> .env
+          fi
           cat .env
 
           # Start resource monitoring in background (30s interval for finer granularity)
@@ -523,7 +530,7 @@ jobs:
 
       - name: Upload E2E Logs to GitHub
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: solo-performance-test.log
@@ -533,7 +540,7 @@ jobs:
 
       - name: Upload Java Flight Recorder Recordings to GitHub
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: solo-performance-test-jfr
@@ -544,7 +551,7 @@ jobs:
       - name: Performance Test Verification
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
-          # ONE_SHOT_BLOCK_NODE_PERF=false: no ring-buffer workaround applied.
+          # The block node messaging workaround was removed — no ring-buffer override applied.
           # RTT probe runs but failures are non-fatal (hiero-block-node#3150) — block-node RSS
           # stays at the ~143 MB baseline.  Measured peak (run 29267777062): 2 331 MiB.
           # 3 000 MB (= 2 331 + 500 margin rounded to nearest 500) leaves headroom for NLG + mirror + kube-system.
@@ -561,53 +568,25 @@ jobs:
             exit 1
           fi
 
-      - name: Build and Start Metrics Plotter tool
+      - name: Build and Start Metrics Plotter Tool
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
           cd ./scripts/metrics-plotter
           npm ci
           npm run build
           mkdir -p ~/.solo/metrics
-          mkdir src/data
           nohup npm start &
           echo $! > /tmp/metrics-plotter.pid
-          mkdir -p ./src/data       
+          mkdir -p ./src/data
           cp ~/.solo/logs/**/timeline-metrics.json ./src/data/timeline.json
 
-      - name: Install Puppeteer / Chrome dependencies
+      - name: Install Puppeteer / Chrome Dependencies
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        # npm ci already downloaded Chrome; --install-deps installs the apt packages listed in its deb.deps
         run: |
+          cd ./scripts/metrics-plotter
           sudo apt-get update
-          sudo apt-get install -y \
-            ca-certificates \
-            fonts-liberation \
-            libasound2 \
-            libatk-bridge2.0-0 \
-            libatk1.0-0 \
-            libatspi2.0-0 \
-            libcairo2 \
-            libdbus-1-3 \
-            libgdk-pixbuf2.0-0 \
-            libglib2.0-0 \
-            libgtk-3-0 \
-            libnspr4 \
-            libnss3 \
-            libx11-6 \
-            libx11-xcb1 \
-            libxcb1 \
-            libxcomposite1 \
-            libxcursor1 \
-            libxdamage1 \
-            libxext6 \
-            libxfixes3 \
-            libxi6 \
-            libxrandr2 \
-            libxrender1 \
-            libxss1 \
-            libxtst6 \
-            lsb-release \
-            xdg-utils \
-            libgbm1
+          sudo env "PATH=${PATH}" HOME="${HOME}" ./node_modules/.bin/puppeteer browsers install chrome --install-deps
 
       - name: Save Screenshots of Metrics Plotter
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
@@ -617,7 +596,7 @@ jobs:
           SCREENSHOT_WIDTH=1920 npm run screenshot -- http://127.0.0.1:8123\?hide-controls=true\&grouped=false\&data=timeline ~/.solo/metrics/chart.png
           cp ./src/data/timeline.json ~/.solo/metrics/timeline-metrics.json
 
-      - name: Stop Metrics Plotter tool
+      - name: Stop Metrics Plotter Tool
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         run: |
           if [ -f /tmp/metrics-plotter.pid ]; then
@@ -626,7 +605,7 @@ jobs:
           fi
 
       - name: Upload Metrics Data and Chart to GitHub
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
         with:
           name: solo-performance-chart

@@ -49,6 +49,57 @@ function setup_smart_contract_test ()
 }
 
 
+# Dump local socket state for the port-forwarded endpoints so a hung client connection (e.g. a stalled
+# kubectl port-forward stream) can be told apart from a client-side hang when a test times out.
+function dump_socket_state ()
+{
+  local reason="${1:-requested}"
+  printf "\r::group::Socket state (ss -tn) at %s: %s\n" "$(date -u +%H:%M:%S)" "${reason}"
+  if command -v ss > /dev/null 2>&1; then
+    # unfiltered with owning process, timers and last send/receive ages: the loopback side of a port-forward
+    # alone looks identical for a stuck request and an idle connection
+    ss -tnpio || true
+  else
+    echo "ss is not available on this runner"
+  fi
+  ps -ef | grep "[p]ort-forward" || true
+  printf "\r::endgroup::\n"
+}
+
+# The hung client prints nothing while it waits for a lost response, and mocha only reports the failure after the
+# 360s test timeout, by which time the socket state has already recovered. Watch the test output instead: when it
+# has not grown for CONTRACT_TEST_IDLE_SECONDS, capture the socket state mid-stall, plus a probe over a fresh
+# connection to the relay. A fresh connection that answers while the old one hangs points at a stuck stream in the
+# kubectl port-forward rather than at the relay. Re-dump at each further idle interval to compare snapshots.
+function watch_contract_test_idle ()
+{
+  local output_file="$1"
+  local idle_seconds="${CONTRACT_TEST_IDLE_SECONDS:-60}"
+  local last_size=-1
+  local size=0
+  local idle_since=${SECONDS}
+  local relay_probe=""
+
+  while true; do
+    sleep 5
+    size=$(wc -c < "${output_file}" 2> /dev/null || echo 0)
+    if [[ "${size}" -ne "${last_size}" ]]; then
+      last_size=${size}
+      idle_since=${SECONDS}
+      continue
+    fi
+
+    if (( SECONDS - idle_since >= idle_seconds )); then
+      relay_probe=$(curl -sS -m 10 -H 'content-type: application/json' \
+        --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' \
+        http://127.0.0.1:37546 2>&1 || true)
+      echo "Relay probe over a fresh connection after ${idle_seconds}s without test output: ${relay_probe}"
+      dump_socket_state "no smart contract test output for $(( SECONDS - idle_since ))s"
+      idle_since=${SECONDS}
+    fi
+  done
+}
+
 function start_contract_test ()
 {
   cd hedera-smart-contracts
@@ -56,7 +107,20 @@ function start_contract_test ()
   ps -ef | grep port-forward
   echo "Run smart contract test"
   result=0
-  npm run hh:test || result=$?
+  local test_output
+  test_output=$(mktemp)
+  if [[ "$OSTYPE" == "linux-gnu"* ]] && ! command -v ss > /dev/null 2>&1; then
+    { sudo apt-get update -qq && sudo apt-get install -y -qq iproute2; } > /dev/null 2>&1 || true
+  fi
+  watch_contract_test_idle "${test_output}" &
+  local watcher_pid=$!
+  npm run hh:test 2>&1 | tee "${test_output}" || result=$?
+  kill "${watcher_pid}" 2> /dev/null || true
+  wait "${watcher_pid}" 2> /dev/null || true
+  if [[ $result -ne 0 ]] && grep -q 'Timeout of' "${test_output}"; then
+    dump_socket_state "smart contract test timed out (final state)"
+  fi
+  rm -f "${test_output}"
   cd -
 
   if [[ "$OSTYPE" == "linux-gnu"* ]]; then
