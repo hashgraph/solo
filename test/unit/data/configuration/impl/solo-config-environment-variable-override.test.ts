@@ -226,4 +226,44 @@ describe('EnvironmentConfigSource + SoloConfigSchema – end-to-end override', (
       },
     ),
   );
+
+  it(
+    'SOLO_BLOCK-NODE-HELM-CHART_DIRECTORY overrides blockNodeHelmChart.directory',
+    withEnvironment({'SOLO_BLOCK-NODE-HELM-CHART_DIRECTORY': '/tmp/blockNodeHelmChart'}, async (): Promise<void> => {
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+      await source.load();
+      const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
+      expect(schema?.blockNodeHelmChart?.directory).to.equal('/tmp/blockNodeHelmChart');
+    }),
+  );
+
+  it(
+    'SOLO_EXPLORER-HELM-CHART_DIRECTORY overrides explorerHelmChart.directory',
+    withEnvironment({'SOLO_EXPLORER-HELM-CHART_DIRECTORY': '/tmp/explorerHelmChart'}, async (): Promise<void> => {
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+      await source.load();
+      const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
+      expect(schema?.explorerHelmChart?.directory).to.equal('/tmp/explorerHelmChart');
+    }),
+  );
+
+  it(
+    'SOLO_MIRROR-NODE-HELM-CHART_DIRECTORY overrides mirrorNodeHelmChart.directory',
+    withEnvironment({'SOLO_MIRROR-NODE-HELM-CHART_DIRECTORY': '/tmp/mirrorNodeHelmChart'}, async (): Promise<void> => {
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+      await source.load();
+      const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
+      expect(schema?.mirrorNodeHelmChart?.directory).to.equal('/tmp/mirrorNodeHelmChart');
+    }),
+  );
+
+  it(
+    'SOLO_RELAY-HELM-CHART_DIRECTORY overrides relayHelmChart.directory',
+    withEnvironment({'SOLO_RELAY-HELM-CHART_DIRECTORY': '/tmp/relayHelmChart'}, async (): Promise<void> => {
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+      await source.load();
+      const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
+      expect(schema?.relayHelmChart?.directory).to.equal('/tmp/relayHelmChart');
+    }),
+  );
 });

@@ -958,6 +958,9 @@ export class BlockNodeCommand extends BaseCommand {
               allFlags,
             ) as BlockNodeDeployConfigClass;
 
+            // SOLO_BLOCK-NODE-HELM-CHART_DIRECTORY applies when the chart directory flag is not provided
+            config.blockNodeChartDirectory ||= this.soloConfig.blockNodeHelmChart.directory;
+
             context_.config = config;
 
             config.namespace = await this.getNamespace(task);
@@ -1418,6 +1421,9 @@ export class BlockNodeCommand extends BaseCommand {
               BlockNodeCommand.UPGRADE_CONFIGS_NAME,
               allFlags,
             ) as BlockNodeUpgradeConfigClass;
+
+            // SOLO_BLOCK-NODE-HELM-CHART_DIRECTORY applies when the chart directory flag is not provided
+            config.blockNodeChartDirectory ||= this.soloConfig.blockNodeHelmChart.directory;
 
             context_.config = config;
 
