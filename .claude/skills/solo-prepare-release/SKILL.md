@@ -30,8 +30,8 @@ non-Solo repos.
 
 | Fact | How to get it |
 |------|----------------|
-| Last released version | `git describe --tags --abbrev=0` (e.g. `v0.79.0`) |
-| Commits since last tag | `git log "$(git describe --tags --abbrev=0)"..HEAD --pretty=%s` |
+| Last released version | `git describe --tags --match 'v[0-9]*' --abbrev=0` (e.g. `v0.79.0`) |
+| Commits since last tag | `git log "$(git describe --tags --match 'v[0-9]*' --abbrev=0)"..HEAD --pretty=%s` |
 | Today's date | `date +%Y-%m-%d` |
 | Dependency versions | `version.ts` constants (see mapping below) |
 
@@ -42,28 +42,36 @@ Read the current version from `package.json` (`"version"`) — confirm it matche
 Decide the bump by inspecting commit subjects since the last tag:
 
 ```bash
-LAST_TAG="$(git describe --tags --abbrev=0)"
+LAST_TAG="$(git describe --tags --match 'v[0-9]*' --abbrev=0)"
 git log "${LAST_TAG}..HEAD" --pretty=%s
 ```
 
-- If **any** subject starts with `feat:` (also count conventional variants `feat(scope):` and `feat!:`/`feat(scope)!:`),
+- Ignore commits whose exact scope is `tck`, including `feat(tck)!:`. They belong to the independently released
+  Solo TCK.
+- If **any remaining** subject starts with `feat:` (also count conventional variants `feat(scope):` and `feat!:`/`feat(scope)!:`),
   bump the **minor** version and reset patch to 0 → `0.79.0` becomes `0.80.0`.
 - Otherwise bump only the **patch** version → `0.79.0` becomes `0.79.1`.
 
-Detection one-liner (`NEXT` ends up as the bare version, no leading `v`):
+Version calculation (`NEXT` ends up as the bare version, no leading `v`, when Solo commits remain):
 
 ```bash
 CUR="$(node -p "require('./package.json').version")"   # e.g. 0.79.0
 IFS=. read -r MAJ MIN PAT <<< "${CUR}"
-if git log "${LAST_TAG}..HEAD" --pretty=%s | grep -Eq '^feat(\(.+\))?!?:'; then
-  NEXT="${MAJ}.$((MIN + 1)).0"
+SOLO_SUBJECTS="$(git log "${LAST_TAG}..HEAD" --pretty=%s | sed -E '/^[^(:]+\(tck\)!?:/d')"
+if [[ -z "${SOLO_SUBJECTS}" ]]; then
+  echo "No Solo commits since ${LAST_TAG}; nothing to prepare."
 else
-  NEXT="${MAJ}.${MIN}.$((PAT + 1))"
+  if grep -Eq '^feat(\(.+\))?!?:' <<< "${SOLO_SUBJECTS}"; then
+    NEXT="${MAJ}.$((MIN + 1)).0"
+  else
+    NEXT="${MAJ}.${MIN}.$((PAT + 1))"
+  fi
+  echo "Next version: ${NEXT}"
 fi
-echo "Next version: ${NEXT}"
 ```
 
-State the computed version and the reason (feat found → minor / none → patch) before proceeding.
+If no Solo commits remain, report that there is nothing to prepare and stop before Step 2. Otherwise state the
+computed version and the reason (Solo feat found -> minor / none -> patch) before proceeding.
 
 > **Patch-only short-circuit:** if the bump is a **patch** (no `feat:` commits since the last tag), there is
 > **nothing to prepare** — do **not** create a branch, edit any files, or commit. Report that the next version is a

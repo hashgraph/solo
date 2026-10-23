@@ -25,6 +25,9 @@ examples/
 images/
 solo-compose/
 
+# Solo TCK is released independently
+tck/
+
 # Configs
 .c8rc.json
 .codacy.yaml
