@@ -1866,6 +1866,9 @@ export class MirrorNodeCommand extends BaseCommand {
               [],
             ) as MirrorNodeDeployConfigClass;
 
+            // SOLO_MIRROR-NODE-HELM-CHART_DIRECTORY applies when the chart directory flag is not provided
+            config.mirrorNodeChartDirectory ||= this.soloConfig.mirrorNodeHelmChart.directory;
+
             context_.config = config;
 
             this.assertMirrorNodeCompatibility(config.mirrorNodeVersion, config.force);
@@ -2152,6 +2155,9 @@ export class MirrorNodeCommand extends BaseCommand {
               allFlags,
               [],
             ) as MirrorNodeUpgradeConfigClass;
+
+            // SOLO_MIRROR-NODE-HELM-CHART_DIRECTORY applies when the chart directory flag is not provided
+            config.mirrorNodeChartDirectory ||= this.soloConfig.mirrorNodeHelmChart.directory;
 
             context_.config = config;
 

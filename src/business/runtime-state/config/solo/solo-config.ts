@@ -15,6 +15,10 @@ export class SoloConfig implements Facade<SoloConfigSchema> {
   private readonly _ingressControllerHelmChart: HelmChart;
   private readonly _clusterSetupHelmChart: HelmChart;
   private readonly _certManagerHelmChart: HelmChart;
+  private readonly _blockNodeHelmChart: HelmChart;
+  private readonly _explorerHelmChart: HelmChart;
+  private readonly _mirrorNodeHelmChart: HelmChart;
+  private readonly _relayHelmChart: HelmChart;
   private readonly _tss: Tss;
   private readonly _subprocess: Subprocess;
 
@@ -25,6 +29,10 @@ export class SoloConfig implements Facade<SoloConfigSchema> {
     this._ingressControllerHelmChart = new HelmChart(this.encapsulatedObject.ingressControllerHelmChart);
     this._clusterSetupHelmChart = new HelmChart(this.encapsulatedObject.clusterSetupHelmChart);
     this._certManagerHelmChart = new HelmChart(this.encapsulatedObject.certManagerHelmChart);
+    this._blockNodeHelmChart = new HelmChart(this.encapsulatedObject.blockNodeHelmChart);
+    this._explorerHelmChart = new HelmChart(this.encapsulatedObject.explorerHelmChart);
+    this._mirrorNodeHelmChart = new HelmChart(this.encapsulatedObject.mirrorNodeHelmChart);
+    this._relayHelmChart = new HelmChart(this.encapsulatedObject.relayHelmChart);
     this._tss = new Tss(this.encapsulatedObject.tss);
     this._subprocess = new Subprocess(this.encapsulatedObject.subprocess);
   }
@@ -47,6 +55,22 @@ export class SoloConfig implements Facade<SoloConfigSchema> {
 
   public get certManagerHelmChart(): HelmChart {
     return this._certManagerHelmChart;
+  }
+
+  public get blockNodeHelmChart(): HelmChart {
+    return this._blockNodeHelmChart;
+  }
+
+  public get explorerHelmChart(): HelmChart {
+    return this._explorerHelmChart;
+  }
+
+  public get mirrorNodeHelmChart(): HelmChart {
+    return this._mirrorNodeHelmChart;
+  }
+
+  public get relayHelmChart(): HelmChart {
+    return this._relayHelmChart;
   }
 
   public get tss(): Tss {

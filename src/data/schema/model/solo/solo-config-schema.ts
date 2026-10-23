@@ -31,6 +31,22 @@ export class SoloConfigSchema {
   public certManagerHelmChart: HelmChartSchema;
 
   @Expose()
+  @Type((): typeof HelmChartSchema => HelmChartSchema)
+  public blockNodeHelmChart: HelmChartSchema;
+
+  @Expose()
+  @Type((): typeof HelmChartSchema => HelmChartSchema)
+  public explorerHelmChart: HelmChartSchema;
+
+  @Expose()
+  @Type((): typeof HelmChartSchema => HelmChartSchema)
+  public mirrorNodeHelmChart: HelmChartSchema;
+
+  @Expose()
+  @Type((): typeof HelmChartSchema => HelmChartSchema)
+  public relayHelmChart: HelmChartSchema;
+
+  @Expose()
   @Type((): typeof TssSchema => TssSchema)
   public tss: TssSchema;
 
@@ -46,12 +62,20 @@ export class SoloConfigSchema {
     certManagerHelmChart?: HelmChartSchema,
     tss?: TssSchema,
     subprocess?: SubprocessSchema,
+    blockNodeHelmChart?: HelmChartSchema,
+    explorerHelmChart?: HelmChartSchema,
+    mirrorNodeHelmChart?: HelmChartSchema,
+    relayHelmChart?: HelmChartSchema,
   ) {
     this.schemaVersion = schemaVersion ?? 1;
     this.helmChart = helmChart || new HelmChartSchema();
     this.ingressControllerHelmChart = ingressControllerHelmChart || new HelmChartSchema();
     this.clusterSetupHelmChart = clusterSetupHelmChart || new HelmChartSchema();
     this.certManagerHelmChart = certManagerHelmChart || new HelmChartSchema();
+    this.blockNodeHelmChart = blockNodeHelmChart || new HelmChartSchema();
+    this.explorerHelmChart = explorerHelmChart || new HelmChartSchema();
+    this.mirrorNodeHelmChart = mirrorNodeHelmChart || new HelmChartSchema();
+    this.relayHelmChart = relayHelmChart || new HelmChartSchema();
     this.tss = tss || new TssSchema();
     this.subprocess = subprocess || new SubprocessSchema();
   }
