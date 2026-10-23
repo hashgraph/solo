@@ -160,9 +160,12 @@ export class CommandHelpers {
     const configManager: ConfigManager = container.resolve<ConfigManager>(InjectTokens.ConfigManager);
     const scopedConfig: ReturnType<ConfigManager['cloneActiveConfig']> = configManager.cloneActiveConfig();
 
-    // Subcommands run in parallel during one-shot flows. values-file is component-specific
-    // and must come from each subcommand argv, not inherited from sibling command state.
+    // Subcommands run in parallel during one-shot flows. values-file and component-image
+    // overrides are component-specific and must come from each subcommand argv, not
+    // inherited from sibling command state.
     delete (scopedConfig.flags as Record<string, unknown>)[flags.valuesFile.name];
+    delete (scopedConfig.flags as Record<string, unknown>)[flags.componentImage.name];
+    delete (scopedConfig.flags as Record<string, unknown>)[flags.componentImageArchive.name];
 
     // ArgumentProcessor/command handlers read and write config flags deeply via
     // ConfigManager and Flags helpers. Running under a scoped copy keeps each
