@@ -573,9 +573,6 @@ jobs:
     if: ${{ needs.prepare-release.outputs.need-hl-release == 'true' }}
     needs:
       - prepare-release
-    permissions:
-      contents: read
-      id-token: write # the called workflow signs in to the image cache CDN
     uses: $/.github/workflows/flow-image-cache-cluster-images.yaml
     with:
       version: ${{ needs.prepare-release.outputs.version }}
