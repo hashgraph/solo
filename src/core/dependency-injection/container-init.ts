@@ -31,6 +31,7 @@ import {PvcMountVerifier} from '../pvc-mount-verifier.js';
 import {ClusterChecks} from '../cluster-checks.js';
 import {InjectTokens} from './inject-tokens.js';
 import {K8ClientFactory} from '../../integration/kube/k8-client/k8-client-factory.js';
+import {SdkHederaClientFactory} from '../../integration/hedera/impl/sdk-hedera-client-factory.js';
 import {ClusterCommandHandlers} from '../../commands/cluster/handlers.js';
 import {ClusterCommandTasks} from '../../commands/cluster/tasks.js';
 import {NodeCommandHandlers} from '../../commands/node/handlers.js';
@@ -144,6 +145,7 @@ export class Container {
       new SingletonContainer(InjectTokens.LockRenewalService, IntervalLockRenewalService),
       new SingletonContainer(InjectTokens.LockManager, LockManager),
       new SingletonContainer(InjectTokens.K8Factory, K8ClientFactory),
+      new SingletonContainer(InjectTokens.HederaClientFactory, SdkHederaClientFactory),
       new SingletonContainer(InjectTokens.PackageDownloader, PackageDownloader),
       new SingletonContainer(InjectTokens.Zippy, Zippy),
       new SingletonContainer(InjectTokens.DependencyManager, DependencyManager),

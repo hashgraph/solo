@@ -72,6 +72,7 @@
   * Podman/Docker Client
   * Helm Client
   * K8 Client
+  * Hedera Client (wraps the Hedera SDK; `src/integration/hedera/`)
   * Logging
 
 NOTE: Business logic currently resides in the CLI command framework.
