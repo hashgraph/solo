@@ -7,6 +7,7 @@ import {UnsupportedStorageOperationError} from '../api/unsupported-storage-opera
 import {StorageBackendError} from '../api/storage-backend-error.js';
 import {Prefix} from '../../key/prefix.js';
 import {EnvironmentKeyFormatter} from '../../key/environment-key-formatter.js';
+import {EnvironmentKeyRegistry} from '../../key/environment-key-registry.js';
 import {StringEx} from '../../../business/utils/string-ex.js';
 
 export class EnvironmentStorageBackend implements StorageBackend {
@@ -25,54 +26,20 @@ export class EnvironmentStorageBackend implements StorageBackend {
   }
 
   /**
-   * Let prefix = SOLO
-   * Let separator = _
+   * Returns the config keys the environment currently sets, by looking up the name each declared key
+   * generates — see {@link EnvironmentKeyRegistry} for why this direction is the only workable one.
    *
-   * Given:
-   *  env = SOLO_CACHE_DIR=/tmp
-   *  cfg = solo.cache.dir=/tmp
-   * Then:
-   *  key = cache.dir
-   *  rnode = cache
-   *  lnode = dir
-   *  ltype = string
-   *  value = /tmp
-   *
-   * Given:
-   *  env = SOLO_DEPLOYMENTS_0_NAME=deployment1
-   *  cfg = solo.deployments.0.name=deployment1
-   * Then:
-   *  key = deployments.0.name
-   *  rnode = deployments
-   *  inode = 0
-   *  itype = array<object>
-   *  lnode = name
-   *  ltype = string
-   *
-   *  Given:
-   *  env = SOLO_DEPLOYMENTS_0_CLUSTERS_0=e2e-cluster-1
-   *  cfg = solo.deployments.0.clusters.0=e2e-cluster-1
-   * Then:
-   *  key = deployments.0.clusters.0
-   *  rnode = deployments
-   *  rtype = array
-   *  lnode = clusters
-   *  ltype = array<string>
+   * <p>A blank value is skipped, as for an alias: readBytes rejects it, so the key would be listed but unreadable.
    */
-
   public async list(): Promise<string[]> {
-    let environment: object = process.env;
-    if (!environment) {
-      environment = {};
-    }
+    return [...EnvironmentKeyRegistry.configKeys()].filter(
+      (key: string): boolean => this.readRawValue(this.variableNameFor(key)) !== undefined,
+    );
+  }
 
-    const keys: string[] = Object.keys(environment);
-    return keys
-      .filter(
-        (value): boolean =>
-          Prefix.matcher(value, this.prefix, EnvironmentKeyFormatter.instance()) && Boolean(environment[value]),
-      )
-      .map((value): string => Prefix.strip(value, this.prefix));
+  /** The environment variable name a config key is read from, e.g. `helmChart.directory` -> `SOLO_HELM_CHART_DIRECTORY`. */
+  public variableNameFor(key: string): string {
+    return Prefix.add(key, this.prefix, EnvironmentKeyFormatter.instance());
   }
 
   public async readBytes(key: string): Promise<Buffer> {
@@ -80,14 +47,8 @@ export class EnvironmentStorageBackend implements StorageBackend {
       throw new SoloErrors.validation.illegalArgument('key must not be null, undefined, or empty');
     }
 
-    const normalizedKey: string = Prefix.add(key, this.prefix, EnvironmentKeyFormatter.instance());
-    let environment: NodeJS.ProcessEnv = process.env;
-    if (!environment) {
-      environment = {};
-    }
-
-    const value: string = environment[normalizedKey];
-    if (!value) {
+    const value: string | undefined = this.readRawValue(this.variableNameFor(key));
+    if (value === undefined) {
       throw new StorageBackendError(`key not found: ${key}`);
     }
 
@@ -98,13 +59,10 @@ export class EnvironmentStorageBackend implements StorageBackend {
    * Reads a fixed/legacy environment variable by its exact name,
    * without applying the `SOLO_` prefix or key formatting.
    * Returns undefined when the variable is missing or blank.
-   * Used to resolve environment variable aliases.
+   * Generated names read through it too, so a blank value is unset under every spelling of a key.
    */
   public readRawValue(name: string): string | undefined {
-    let environment: NodeJS.ProcessEnv = process.env;
-    if (!environment) {
-      environment = {};
-    }
+    const environment: NodeJS.ProcessEnv = process.env ?? {};
 
     const value: string | undefined = environment[name];
     return value && value.trim() !== '' ? value : undefined;

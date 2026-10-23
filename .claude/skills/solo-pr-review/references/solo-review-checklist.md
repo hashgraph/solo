@@ -371,11 +371,11 @@ Missing any of these = Critical (the flag is half-registered).
 ## 19. Env var docs are in sync
 
 When the diff adds/removes/renames anything read via `getEnvironmentVariable()` in `src/**/*.ts` or `version.ts`, OR
-adds/removes/renames an `@Expose()` field on `SoloConfigSchema` (or nested), verify `docs/site/content/en/docs/env.md`
-was updated. See CLAUDE.md "Environment Variable Documentation" for the SOLO_* naming convention.
+adds/removes/renames an `@Expose()` field on `SoloConfigSchema` (or nested), verify a companion PR was opened against
+the `solo-docs` repository. See CLAUDE.md "Environment Variable Documentation" for the SOLO_* naming convention.
 
-> Caveat: PR #4363 noted env.md is moving to `solo-docs` — but until that move lands, the in-repo file is still the
-> source of truth.
+> Feature flags have their own contributor reference: `docs/contributing/feature-flags.md`. Its flag table must be
+> updated in the same commit as any flag change.
 
 ---
 

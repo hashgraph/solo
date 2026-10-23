@@ -300,7 +300,7 @@ Use this second mapping for shared sources of truth.
 | Chart URLs / constants / values file references | `src/core/constants.ts`                              |
 | Upgrade migration rules implementation          | `src/commands/migrations/component-upgrade-rules.ts` |
 | Upgrade migration rule data                     | `resources/component-upgrade-migrations.json`        |
-| Environment variable docs                       | `docs/site/content/en/docs/env.md`                   |
+| Environment variable docs                       | solo-docs repo (see above)                           |
 | Contributor/developer guide                     | `DEV.md`                                             |
 
 ---

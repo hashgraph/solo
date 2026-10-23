@@ -21,6 +21,7 @@ import {VersionUpdateNotifier} from './core/version-update-notifier.js';
 import {SubprocessEnvironmentBootstrap} from './core/subprocess-environment-bootstrap.js';
 import {HomebrewDeprecationNotifier} from './core/homebrew-deprecation-notifier.js';
 import {VersionBanner} from './core/version-banner.js';
+import {type ConfigProvider} from './data/configuration/api/config-provider.js';
 
 // Re-exported so the SEA bootstrap (sea/sea-main.template.cjs) can reach it from the bundled
 // entry point without a separate import path — it shares this same entrypoint tail with solo.ts.
@@ -77,6 +78,11 @@ export async function main(argv: string[], context?: {logger: SoloLogger}): Prom
     const developerMode: boolean = argv.includes('--debug') || argv.includes('--dev');
     const soloLogLevel: string = developerMode || constants.SOLO_DEV_OUTPUT ? 'debug' : constants.SOLO_LOG_LEVEL;
     Container.getInstance().init(constants.SOLO_HOME_DIR, constants.SOLO_CACHE_DIR, soloLogLevel);
+
+    // Sources are constructed empty and an unloaded one answers null, which SoloConfig silently degrades
+    // into schema defaults. Must precede ArgumentProcessor.process(): BaseCommand snapshots config in its
+    // constructor, which DI runs while building the command tree.
+    await container.resolve<ConfigProvider>(InjectTokens.ConfigProvider).config().refresh();
   } catch (incomingError) {
     // An already-coded failure (e.g. an unwritable log destination) carries the specific message and
     // remediation; wrapping it would replace its code with the generic one in the rendered error box.

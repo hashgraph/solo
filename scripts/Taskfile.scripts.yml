@@ -175,7 +175,7 @@ tasks:
         else
           export CLUSTER_REF="kind-${SOLO_CLUSTER_NAME}"
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- cluster-ref config connect --cluster-ref ${CLUSTER_REF} --context ${CONTEXT}
+        npm run solo -- cluster-ref config connect --cluster-ref ${CLUSTER_REF} --context ${CONTEXT}
 
   solo:deployment:create:
     silent: true
@@ -189,7 +189,7 @@ tasks:
         else
           export CLUSTER_REF="kind-${SOLO_CLUSTER_NAME}"
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment config create -n "${SOLO_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
+        npm run solo -- deployment config create -n "${SOLO_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}"
 
   solo:deployment:attach:
     silent: true
@@ -205,7 +205,7 @@ tasks:
         fi
         NODE_COUNT=$(echo "{{ .node_identifiers }}" | awk -F',' '{print NF}')
         echo "NODE_COUNT=${NODE_COUNT}"
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment cluster attach --cluster-ref ${CLUSTER_REF} --deployment "${SOLO_DEPLOYMENT}" --num-consensus-nodes ${NODE_COUNT}
+        npm run solo -- deployment cluster attach --cluster-ref ${CLUSTER_REF} --deployment "${SOLO_DEPLOYMENT}" --num-consensus-nodes ${NODE_COUNT}
 
   solo:keys:
     silent: true
@@ -221,7 +221,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- keys consensus generate --gossip-keys --tls-keys --node-aliases {{.node_identifiers}} --deployment "${SOLO_DEPLOYMENT}" -q --dev
+      - npm run solo -- keys consensus generate --gossip-keys --tls-keys --node-aliases {{.node_identifiers}} --deployment "${SOLO_DEPLOYMENT}" -q --dev
 
   solo:network:deploy:
     silent: true
@@ -239,7 +239,7 @@ tasks:
         if [[ "${SOLO_CHART_VERSION}" != "" ]]; then
           export SOLO_CHART_FLAG="--solo-chart-version ${SOLO_CHART_VERSION}"
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- consensus network deploy --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} ${GENESIS_THROTTLES_FLAG} ${DEBUG_NODE_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${LOAD_BALANCER_FLAG} ${NETWORK_DEPLOY_EXTRA_FLAGS} -q --dev
+        npm run solo -- consensus network deploy --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${SOLO_CHART_FLAG} ${VALUES_FLAG} ${SETTINGS_FLAG} ${LOG4J2_FLAG} ${APPLICATION_PROPERTIES_FLAG} ${GENESIS_THROTTLES_FLAG} ${DEBUG_NODE_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${LOAD_BALANCER_FLAG} ${NETWORK_DEPLOY_EXTRA_FLAGS} -q --dev
       - task: "solo:node:setup"
 
   solo:node:setup:
@@ -252,7 +252,7 @@ tasks:
         if [[ "${CONSENSUS_NODE_VERSION}" != "" ]]; then
           export CONSENSUS_NODE_FLAG="--release-tag {{ .CONSENSUS_NODE_VERSION }}"
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- consensus node setup --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${LOCAL_BUILD_FLAG} ${SOLO} ${NODE_SETUP_EXTRA_FLAGS} -q --dev
+        npm run solo -- consensus node setup --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${CONSENSUS_NODE_FLAG} ${LOCAL_BUILD_FLAG} ${SOLO} ${NODE_SETUP_EXTRA_FLAGS} -q --dev
 
   solo:network:destroy:
     silent: true
@@ -260,7 +260,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- consensus network destroy --deployment "${SOLO_DEPLOYMENT}" --delete-pvcs --delete-secrets --force -q --dev
+      - npm run solo -- consensus network destroy --deployment "${SOLO_DEPLOYMENT}" --delete-pvcs --delete-secrets --force -q --dev
 
   solo:node:start:
     silent: true
@@ -272,7 +272,7 @@ tasks:
         if [[ "${DEBUG_NODE_ALIAS}" != "" ]]; then
           export DEBUG_NODE_FLAG="--debug-node-alias {{ .DEBUG_NODE_ALIAS }}"
         fi
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- consensus node start --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${DEBUG_NODE_FLAG} -q {{ .CLI_ARGS }} --dev
+        npm run solo -- consensus node start --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} ${DEBUG_NODE_FLAG} -q {{ .CLI_ARGS }} --dev
 
   solo:node:stop:
     silent: true
@@ -281,14 +281,14 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- consensus node stop --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q {{ .CLI_ARGS }} --dev
+      - npm run solo -- consensus node stop --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q {{ .CLI_ARGS }} --dev
 
   solo:relay:
     silent: true
     deps:
       -
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay node add --deployment "${SOLO_DEPLOYMENT}" -i node1 ${RELAY_NODE_DEPLOY_EXTRA_FLAGS} -q --dev
+      - npm run solo -- relay node add --deployment "${SOLO_DEPLOYMENT}" -i node1 ${RELAY_NODE_DEPLOY_EXTRA_FLAGS} -q --dev
 
   solo:destroy-relay:
     silent: true
@@ -299,7 +299,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- relay node destroy --deployment "${SOLO_DEPLOYMENT}" -i node1 -q --dev
+      - npm run solo -- relay node destroy --deployment "${SOLO_DEPLOYMENT}" -i node1 -q --dev
 
   solo:cache:remove:
     silent: true
@@ -321,10 +321,10 @@ tasks:
 
   solo:freeze:restart:
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- consensus dev-freeze prepare-upgrade --deployment "${SOLO_DEPLOYMENT}" -q --dev
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- consensus dev-freeze freeze-upgrade --deployment "${SOLO_DEPLOYMENT}" -q --dev
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- consensus node stop --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q --dev
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- consensus node start --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q --dev
+      - npm run solo -- consensus dev-freeze prepare-upgrade --deployment "${SOLO_DEPLOYMENT}" -q --dev
+      - npm run solo -- consensus dev-freeze freeze-upgrade --deployment "${SOLO_DEPLOYMENT}" -q --dev
+      - npm run solo -- consensus node stop --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q --dev
+      - npm run solo -- consensus node start --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q --dev
 
   cluster:create:
     silent: true
@@ -386,7 +386,7 @@ tasks:
     cmds:
       - |
         export MINIO_FLAG=$(cat {{ .minio_flag_file }})
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- cluster-ref config setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" ${MINIO_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${CLUSTER_TLS_FLAGS} -q --dev
+        npm run solo -- cluster-ref config setup --cluster-setup-namespace "${SOLO_CLUSTER_SETUP_NAMESPACE}" ${MINIO_FLAG} ${SOLO_CHARTS_DIR_FLAG} ${CLUSTER_TLS_FLAGS} -q --dev
 
   solo:node:addresses:
     internal: true
@@ -400,7 +400,7 @@ tasks:
   solo:node:logs:
     silent: true
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment diagnostics logs --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q --dev
+      - npm run solo -- deployment diagnostics logs --deployment "${SOLO_DEPLOYMENT}" --node-aliases {{.node_identifiers}} -q --dev
 
   start:
     desc: solo consensus node start
@@ -461,7 +461,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror node add --deployment "${SOLO_DEPLOYMENT}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} ${ENABLE_MIRROR_INGRESS} --pinger -q --dev
+      - npm run solo -- mirror node add --deployment "${SOLO_DEPLOYMENT}" ${SOLO_CHARTS_DIR_FLAG} ${MIRROR_NODE_DEPLOY_EXTRA_FLAGS} ${ENABLE_MIRROR_INGRESS} --pinger -q --dev
 
   solo:explorer:
     silent: true
@@ -478,13 +478,13 @@ tasks:
           fi
           echo "EXPLORER_CLUSTER_CONTEXT=${EXPLORER_CLUSTER_CONTEXT}"
           # create deployment on different namespace
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment config create --deployment ${EXPLORER_DEPLOYMENT} --namespace ${EXPLORER_NAME_SPACE}  
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- deployment cluster attach --deployment ${EXPLORER_DEPLOYMENT} --cluster-ref ${EXPLORER_CLUSTER_CONTEXT} --num-consensus-nodes ${SOLO_NETWORK_SIZE}
+          npm run solo -- deployment config create --deployment ${EXPLORER_DEPLOYMENT} --namespace ${EXPLORER_NAME_SPACE}  
+          npm run solo -- deployment cluster attach --deployment ${EXPLORER_DEPLOYMENT} --cluster-ref ${EXPLORER_CLUSTER_CONTEXT} --num-consensus-nodes ${SOLO_NETWORK_SIZE}
         
           npm run solo -- explorer node add --deployment "${EXPLORER_DEPLOYMENT}" --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS}  ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
           export EXPLORER_DEPLOYED_NAME_SPACE=${EXPLORER_NAME_SPACE}
         else
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer node add --deployment "${SOLO_DEPLOYMENT}" --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS} ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
+          npm run solo -- explorer node add --deployment "${SOLO_DEPLOYMENT}" --mirrorNamespace ${SOLO_NAMESPACE} ${SOLO_CHARTS_DIR_FLAG} ${EXPLORER_DEPLOY_EXTRA_FLAGS} ${ENABLE_EXPLORER_TLS_FLAG} ${TLS_CLUSTER_ISSUER_TYPE_FLAG} ${ENABLE_EXPLORER_INGRESS} -q --dev
           export EXPLORER_DEPLOYED_NAME_SPACE=${SOLO_NAMESPACE}
         fi
         if [[ "{{ .use_port_forwards }}" == "true" ]];then
@@ -503,7 +503,7 @@ tasks:
     deps:
       - task: "init"
     cmds:
-      - SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- mirror node destroy --deployment "${SOLO_DEPLOYMENT}" --force -q --dev || true
+      - npm run solo -- mirror node destroy --deployment "${SOLO_DEPLOYMENT}" --force -q --dev || true
 
   solo:destroy-explorer:
     silent: true
@@ -513,9 +513,9 @@ tasks:
     cmds:
       - |
         if [[ "${EXPLORER_DEPLOYMENT}" != "" ]]; then
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer node destroy --deployment "${EXPLORER_DEPLOYMENT}" --force -q --dev || true
+          npm run solo -- explorer node destroy --deployment "${EXPLORER_DEPLOYMENT}" --force -q --dev || true
         else
-          SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- explorer node destroy --deployment "${SOLO_DEPLOYMENT}" --force -q --dev || true
+          npm run solo -- explorer node destroy --deployment "${SOLO_DEPLOYMENT}" --force -q --dev || true
         fi
 
   solo:block:add:
@@ -525,7 +525,7 @@ tasks:
       - task: "init"
     cmds:
       - |
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- block node add --deployment "${SOLO_DEPLOYMENT}" ${SOLO_CHARTS_DIR_FLAG} ${BLOCK_NODE_ADD_EXTRA_FLAGS} -q --dev
+        npm run solo -- block node add --deployment "${SOLO_DEPLOYMENT}" ${SOLO_CHARTS_DIR_FLAG} ${BLOCK_NODE_ADD_EXTRA_FLAGS} -q --dev
 
   solo:block:destroy:
     silent: true
@@ -534,7 +534,7 @@ tasks:
       - task: "init"
     cmds:
       - |
-        SOLO_HOME_DIR=${SOLO_HOME_DIR} npm run solo -- block node destroy --deployment "${SOLO_DEPLOYMENT}" --force -q --dev || true
+        npm run solo -- block node destroy --deployment "${SOLO_DEPLOYMENT}" --force -q --dev || true
 
   clean:
     desc: destroy, then remove cache directory, logs directory, config, and port forwards

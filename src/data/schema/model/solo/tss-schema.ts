@@ -2,7 +2,6 @@
 
 import {Exclude, Expose, Type} from 'class-transformer';
 import {WrapsSchema} from './wraps-schema.js';
-import {EnvironmentAliasRegistry} from '../../decorators/environment-alias-registry.js';
 
 @Exclude()
 export class TssSchema {
@@ -13,15 +12,12 @@ export class TssSchema {
   public messageSizeHardLimitBytes: number;
 
   @Expose()
-  @EnvironmentAliasRegistry.alias('SOLO_TSS_TIMEOUT_AFTER_READY_SECONDS')
   public timeoutAfterReadySeconds: number;
 
   @Expose()
-  @EnvironmentAliasRegistry.alias('SOLO_TSS_READY_MAX_ATTEMPTS')
   public readyMaxAttempts: number;
 
   @Expose()
-  @EnvironmentAliasRegistry.alias('SOLO_TSS_READY_BACKOFF_SECONDS')
   public readyBackoffSeconds: number;
 
   @Expose()

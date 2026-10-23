@@ -65,6 +65,7 @@ import {Address} from '../business/address/address.js';
 import {Numbers} from '../business/utils/numbers.js';
 import {type NetworkNodes} from './network-nodes.js';
 import {NodeStatusCodes, NodeStatusEnums} from './enumerations.js';
+import {type FeatureFlags} from '../business/runtime-state/config/solo/feature-flags.js';
 
 // TODO - revisit and remove once we complete the cutover to BN and no longer need MN to pull from CN.
 // This should remove this dependency on @hiero-ledger/proto
@@ -97,12 +98,14 @@ export class AccountManager {
     @inject(InjectTokens.RemoteConfigRuntimeState) private readonly remoteConfig?: RemoteConfigRuntimeStateApi,
     @inject(InjectTokens.LocalConfigRuntimeState) private readonly localConfig?: LocalConfigRuntimeState,
     @inject(InjectTokens.NetworkNodes) private readonly networkNodes?: NetworkNodes,
+    @inject(InjectTokens.FeatureFlags) private readonly featureFlags?: FeatureFlags,
   ) {
     this.logger = patchInject(logger, InjectTokens.SoloLogger, this.constructor.name);
     this.k8Factory = patchInject(k8Factory, InjectTokens.K8Factory, this.constructor.name);
     this.remoteConfig = patchInject(remoteConfig, InjectTokens.RemoteConfigRuntimeState, this.constructor.name);
     this.localConfig = patchInject(localConfig, InjectTokens.LocalConfigRuntimeState, this.constructor.name);
     this.networkNodes = patchInject(networkNodes, InjectTokens.NetworkNodes, this.constructor.name);
+    this.featureFlags = patchInject(featureFlags, InjectTokens.FeatureFlags, this.constructor.name);
 
     this._portForwards = [];
     this._nodeClient = undefined;
@@ -311,7 +314,7 @@ export class AccountManager {
         await this.refreshNodeClient(namespace, clusterReferences, deployment, forcePortForward);
       } else {
         try {
-          if (!constants.SKIP_NODE_PING) {
+          if (!this.featureFlags.skipNodePing) {
             await this._nodeClient.ping(this._nodeClient.operatorAccountId);
           }
         } catch {
@@ -479,7 +482,7 @@ export class AccountManager {
       }
 
       // ping the node client to ensure it is working
-      if (!constants.SKIP_NODE_PING) {
+      if (!this.featureFlags.skipNodePing) {
         await nodeClient.ping(AccountId.fromString(operatorId));
       }
 
@@ -1369,7 +1372,7 @@ export class AccountManager {
       nodeClient = Client.fromConfig({network: object, scheduleNetworkUpdate: false});
       this.logger.debug(`sdk pinging network node: ${Object.keys(object)[0]}`);
 
-      if (!constants.SKIP_NODE_PING) {
+      if (!this.featureFlags.skipNodePing) {
         await nodeClient.ping(accountId);
       }
       this.logger.debug(`sdk ping successful for network node: ${Object.keys(object)[0]}`);

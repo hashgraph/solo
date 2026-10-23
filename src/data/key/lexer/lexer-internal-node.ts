@@ -3,7 +3,7 @@
 import {SoloErrors} from '../../../core/errors/solo-errors.js';
 import {type Node} from './node.js';
 import {LexerLeafNode} from './lexer-leaf-node.js';
-import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
+import {DeclaredTypeCoercer} from '../declared-type-coercer.js';
 import {ConfigKeyError} from '../config-key-error.js';
 import {LexerNode} from './lexer-node.js';
 import {ConfigKeyFormatter} from '../config-key-formatter.js';
@@ -114,10 +114,14 @@ export class LexerInternalNode extends LexerNode {
           throw new ConfigKeyError('Array index must be a number');
         }
 
-        object[index] = (child as LexerInternalNode).toObject();
+        // An array of scalars (e.g. `subprocess.additionalEnvironmentVariables.helm`) holds leaf children,
+        // which carry a value rather than a subtree; only an array of objects has internal children.
+        object[index] = child.isLeaf()
+          ? DeclaredTypeCoercer.readLeafValue(child.path(), (child as LexerLeafNode).value)
+          : (child as LexerInternalNode).toObject();
       } else {
         object[child.name] = child.isLeaf()
-          ? ReflectAssist.coerce((child as LexerLeafNode).value)
+          ? DeclaredTypeCoercer.readLeafValue(child.path(), (child as LexerLeafNode).value)
           : (child as LexerInternalNode).toObject();
       }
     }

@@ -77,33 +77,76 @@ The codebase follows a layered, command-driven architecture with dependency inje
 
 ## Environment Variable Documentation
 
-There are two categories of environment variables to keep in sync with `docs/site/content/en/docs/env.md`. This requirement does NOT apply to variables used only in the `test/` directory.
+The user-facing environment variable reference lives in the [solo-docs](https://github.com/hiero-ledger/solo-docs) repository (`content/en/docs/advanced-solo-setup/using-environment-variables.md`) — **not** in this repo. `docs/site/` is an archived Hugo site and is no longer hand-authored. When a change below is user-facing, open a companion solo-docs PR. This requirement does NOT apply to variables used only in the `test/` directory.
 
 ### 1. Direct env vars
 
-When adding, removing, or modifying environment variables consumed via `getEnvironmentVariable()` in `src/**/*.ts` or `version.ts`, update `env.md`. Each entry must include the variable name, a short description, accepted/default values, and where it is used.
+When adding, removing, or modifying environment variables consumed via `getEnvironmentVariable()` in `src/**/*.ts` or `version.ts`, update the solo-docs reference. Each entry must include the variable name, a short description, accepted/default values, and where it is used.
 
 ### 2. Config-system env vars
 
-The layered config system (`EnvironmentConfigSource`, prefix `SOLO`) allows environment variables to override any `@Expose()`d field on `SoloConfigSchema` and its nested schemas (`HelmChartSchema`, etc.). Keep `env.md` updated for any user-facing config fields that can be overridden this way.
+The layered config system (`EnvironmentConfigSource`, prefix `SOLO`) allows environment variables to override any `@Expose()`d field on `SoloConfigSchema` and its nested schemas (`HelmChartSchema`, etc.). Keep the solo-docs reference updated for any user-facing config fields that can be overridden this way.
 
-**Naming convention:** Each camelCase property name segment is converted to `UPPER-KEBAB-CASE` (dashes separate words within a segment); schema object nesting levels are joined with `_`; the whole key is prefixed with `SOLO_`.
+**Naming convention:** `UPPER_SNAKE_CASE` throughout, prefixed with `SOLO_`. Both camelCase word
+boundaries and schema nesting levels are rendered as `_`.
 
 | Config property path           | Env var                               |
 | ------------------------------ | ------------------------------------- |
-| `helmChart.directory`          | `SOLO_HELM-CHART_DIRECTORY`           |
-| `tss.readyMaxAttempts`         | `SOLO_TSS_READY-MAX-ATTEMPTS`         |
-| `tss.wraps.libraryDownloadUrl` | `SOLO_TSS_WRAPS_LIBRARY-DOWNLOAD-URL` |
+| `helmChart.directory`          | `SOLO_HELM_CHART_DIRECTORY`           |
+| `tss.readyMaxAttempts`         | `SOLO_TSS_READY_MAX_ATTEMPTS`         |
+| `tss.wraps.libraryDownloadUrl` | `SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL` |
 
-This is **not** the same as plain `UPPER_SNAKE_CASE` — dashes within a segment represent camelCase word boundaries, not underscores.
+Names **must** be valid POSIX identifiers (`[A-Za-z_][A-Za-z0-9_]*`). A dash is not — `export
+SOLO_HELM-CHART_DIRECTORY=x` is rejected by every POSIX shell — so no generated name or alias may
+contain one. This is enforced by `test/unit/data/key/environment-key-registry.test.ts`; run it after
+adding or renaming a schema field.
 
-**Environment variable aliases.** Because the generated names are awkward (embedded dashes) and cannot
-match legacy fixed names, a field may also declare one or more fixed alias env var names with the
-`@EnvironmentAliasRegistry.alias('SOLO_TSS_READY_MAX_ATTEMPTS')` property decorator (see
-`src/data/schema/decorators/environment-alias-registry.ts`). The generated `SOLO_*` name always takes
-precedence; the alias applies only when the generated name is absent, and using an alias logs a notice.
-Aliases may only be placed on a uniquely-typed schema field (a reused type such as `HelmChartSchema`
-fails fast). When adding/removing an alias, keep this section and any env var docs in sync.
+Because `_` is overloaded, an env var name cannot be taken apart again (`SOLO_HELM_CHART_DIRECTORY`
+could be `helmChart.directory` or `helm.chart.directory`). The environment is therefore read
+**forwards**: `EnvironmentKeyRegistry` (`src/data/key/environment-key-registry.ts`) walks every leaf
+path `SoloConfigSchema` declares, generates each one's name, and `EnvironmentStorageBackend` looks up
+only those. A `SOLO_*` variable matching no declared key is not configuration and is ignored — never
+scan the environment and split names on `_`, which turns an unrelated pair such as `SOLO_CHARTS_DIR`
+and `SOLO_CHARTS_DIR_FLAG` into an unrepresentable config tree that aborts startup. The registry
+**fails fast if two paths generate the same name**; if you add a field that collides, rename it.
+
+Values are parsed against the type the schema field declares — a boolean accepts `true`/`false`/`1`/`0`
+case-insensitively, a number an integer or decimal literal — and anything else is rejected at load with
+an error naming the variable. Without this, `JSON.parse` would leave `FALSE` a truthy string and `abc`
+a string on a numeric field.
+
+This check is `DeclaredTypeCoercer` (`src/data/key/declared-type-coercer.ts`) and applies to **every**
+source, not just the environment: `LayeredModelConfigSource` runs it over the bundled
+`resources/config/*.yaml` files and over `~/.solo/solo-config.yaml`. It has to, because `yaml` reads
+YAML 1.2, where `off`/`no`/`yes` are strings — `skipNodePing: off` would otherwise reach the schema as
+a truthy string and invert the flag. A field the schema declares as a string is read back verbatim
+rather than through `JSON.parse`, so `SOLO_HELM_CHART_VERSION=1.0` stays the string `1.0` instead of
+becoming the number `1`. When adding a source that flattens into a `Forest`, run the coercer on its
+flat key map before `Forest.from(...)`.
+
+**Environment variable aliases.** A field may declare fixed alias env var names the generated name
+cannot reproduce, via two property decorators in
+`src/data/schema/decorators/environment-alias-registry.ts`:
+
+- `@EnvironmentAliasRegistry.alias('SOLO_FF_SKIP_NODE_PING')` — a **supported** spelling, documented
+  alongside the generated name.
+- `@EnvironmentAliasRegistry.legacyAlias('SKIP_NODE_PING')` — kept **only for backwards compatibility**,
+  typically an ad-hoc env var that predates the config field. Never recommend one in docs.
+
+Precedence, highest first: generated `SOLO_*` name → supported alias → legacy alias. This order is
+applied explicitly in `EnvironmentConfigSource.applyAliases()`, **not** taken from declaration order —
+property decorators evaluate bottom-up, so a field's `legacyAlias` registers before the `alias` written
+above it. Setting two spellings at once logs a notice naming the one that won.
+
+Never add an alias that merely repeats the generated name (the guard test rejects it). Aliases may only
+be placed on a uniquely-typed schema field (a reused type such as `HelmChartSchema` fails fast). When
+adding/removing an alias, keep this section and any env var docs in sync.
+
+### 3. Feature flags
+
+Boolean toggles belong on `FeatureFlagsSchema`, not on an ad-hoc `getEnvironmentVariable()` read. See
+[`docs/contributing/feature-flags.md`](docs/contributing/feature-flags.md) for how to add, read, alias, and
+promote a flag, and keep its flag table in sync in the same commit.
 
 ## Architecture and Design
 
@@ -171,7 +214,7 @@ In `src/**/*.ts`, always read environment variables through `getEnvironmentVaria
 except `src/core/constants.ts` itself.
 
 ```typescript
-// wrong — bypasses the utility and env.md tracking
+// wrong — bypasses the utility and env var documentation tracking
 const mirror: string = process.env['KIND_DOCKER_REGISTRY_MIRRORS'];
 
 // correct
@@ -181,7 +224,7 @@ const mirror: string = getEnvironmentVariable('KIND_DOCKER_REGISTRY_MIRRORS');
 
 Property-access reads for OS-level variables (`process.env.PATH`, `process.env.HOME`) and spreading
 the environment for subprocess invocation (`{...process.env}`) are fine and are not covered by this
-rule. The restriction targets application-level env var reads that must be tracked in `env.md`.
+rule. The restriction targets application-level env var reads that must be documented in solo-docs.
 
 Adding `getEnvironmentVariable()` calls also triggers the documentation requirement in CLAUDE.md
 "Environment Variable Documentation".
@@ -205,7 +248,7 @@ TypeScript style guide bans empty or unexplained catch blocks.
 }
 ```
 
-This applies even when the catch body contains statements — the comment documents the *intent*,
+This applies even when the catch body contains statements — the comment documents the _intent_,
 not just the code.
 
 ### Error Handling — Always Use a Registered `SoloErrors` Subclass

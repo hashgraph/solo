@@ -15,6 +15,7 @@ import * as constants from '../constants.js';
 import {ChartManager} from '../chart-manager.js';
 import {ConfigManager} from '../config-manager.js';
 import {LayeredConfigProvider} from '../../data/configuration/impl/layered-config-provider.js';
+import {FeatureFlags} from '../../business/runtime-state/config/solo/feature-flags.js';
 import {AccountManager} from '../account-manager.js';
 import {PlatformInstaller} from '../platform-installer.js';
 import {KeyManager} from '../key-manager.js';
@@ -176,6 +177,7 @@ export class Container {
       new SingletonContainer(InjectTokens.Middlewares, Middlewares),
       new SingletonContainer(InjectTokens.HelpRenderer, HelpRenderer),
       new SingletonContainer(InjectTokens.ConfigProvider, LayeredConfigProvider),
+      new SingletonContainer(InjectTokens.FeatureFlags, FeatureFlags),
       new SingletonContainer(InjectTokens.AccountCommand, AccountCommand),
       new SingletonContainer(InjectTokens.FileCommand, FileCommand),
       new SingletonContainer(InjectTokens.ClusterCommand, ClusterCommand),

@@ -86,11 +86,12 @@ export class StringEx {
     return parts.join(separator);
   }
 
-  public static camelCaseToKebab(key: string): string {
+  /** Splits camelCase word boundaries with an underscore, e.g. `helmChart` -> `helm_chart`. */
+  public static camelCaseToSnake(key: string): string {
     if (StringEx.isEmpty(key)) {
       return key;
     }
 
-    return key.replaceAll(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+    return key.replaceAll(/([a-z])([A-Z])/g, '$1_$2').toLowerCase();
   }
 }

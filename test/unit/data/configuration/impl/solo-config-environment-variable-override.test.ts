@@ -7,23 +7,18 @@
  * joined by dots, e.g. `helmChart.directory`.  The EnvironmentStorageBackend must produce the
  * same keys so that EnvironmentConfigSource can override those YAML values.
  *
- * Forward direction  (list / strip):
- *   env var name  →  Prefix.strip(…, ConfigKeyFormatter)  →  config key
+ * Names are generated from the schema, via Prefix.add / EnvironmentKeyFormatter:
+ *   `helmChart.directory`  ->  `SOLO_HELM_CHART_DIRECTORY`
  *
- * Reverse direction  (readBytes / add):
- *   config key  →  Prefix.add(…, EnvironmentKeyFormatter)  →  env var name
- *
- * Both directions must be self-consistent AND the resulting config key must match the key
- * produced by FlatKeyMapper for the SoloConfigSchema class properties.
- *
- * Key finding: camelCase property names require UPPER-KEBAB-CASE within env var segments.
- * For example, `helmChart.directory` maps to `SOLO_HELM-CHART_DIRECTORY`, NOT
- * `SOLO_HELM_CHART_DIRECTORY`.  All-underscore names map to flat dot-case keys that do not
- * correspond to any exposed SoloConfigSchema property.
+ * `_` separates both nesting levels and camelCase word boundaries, so a name cannot be taken apart
+ * again; EnvironmentStorageBackend therefore reads the environment forwards, looking up the name each
+ * declared config key generates.  Environment variable names must be POSIX identifiers
+ * (`[A-Za-z_][A-Za-z0-9_]*`); a dash cannot appear in one, because
+ * `export SOLO_HELM-CHART_DIRECTORY=...` is rejected by every POSIX shell.
  */
 
 import {expect} from 'chai';
-import {before} from 'mocha';
+import {afterEach, beforeEach, describe, it} from 'mocha';
 import {EnvironmentStorageBackend} from '../../../../../src/data/backend/impl/environment-storage-backend.js';
 import {EnvironmentConfigSource} from '../../../../../src/data/configuration/impl/environment-config-source.js';
 import {ClassToObjectMapper} from '../../../../../src/data/mapper/impl/class-to-object-mapper.js';
@@ -32,140 +27,88 @@ import {SoloConfigSchema} from '../../../../../src/data/schema/model/solo/solo-c
 import {Prefix} from '../../../../../src/data/key/prefix.js';
 import {EnvironmentKeyFormatter} from '../../../../../src/data/key/environment-key-formatter.js';
 import {EnvironmentAliasRegistry} from '../../../../../src/data/schema/decorators/environment-alias-registry.js';
+import {EnvironmentScope} from '../../../../../test/helpers/environment-scope.js';
 
 const mapper: ClassToObjectMapper = new ClassToObjectMapper(ConfigKeyFormatter.instance());
 
-// These tests verify the naming CONVENTION (env var -> config key) with environment aliases disabled,
-// so an all-underscore alias registered elsewhere cannot influence the pure-convention assertions.
-before((): void => {
+// Name generation is schema-derived, so SoloConfigSchema has to be the registered root for these
+// assertions.  This runs before each test, not once for the file: other suites call resetRootSchemas(),
+// and a one-shot `before` would leave the registry empty underneath these assertions.
+beforeEach((): void => {
+  EnvironmentAliasRegistry.resetRootSchemas();
+  EnvironmentAliasRegistry.registerRootSchema(SoloConfigSchema);
+});
+
+afterEach((): void => {
   EnvironmentAliasRegistry.resetRootSchemas();
 });
 
 // ---------------------------------------------------------------------------
-// Helper: save / restore process.env around each test
+// Section 1 – Forward direction: config key → env var name
 // ---------------------------------------------------------------------------
-function withEnvironment(variables: Record<string, string>, function_: () => Promise<void>): () => Promise<void> {
-  return async (): Promise<void> => {
-    const saved: NodeJS.ProcessEnv = {...process.env};
-    try {
-      for (const [k, v] of Object.entries(variables)) {
-        process.env[k] = v;
-      }
-      await function_();
-    } finally {
-      for (const k of Object.keys(variables)) {
-        if (k in saved) {
-          process.env[k] = saved[k];
-        } else {
-          delete process.env[k];
-        }
-      }
-    }
-  };
-}
-
-// ---------------------------------------------------------------------------
-// Section 1 – Key-strip direction: env var name → stripped config key
-// ---------------------------------------------------------------------------
-describe('EnvironmentStorageBackend – key stripping (env var → config key)', (): void => {
-  it('all-underscore SOLO_HELM_CHART_DIRECTORY strips to flat dot key helm.chart.directory', (): void => {
-    const stripped: string = Prefix.strip('SOLO_HELM_CHART_DIRECTORY', 'SOLO');
-    expect(stripped).to.equal('helm.chart.directory');
+describe('EnvironmentKeyFormatter – env var naming (config key → env var)', (): void => {
+  it('renders camelCase word boundaries as underscores, not dashes', (): void => {
+    expect(Prefix.add('helmChart.directory', 'SOLO', EnvironmentKeyFormatter.instance())).to.equal(
+      'SOLO_HELM_CHART_DIRECTORY',
+    );
   });
 
-  it('hyphenated SOLO_HELM-CHART_DIRECTORY strips to camelCase key helmChart.directory', (): void => {
-    const stripped: string = Prefix.strip('SOLO_HELM-CHART_DIRECTORY', 'SOLO');
-    expect(stripped).to.equal('helmChart.directory');
+  it('renders a multi-word leaf as underscores', (): void => {
+    expect(Prefix.add('tss.readyMaxAttempts', 'SOLO', EnvironmentKeyFormatter.instance())).to.equal(
+      'SOLO_TSS_READY_MAX_ATTEMPTS',
+    );
   });
 
-  it('all-underscore SOLO_TSS_READY_MAX_ATTEMPTS strips to flat key tss.ready.max.attempts', (): void => {
-    const stripped: string = Prefix.strip('SOLO_TSS_READY_MAX_ATTEMPTS', 'SOLO');
-    expect(stripped).to.equal('tss.ready.max.attempts');
+  it('renders a nested multi-word leaf as underscores', (): void => {
+    expect(Prefix.add('tss.wraps.libraryDownloadUrl', 'SOLO', EnvironmentKeyFormatter.instance())).to.equal(
+      'SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL',
+    );
   });
 
-  it('hyphenated SOLO_TSS_READY-MAX-ATTEMPTS strips to camelCase key tss.readyMaxAttempts', (): void => {
-    const stripped: string = Prefix.strip('SOLO_TSS_READY-MAX-ATTEMPTS', 'SOLO');
-    expect(stripped).to.equal('tss.readyMaxAttempts');
-  });
-
-  it('all-underscore SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL strips to flat key tss.wraps.library.download.url', (): void => {
-    const stripped: string = Prefix.strip('SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL', 'SOLO');
-    expect(stripped).to.equal('tss.wraps.library.download.url');
-  });
-
-  it('hyphenated SOLO_TSS_WRAPS_LIBRARY-DOWNLOAD-URL strips to camelCase key tss.wraps.libraryDownloadUrl', (): void => {
-    const stripped: string = Prefix.strip('SOLO_TSS_WRAPS_LIBRARY-DOWNLOAD-URL', 'SOLO');
-    expect(stripped).to.equal('tss.wraps.libraryDownloadUrl');
+  it('renders a multi-word intermediate segment as underscores', (): void => {
+    expect(Prefix.add('ingressControllerHelmChart.version', 'SOLO', EnvironmentKeyFormatter.instance())).to.equal(
+      'SOLO_INGRESS_CONTROLLER_HELM_CHART_VERSION',
+    );
   });
 });
 
 // ---------------------------------------------------------------------------
-// Section 2 – Reverse direction: config key → env var name looked up by readBytes
+// Section 2 – Which config keys the environment supplies
 // ---------------------------------------------------------------------------
-describe('EnvironmentStorageBackend – readBytes lookup (config key → env var)', (): void => {
-  it('readBytes("helmChart.directory") with prefix SOLO looks up SOLO_HELM-CHART_DIRECTORY', (): void => {
-    const environmentVariableName: string = Prefix.add(
-      'helmChart.directory',
-      'SOLO',
-      EnvironmentKeyFormatter.instance(),
-    );
-    expect(environmentVariableName).to.equal('SOLO_HELM-CHART_DIRECTORY');
-  });
-
-  it('readBytes("helm.chart.directory") with prefix SOLO looks up SOLO_HELM_CHART_DIRECTORY', (): void => {
-    const environmentVariableName: string = Prefix.add(
-      'helm.chart.directory',
-      'SOLO',
-      EnvironmentKeyFormatter.instance(),
-    );
-    expect(environmentVariableName).to.equal('SOLO_HELM_CHART_DIRECTORY');
-  });
-
-  it('readBytes("tss.readyMaxAttempts") with prefix SOLO looks up SOLO_TSS_READY-MAX-ATTEMPTS', (): void => {
-    const environmentVariableName: string = Prefix.add(
-      'tss.readyMaxAttempts',
-      'SOLO',
-      EnvironmentKeyFormatter.instance(),
-    );
-    expect(environmentVariableName).to.equal('SOLO_TSS_READY-MAX-ATTEMPTS');
-  });
-
-  it('readBytes("tss.ready.max.attempts") with prefix SOLO looks up SOLO_TSS_READY_MAX_ATTEMPTS', (): void => {
-    const environmentVariableName: string = Prefix.add(
-      'tss.ready.max.attempts',
-      'SOLO',
-      EnvironmentKeyFormatter.instance(),
-    );
-    expect(environmentVariableName).to.equal('SOLO_TSS_READY_MAX_ATTEMPTS');
-  });
-
-  it('readBytes("tss.wraps.libraryDownloadUrl") with prefix SOLO looks up SOLO_TSS_WRAPS_LIBRARY-DOWNLOAD-URL', (): void => {
-    const environmentVariableName: string = Prefix.add(
-      'tss.wraps.libraryDownloadUrl',
-      'SOLO',
-      EnvironmentKeyFormatter.instance(),
-    );
-    expect(environmentVariableName).to.equal('SOLO_TSS_WRAPS_LIBRARY-DOWNLOAD-URL');
-  });
-
+describe('EnvironmentStorageBackend – listing set keys', (): void => {
   it(
-    'roundtrip: SOLO_HELM-CHART_DIRECTORY appears as helmChart.directory in list() and is readable',
-    withEnvironment({'SOLO_HELM-CHART_DIRECTORY': '/tmp/charts'}, async (): Promise<void> => {
+    'SOLO_HELM_CHART_DIRECTORY resolves to helmChart.directory',
+    EnvironmentScope.with({SOLO_HELM_CHART_DIRECTORY: '/tmp/charts'}, async (): Promise<void> => {
       const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend('SOLO');
-      const keys: string[] = await backend.list();
-      expect(keys.includes('helmChart.directory'), 'should appear as helmChart.directory').to.be.true;
-      const value: string = Buffer.from(await backend.readBytes('helmChart.directory')).toString('utf8');
-      expect(value).to.equal('/tmp/charts');
+      expect(await backend.list()).to.include('helmChart.directory');
     }),
   );
 
   it(
-    'roundtrip: SOLO_HELM_CHART_DIRECTORY appears as helm.chart.directory, not helmChart.directory',
-    withEnvironment({SOLO_HELM_CHART_DIRECTORY: '/tmp/charts'}, async (): Promise<void> => {
+    'SOLO_TSS_READY_MAX_ATTEMPTS resolves to tss.readyMaxAttempts',
+    EnvironmentScope.with({SOLO_TSS_READY_MAX_ATTEMPTS: '99'}, async (): Promise<void> => {
       const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend('SOLO');
-      const keys: string[] = await backend.list();
-      expect(keys.includes('helmChart.directory'), 'should NOT appear as helmChart.directory').to.be.false;
-      expect(keys.includes('helm.chart.directory'), 'should appear as helm.chart.directory').to.be.true;
+      expect(await backend.list()).to.include('tss.readyMaxAttempts');
+    }),
+  );
+
+  it(
+    'SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL resolves to tss.wraps.libraryDownloadUrl',
+    EnvironmentScope.with(
+      {SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL: 'https://example.com/w.tgz'},
+      async (): Promise<void> => {
+        const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend('SOLO');
+        expect(await backend.list()).to.include('tss.wraps.libraryDownloadUrl');
+      },
+    ),
+  );
+
+  it(
+    'roundtrip: the name listed by list() is readable by readBytes()',
+    EnvironmentScope.with({SOLO_HELM_CHART_DIRECTORY: '/tmp/charts'}, async (): Promise<void> => {
+      const backend: EnvironmentStorageBackend = new EnvironmentStorageBackend('SOLO');
+      const value: string = Buffer.from(await backend.readBytes('helmChart.directory')).toString('utf8');
+      expect(value).to.equal('/tmp/charts');
     }),
   );
 });
@@ -175,8 +118,8 @@ describe('EnvironmentStorageBackend – readBytes lookup (config key → env var
 // ---------------------------------------------------------------------------
 describe('EnvironmentConfigSource + SoloConfigSchema – end-to-end override', (): void => {
   it(
-    'SOLO_HELM-CHART_DIRECTORY (hyphenated) overrides helmChart.directory',
-    withEnvironment({'SOLO_HELM-CHART_DIRECTORY': '/tmp/solo-charts'}, async (): Promise<void> => {
+    'SOLO_HELM_CHART_DIRECTORY overrides helmChart.directory',
+    EnvironmentScope.with({SOLO_HELM_CHART_DIRECTORY: '/tmp/solo-charts'}, async (): Promise<void> => {
       const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
       await source.load();
       const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
@@ -185,18 +128,8 @@ describe('EnvironmentConfigSource + SoloConfigSchema – end-to-end override', (
   );
 
   it(
-    'SOLO_HELM_CHART_DIRECTORY (all-underscore) does NOT override helmChart.directory',
-    withEnvironment({SOLO_HELM_CHART_DIRECTORY: '/tmp/solo-charts'}, async (): Promise<void> => {
-      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
-      await source.load();
-      const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
-      expect(schema?.helmChart?.directory).to.not.equal('/tmp/solo-charts');
-    }),
-  );
-
-  it(
-    'SOLO_TSS_READY-MAX-ATTEMPTS (hyphenated) overrides tss.readyMaxAttempts',
-    withEnvironment({'SOLO_TSS_READY-MAX-ATTEMPTS': '99'}, async (): Promise<void> => {
+    'SOLO_TSS_READY_MAX_ATTEMPTS overrides tss.readyMaxAttempts',
+    EnvironmentScope.with({SOLO_TSS_READY_MAX_ATTEMPTS: '99'}, async (): Promise<void> => {
       const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
       await source.load();
       const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
@@ -205,19 +138,9 @@ describe('EnvironmentConfigSource + SoloConfigSchema – end-to-end override', (
   );
 
   it(
-    'SOLO_TSS_READY_MAX_ATTEMPTS (all-underscore) does NOT override tss.readyMaxAttempts',
-    withEnvironment({SOLO_TSS_READY_MAX_ATTEMPTS: '99'}, async (): Promise<void> => {
-      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
-      await source.load();
-      const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
-      expect(schema?.tss?.readyMaxAttempts).to.not.equal(99);
-    }),
-  );
-
-  it(
-    'SOLO_TSS_WRAPS_LIBRARY-DOWNLOAD-URL (hyphenated) overrides tss.wraps.libraryDownloadUrl',
-    withEnvironment(
-      {'SOLO_TSS_WRAPS_LIBRARY-DOWNLOAD-URL': 'https://example.com/wraps.tar.gz'},
+    'SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL overrides tss.wraps.libraryDownloadUrl',
+    EnvironmentScope.with(
+      {SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL: 'https://example.com/wraps.tar.gz'},
       async (): Promise<void> => {
         const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
         await source.load();
@@ -225,5 +148,91 @@ describe('EnvironmentConfigSource + SoloConfigSchema – end-to-end override', (
         expect(schema?.tss?.wraps?.libraryDownloadUrl).to.equal('https://example.com/wraps.tar.gz');
       },
     ),
+  );
+
+  it(
+    'SOLO_INGRESS_CONTROLLER_HELM_CHART_VERSION overrides ingressControllerHelmChart.version',
+    EnvironmentScope.with({SOLO_INGRESS_CONTROLLER_HELM_CHART_VERSION: '9.9.9'}, async (): Promise<void> => {
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+      await source.load();
+      const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
+      expect(schema?.ingressControllerHelmChart?.version).to.equal('9.9.9');
+    }),
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Section 4 – Backwards compatibility for the names that used to need an alias
+// ---------------------------------------------------------------------------
+//
+// These four carried an @EnvironmentAliasRegistry.alias(...) while the generated name was hyphenated.
+// Once generation switched to UPPER_SNAKE the alias became the generated name itself, so the decorators
+// were dropped. The variables must keep working — now via the generated path rather than the alias path.
+describe('EnvironmentConfigSource – names that no longer need an alias still resolve', (): void => {
+  it(
+    'SOLO_TSS_TIMEOUT_AFTER_READY_SECONDS still sets tss.timeoutAfterReadySeconds',
+    EnvironmentScope.with({SOLO_TSS_TIMEOUT_AFTER_READY_SECONDS: '42'}, async (): Promise<void> => {
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+      await source.load();
+      expect(source.asObject(SoloConfigSchema)?.tss?.timeoutAfterReadySeconds).to.equal(42);
+    }),
+  );
+
+  it(
+    'SOLO_TSS_READY_MAX_ATTEMPTS still sets tss.readyMaxAttempts',
+    EnvironmentScope.with({SOLO_TSS_READY_MAX_ATTEMPTS: '42'}, async (): Promise<void> => {
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+      await source.load();
+      expect(source.asObject(SoloConfigSchema)?.tss?.readyMaxAttempts).to.equal(42);
+    }),
+  );
+
+  it(
+    'SOLO_TSS_READY_BACKOFF_SECONDS still sets tss.readyBackoffSeconds',
+    EnvironmentScope.with({SOLO_TSS_READY_BACKOFF_SECONDS: '42'}, async (): Promise<void> => {
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+      await source.load();
+      expect(source.asObject(SoloConfigSchema)?.tss?.readyBackoffSeconds).to.equal(42);
+    }),
+  );
+
+  it(
+    'SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL still sets tss.wraps.libraryDownloadUrl',
+    EnvironmentScope.with(
+      {SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL: 'https://example.com/w.tgz'},
+      async (): Promise<void> => {
+        const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+        await source.load();
+        expect(source.asObject(SoloConfigSchema)?.tss?.wraps?.libraryDownloadUrl).to.equal('https://example.com/w.tgz');
+      },
+    ),
+  );
+});
+
+describe('EnvironmentConfigSource – a numeric field holds a number after load', (): void => {
+  // Regression (PR #6021 review): class-transformer does no type conversion, so an override reached
+  // tss.readyMaxAttempts as the string it was typed as. '0 < "abc"' is false, which silently reduced the
+  // TSS ready wait to zero attempts.
+  it(
+    'keeps a numeric override a number',
+    EnvironmentScope.with({SOLO_TSS_READY_MAX_ATTEMPTS: '99'}, async (): Promise<void> => {
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+      await source.load();
+      expect(source.asObject(SoloConfigSchema)?.tss?.readyMaxAttempts).to.be.a('number');
+    }),
+  );
+
+  it(
+    'rejects a numeric override that is not a number',
+    EnvironmentScope.with({SOLO_TSS_READY_MAX_ATTEMPTS: 'abc'}, async (): Promise<void> => {
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+      try {
+        await source.load();
+        expect.fail('expected a type mismatch error');
+      } catch (error) {
+        expect(error.message).to.include('SOLO_TSS_READY_MAX_ATTEMPTS');
+        expect(error.message).to.include('not a valid number');
+      }
+    }),
   );
 });

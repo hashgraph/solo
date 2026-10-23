@@ -79,10 +79,6 @@ export const KIND_NODE_IMAGE: string =
 export const PODMAN_MACHINE_NAME: string = 'podman-machine-default';
 export const SOLO_DEV_OUTPUT: boolean = Boolean(getEnvironmentVariable('SOLO_DEV_OUTPUT')) || false;
 
-export const CONFIG: {ENABLE_IMAGE_CACHE: boolean} = {
-  ENABLE_IMAGE_CACHE: getEnvironmentVariable('ENABLE_IMAGE_CACHE') !== 'false',
-};
-
 export const ROOT_CONTAINER: ContainerName = ContainerName.of('root-container');
 export const SOLO_REMOTE_CONFIGMAP_NAME: string = 'solo-remote-config';
 export const SOLO_REMOTE_CONFIGMAP_DATA_KEY: string = 'remote-config-data';
@@ -91,9 +87,6 @@ export const SOLO_CLUSTER_ROLE_LABELS: Record<string, string> = {'solo.hedera.co
 export const SOLO_REMOTE_CONFIG_MAX_COMMAND_IN_HISTORY: number = 50;
 export const SOLO_REMOTE_CONFIGMAP_LABEL_SELECTOR: string = 'solo.hedera.com/type=remote-config';
 export const NODE_COPY_CONCURRENT: number = Number(getEnvironmentVariable('NODE_COPY_CONCURRENT')) || 4;
-export const EXPERIMENTAL_COPY_WRAPS_LIB_IN_PARALLEL: boolean =
-  getEnvironmentVariable('EXPERIMENTAL_COPY_WRAPS_LIB_IN_PARALLEL') === 'true' || false;
-export const SKIP_NODE_PING: boolean = Boolean(getEnvironmentVariable('SKIP_NODE_PING')) || false;
 export const DEFAULT_LOCK_ACQUIRE_ATTEMPTS: number = +getEnvironmentVariable('SOLO_LEASE_ACQUIRE_ATTEMPTS') || 10;
 export const DEFAULT_LEASE_DURATION: number = +getEnvironmentVariable('SOLO_LEASE_DURATION') || 20;
 
@@ -720,8 +713,6 @@ export const CERT_MANAGER_CRDS: string[] = [
 export const TRIGGER_STAKE_WEIGHT_CALCULATE_WAIT_SECONDS: number =
   +getEnvironmentVariable('TRIGGER_STAKE_WEIGHT_CALCULATE_WAIT_SECONDS') || 60;
 
-export const DISABLE_IMPORTER_SPRING_PROFILES: boolean =
-  getEnvironmentVariable('DISABLE_IMPORTER_SPRING_PROFILES') === 'true' || false;
 export const SPRING_PROFILES_ACTIVE: string = getEnvironmentVariable('SPRING_PROFILES_ACTIVE') || 'blocknode';
 
 export const SOLO_CREATED_BY_LABEL: string = 'app.kubernetes.io/created-by';

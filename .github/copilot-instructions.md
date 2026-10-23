@@ -43,7 +43,7 @@ authoritative rules and rationale. The conventions below are the ones violated m
   In `src/**/*.ts` (except `src/core/constants.ts`), always read application env vars through
   `getEnvironmentVariable('VAR_NAME')` exported from `src/core/constants.ts`. Bracket-notation reads
   (`process.env['VAR']` or `process.env[variable]`) are an ESLint **error** in `src/`. This is how
-  the project tracks which env vars must be documented in `docs/site/content/en/docs/env.md`.
+  the project tracks which env vars must be documented in the solo-docs repository.
   Dot-access for OS-level vars (`process.env.PATH`, `process.env.HOME`) and spreading
   (`{...process.env}`) for subprocess env are fine and are not restricted.
 

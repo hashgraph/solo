@@ -43,6 +43,7 @@ import {BaseStateSchema} from '../data/schema/model/remote/state/base-state-sche
 import {ComponentTypes} from '../core/config/remote/enumerations/component-types.js';
 import {NodeCommandTasks} from './node/tasks.js';
 import {SoloConfig} from '../business/runtime-state/config/solo/solo-config.js';
+import {type FeatureFlags} from '../business/runtime-state/config/solo/feature-flags.js';
 import {type ConfigProvider} from '../data/configuration/api/config-provider.js';
 import {type DefaultKindClientBuilder} from '../integration/kind/impl/default-kind-client-builder.js';
 import {type KindClient} from '../integration/kind/kind-client.js';
@@ -79,6 +80,7 @@ export abstract class BaseCommand extends ShellRunner {
     @inject(InjectTokens.NodeCommandTasks) protected readonly nodeCommandTasks?: NodeCommandTasks,
     @inject(InjectTokens.ConfigProvider) private readonly configProvider?: ConfigProvider,
     @inject(InjectTokens.KindBuilder) protected readonly kindBuilder?: DefaultKindClientBuilder,
+    @inject(InjectTokens.FeatureFlags) protected readonly featureFlags?: FeatureFlags,
   ) {
     super();
 
@@ -96,6 +98,7 @@ export abstract class BaseCommand extends ShellRunner {
     this.nodeCommandTasks = patchInject(nodeCommandTasks, InjectTokens.NodeCommandTasks, this.constructor.name);
     this.configProvider = patchInject(configProvider, InjectTokens.ConfigProvider, this.constructor.name);
     this.kindBuilder = patchInject(kindBuilder, InjectTokens.KindBuilder, this.constructor.name);
+    this.featureFlags = patchInject(featureFlags, InjectTokens.FeatureFlags, this.constructor.name);
     this.soloConfig = SoloConfig.getConfig(this.configProvider);
   }
 

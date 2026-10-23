@@ -2316,7 +2316,7 @@ export class NetworkCommand extends BaseCommand {
             );
 
             const copyTasks: SoloListr<NetworkDeployContext> = task.newListr(subTasks, {
-              concurrent: constants.EXPERIMENTAL_COPY_WRAPS_LIB_IN_PARALLEL,
+              concurrent: this.featureFlags.copyWrapsLibraryInParallel,
               rendererOptions: {
                 collapseSubtasks: false,
               },

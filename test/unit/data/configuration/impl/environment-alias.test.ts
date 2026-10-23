@@ -8,28 +8,9 @@ import {ConfigKeyFormatter} from '../../../../../src/data/key/config-key-formatt
 import {SoloConfigSchema} from '../../../../../src/data/schema/model/solo/solo-config-schema.js';
 import {EnvironmentAliasRegistry} from '../../../../../src/data/schema/decorators/environment-alias-registry.js';
 import {ConfigurationError} from '../../../../../src/data/configuration/api/configuration-error.js';
+import {EnvironmentScope} from '../../../../../test/helpers/environment-scope.js';
 
 const mapper: ClassToObjectMapper = new ClassToObjectMapper(ConfigKeyFormatter.instance());
-
-function withEnvironment(variables: Record<string, string>, function_: () => Promise<void>): () => Promise<void> {
-  return async (): Promise<void> => {
-    const saved: NodeJS.ProcessEnv = {...process.env};
-    try {
-      for (const [k, v] of Object.entries(variables)) {
-        process.env[k] = v;
-      }
-      await function_();
-    } finally {
-      for (const k of Object.keys(variables)) {
-        if (k in saved) {
-          process.env[k] = saved[k];
-        } else {
-          delete process.env[k];
-        }
-      }
-    }
-  };
-}
 
 describe('EnvironmentAliasRegistry – alias resolution', (): void => {
   beforeEach((): void => {
@@ -43,42 +24,39 @@ describe('EnvironmentAliasRegistry – alias resolution', (): void => {
 
   it('reconstructs full config paths into canonical stripped keys', (): void => {
     const aliasMap: ReadonlyMap<string, string> = EnvironmentAliasRegistry.aliasMap();
-    expect(aliasMap.get('SOLO_TSS_READY_MAX_ATTEMPTS')).to.equal('tss.readyMaxAttempts');
-    expect(aliasMap.get('SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL')).to.equal('tss.wraps.libraryDownloadUrl');
+    expect(aliasMap.get('SOLO_FF_SKIP_NODE_PING')).to.equal('featureFlags.skipNodePing');
+    expect(aliasMap.get('EXPERIMENTAL_COPY_WRAPS_LIB_IN_PARALLEL')).to.equal('featureFlags.copyWrapsLibraryInParallel');
   });
 
   it(
-    'a fixed alias sets the field (SOLO_TSS_READY_MAX_ATTEMPTS -> tss.readyMaxAttempts)',
-    withEnvironment({SOLO_TSS_READY_MAX_ATTEMPTS: '99'}, async (): Promise<void> => {
+    'a fixed alias sets the field (SOLO_FF_SKIP_NODE_PING -> featureFlags.skipNodePing)',
+    EnvironmentScope.with({SOLO_FF_SKIP_NODE_PING: 'true'}, async (): Promise<void> => {
       const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
       await source.load();
       const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
-      expect(schema?.tss?.readyMaxAttempts).to.equal(99);
+      expect(schema?.featureFlags?.skipNodePing).to.be.true;
     }),
   );
 
   it(
-    'a nested fixed alias sets the field (SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL -> tss.wraps.libraryDownloadUrl)',
-    withEnvironment(
-      {SOLO_TSS_WRAPS_LIBRARY_DOWNLOAD_URL: 'https://example.com/wraps.tar.gz'},
-      async (): Promise<void> => {
-        const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
-        await source.load();
-        const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
-        expect(schema?.tss?.wraps?.libraryDownloadUrl).to.equal('https://example.com/wraps.tar.gz');
-      },
-    ),
+    'a legacy unprefixed alias sets the field (ENABLE_IMAGE_CACHE -> featureFlags.enableImageCache)',
+    EnvironmentScope.with({ENABLE_IMAGE_CACHE: 'false'}, async (): Promise<void> => {
+      const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
+      await source.load();
+      const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
+      expect(schema?.featureFlags?.enableImageCache).to.be.false;
+    }),
   );
 
   it(
     'the generated SOLO_* name wins when both it and the alias are set',
-    withEnvironment(
-      {'SOLO_TSS_READY-MAX-ATTEMPTS': '5', SOLO_TSS_READY_MAX_ATTEMPTS: '99'},
+    EnvironmentScope.with(
+      {SOLO_FEATURE_FLAGS_SKIP_NODE_PING: 'false', SOLO_FF_SKIP_NODE_PING: 'true'},
       async (): Promise<void> => {
         const source: EnvironmentConfigSource = new EnvironmentConfigSource(mapper, 'SOLO');
         await source.load();
         const schema: SoloConfigSchema = source.asObject(SoloConfigSchema);
-        expect(schema?.tss?.readyMaxAttempts).to.equal(5);
+        expect(schema?.featureFlags?.skipNodePing).to.be.false;
       },
     ),
   );

@@ -1,14 +1,15 @@
 #schemaVersion: 1
 tss:
-  messageSizeSoftLimitBytes: 4194304     # 4 MiB
-  messageSizeHardLimitBytes: 37748736    # 36 MiB — accommodates ~30 MiB genesis WRAPS proof
+  messageSizeSoftLimitBytes: 4194304 # 4 MiB
+  messageSizeHardLimitBytes: 37748736 # 36 MiB — accommodates ~30 MiB genesis WRAPS proof
   timeoutAfterReadySeconds: 10
   readyMaxAttempts: 60
   readyBackoffSeconds: 3
   wraps:
-    artifactsFolderName: wraps-v0.2.0
-    directoryName: wraps-v0.2.0
+    # Must match the WrapsSchema constructor defaults (this file outranks them at runtime) and stay
+    # internally consistent: the version in libraryDownloadUrl follows directoryName. Both are pinned by
+    # test/unit/data/configuration/config-source-loading.test.ts.
+    artifactsFolderName: data/keys/wraps-v1.0.0
+    directoryName: wraps-v1.0.0
     allowedKeyFiles: decider_pp.bin,decider_vp.bin,nova_pp.bin,nova_vp.bin
-    # IMPORTANT: libraryDownloadUrl must be kept consistent with directoryName.
-    # If directoryName is updated, update libraryDownloadUrl to match.
-    libraryDownloadUrl: https://builds.hedera.com/tss/hiero/wraps/v0.2/wraps-v0.2.0.tar.gz
+    libraryDownloadUrl: https://builds.hedera.com/tss/hiero/wraps/v1.0/wraps-v1.0.0.tar.gz

@@ -12,6 +12,7 @@ import {type LexerInternalNode} from '../../key/lexer/lexer-internal-node.js';
 import {plainToInstance} from 'class-transformer';
 import {ReflectAssist} from '../../../business/utils/reflect-assist.js';
 import {type Node} from '../../key/lexer/node.js';
+import {DeclaredTypeCoercer} from '../../key/declared-type-coercer.js';
 
 export abstract class LayeredConfigSource implements ConfigSource {
   /**
@@ -93,7 +94,9 @@ export abstract class LayeredConfigSource implements ConfigSource {
           return null;
         }
 
-        object = node.isLeaf() ? JSON.parse((node as LexerLeafNode).value) : (node as LexerInternalNode).toObject();
+        object = node.isLeaf()
+          ? (DeclaredTypeCoercer.readLeafValue(node.path(), (node as LexerLeafNode).value) as object)
+          : (node as LexerInternalNode).toObject();
       } else {
         object = this.forest.toObject();
       }

@@ -24,8 +24,8 @@ tasks:
     cmds:
       - "{{ .test_prefix }}=\"Unit Tests\" 
         {{ .reporter_prefix }}='coverage/unit' 
-        {{ .mocha_bin }} 'test/unit/**/*.ts' 
-          --exclude 'test/unit/core/helm/**/*.ts' 
+        {{ .mocha_bin }} 'test/unit/**/*.test.ts'
+          --exclude 'test/unit/core/helm/**/*.ts'
         {{ .reporter_options_prefix }}.xml"
 
   test-mathex:

@@ -57,6 +57,7 @@ export class InjectTokens {
   public static KeyFormatter: symbol = Symbol.for('KeyFormatter');
   public static CommandInvoker: symbol = Symbol.for('CommandInvoker');
   public static ConfigProvider: symbol = Symbol.for('ConfigProvider');
+  public static FeatureFlags: symbol = Symbol.for('FeatureFlags');
   public static BlockNodeCommand: symbol = Symbol.for('BlockNodeCommand');
   public static RapidFireCommand: symbol = Symbol.for('RapidFireCommand');
   public static LocalConfigFileName: symbol = Symbol.for('LocalConfigFileName');

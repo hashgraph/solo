@@ -101,13 +101,17 @@ describe('StringEx', (): void => {
     });
   });
 
-  describe('camelCaseToKebab', (): void => {
-    it('should convert camelCase to kebab-case', (): void => {
-      expect(StringEx.camelCaseToKebab('helloWorld')).to.equal('hello-world');
+  describe('camelCaseToSnake', (): void => {
+    it('should convert camelCase to snake_case', (): void => {
+      expect(StringEx.camelCaseToSnake('helloWorld')).to.equal('hello_world');
     });
 
     it('should return the original string if it is not camelCase', (): void => {
-      expect(StringEx.camelCaseToKebab('hello')).to.equal('hello');
+      expect(StringEx.camelCaseToSnake('hello')).to.equal('hello');
+    });
+
+    it('should never emit a dash, which is invalid in an environment variable name', (): void => {
+      expect(StringEx.camelCaseToSnake('ingressControllerHelmChart')).to.equal('ingress_controller_helm_chart');
     });
   });
 });

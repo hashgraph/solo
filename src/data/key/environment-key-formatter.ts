@@ -16,7 +16,7 @@ export class EnvironmentKeyFormatter implements KeyFormatter {
       return key;
     }
 
-    return StringEx.camelCaseToKebab(key).trim().toUpperCase().replaceAll(StringEx.PERIOD, this.separator);
+    return StringEx.camelCaseToSnake(key).trim().toUpperCase().replaceAll(StringEx.PERIOD, this.separator);
   }
 
   public split(key: string): string[] {
