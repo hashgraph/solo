@@ -5,29 +5,21 @@ import * as version from '../../../version.js';
 import {inject, injectable} from 'tsyringe-neo';
 import {patchInject} from '../dependency-injection/container-helper.js';
 import {InjectTokens} from '../dependency-injection/inject-tokens.js';
-import {BaseDependencyManager} from './base-dependency-manager.js';
+import {GitHubReleaseDependencyManager} from './github-release-dependency-manager.js';
 import {PackageDownloader} from '../package-downloader.js';
-import util from 'node:util';
 import path from 'node:path';
-import {SoloError} from '../errors/solo-error.js';
 import {SoloErrors} from '../errors/solo-errors.js';
-import {GitHubApiClient} from '../github-api-client.js';
 import fs from 'node:fs';
 import {Zippy} from '../zippy.js';
-import {GitHubRelease, ReleaseInfo, PodmanMode} from '../../types/index.js';
+import {type GitHubReleaseAsset, PodmanMode} from '../../types/index.js';
 import {PathEx} from '../../business/utils/path-ex.js';
 import {OperatingSystem} from '../../business/utils/operating-system.js';
 import {SubprocessEnvironment} from '../subprocess-environment.js';
 import {SubprocessCommandProfile} from '../subprocess-command-profile.js';
 
-const PODMAN_RELEASES_LIST_URL: string = 'https://api.github.com/repos/containers/podman/releases';
-
 @injectable()
-export class PodmanDependencyManager extends BaseDependencyManager {
-  protected checksum: string;
-  protected releaseBaseUrl: string;
-  protected artifactFileName: string;
-  protected artifactVersion: string;
+export class PodmanDependencyManager extends GitHubReleaseDependencyManager {
+  protected readonly releasesListUrl: string = 'https://api.github.com/repos/containers/podman/releases';
   private brewPrefix: string = '';
 
   public constructor(
@@ -46,7 +38,6 @@ export class PodmanDependencyManager extends BaseDependencyManager {
       patchInject(osArch, InjectTokens.OsArch, PodmanDependencyManager.name),
       patchInject(podmanVersion, InjectTokens.PodmanVersion, PodmanDependencyManager.name) || version.PODMAN_VERSION,
       constants.PODMAN,
-      '',
     );
 
     this.zippy = patchInject(this.zippy, InjectTokens.Zippy, PodmanDependencyManager.name);
@@ -63,103 +54,24 @@ export class PodmanDependencyManager extends BaseDependencyManager {
     this.cacheDirectory = patchInject(this.cacheDirectory, InjectTokens.CacheDir, PodmanDependencyManager.name);
   }
 
-  /**
-   * Get the Podman artifact name based on version, OS, and architecture
-   */
-  protected getArtifactName(): string {
-    return util.format(
-      this.artifactFileName,
-      this.getRequiredVersion(),
-      OperatingSystem.getFormattedPlatform(),
-      this.osArch,
-    );
-  }
-
   public get mode(): PodmanMode {
     return OperatingSystem.isLinux() ? PodmanMode.ROOTFUL : PodmanMode.VIRTUAL_MACHINE;
   }
 
-  public async getVersion(executableWithPath: string): Promise<string> {
-    // The retry logic is to handle potential transient issues with the command execution
-    // The command `podman --version` was sometimes observed to return an empty output in the CI environment
-    const maxAttempts: number = 3;
-    for (let attempt: number = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const output: string[] = await this.run(executableWithPath, ['--version']);
-        if (output.length > 0) {
-          const match: RegExpMatchArray | null = output[0].trim().match(/(\d+\.\d+\.\d+)/);
-          return match[1];
-        }
-      } catch (error: any) {
-        throw new SoloErrors.system.dependencyVersionCheckFailed('podman', error);
-      }
+  /** Podman ships the remote client as a platform-specific archive; match it by download URL. */
+  private getAssetPattern(): RegExp {
+    const arch: string = this.getArch();
+    if (OperatingSystem.isWin32()) {
+      return new RegExp(String.raw`podman-remote-release-windows_${arch}\.zip$`);
     }
-    throw new SoloErrors.system.dependencyVersionCheckFailed('podman');
+    if (OperatingSystem.isDarwin()) {
+      return new RegExp(String.raw`podman-remote-release-darwin_${arch}\.zip$`);
+    }
+    return new RegExp(String.raw`podman-remote-static-linux_${arch}\.tar\.gz$`);
   }
 
-  /**
-   * Fetches the latest release information from GitHub API
-   * @returns Promise with the release base URL, asset name, digest, and version
-   */
-  private async fetchReleaseInfo(tagName: string): Promise<ReleaseInfo> {
-    try {
-      const response: Response = await GitHubApiClient.get(PODMAN_RELEASES_LIST_URL);
-      const releases: GitHubRelease[] = await response.json();
-
-      if (!releases || releases.length === 0) {
-        throw new SoloErrors.system.gitHubReleasesNotFound();
-      }
-
-      // Get the latest release
-      const release: GitHubRelease = releases.find(release => release.tag_name === tagName);
-      const version: string = release.tag_name.replace(/^v/, ''); // Remove 'v' prefix if present
-
-      // Normalize platform/arch for asset matching
-      const arch: string = this.getArch();
-
-      // Construct asset pattern based on platform
-      let assetPattern: RegExp;
-      if (OperatingSystem.isWin32()) {
-        // Windows
-        assetPattern = new RegExp(String.raw`podman-remote-release-windows_${arch}\.zip$`);
-      } else if (OperatingSystem.isDarwin()) {
-        // macOS
-        assetPattern = new RegExp(String.raw`podman-remote-release-darwin_${arch}\.zip$`);
-      } else {
-        // Linux
-        assetPattern = new RegExp(String.raw`podman-remote-static-linux_${arch}\.tar\.gz$`);
-      }
-
-      // Find the matching asset
-      const matchingAsset = release.assets.find(asset => assetPattern.test(asset.browser_download_url));
-
-      if (!matchingAsset) {
-        throw new SoloErrors.system.gitHubReleaseAssetNotFound(OperatingSystem.getPlatform(), arch);
-      }
-
-      // Get the digest from the shasums file
-      const checksum: string = matchingAsset.digest
-        ? matchingAsset.digest.replace('sha256:', '')
-        : '0000000000000000000000000000000000000000000000000000000000000000';
-
-      // Construct the release base URL (removing the filename from the download URL)
-      const downloadUrl: string = matchingAsset.browser_download_url.slice(
-        0,
-        Math.max(0, matchingAsset.browser_download_url.lastIndexOf('/')),
-      );
-
-      return {
-        downloadUrl,
-        assetName: matchingAsset.name,
-        checksum,
-        version,
-      };
-    } catch (error) {
-      if (error instanceof SoloError) {
-        throw error;
-      }
-      throw new SoloErrors.system.githubApiResponseParseFailed(PODMAN_RELEASES_LIST_URL, error);
-    }
+  protected isMatchingAsset(asset: GitHubReleaseAsset): boolean {
+    return this.getAssetPattern().test(asset.browser_download_url);
   }
 
   // Podman should only be installed if Docker is not already present on the client system
@@ -176,18 +88,6 @@ export class PodmanDependencyManager extends BaseDependencyManager {
     } catch {
       return true;
     }
-  }
-
-  protected override async preInstall(): Promise<void> {
-    const releaseInfo: ReleaseInfo = await this.fetchReleaseInfo(version.PODMAN_VERSION);
-    this.checksum = releaseInfo.checksum;
-    this.releaseBaseUrl = releaseInfo.downloadUrl;
-    this.artifactFileName = releaseInfo.assetName;
-    this.artifactVersion = releaseInfo.version;
-  }
-
-  protected getDownloadURL(): string {
-    return `${this.releaseBaseUrl}/${this.artifactFileName}`;
   }
 
   /**
@@ -212,14 +112,10 @@ export class PodmanDependencyManager extends BaseDependencyManager {
       );
     } else {
       // Find the Podman executable inside the extracted directory
-      binDirectory = PathEx.join(temporaryDirectory, `${constants.PODMAN}-${this.artifactVersion}`, 'usr', 'bin');
+      binDirectory = PathEx.join(temporaryDirectory, `${constants.PODMAN}-${this.releaseInfo.version}`, 'usr', 'bin');
     }
 
     return fs.readdirSync(binDirectory).map((file: string): string => PathEx.join(binDirectory, file));
-  }
-
-  protected getChecksumURL(): string {
-    return this.checksum;
   }
 
   /** Whether the podman on PATH is Homebrew-managed: with symlinks resolved, it lives inside the brew prefix. */

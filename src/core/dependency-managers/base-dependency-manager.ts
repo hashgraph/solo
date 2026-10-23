@@ -30,7 +30,7 @@ export abstract class BaseDependencyManager extends ShellRunner {
     protected readonly installationDirectory: string,
     osArch: string,
     protected readonly requiredVersion: string,
-    dependencyName: string,
+    protected readonly dependencyName: string,
     protected readonly downloadBaseUrl: string,
   ) {
     super();

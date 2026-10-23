@@ -330,7 +330,7 @@ describe('PodmanDependencyManager', (): void => {
         undefined,
       );
 
-      // @ts-expect-error TS2341: Property fetchReleaseInfo is private
+      // @ts-expect-error TS2445: Property fetchReleaseInfo is protected
       const releaseInfo: ReleaseInfo = await podmanDependencyManager.fetchReleaseInfo(MOCK_RELEASE_TAG);
 
       expect(releaseInfo.downloadUrl).to.equal(MOCK_DOWNLOAD_URL_BASE);
@@ -343,7 +343,7 @@ describe('PodmanDependencyManager', (): void => {
       fetchStub.resolves(MOCK_GITHUB_ERROR_RESPONSE);
 
       try {
-        // @ts-expect-error TS2341: Property fetchReleaseInfo is private
+        // @ts-expect-error TS2445: Property fetchReleaseInfo is protected
         await podmanDependencyManager.fetchReleaseInfo(MOCK_RELEASE_TAG);
         expect.fail('Should have thrown an error');
       } catch (error) {
@@ -356,7 +356,7 @@ describe('PodmanDependencyManager', (): void => {
       fetchStub.resolves(MOCK_GITHUB_EMPTY_RELEASES);
 
       try {
-        // @ts-expect-error TS2341: Property fetchReleaseInfo is private
+        // @ts-expect-error TS2445: Property fetchReleaseInfo is protected
         await podmanDependencyManager.fetchReleaseInfo(MOCK_RELEASE_TAG);
         expect.fail('Should have thrown an error');
       } catch (error) {
@@ -368,7 +368,7 @@ describe('PodmanDependencyManager', (): void => {
       fetchStub.resolves(MOCK_GITHUB_RELEASES_NO_MATCHING_ASSET);
 
       try {
-        // @ts-expect-error TS2341: Property fetchReleaseInfo is private
+        // @ts-expect-error TS2445: Property fetchReleaseInfo is protected
         await podmanDependencyManager.fetchReleaseInfo(MOCK_RELEASE_TAG);
         expect.fail('Should have thrown an error');
       } catch (error) {

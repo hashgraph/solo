@@ -6,5 +6,6 @@ export interface GitHubReleaseAsset {
   browser_download_url: string;
   content_type: string;
   size: number;
-  digest: string;
+  /** Absent when GitHub has not published a sha256 digest for the asset. */
+  digest?: string;
 }
