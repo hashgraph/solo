@@ -23,6 +23,9 @@ import {FlagRules} from './validation/flag-rules.js';
 import {FlagValidation} from './validation/flag-validation.js';
 
 const TLS_CLUSTER_ISSUER_TYPES: string[] = ['acme-staging', 'acme-prod', 'self-signed'];
+// Each component needs its own JVM image swap and values overlay (rest-java, web3 and grpc are native images too).
+const MIRROR_NODE_DEBUG_COMPONENTS: string[] = ['importer'];
+const MIRROR_NODE_SOURCES: string[] = ['auto', 'bucket', 'block-node'];
 
 export class Flags {
   public static KEY_COMMON: string = '_COMMON_';
@@ -676,6 +679,22 @@ export class Flags {
     },
   };
 
+  public static readonly mirrorNodeSource: CommandFlag = {
+    constName: 'mirrorNodeSource',
+    name: 'mirror-node-source',
+    definition: {
+      describe:
+        'Where the mirror node imports its data from: "bucket" reads the consensus node record files, ' +
+        '"block-node" reads the block stream of a block node and fails when no block node applies, ' +
+        '"auto" picks the block node when one is deployed in the same cluster and the bucket otherwise. ' +
+        'Pass it again on every upgrade, because "auto" is applied when it is omitted',
+      defaultValue: 'auto',
+      type: 'string',
+    },
+    prompt: undefined,
+    rules: [FlagRules.oneOf(...MIRROR_NODE_SOURCES)],
+  };
+
   public static readonly javaFlightRecorderConfiguration: CommandFlag = {
     constName: 'javaFlightRecorderConfiguration',
     name: 'jfr-config',
@@ -893,6 +912,19 @@ export class Flags {
         'Skip submitting the NodeUpdateTransaction that sets the gRPC web proxy endpoint.' +
         '\nUse during restore when the endpoint is already correct in the restored state' +
         ' to avoid triggering TSS re-evaluation.',
+      type: 'boolean',
+      defaultValue: false,
+    },
+  };
+
+  public static readonly resumeFromFreeze: CommandFlag = {
+    constName: 'resumeFromFreeze',
+    name: 'resume-from-freeze',
+    definition: {
+      describe:
+        'When restoring from --state-file lands every node in FREEZE_COMPLETE, automatically restart them' +
+        ' once more so they resume ACTIVE instead of staying frozen. Only used with --state-file.' +
+        '\nLeave unset to restore a frozen snapshot as-is and keep it frozen.',
       type: 'boolean',
       defaultValue: false,
     },
@@ -1229,6 +1261,11 @@ export class Flags {
       describe: 'Enable recursive WRAPs aggregation for hinTS/TSS (CN >= v0.72).',
       type: 'boolean',
       defaultValue: false,
+      deprecated: {
+        since: '0.94.0',
+        removalIssue: 6174,
+        reason: 'Consensus node v0.79.0 and later embed the WRAPS proving parameters, so it has no effect on them.',
+      },
     },
   };
 
@@ -1238,6 +1275,11 @@ export class Flags {
     definition: {
       describe: 'Path to a local directory containing pre-existing WRAPs proving key files (.bin)',
       type: 'string',
+      deprecated: {
+        since: '0.94.0',
+        removalIssue: 6174,
+        reason: 'Consensus node v0.79.0 and later embed the WRAPS proving parameters, so it has no effect on them.',
+      },
     },
   };
 
@@ -1687,6 +1729,20 @@ export class Flags {
       type: 'boolean',
     },
     prompt: undefined,
+  };
+
+  public static readonly debugMirrorNodeComponent: CommandFlag = {
+    constName: 'debugMirrorNodeComponent',
+    name: 'debug-mirror-node-component',
+    definition: {
+      describe:
+        'Open the default jvm debug port (5005) on the given mirror node component and port-forward it to localhost. ' +
+        `Allowed values: ${MIRROR_NODE_DEBUG_COMPONENTS.join(', ')}`,
+      defaultValue: '',
+      type: 'string',
+    },
+    prompt: undefined,
+    rules: [FlagRules.oneOf(...MIRROR_NODE_DEBUG_COMPONENTS)],
   };
 
   public static readonly debugNodeAlias: CommandFlag = {
@@ -2693,6 +2749,16 @@ export class Flags {
     },
   };
 
+  public static readonly minTps: CommandFlag = {
+    constName: 'minTps',
+    name: 'min-tps',
+    definition: {
+      describe: 'Minimum acceptable transactions per second achieved by the NLG load test; 0 disables the check',
+      type: 'number',
+      defaultValue: 0,
+    },
+  };
+
   public static readonly performanceTest: CommandFlag = {
     constName: 'performanceTest',
     name: 'test',
@@ -2868,6 +2934,7 @@ export class Flags {
     Flags.clusterSetupNamespace,
     Flags.context,
     Flags.createAmount,
+    Flags.debugMirrorNodeComponent,
     Flags.debugNodeAlias,
     Flags.deletePvcs,
     Flags.deleteSecrets,
@@ -2948,6 +3015,7 @@ export class Flags {
     Flags.consensusNodeVersion,
     Flags.upgradeVersion,
     Flags.freezeBlockDrainSeconds,
+    Flags.resumeFromFreeze,
     Flags.skipNodeStart,
     Flags.replicaCount,
     Flags.setAlias,
@@ -3029,6 +3097,7 @@ export class Flags {
     Flags.zipFile,
     Flags.maxTps,
     Flags.maxRtt,
+    Flags.minTps,
     Flags.enableMonitoringSupport,
     Flags.blockNodeMapping,
     Flags.externalBlockNodeMapping,
@@ -3040,6 +3109,7 @@ export class Flags {
     Flags.tssEnabled,
     Flags.javaFlightRecorderConfiguration,
     Flags.forceBlockNodeIntegration,
+    Flags.mirrorNodeSource,
     Flags.rollback,
     Flags.parallelDeploy,
     Flags.edgeEnabled,

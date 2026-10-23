@@ -12,6 +12,7 @@ interface RawCacheManifestImage {
   tarFile?: unknown;
   hashFile?: unknown;
   sha256?: unknown;
+  size?: unknown;
 }
 
 /** Raw shape of `cache-manifest.json`. Every field is validated before use. */
@@ -163,8 +164,22 @@ export class CacheManifestClient {
         sha256,
         `${baseUrl}/${tarFile}`,
         `${baseUrl}/${hashFile}`,
+        CacheManifestClient.optionalSize(url, raw.size, index),
       );
     });
+  }
+
+  /** The archive size is optional so manifests published before it was added still parse. */
+  private static optionalSize(url: string, value: unknown, index: number): number | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+      throw new SoloErrors.system.cacheManifestInvalid(url, `images[${index}].size must be a non-negative integer`);
+    }
+
+    return value;
   }
 
   private static stripVersionPrefix(version: string): string {

@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ##
+# Explicitly enable MinIO so the MinIO Operator installs CRDs and the Tenant resource is deployed in CN >= 0.74 BLOCKS mode.
+cloud:
+  minio:
+    enabled: true
 
 # Silo preserves the MinIO S3/API and MINIO_* configuration compatibility.
 minio-server:
