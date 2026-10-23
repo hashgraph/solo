@@ -131,14 +131,21 @@ export class ConsensusChartOrchestrator {
   }
 
   /**
-   * Renders a whole network from complete umbrella values, replacing whatever is there.
+   * Renders a whole network, replacing whatever is there.
+   *
+   * Under the umbrella layout `chartValues` reaches Helm exactly as the caller built it. Translating
+   * it would mean parsing `--set`/`--values` into an object and re-emitting one YAML file, and that
+   * round-trip is not faithful — Helm reads YAML 1.1, applies its own `--set` escaping rules and
+   * errors on a missing `--set-file` where the translator substitutes an empty string. Keeping the
+   * caller's arguments is what makes an unchanged deployment render byte-identically to before the
+   * split chart existed. Only the split layout, which no existing deployment uses, is translated.
    *
    * @param splitLayout - render as one release per node rather than a single umbrella release.
    * @param retryPolicy - see {@link RetryPolicy}; only a first deploy may pass `CLEAN_RETRY`.
    */
   public async renderNetwork(
     target: ConsensusChartTarget,
-    umbrella: AnyObject,
+    chartValues: HelmChartValues,
     nodeAliases: readonly NodeAlias[],
     splitLayout: boolean,
     retryPolicy: RetryPolicy,
@@ -156,18 +163,20 @@ export class ConsensusChartOrchestrator {
     }
 
     if (!splitLayout) {
-      await this.upgradeShared(target, 'umbrella', umbrella, false, retryPolicy);
+      await this.upgradeShared(target, chartValues, false, true, retryPolicy);
       await this.refresh(target);
       return;
     }
+
+    const umbrella: AnyObject = ConsensusNodeValuesTranslator.fromHelmArguments(chartValues.toArguments());
 
     // The per-node chart mounts nine ConfigMaps and Secrets the shared release renders, so the
     // shared half has to exist before any node release starts.
     await this.upgradeShared(
       target,
-      'shared',
-      ConsensusNodeValuesTranslator.toSharedValues(umbrella),
+      this.valuesFile(target, 'shared', ConsensusNodeValuesTranslator.toSharedValues(umbrella)),
       false,
+      true,
       retryPolicy,
     );
 
@@ -186,21 +195,29 @@ export class ConsensusChartOrchestrator {
    * wrong: these call sites deliberately pass only the keys they are changing, so a rebuilt
    * "umbrella" has no `defaults.*` or `cloud.*` and would render a node from chart defaults.
    * `--reuse-values` supplies the rest, which is why the delta must stay a delta.
+   *
+   * As in {@link renderNetwork}, the umbrella layout passes `chartValues` through untouched; only a
+   * split layout is translated.
    */
   public async applyDelta(
     target: ConsensusChartTarget,
-    umbrellaDelta: AnyObject,
+    chartValues: HelmChartValues,
     plan: ConsensusChartDeltaPlan,
   ): Promise<void> {
     const layout: ConsensusChartLayout = await this.discover(target);
 
     if (!layout.isSplit()) {
-      // One release holds everything, so the delta applies unchanged.
+      // One release holds everything, so the delta applies unchanged. `install` stays false: these
+      // are node-lifecycle upgrades against a release that must already exist, and `--install` plus
+      // `--reuse-values` on a missing release would silently build a network from chart defaults
+      // and this delta alone.
       if (plan.shared === 'upgrade' || plan.nodes.length > 0) {
-        await this.upgradeShared(target, 'umbrella-delta', umbrellaDelta, true, RetryPolicy.RETRY_ONLY);
+        await this.upgradeShared(target, chartValues, true, false, RetryPolicy.RETRY_ONLY);
       }
       return;
     }
+
+    const umbrellaDelta: AnyObject = ConsensusNodeValuesTranslator.fromHelmArguments(chartValues.toArguments());
 
     // Uninstalls run first so a removed node is gone before the roster shrinks; the shared release
     // then re-renders `dns-validation-script` without it. The reverse order would leave every later
@@ -216,8 +233,8 @@ export class ConsensusChartOrchestrator {
     if (plan.shared === 'upgrade') {
       await this.upgradeShared(
         target,
-        'shared-delta',
-        ConsensusNodeValuesTranslator.toSharedValues(umbrellaDelta),
+        this.valuesFile(target, 'shared-delta', ConsensusNodeValuesTranslator.toSharedValues(umbrellaDelta)),
+        true,
         true,
         RetryPolicy.RETRY_ONLY,
       );
@@ -261,20 +278,31 @@ export class ConsensusChartOrchestrator {
     return removed;
   }
 
+  /** Serialises translated values to a file beside the generated profile values; split layout only. */
+  private valuesFile(target: ConsensusChartTarget, name: string, values: AnyObject): HelmChartValues {
+    return new HelmChartValues().file(
+      ConsensusNodeValuesTranslator.writeValuesFile(
+        PathEx.join(target.cacheDirectory, 'split-charts', target.clusterReference),
+        `${name}-values.yaml`,
+        values,
+      ),
+    );
+  }
+
   private upgradeShared(
     target: ConsensusChartTarget,
-    valuesName: string,
-    values: AnyObject,
+    chartValues: HelmChartValues,
     reuseValues: boolean,
+    install: boolean,
     retryPolicy: RetryPolicy,
   ): Promise<void> {
     return this.upgradeRelease(
       target,
       this.sharedReleaseName,
       this.sharedReleaseName,
-      valuesName,
-      values,
+      chartValues,
       reuseValues,
+      install,
       retryPolicy,
     );
   }
@@ -291,9 +319,9 @@ export class ConsensusChartOrchestrator {
       target,
       ConsensusChartLayout.perNodeReleaseName(nodeAlias),
       constants.CONSENSUS_NODE_CHART,
-      valuesName,
-      ConsensusNodeValuesTranslator.toNodeValues(umbrella, nodeAlias),
+      this.valuesFile(target, valuesName, ConsensusNodeValuesTranslator.toNodeValues(umbrella, nodeAlias)),
       reuseValues,
+      true,
       retryPolicy,
     );
   }
@@ -303,19 +331,11 @@ export class ConsensusChartOrchestrator {
     target: ConsensusChartTarget,
     releaseName: string,
     chartName: string,
-    valuesName: string,
-    values: AnyObject,
+    chartValues: HelmChartValues,
     reuseValues: boolean,
+    install: boolean,
     retryPolicy: RetryPolicy,
   ): Promise<void> {
-    // Written next to the generated profile values; the caller owns cleanup.
-    const valuesFile: string = ConsensusNodeValuesTranslator.writeValuesFile(
-      PathEx.join(target.cacheDirectory, 'split-charts', target.clusterReference),
-      `${valuesName}-values.yaml`,
-      values,
-    );
-    const chartValues: HelmChartValues = new HelmChartValues().file(valuesFile);
-
     for (let attempt: number = 1; attempt <= constants.NETWORK_CHART_INSTALL_MAX_ATTEMPTS; attempt++) {
       try {
         await this.chartManager.upgrade(
@@ -327,7 +347,7 @@ export class ConsensusChartOrchestrator {
           chartValues,
           target.kubeContext,
           reuseValues,
-          true,
+          install,
         );
         return;
       } catch (error) {

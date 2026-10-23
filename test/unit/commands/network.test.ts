@@ -440,6 +440,54 @@ describe('NetworkCommand unit tests', (): void => {
       }
     });
 
+    it('Should hand the solo-deployment chart the Helm arguments it assembled, untranslated', async (): Promise<void> => {
+      // The guarantee for every deployment on the single chart: the same input produces the same
+      // values. The per-node chart work introduced a translator that parses these arguments into an
+      // object and re-emits one generated YAML file; that round-trip re-types scalars and re-quotes
+      // strings under YAML 1.2 rules where Helm reads YAML 1.1, so it must never run on this path.
+      try {
+        argv.setArg(flags.force, true);
+        const networkCommand: NetworkCommand = container.resolve(NetworkCommand);
+
+        options.remoteConfig.getConsensusNodes = sinon
+          .stub()
+          .returns([
+            new ConsensusNode('node1', 0, 'solo-e2e', 'solo-e2e', 'context1', 'base', 'pattern', 'fqdn', [], []),
+          ]);
+        options.remoteConfig.getContexts = sinon.stub().returns(['context1']);
+        options.remoteConfig.updateComponentVersion = sinon.stub();
+        options.remoteConfig.getClusterRefs = sinon.stub().returns(new Map([['solo-e2e', 'context1']]));
+        options.remoteConfig.configuration.state = {};
+
+        // @ts-expect-error - TS2341: to mock
+        networkCommand.ensurePodLogsCrd = sinon.stub().returns(true);
+        // @ts-expect-error - TS2341: to mock
+        networkCommand.ensurePrometheusOperatorCrds = sinon.stub().returns(true);
+        // @ts-expect-error - TS2341: to mock
+        networkCommand.getBlockNodes = sinon.stub().returns([]);
+        // @ts-expect-error - TS2341: to mock
+        networkCommand.componentFactory = {
+          createNewEnvoyProxyComponent: sinon.stub(),
+          createNewHaProxyComponent: sinon.stub(),
+        };
+
+        await networkCommand.deploy(argv.build());
+
+        const passed: string[] = options.chartManager.upgrade.args[0][5].toArguments();
+
+        // A translated render collapses everything into exactly ['--values', '…-values.yaml'].
+        expect(passed.some((argument: string): boolean => argument.endsWith('umbrella-values.yaml'))).to.be.false;
+        expect(passed, 'the runtime --set overrides survive').to.include('--set');
+        expect(passed.filter((argument: string): boolean => argument === '--values').length).to.be.greaterThan(0);
+        expect(
+          passed.some((argument: string): boolean => argument.startsWith('hedera.nodes[0].name=')),
+          'per-node names are still passed as --set-literal, not folded into a file',
+        ).to.be.true;
+      } finally {
+        sinon.restore();
+      }
+    });
+
     it('Should use prepare config correctly for all clusters', async (): Promise<void> => {
       try {
         const common: string = PathEx.join('test', 'data', 'test-values.yaml');

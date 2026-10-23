@@ -19,7 +19,6 @@ import {ConsensusChartOrchestrator} from '../../core/consensus-chart-orchestrato
 import {type ConsensusChartTarget} from '../../core/consensus-chart-target.js';
 import {type ConsensusChartDeltaPlan} from '../../core/consensus-chart-delta-plan.js';
 import {ConsensusChartLayout} from '../../core/consensus-chart-layout.js';
-import {ConsensusNodeValuesTranslator} from '../../core/consensus-node-values-translator.js';
 import {
   CHECK_WRAPS_DIRECTORY_BACKOFF_MS,
   CHECK_WRAPS_DIRECTORY_MAX_ATTEMPTS,
@@ -3313,14 +3312,10 @@ export class NodeCommandTasks {
                   // No command converts a deployment between chart layouts. An upgrade re-renders
                   // whatever is already installed, so a network on the single `solo-deployment`
                   // chart stays on it for its whole life — `applyDelta` discovers which that is.
-                  await this.consensusCharts.applyDelta(
-                    target,
-                    ConsensusNodeValuesTranslator.fromHelmArguments(valuesFiles[clusterReference].toArguments()),
-                    {
-                      shared: 'upgrade',
-                      nodes: aliasesInCluster.map((alias: NodeAlias) => ({alias, action: 'upgrade' as const})),
-                    },
-                  );
+                  await this.consensusCharts.applyDelta(target, valuesFiles[clusterReference], {
+                    shared: 'upgrade',
+                    nodes: aliasesInCluster.map((alias: NodeAlias) => ({alias, action: 'upgrade' as const})),
+                  });
 
                   showVersionBanner(this.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');
                 }),
@@ -4889,11 +4884,9 @@ export class NodeCommandTasks {
             // changes. It stays a delta: `--reuse-values` supplies everything else, and rebuilding a
             // whole values set from it would have no `defaults.*` or `cloud.*` and would re-render
             // every node from chart defaults.
-            const umbrellaDelta: AnyObject = ConsensusNodeValuesTranslator.fromHelmArguments(chartValues.toArguments());
-
             await this.consensusCharts.applyDelta(
               target,
-              umbrellaDelta,
+              chartValues,
               NodeCommandTasks.deltaPlanFor(transactionType, consensusNodes, clusterReference, config.nodeAlias),
             );
             showVersionBanner(this.logger, constants.SOLO_DEPLOYMENT_CHART, config.soloChartVersion, 'Upgraded');

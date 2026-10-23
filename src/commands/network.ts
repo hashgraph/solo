@@ -39,8 +39,7 @@ import {type KeyManager} from '../core/key-manager.js';
 import {type PlatformInstaller} from '../core/platform-installer.js';
 import {type ProfileManager} from '../core/profile-manager.js';
 import {type CertificateManager} from '../core/certificate-manager.js';
-import {type AnyListrContext, type AnyObject, type ArgvStruct, type NodeAlias} from '../types/aliases.js';
-import {ConsensusNodeValuesTranslator} from '../core/consensus-node-values-translator.js';
+import {type AnyListrContext, type ArgvStruct, type NodeAlias} from '../types/aliases.js';
 import {ListrLock} from '../core/lock/listr-lock.js';
 import {v4 as uuidv4} from 'uuid';
 import {
@@ -1395,9 +1394,9 @@ export class NetworkCommand extends BaseCommand {
   /**
    * Renders one cluster's consensus network from the values Solo assembled for it.
    *
-   * The umbrella values are rebuilt from the exact Helm arguments the install would have used, so the
-   * runtime `--set` overrides (storage backend, `crds.*` toggles, static IPs, per-node names) survive
-   * the split translation. Translating the values files alone would silently drop them.
+   * The assembled `HelmChartValues` is handed over untouched. Under the umbrella layout the
+   * orchestrator passes it straight to Helm, so an unchanged deployment sees exactly the arguments
+   * it saw before the per-node chart existed; only a split render translates them.
    *
    * @param retryPolicy - only the first deploy may pass `CLEAN_RETRY`; see {@link RetryPolicy}.
    */
@@ -1407,13 +1406,9 @@ export class NetworkCommand extends BaseCommand {
     splitLayout: boolean,
     retryPolicy: RetryPolicy,
   ): Promise<void> {
-    const umbrella: AnyObject = ConsensusNodeValuesTranslator.fromHelmArguments(
-      config.chartValuesMap[clusterReference].toArguments(),
-    );
-
     await this.consensusCharts.renderNetwork(
       this.chartTarget(config, clusterReference),
-      umbrella,
+      config.chartValuesMap[clusterReference],
       this.nodeAliasesForCluster(config, clusterReference),
       splitLayout,
       retryPolicy,

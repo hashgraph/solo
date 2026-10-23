@@ -5,6 +5,7 @@ import {describe, it, beforeEach, afterEach} from 'mocha';
 import sinon, {type SinonStub} from 'sinon';
 
 import {ConsensusChartOrchestrator, RetryPolicy} from '../../../src/core/consensus-chart-orchestrator.js';
+import {HelmChartValues} from '../../../src/integration/helm/model/values.js';
 import {type ConsensusChartTarget} from '../../../src/core/consensus-chart-target.js';
 import {type ConsensusChartLayout, ConsensusChartLayoutKind} from '../../../src/core/consensus-chart-layout.js';
 import {NamespaceName} from '../../../src/types/namespace/namespace-name.js';
@@ -42,6 +43,25 @@ describe('ConsensusChartOrchestrator', (): void => {
         call.args[2] as string,
         call.args[7] as boolean,
       ]);
+  }
+
+  /** The `HelmChartValues` handed to the Nth `chartManager.upgrade` call. */
+  function upgradeValues(index: number = 0): HelmChartValues {
+    return chartManager.upgrade.getCall(index).args[5] as HelmChartValues;
+  }
+
+  /** The `install` flag of the Nth `chartManager.upgrade` call. */
+  function upgradeInstall(index: number = 0): boolean {
+    return chartManager.upgrade.getCall(index).args[8] as boolean;
+  }
+
+  /** Builds the argument vector a caller would hand over for the given node names. */
+  function valuesFor(...nodeNames: string[]): HelmChartValues {
+    const values: HelmChartValues = new HelmChartValues();
+    for (const [index, name] of nodeNames.entries()) {
+      values.setLiteral(`hedera.nodes[${index}].name`, name);
+    }
+    return values.setLiteral('defaults.root.image.tag', '0.46.2');
   }
 
   function buildOrchestrator(): ConsensusChartOrchestrator {
@@ -123,7 +143,7 @@ describe('ConsensusChartOrchestrator', (): void => {
    */
   describe('existing deployments are never converted', (): void => {
     const umbrellaRelease: Array<{name: string; chart: string}> = [{name: SHARED, chart: 'solo-deployment-0.67.0'}];
-    const delta: Record<string, unknown> = {hedera: {nodes: [{name: 'node1'}, {name: 'node2'}]}};
+    const delta: HelmChartValues = valuesFor('node1', 'node2');
     let flagWasSet: boolean;
 
     beforeEach((): void => {
@@ -180,15 +200,22 @@ describe('ConsensusChartOrchestrator', (): void => {
 
   describe('renderNetwork', (): void => {
     const aliases: NodeAlias[] = ['node1', 'node2'] as NodeAlias[];
-    const umbrella: Record<string, unknown> = {
-      hedera: {nodes: [{name: 'node1'}, {name: 'node2'}]},
-      defaults: {root: {image: {tag: '0.46.2'}}},
-    };
+    const umbrella: HelmChartValues = valuesFor('node1', 'node2');
 
     it('installs one umbrella release when not splitting', async (): Promise<void> => {
       await orchestrator.renderNetwork(target, umbrella, aliases, false, RetryPolicy.CLEAN_RETRY);
 
       expect(upgradeCalls()).to.deep.equal([[SHARED, SHARED, false]]);
+    });
+
+    it("hands Helm the caller's own arguments, untranslated, under the umbrella layout", async (): Promise<void> => {
+      // The guarantee the single chart depends on: same input in, same values out. Re-serialising
+      // through the translator would re-type scalars and re-quote strings under different YAML
+      // rules than Helm's, so an unchanged deployment could render differently than before.
+      await orchestrator.renderNetwork(target, umbrella, aliases, false, RetryPolicy.CLEAN_RETRY);
+
+      expect(upgradeValues()).to.equal(umbrella);
+      expect(upgradeValues().toArguments()).to.deep.equal(umbrella.toArguments());
     });
 
     it('installs the shared release before any node release when splitting', async (): Promise<void> => {
@@ -205,9 +232,7 @@ describe('ConsensusChartOrchestrator', (): void => {
   });
 
   describe('applyDelta', (): void => {
-    const delta: Record<string, unknown> = {
-      hedera: {nodes: [{name: 'node1'}, {name: 'node2'}, {name: 'node3'}]},
-    };
+    const delta: HelmChartValues = valuesFor('node1', 'node2', 'node3');
 
     function splitReleases(): Array<{name: string; chart: string}> {
       return [
@@ -226,6 +251,20 @@ describe('ConsensusChartOrchestrator', (): void => {
       });
 
       expect(upgradeCalls()).to.deep.equal([[SHARED, SHARED, true]]);
+    });
+
+    it('passes the delta through untranslated, and without --install', async (): Promise<void> => {
+      chartManager.getInstalledReleases.resolves([{name: SHARED, chart: 'solo-deployment-0.67.0'}]);
+
+      await orchestrator.applyDelta(target, delta, {
+        shared: 'upgrade',
+        nodes: [{alias: 'node1' as NodeAlias, action: 'upgrade'}],
+      });
+
+      expect(upgradeValues(), 'the caller arguments reach Helm unchanged').to.equal(delta);
+      // `--install` with `--reuse-values` on a release that has gone missing would rebuild the
+      // network from chart defaults plus this delta; node lifecycle must fail instead.
+      expect(upgradeInstall(), 'node lifecycle never installs').to.be.false;
     });
 
     it('reuses values on every delta so unspecified keys survive', async (): Promise<void> => {
@@ -287,7 +326,7 @@ describe('ConsensusChartOrchestrator', (): void => {
     it('uninstalls between attempts only under CLEAN_RETRY', async (): Promise<void> => {
       chartManager.upgrade.onFirstCall().rejects(new Error('transient'));
 
-      await orchestrator.renderNetwork(target, {hedera: {nodes: []}}, [], false, RetryPolicy.CLEAN_RETRY);
+      await orchestrator.renderNetwork(target, valuesFor(), [], false, RetryPolicy.CLEAN_RETRY);
 
       expect(chartManager.uninstall.calledOnce).to.be.true;
     });
@@ -295,7 +334,7 @@ describe('ConsensusChartOrchestrator', (): void => {
     it('never uninstalls under RETRY_ONLY', async (): Promise<void> => {
       chartManager.upgrade.onFirstCall().rejects(new Error('transient'));
 
-      await orchestrator.renderNetwork(target, {hedera: {nodes: []}}, [], false, RetryPolicy.RETRY_ONLY);
+      await orchestrator.renderNetwork(target, valuesFor(), [], false, RetryPolicy.RETRY_ONLY);
 
       // This is the policy every operation on a live network uses; an uninstall here would destroy
       // the MinIO credentials the running tenant depends on.
@@ -310,7 +349,7 @@ describe('ConsensusChartOrchestrator', (): void => {
       chartManager.getInstalledReleases.resolves([{name: SHARED, chart: 'solo-deployment-0.67.0'}]);
 
       await expect(
-        orchestrator.renderNetwork(target, {hedera: {nodes: []}}, [], false, RetryPolicy.CLEAN_RETRY),
+        orchestrator.renderNetwork(target, valuesFor(), [], false, RetryPolicy.CLEAN_RETRY),
       ).to.be.rejectedWith(/RETRY_ONLY/);
       expect(chartManager.upgrade.called).to.be.false;
     });
