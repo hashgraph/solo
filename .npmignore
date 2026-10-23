@@ -25,6 +25,9 @@ examples/
 images/
 solo-compose/
 
+# TCK
+tck/
+
 # Configs
 .c8rc.json
 .codacy.yaml
