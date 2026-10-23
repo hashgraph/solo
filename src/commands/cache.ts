@@ -28,6 +28,7 @@ import {type CacheTarget} from '../integration/cache/models/impl/cache-target.js
 import {HelmChartCacheHandler} from '../integration/cache/impl/helm-chart-cache-handler.js';
 import {SoloHelmChartTargetProvider} from '../integration/cache/target-providers/solo-helm-chart-target-provider.js';
 import {type HelmClient} from '../integration/helm/helm-client.js';
+import {ImageCacheWarmUp} from '../core/image-cache-warm-up.js';
 
 interface CachePullConfigClass {
   imageCacheHandler: ImageCacheHandler;
@@ -221,6 +222,7 @@ export class CacheCommand extends BaseCommand {
           },
         },
         this.pullAndCacheContainerImages(),
+        this.recordImageCacheWarmUp(),
         this.showUserMessages(),
       ],
       constants.LISTR_DEFAULT_OPTIONS.DEFAULT,
@@ -716,6 +718,18 @@ export class CacheCommand extends BaseCommand {
           ...constants.LISTR_DEFAULT_RENDERER_COLLAPSABLE_OPTIONS,
           concurrent: constants.CACHE_IMAGE_MAX_CONCURRENCY,
         });
+      },
+    };
+  }
+
+  private recordImageCacheWarmUp(): SoloListrTask<CachePullContext> {
+    return {
+      title: 'Record the image cache warm-up',
+      task: ({config: {results}}): void => {
+        // A pull that cached nothing, for example without a manifest, leaves the first-run offer in place.
+        if (results.length > 0) {
+          ImageCacheWarmUp.recordPulled(this.logger);
+        }
       },
     };
   }

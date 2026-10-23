@@ -5,6 +5,7 @@ import {SoloErrors} from '../../../core/errors/solo-errors.js';
 import * as constants from '../../../core/constants.js';
 import {CacheManifestImage} from '../models/impl/cache-manifest-image.js';
 import {getSoloVersion} from '../../../../version.js';
+import {type GitHubRequestOptions} from '../../../core/git-hub-request-options.js';
 
 /** Raw shape of one `images` entry in `cache-manifest.json`. Every field is validated before use. */
 interface RawCacheManifestImage {
@@ -27,9 +28,9 @@ interface RawCacheManifest {
  * and resolves each entry to its CDN locations.
  *
  * The manifest lists, for the Solo version that produced it, every container image the deployment needs,
- * the archive file name for that image, the file name holding the archive's SHA-256, and the hash value
- * itself. Both hash representations are kept so a download can be checked against the manifest and against
- * the published hash file, and the two must agree.
+ * the archive file name for that image, the file name holding the archive's SHA-256, the hash value
+ * itself and, optionally, the archive size in bytes. Both hash representations are kept so a download
+ * can be checked against the manifest and against the published hash file, and the two must agree.
  *
  * The CDN is flat: `<base>/<tarFile>` and `<base>/<hashFile>`. The base defaults to
  * `https://cdn.solo.hashgraph.io` and can be overridden with the `SOLO_CACHE_CDN_BASE_URL` environment
@@ -82,15 +83,19 @@ export class CacheManifestClient {
    * Downloads the manifest for the given Solo version and returns its images with CDN URLs resolved.
    *
    * @param soloVersion the Solo version whose manifest to fetch; defaults to the running version
+   * @param options request settings passed on to {@link GitHubApiClient.get}
    * @throws CacheManifestDownloadFailedSoloError when the manifest cannot be fetched or read
    * @throws CacheManifestInvalidSoloError when the manifest does not match the expected schema
    */
-  public static async fetchImages(soloVersion: string = getSoloVersion()): Promise<readonly CacheManifestImage[]> {
+  public static async fetchImages(
+    soloVersion: string = getSoloVersion(),
+    options: GitHubRequestOptions = {},
+  ): Promise<readonly CacheManifestImage[]> {
     const url: string = CacheManifestClient.getManifestUrl(soloVersion);
 
     let body: string;
     try {
-      const response: Response = await GitHubApiClient.get(url);
+      const response: Response = await GitHubApiClient.get(url, options);
       body = await response.text();
     } catch (error) {
       throw new SoloErrors.system.cacheManifestDownloadFailed(url, error);

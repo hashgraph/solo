@@ -21,6 +21,8 @@ import {VersionUpdateNotifier} from './core/version-update-notifier.js';
 import {SubprocessEnvironmentBootstrap} from './core/subprocess-environment-bootstrap.js';
 import {HomebrewDeprecationNotifier} from './core/homebrew-deprecation-notifier.js';
 import {VersionBanner} from './core/version-banner.js';
+import {ImageCacheWarmUp} from './core/image-cache-warm-up.js';
+import {hideBin} from 'yargs/helpers';
 
 // Re-exported so the SEA bootstrap (sea/sea-main.template.cjs) can reach it from the bundled
 // entry point without a separate import path — it shares this same entrypoint tail with solo.ts.
@@ -112,6 +114,10 @@ export async function main(argv: string[], context?: {logger: SoloLogger}): Prom
   logger.debug('Initializing Solo CLI');
   constants.LISTR_DEFAULT_RENDERER_OPTION.logger = new ListrLogger({processOutput: new CustomProcessOutput(logger)});
   const result: AnyObject = await ArgumentProcessor.process(argv);
+  await ImageCacheWarmUp.offerIfFirstRun(argv, logger, async (): Promise<void> => {
+    const programArguments: string[] = argv.slice(0, argv.length - hideBin(argv).length);
+    await ArgumentProcessor.process([...programArguments, 'cache', 'image', 'pull']);
+  });
   await VersionUpdateNotifier.notifyIfUpdateAvailable(logger);
   HomebrewDeprecationNotifier.notifyIfInstalledViaHomebrew(logger);
   return result;

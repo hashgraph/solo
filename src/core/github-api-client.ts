@@ -3,6 +3,7 @@
 import * as constants from './constants.js';
 import {SoloErrors} from './errors/solo-errors.js';
 import {Duration} from './time/duration.js';
+import {type GitHubRequestOptions} from './git-hub-request-options.js';
 
 export class GitHubApiClient {
   private static readonly RETRY_MAX_ATTEMPTS: number = 3;
@@ -68,16 +69,24 @@ export class GitHubApiClient {
    * Up to three attempts are made with exponential backoff honouring the
    * Retry-After and X-RateLimit-Reset headers when present.
    *
+   * @param options a timeout for each attempt, and whether to close the connection with the response
    * @throws SoloError on network failure or a non-retryable HTTP error status.
    */
-  public static async get(url: string): Promise<Response> {
+  public static async get(url: string, options: GitHubRequestOptions = {}): Promise<Response> {
     const headers: Record<string, string> = GitHubApiClient.buildHeaders(url);
+    if (options.closeConnection) {
+      headers['Connection'] = 'close';
+    }
     let lastStatus: number = 0;
 
     for (let attempt: number = 1; attempt <= GitHubApiClient.RETRY_MAX_ATTEMPTS; attempt++) {
       let response: Response;
       try {
-        response = await fetch(url, {method: 'GET', headers});
+        response = await fetch(url, {
+          method: 'GET',
+          headers,
+          signal: options.timeout ? AbortSignal.timeout(options.timeout.toMillis()) : undefined,
+        });
       } catch (error) {
         throw new SoloErrors.system.githubApiRequestFailed(url, error);
       }
