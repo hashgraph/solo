@@ -29,6 +29,40 @@ brew uninstall solo
 npm install -g @hiero-ledger/solo
 ```
 
+## Installation
+
+### Linux Install Script
+
+Solo provides an official installation script for Linux that downloads and installs the standalone Single Executable Application (SEA) binary, with no Node.js runtime required.
+
+#### Quick Install
+
+To install the latest release to `~/.solo/bin`:
+
+```bash
+curl -fsSL https://github.com/hiero-ledger/solo/releases/latest/download/install.sh | sh
+```
+
+To pass flags to the installer when piping into `sh`, use `sh -s -- <options>`, for example:
+
+```bash
+curl -fsSL https://github.com/hiero-ledger/solo/releases/latest/download/install.sh | sh -s -- --skip-image-cache
+```
+
+#### Download, Inspect, and Run
+
+For environments where piping remote scripts directly to a shell is restricted by security policy, download the script first to inspect it before executing:
+
+```bash
+curl -fsSL https://github.com/hiero-ledger/solo/releases/latest/download/install.sh -o install.sh
+less install.sh
+sh install.sh
+```
+
+> **Security Note:** Piping `curl | sh` executes the downloaded installer script before you can inspect it; the script itself verifies the integrity of the binary it downloads, but cannot verify itself before execution. Downloading `install.sh`, inspecting it, and then running it allows you to review the script first.
+
+For detailed installer options, environment variables, PATH configuration, platform support, and advanced setup, see the [Linux installer documentation](https://solo.hiero.org/docs/simple-solo-setup/linux-install-script/).
+
 ## Releases
 
 Odd-numbered Solo releases are supported for one month after their release date. Even-numbered LTS (Long-Term Support) versions are supported for three months. Upgrade to the latest version to benefit from new features and improvements.
