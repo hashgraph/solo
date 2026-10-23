@@ -34,8 +34,8 @@
  *
  * Output: sea/dist/solo-<platform>-<arch>[.exe]
  *
- * Run with: npx tsx sea/build.ts
- * Or via:   task sea:build   (which ensures build:compile ran first)
+ * Run with: task sea:build   (installs dependencies and runs build:compile first; not part of task build)
+ * Or:       npx tsx sea/build.ts   (after compiling with npx tsc)
  */
 
 import * as esbuild from 'esbuild';

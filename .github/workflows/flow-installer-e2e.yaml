@@ -1,0 +1,264 @@
+##
+# Copyright (C) 2026 Hedera Hashgraph, LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+##
+
+# End-to-end validation of the OS-specific Solo installers, one matrix row per platform. On a fresh
+# runner, each row:
+#   1. installs Solo with that platform's installer, the way a first-time user runs it
+#   2. verifies the post-install `solo cache image pull` populated the image cache
+#   3. runs `solo one-shot single deploy`, validates the network, then destroys it
+# The SEA binaries are built in this run by flow-build-sea.yaml and served from a local release
+# directory over file://.
+#
+# To add a platform: add a row to the `installer-e2e` matrix and an `Install Solo (<platform>)` step
+# (plus any platform-specific checks) gated on `matrix.platform`. Every other step is shared by all
+# rows.
+# Tracked by hiero-ledger/solo#5714 (Linux: #5731).
+name: 'Installer E2E'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'installers/**'
+      - 'sea/**'
+      - '.github/workflows/flow-installer-e2e.yaml'
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  STEP_TIMEOUT_MINUTES: '5'
+
+jobs:
+  build-sea:
+    name: Build SEA Binaries
+    uses: $/.github/workflows/flow-build-sea.yaml
+
+  installer-e2e:
+    name: 'Installer E2E (${{ matrix.platform }}-${{ matrix.arch }})'
+    needs: build-sea
+    # flow-build-sea.yaml builds every platform; a failed leg for another platform must not skip this
+    # row. A missing binary for this row fails the download step instead.
+    if: ${{ !cancelled() }}
+    runs-on: ${{ matrix.test-runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        # Row fields:
+        #   platform       Node's process.platform (linux, darwin, win32), as flow-build-sea.yaml names it
+        #   arch           CPU architecture (x64, arm64), as flow-build-sea.yaml names it
+        #   test-runner    fresh runner that installs Solo and deploys the network (needs Docker)
+        #   asset          SEA binary file name, in the build artifact and in the release
+        #   bin-directory  directory the installer puts the solo binary in
+        include:
+          - platform: linux
+            arch: x64
+            test-runner: hiero-solo-linux-large
+            asset: solo-linux-x64
+            bin-directory: '~/.solo/bin'
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+        with:
+          egress-policy: audit
+
+      # Only the installers and package.json (for the expected version) are needed; Solo itself comes
+      # from the installer.
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: installers
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+
+      - name: Assert Clean Environment
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          status=0
+          if command -v solo >/dev/null 2>&1; then
+            echo "NOT CLEAN: 'solo' is present on PATH at $(command -v solo)"
+            status=1
+          else
+            echo "clean: 'solo' is absent from PATH"
+          fi
+
+          if [ -e ~/.solo ]; then
+            echo "NOT CLEAN: ~/.solo exists (residual toolchain, cache, or state)"
+            status=1
+          else
+            echo "clean: ~/.solo does not exist"
+          fi
+
+          if [ "${status}" -ne 0 ]; then
+            echo "ERROR: environment is not clean; see the failures above."
+            exit 1
+          fi
+          echo "Environment is clean."
+
+      - name: Download SEA Binary
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          # The artifact also holds build intermediates (.blob, .cjs, .json); only the binary is staged.
+          name: solo-${{ matrix.platform }}-${{ matrix.arch }}-${{ github.sha }}
+          path: sea-binary
+
+      - name: Stage Local Release
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          ASSET: ${{ matrix.asset }}
+        run: |
+          release_directory="${RUNNER_TEMP}/release/latest/download"
+          mkdir -p "${release_directory}"
+          cp "sea-binary/${ASSET}" "${release_directory}/${ASSET}"
+          cd "${release_directory}"
+          # macOS ships shasum but not sha256sum; both write the same SHA256SUMS format.
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "${ASSET}" >SHA256SUMS
+          else
+            shasum -a 256 "${ASSET}" >SHA256SUMS
+          fi
+
+      # ---- Platform-specific install: one step per platform, each leaving solo in matrix.bin-directory ---- #
+
+      - name: Install Solo (Linux)
+        # Piped into sh, with the image cache pull enabled, exactly as a first-time user runs it.
+        if: ${{ matrix.platform == 'linux' }}
+        timeout-minutes: 30
+        env:
+          # The installer picks the startup file from SHELL, which the runner does not guarantee to set.
+          SHELL: /bin/bash
+        run: |
+          sh -s -- --base-url "file://${RUNNER_TEMP}/release" <installers/linux/install.sh 2>&1 | tee "${RUNNER_TEMP}/install.log"
+
+      - name: Verify PATH Configuration (Linux)
+        if: ${{ matrix.platform == 'linux' }}
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: grep -qF '# >>> solo installer >>>' ~/.bashrc
+
+      # ---- Shared by every platform ---- #
+
+      - name: Verify Installation
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        env:
+          BIN_DIRECTORY: ${{ matrix.bin-directory }}
+        run: |
+          bin_directory="${BIN_DIRECTORY/#\~/${HOME}}"
+          test -x "${bin_directory}/solo"
+          # Later steps run in fresh shells that do not read the shell startup files the installer edited.
+          echo "${bin_directory}" >>"${GITHUB_PATH}"
+          # Every solo command runs outside the checkout, so nothing can resolve resources from it.
+          echo "RUN_DIRECTORY=${RUNNER_TEMP}/solo-clean-run" >>"${GITHUB_ENV}"
+
+          installed_version="$("${bin_directory}/solo" --version)"
+          echo "${installed_version}"
+          expected_version="$(sed -n 's/^  "version": "\(.*\)",$/\1/p' package.json)"
+          echo "${installed_version}" | grep -qF "${expected_version}"
+
+      - name: Verify Image Cache Was Populated
+        # Disabled until the image cache manifest is published as a release asset (#5747): without it,
+        # `solo cache image pull` caches nothing and exits 0, so this check would fail on every run.
+        if: false
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          # The installers only warn when the pull fails, so the install step alone does not prove it worked.
+          if grep -qF 'the image cache was not fully populated' "${RUNNER_TEMP}/install.log"; then
+            echo "ERROR: the post-install 'solo cache image pull' failed; see the install step output"
+            exit 1
+          fi
+
+          image_directory=~/.solo/cache/images
+          if [ ! -d "${image_directory}" ]; then
+            echo "ERROR: ${image_directory} does not exist; the post-install image pull did not run"
+            exit 1
+          fi
+          archive_count="$(find "${image_directory}" -type f -name '*.tar' | wc -l)"
+          echo "image cache holds ${archive_count} archive(s)"
+          if [ "${archive_count}" -eq 0 ]; then
+            echo "ERROR: the post-install image pull left the cache empty"
+            exit 1
+          fi
+
+      - name: One-Shot Single Deploy
+        id: deploy
+        timeout-minutes: 70
+        run: |
+          mkdir -p "${RUN_DIRECTORY}"
+          cd "${RUN_DIRECTORY}"
+          solo one-shot single deploy --dev
+
+      - name: Check Port Forwarding Still Works After Deploy
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          cd "${RUN_DIRECTORY}"
+          solo deployment diagnostics connections -d one-shot --check
+
+      - name: Verify Mirror REST API
+        timeout-minutes: 10
+        run: |
+          echo "Checking mirror node REST API at http://localhost:38081/api/v1/accounts ..."
+          for i in $(seq 1 30); do
+            response=$(curl -sf http://localhost:38081/api/v1/accounts 2>/dev/null || true)
+            if echo "${response}" | grep -q '"accounts"'; then
+              echo "Mirror REST API is up and returned accounts."
+              exit 0
+            fi
+            echo "Attempt ${i}/30: not ready yet, retrying in 10s..."
+            sleep 10
+          done
+          echo "ERROR: Mirror REST API did not become available after 5 minutes."
+          exit 1
+
+      - name: Collect Diagnostics on Failure
+        if: ${{ failure() && steps.deploy.outcome != 'skipped' }}
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        run: |
+          cd "${RUN_DIRECTORY}"
+          solo deployment diagnostics logs -q --dev || true
+
+      - name: One-Shot Single Destroy
+        # Runs whenever a deploy was attempted, including a failed or cancelled one.
+        if: ${{ always() && steps.deploy.outcome != 'skipped' }}
+        timeout-minutes: 15
+        run: |
+          cd "${RUN_DIRECTORY}"
+          solo one-shot single destroy --quiet-mode --dev
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        timeout-minutes: ${{ fromJSON(env.STEP_TIMEOUT_MINUTES) }}
+        with:
+          name: installer-e2e-logs-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            ~/.solo/logs/*
+            ${{ runner.temp }}/install.log
+          overwrite: true
+          if-no-files-found: warn

@@ -70,14 +70,15 @@ jobs:
           node-version: 22
           package-manager-cache: false
 
-      - name: Install Dependencies
-        run: npm ci
+      - name: Install Task
+        uses: arduino/setup-task@c0bc642852239c2689f73f4ea6459c29405f3c52 # v3.0.0
+        with:
+          version: 3.49.1
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compile TypeScript
-        run: npx tsc
-
+      # Installs dependencies (npm ci on CI) and compiles before building the binary.
       - name: Build SEA Binary
-        run: npx tsx sea/build.ts
+        run: task sea:build
 
       - name: Upload SEA Binary
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
