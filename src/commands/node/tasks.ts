@@ -839,7 +839,7 @@ export class NodeCommandTasks {
           throw new SoloErrors.component.nodeStatusMissingLine();
         }
 
-        const statusNumber: number = Number.parseInt(statusLine.split(' ').pop() || '');
+        const statusNumber: NodeStatusCodes = Number.parseInt(statusLine.split(' ').pop() || '');
 
         if (statusNumber === status) {
           task.title = `${title} - status ${chalk.green(NodeStatusEnums[status])}, attempt: ${chalk.blueBright(`${attempt}/${maxAttempts}`)}`;

@@ -709,7 +709,7 @@ export class RapidFireCommand extends BaseCommand {
             performanceTest,
             context_.config.minTps,
           );
-          if (rttProbePromise) {
+          if (rttProbePromise !== undefined) {
             await rttProbePromise;
           }
 
@@ -782,12 +782,12 @@ export class RapidFireCommand extends BaseCommand {
 
       // LongevityLoadTest reports "Finished" lines for internal sub-tests
       // (e.g. HeliSwapLoadTest/HCSLoadTest) rather than LongevityLoadTest itself.
-      if (match && performanceTest === NLGTestClass.LongevityLoadTest) {
+      if (match && performanceTest === (NLGTestClass.LongevityLoadTest as string)) {
         longevityMatches.push(match);
       }
     }
 
-    if (!lastMatch && performanceTest === NLGTestClass.LongevityLoadTest && longevityMatches.length > 0) {
+    if (!lastMatch && performanceTest === (NLGTestClass.LongevityLoadTest as string) && longevityMatches.length > 0) {
       // Prefer the sub-test result that processed the most transactions.
       let selectedMatch: RegExpMatchArray = longevityMatches[0];
       for (const match of longevityMatches) {

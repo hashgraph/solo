@@ -63,7 +63,7 @@ export class Middlewares {
     );
   }
 
-  public initSystemFiles(): (argv: ArgvStruct) => AnyObject {
+  public initSystemFiles(): (argv: ArgvStruct) => Promise<AnyObject> {
     return async (argv: ArgvStruct): Promise<AnyObject> => {
       const cacheDirectory: string =
         (this.configManager.getFlag<string>(flags.cacheDir) as string) || (constants.SOLO_CACHE_DIR as string);
@@ -320,7 +320,7 @@ export class Middlewares {
     );
   }
 
-  public detectLocalSoloPackages(): (argv: ArgvStruct) => AnyObject {
+  public detectLocalSoloPackages(): (argv: ArgvStruct) => Promise<AnyObject> {
     const SOLO_PACKAGES_TO_UNLINK: string[] = ['@hashgraph/solo', '@hiero-ledger/solo'];
 
     /**

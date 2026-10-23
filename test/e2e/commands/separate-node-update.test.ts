@@ -55,7 +55,7 @@ export function testSeparateNodeUpdate(
     opts: {k8Factory, logger, remoteConfig, accountManager, keyManager},
   } = bootstrapResp;
 
-  describe('Node update via separated commands', async (): Promise<void> => {
+  describe('Node update via separated commands', (): void => {
     let existingServiceMap: NodeServiceMapping;
     let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 

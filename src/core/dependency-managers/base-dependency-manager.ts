@@ -339,5 +339,7 @@ export abstract class BaseDependencyManager extends ShellRunner {
    * Hook for setting up any configuration after installation
    * Child classes can override this if needed
    */
-  public setupConfig(): void {}
+  public setupConfig(): Promise<void> {
+    return Promise.resolve();
+  }
 }

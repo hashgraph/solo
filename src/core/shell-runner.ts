@@ -234,13 +234,13 @@ export class ShellRunner {
       sudoGranted('Root access granted.');
       return result;
     });
-    // eslint-disable-next-line no-async-promise-executor
-    const timeoutPromise: Promise<string[]> = new Promise<string[]>(async (resolve): Promise<void> => {
-      await new Promise((callback): NodeJS.Timeout => setTimeout(callback, 500));
-      if (!whoamiResolved) {
-        sudoRequested('Please provide root permissions to proceed...');
-      }
-      resolve([]);
+    const timeoutPromise: Promise<string[]> = new Promise<string[]>((resolve): void => {
+      setTimeout((): void => {
+        if (!whoamiResolved) {
+          sudoRequested('Please provide root permissions to proceed...');
+        }
+        resolve([]);
+      }, 500);
     });
     await Promise.race([whoamiPromise, timeoutPromise]);
 

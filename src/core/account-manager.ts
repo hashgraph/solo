@@ -409,7 +409,7 @@ export class AccountManager {
     networkNodeServicesMap: NodeServiceMapping,
     operatorId: string,
     operatorKey: string,
-    skipNodeAlias?: NodeAlias | undefined,
+    skipNodeAlias?: NodeAlias,
     skipAssignment: boolean = false,
   ): Promise<Client> {
     let nodes: Record<SdkNetworkEndpoint, AccountId> = {};

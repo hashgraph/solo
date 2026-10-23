@@ -31,7 +31,8 @@ export class RetryingHttpLibrary implements PromiseHttpLibrary {
 
     for (
       let attempt: number = 1;
-      attempt <= RetryingHttpLibrary.MAX_RETRIES && response.httpStatusCode === StatusCodes.TOO_MANY_REQUESTS;
+      attempt <= RetryingHttpLibrary.MAX_RETRIES &&
+      (response.httpStatusCode as StatusCodes) === StatusCodes.TOO_MANY_REQUESTS;
       attempt++
     ) {
       await RetryingHttpLibrary.discardResponseBody(response);

@@ -24,7 +24,7 @@ export interface Container {
    * @param [filter] - the filter to pass to tar to keep or skip files or directories
    * @returns a Promise that performs the copy operation
    */
-  copyTo(sourcePath: string, destinationDirectory: string, filter?: TarCreateFilter | undefined): Promise<boolean>;
+  copyTo(sourcePath: string, destinationDirectory: string, filter?: TarCreateFilter): Promise<boolean>;
 
   /**
    * Copy a large file in independently verifiable chunks and resume from chunks already present remotely.

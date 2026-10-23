@@ -597,7 +597,9 @@ export class K8ClientPods extends K8ClientBase implements Pods {
         }
 
         if (++attempts < maxAttempts) {
-          setTimeout((): Promise<void> => check(resolve, reject), delay);
+          setTimeout((): void => {
+            void check(resolve, reject);
+          }, delay);
         } else if (lastObservedPod) {
           const volumeMountDiagnostic: string | undefined = await this.buildVolumeMountDiagnostic(
             namespace,
@@ -621,7 +623,7 @@ export class K8ClientPods extends K8ClientBase implements Pods {
         }
       };
 
-      check(resolve, reject);
+      void check(resolve, reject);
     });
   }
 

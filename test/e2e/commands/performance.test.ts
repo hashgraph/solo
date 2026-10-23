@@ -172,12 +172,10 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
           }
 
           startTime = new Date();
-          metricsInterval = setInterval(async (): Promise<void> => {
-            try {
-              await logMetrics(startTime);
-            } catch (error: unknown) {
+          metricsInterval = setInterval((): void => {
+            logMetrics(startTime).catch((error: unknown): void => {
               testLogger.warn(`${testName}: failed to log interval metrics: ${error}`);
-            }
+            });
           }, Duration.ofSeconds(5).toMillis());
         }).timeout(Duration.ofMinutes(25).toMillis());
 

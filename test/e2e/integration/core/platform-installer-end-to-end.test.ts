@@ -33,7 +33,7 @@ argv.setArg(flags.generateTlsKeys, true);
 argv.setArg(flags.enableMonitoringSupport, false);
 
 endToEndTestSuite(namespace.name, argv, {startNodes: false}, ({opts}): void => {
-  describe('Platform Installer E2E', async (): Promise<void> => {
+  describe('Platform Installer E2E', (): void => {
     const {k8Factory, accountManager, platformInstaller} = opts;
     const podReference: PodReference = PodReference.of(namespace, PodName.of('network-node1-0'));
     const packageVersion: string = 'v0.42.5';

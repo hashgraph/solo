@@ -2477,7 +2477,7 @@ export class NetworkCommand extends BaseCommand {
               return;
             }
 
-            const onTimeoutCallback: NodeJS.Timeout = setTimeout(async (): Promise<void> => {
+            const destroyOnTimeout: () => Promise<void> = async (): Promise<void> => {
               const message: string = `\n\nUnable to finish consensus network destroy in ${constants.NETWORK_DESTROY_WAIT_TIMEOUT} seconds\n\n`;
               this.logger.error(message);
               this.logger.showUser(chalk.red(message));
@@ -2497,6 +2497,14 @@ export class NetworkCommand extends BaseCommand {
                   this.logger.warn(`Skipping deletion of namespace '${namespace.name}', not created by solo`);
                 }
               }
+            };
+
+            const onTimeoutCallback: NodeJS.Timeout = setTimeout((): void => {
+              destroyOnTimeout().catch((error: unknown): void => {
+                // best-effort cleanup after the timeout: report the failure without crashing the destroy command
+                this.logger.error('Cleanup after the consensus network destroy timeout failed', error);
+                this.logger.showUser(chalk.red('Cleanup after the destroy timeout failed, see solo.log for details'));
+              });
             }, constants.NETWORK_DESTROY_WAIT_TIMEOUT * 1000);
 
             await this.destroyTask(task, namespace, deletePvcs, deleteSecrets, contexts);

@@ -252,7 +252,7 @@ export default [
   eslintJs.configs.recommended,
   nodePlugin.configs['flat/recommended'],
   eslintConfigPrettier,
-  ...tsEslint.configs.recommended.map(config => ({
+  ...tsEslint.configs.recommendedTypeChecked.map(config => ({
     ...config,
     files: ['**/*.ts', '**/*.tsx'],
   })),
@@ -433,6 +433,23 @@ export default [
       ],
       'no-invalid-this': ['off', {}],
       '@typescript-eslint/no-unused-expressions': 'off',
+      // Type-checked rules (recommendedTypeChecked, #1043) that still have too many hits to fix in one go.
+      // Counts are from when typed linting was turned on.
+      '@typescript-eslint/unbound-method': 'warn', // TODO error (534 errors)
+      '@typescript-eslint/require-await': 'warn', // TODO error (285 errors)
+      '@typescript-eslint/restrict-template-expressions': 'warn', // TODO error (153 errors)
+      '@typescript-eslint/no-base-to-string': 'warn', // TODO error (94 errors)
+      '@typescript-eslint/no-redundant-type-constituents': 'warn', // TODO error (79 errors)
+      // The no-unsafe-* rules report every use of an `any` value, so they mostly repeat no-explicit-any above.
+      // Turn them on once no-explicit-any is cleaned up.
+      '@typescript-eslint/no-unsafe-member-access': 'off', // TODO error (1222 errors)
+      '@typescript-eslint/no-unsafe-argument': 'off', // TODO error (739 errors)
+      '@typescript-eslint/no-unsafe-assignment': 'off', // TODO error (425 errors)
+      '@typescript-eslint/no-unsafe-call': 'off', // TODO error (277 errors)
+      '@typescript-eslint/no-unsafe-return': 'off', // TODO error (114 errors)
+      // With "strict": false in tsconfig.json this rule reports every non-null assertion (`!`) as unnecessary.
+      // Turn it on together with strictNullChecks.
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off', // TODO error (428 errors)
       curly: ['error', 'all'],
       '@typescript-eslint/no-extraneous-class': [
         'error',

@@ -10,7 +10,7 @@ import {ArgumentProcessor} from '../../../src/argument-processor.js';
 import {SoloError} from '../../../src/core/errors/solo-error.js';
 
 describe('ArgumentProcessor', (): void => {
-  let originalExit: (code?: string | number | null | undefined) => never;
+  let originalExit: (code?: string | number | null) => never;
   let originalExitCode: number | string | undefined;
   let consoleOutput: string[];
   let originalConsoleLog: (...data: unknown[]) => void;

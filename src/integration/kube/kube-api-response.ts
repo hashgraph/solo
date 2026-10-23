@@ -11,8 +11,8 @@ import {InjectTokens} from '../../core/dependency-injection/inject-tokens.js';
 import {type SoloLogger} from '../../core/logging/solo-logger.js';
 
 interface ApiError extends Error {
-  code?: number;
-  statusCode?: number;
+  code?: StatusCodes;
+  statusCode?: StatusCodes;
   body?: unknown;
   headers?: unknown;
   input?: unknown;

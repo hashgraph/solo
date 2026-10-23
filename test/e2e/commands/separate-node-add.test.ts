@@ -53,7 +53,7 @@ export function testSeparateNodeAdd(
     opts: {k8Factory, accountManager, remoteConfig, logger},
   } = bootstrapResp;
 
-  describe('Node add via separated commands should success', async (): Promise<void> => {
+  describe('Node add via separated commands should success', (): void => {
     let existingServiceMap: NodeServiceMapping;
     let existingNodeIdsPrivateKeysHash: Map<NodeAlias, Map<string, string>>;
 

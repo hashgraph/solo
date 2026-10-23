@@ -183,28 +183,19 @@ export class KeyManager {
       certPems.push(cert.toString('pem'));
     }
 
-    return new Promise((resolve, reject) => {
-      try {
-        this.logger.debug(`Storing ${keyName} key for node: ${nodeAlias}`, {nodeKeyFiles});
+    this.logger.debug(`Storing ${keyName} key for node: ${nodeAlias}`, {nodeKeyFiles});
 
-        fs.writeFileSync(nodeKeyFiles.privateKeyFile, keyPem, {mode: 0o600});
-        FilePermissions.restrictToOwner(nodeKeyFiles.privateKeyFile, false);
+    fs.writeFileSync(nodeKeyFiles.privateKeyFile, keyPem, {mode: 0o600});
+    FilePermissions.restrictToOwner(nodeKeyFiles.privateKeyFile, false);
 
-        // one write replaces any existing certificate file instead of appending to it
-        fs.writeFileSync(
-          nodeKeyFiles.certificateFile,
-          certPems.map((certPem: string): string => certPem + '\n').join(''),
-        );
+    // one write replaces any existing certificate file instead of appending to it
+    fs.writeFileSync(nodeKeyFiles.certificateFile, certPems.map((certPem: string): string => certPem + '\n').join(''));
 
-        this.logger.debug(`Stored ${keyName} key for node: ${nodeAlias}`, {
-          nodeKeyFiles,
-        });
-
-        resolve(nodeKeyFiles);
-      } catch (error: Error | any) {
-        reject(error);
-      }
+    this.logger.debug(`Stored ${keyName} key for node: ${nodeAlias}`, {
+      nodeKeyFiles,
     });
+
+    return nodeKeyFiles;
   }
 
   /**

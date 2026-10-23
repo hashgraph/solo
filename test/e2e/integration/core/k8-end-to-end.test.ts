@@ -210,7 +210,7 @@ describe('K8', (): void => {
     const localPort: number = +constants.HEDERA_NODE_INTERNAL_GOSSIP_PORT;
     try {
       const podReference: PodReference = PodReference.of(testNamespace, podName);
-      k8Factory
+      void k8Factory
         .default()
         .pods()
         .readByReference(podReference)
@@ -222,20 +222,33 @@ describe('K8', (): void => {
 
           // client
           const s: net.Socket = new net.Socket();
-          s.on('ready', async (): Promise<void> => {
+          s.on('ready', (): void => {
             s.destroy();
-            await k8Factory.default().pods().readByReference(podReference).stopPortForward(server);
-            done();
+            void k8Factory
+              .default()
+              .pods()
+              .readByReference(podReference)
+              .stopPortForward(server)
+              .then((): void => done(), done);
           });
 
-          s.on('error', async (error: Error): Promise<void> => {
+          s.on('error', (error: Error): void => {
             s.destroy();
-            await k8Factory.default().pods().readByReference(podReference).stopPortForward(server);
-            done(new SoloError(`could not connect to local port '${localPort}': ${error.message}`, error));
+            void k8Factory
+              .default()
+              .pods()
+              .readByReference(podReference)
+              .stopPortForward(server)
+              .then(
+                (): void =>
+                  done(new SoloError(`could not connect to local port '${localPort}': ${error.message}`, error)),
+                done,
+              );
           });
 
           s.connect(localPort);
-        });
+        })
+        .catch(done);
     } catch (error) {
       testLogger.showUserError(error);
       expect.fail();

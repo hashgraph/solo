@@ -41,17 +41,7 @@ const MOCK_GITHUB_RELEASES_RESPONSE: {
     {
       tag_name: string;
       html_url: string;
-      assets: (
-        | {name: string; browser_download_url: string; content_type: string; size: number; digest: string}
-        | {
-            name: string;
-            browser_download_url: string;
-            content_type: string;
-            size: number;
-            digest: string;
-          }
-        | {name: string; browser_download_url: string; content_type: string; size: number; digest: string}
-      )[];
+      assets: {name: string; browser_download_url: string; content_type: string; size: number; digest: string}[];
     }[]
   > => [
     {

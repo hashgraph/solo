@@ -30,7 +30,7 @@ export function testSeparateNodeDelete(argv: Argv, bootstrapResp: BootstrapRespo
     opts: {k8Factory, accountManager, remoteConfig, logger},
   } = bootstrapResp;
 
-  describe('Node delete via separated commands', async (): Promise<void> => {
+  describe('Node delete via separated commands', (): void => {
     it('should delete a node from the network successfully', async (): Promise<void> => {
       await main(
         NodeDestroyTest.soloNodeDeletePrepareArgv(argv.getArg<string>(flags.deployment), temporaryDirectory, nodeAlias),

@@ -99,7 +99,7 @@ describe('SoloEventBus', (): void => {
   it('waitFor() should resolve only once even if the event is emitted multiple times', async (): Promise<void> => {
     const results: NetworkDeployedEvent[] = [];
     const promise: Promise<NetworkDeployedEvent> = bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed);
-    promise.then((soloEvent: NetworkDeployedEvent): number => results.push(soloEvent));
+    void promise.then((soloEvent: NetworkDeployedEvent): number => results.push(soloEvent));
     bus.emit(networkEvent);
     bus.emit(networkEvent);
     await promise;
@@ -108,7 +108,7 @@ describe('SoloEventBus', (): void => {
 
   it('waitFor() should not resolve for a different event type', async (): Promise<void> => {
     let resolved: boolean = false;
-    bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
+    void bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
       resolved = true;
     });
     bus.emit(mirrorEvent);
@@ -130,7 +130,7 @@ describe('SoloEventBus', (): void => {
 
   it('waitFor() with predicate should skip events that do not match', async (): Promise<void> => {
     let resolved: boolean = false;
-    bus
+    void bus
       .waitFor<NetworkDeployedEvent>(
         SoloEventType.NetworkDeployed,
         (soloEvent: NetworkDeployedEvent): boolean => soloEvent.deployment === 'target',
@@ -149,7 +149,7 @@ describe('SoloEventBus', (): void => {
       SoloEventType.NetworkDeployed,
       (): boolean => true,
     );
-    promise.then((soloEvent: NetworkDeployedEvent): number => results.push(soloEvent));
+    void promise.then((soloEvent: NetworkDeployedEvent): number => results.push(soloEvent));
     bus.emit(networkEvent);
     bus.emit(networkEvent);
     await promise;
@@ -228,7 +228,7 @@ describe('SoloEventBus', (): void => {
       bus.clearHistory(SoloEventType.NetworkDeployed);
 
       let resolved: boolean = false;
-      bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
+      void bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
         resolved = true;
       });
       await Promise.resolve();
@@ -254,10 +254,10 @@ describe('SoloEventBus', (): void => {
 
       let networkResolved: boolean = false;
       let mirrorResolved: boolean = false;
-      bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
+      void bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
         networkResolved = true;
       });
-      bus.waitFor<MirrorNodeDeployedEvent>(SoloEventType.MirrorNodeDeployed).then((): void => {
+      void bus.waitFor<MirrorNodeDeployedEvent>(SoloEventType.MirrorNodeDeployed).then((): void => {
         mirrorResolved = true;
       });
       await Promise.resolve();
@@ -325,7 +325,7 @@ describe('SoloEventBus', (): void => {
       expect(bus.abortReason()).to.be.undefined;
 
       let resolved: boolean = false;
-      bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
+      void bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
         resolved = true;
       });
       await Promise.resolve();
@@ -337,7 +337,7 @@ describe('SoloEventBus', (): void => {
       bus.reset();
 
       let resolved: boolean = false;
-      bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
+      void bus.waitFor<NetworkDeployedEvent>(SoloEventType.NetworkDeployed).then((): void => {
         resolved = true;
       });
       await Promise.resolve();

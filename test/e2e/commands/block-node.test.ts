@@ -157,7 +157,7 @@ const endToEndTestSuite: EndToEndTestSuite = new EndToEndTestSuiteBuilder()
 
         BlockNodeTest.verifyBlockNodesJson(options, 'node1', [], [1, 2], {});
 
-        describe('Write log metrics', async (): Promise<void> => {
+        describe('Write log metrics', (): void => {
           it('Should write log metrics', async (): Promise<void> => {
             await new MetricsServerImpl().logMetrics(
               testName,

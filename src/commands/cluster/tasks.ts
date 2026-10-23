@@ -518,7 +518,7 @@ export class ClusterCommandTasks {
           subtasks.push(this.installMetricsServer());
         }
 
-        const result: SoloListr<ClusterReferenceSetupContext> = await task.newListr(subtasks, {concurrent: false});
+        const result: SoloListr<ClusterReferenceSetupContext> = task.newListr(subtasks, {concurrent: false});
 
         if (argv.debug) {
           await this.showInstalledChartList(context_.config.clusterSetupNamespace, context_.config.context);

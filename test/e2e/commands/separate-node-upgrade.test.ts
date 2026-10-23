@@ -29,7 +29,7 @@ export function testSeparateNodeUpgrade(argv: Argv, bootstrapResp: BootstrapResp
     opts: {k8Factory, logger},
   } = bootstrapResp;
 
-  describe('Node upgrade', async (): Promise<void> => {
+  describe('Node upgrade', (): void => {
     it('should succeed with separate upgrade command', async (): Promise<void> => {
       // Create file version.txt at tmp directory
       const temporaryDirectory: string = getTemporaryDirectory();

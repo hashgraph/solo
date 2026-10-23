@@ -400,7 +400,7 @@ export class NetworkNodes {
       await k8.containers().readByRef(containerReference).copyFrom(`${zipFileName}`, targetDirectory);
     } catch (error: Error | unknown) {
       this.logger.error(`failed to download state from pod ${podReference.name}`, error);
-      this.logger.showUser(`Failed to download state from pod ${podReference.name}` + error);
+      this.logger.showUser(`Failed to download state from pod ${podReference.name}` + String(error));
     }
     this.logger.debug(`getNodeState(${pod.podReference.name.name}): ...end`);
   }
