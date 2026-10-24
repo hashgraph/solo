@@ -1085,6 +1085,11 @@ export class NetworkCommand extends BaseCommand {
       ],
     ) as NetworkDeployConfigClass;
 
+    // Read values-file from argv (closure-captured, immutable) rather than configManager. configManager is a
+    // process-wide singleton shared across concurrent one-shot subcommands, and a sibling's Initialize task
+    // (e.g. mirror node add with its HikariCP limits file) can race-overwrite the value set by update(argv).
+    config.valuesFile = (argv[flags.valuesFile.name] as string | undefined) ?? config.valuesFile;
+
     if (config.verifyPersistentVolumeClaimMounts && !config.persistentVolumeClaims) {
       throw new SoloErrors.validation.invalidFlagValue(
         flags.verifyPersistentVolumeClaimMounts.name,
